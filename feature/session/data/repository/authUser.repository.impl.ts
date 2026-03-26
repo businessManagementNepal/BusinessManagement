@@ -19,10 +19,7 @@ export const createAuthUserRepository = (
     const result = await localDatasource.saveAuthUser(payload);
 
     if (result.success) {
-      return {
-        success: true,
-        value: mapAuthUserModelToDomain(result.value),
-      };
+      return mapAuthUserModel(result.value);
     }
 
     return {
@@ -35,10 +32,7 @@ export const createAuthUserRepository = (
     const result = await localDatasource.getAuthUserByRemoteId(remoteId);
 
     if (result.success) {
-      return {
-        success: true,
-        value: mapAuthUserModelToDomain(result.value),
-      };
+      return mapAuthUserModel(result.value);
     }
 
     return {
@@ -51,10 +45,21 @@ export const createAuthUserRepository = (
     const result = await localDatasource.getAllAuthUsers();
 
     if (result.success) {
-      return {
-        success: true,
-        value: result.value.map(mapAuthUserModelToDomain),
-      };
+      try {
+        const mappedUsers = await Promise.all(
+          result.value.map((model) => mapAuthUserModelToDomain(model)),
+        );
+
+        return {
+          success: true,
+          value: mappedUsers,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: mapAuthUserError(error),
+        };
+      }
     }
 
     return {
@@ -91,6 +96,22 @@ export const createAuthUserRepository = (
     };
   },
 });
+
+const mapAuthUserModel = async (
+  model: Parameters<typeof mapAuthUserModelToDomain>[0],
+): Promise<AuthUserResult> => {
+  try {
+    return {
+      success: true,
+      value: await mapAuthUserModelToDomain(model),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: mapAuthUserError(error),
+    };
+  }
+};
 
 const mapAuthUserError = (error: Error | unknown): AuthSessionError => {
   if (!(error instanceof Error)) {

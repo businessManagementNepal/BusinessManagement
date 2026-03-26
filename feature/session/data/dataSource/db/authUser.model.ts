@@ -1,5 +1,5 @@
 import { Model } from "@nozbe/watermelondb";
-import { field, readonly, date } from "@nozbe/watermelondb/decorators";
+import { date, field, readonly } from "@nozbe/watermelondb/decorators";
 
 export class AuthUserModel extends Model {
   static table = "auth_users";
@@ -14,7 +14,14 @@ export class AuthUserModel extends Model {
   @field("is_email_verified") isEmailVerified!: boolean;
   @field("is_phone_verified") isPhoneVerified!: boolean;
 
-  @field("sync_status") recordSyncStatus!: "pending" | "synced" | "failed";
+  @field("sync_status")
+  recordSyncStatus!:
+    | "pending"
+    | "pending_create"
+    | "pending_update"
+    | "pending_delete"
+    | "synced"
+    | "failed";
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;
 

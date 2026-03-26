@@ -5,6 +5,7 @@ import { Status } from "@/shared/types/status.types";
 export const LoginErrorType = {
   ValidationError: "VALIDATION_ERROR",
   InvalidCredentials: "INVALID_CREDENTIALS",
+  TooManyAttempts: "TOO_MANY_ATTEMPTS",
   DatabaseError: "DATABASE_ERROR",
   UnknownError: "UNKNOWN_ERROR",
 } as const;
@@ -24,9 +25,14 @@ export const InvalidCredentialsError: LoginError = {
   message: "Invalid email or password.",
 };
 
+export const TooManyAttemptsError: LoginError = {
+  type: LoginErrorType.TooManyAttempts,
+  message: "Too many failed attempts. Please try again later.",
+};
+
 export const DatabaseError: LoginError = {
   type: LoginErrorType.DatabaseError,
-  message: "An error occurred while accessing the database.",
+  message: "Unable to process your request right now. Please try again.",
 };
 
 export const UnknownError: LoginError = {

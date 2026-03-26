@@ -1,4 +1,8 @@
-import { createTable, schemaMigrations } from "@nozbe/watermelondb/Schema/migrations";
+import {
+  addColumns,
+  createTable,
+  schemaMigrations,
+} from "@nozbe/watermelondb/Schema/migrations";
 
 export const migrations = schemaMigrations({
   migrations: [
@@ -20,6 +24,40 @@ export const migrations = schemaMigrations({
             { name: "sync_status", type: "string", isIndexed: true },
             { name: "last_synced_at", type: "number", isOptional: true },
             { name: "deleted_at", type: "number", isOptional: true },
+            { name: "created_at", type: "number" },
+            { name: "updated_at", type: "number" },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 12,
+      steps: [
+        addColumns({
+          table: "auth_credentials",
+          columns: [
+            { name: "failed_attempt_count", type: "number", isOptional: true },
+            { name: "lockout_until", type: "number", isOptional: true },
+            { name: "last_failed_login_at", type: "number", isOptional: true },
+          ],
+        }),
+        createTable({
+          name: "app_settings",
+          columns: [
+            { name: "selected_language", type: "string" },
+            { name: "onboarding_completed", type: "boolean" },
+            {
+              name: "active_user_remote_id",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
+            {
+              name: "active_account_remote_id",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
             { name: "created_at", type: "number" },
             { name: "updated_at", type: "number" },
           ],

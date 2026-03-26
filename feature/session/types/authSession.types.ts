@@ -1,5 +1,24 @@
 import { Result } from "@/shared/types/result.types";
 
+export const CredentialType = {
+  Password: "password",
+  Pin: "pin",
+} as const;
+
+export type CredentialTypeValue =
+  (typeof CredentialType)[keyof typeof CredentialType];
+
+export const RecordSyncStatus = {
+  PendingCreate: "pending_create",
+  PendingUpdate: "pending_update",
+  PendingDelete: "pending_delete",
+  Synced: "synced",
+  Failed: "failed",
+} as const;
+
+export type RecordSyncStatusValue =
+  (typeof RecordSyncStatus)[keyof typeof RecordSyncStatus];
+
 export type SaveAuthUserPayload = {
   remoteId: string;
   fullName: string;
@@ -16,7 +35,7 @@ export type SaveAuthCredentialPayload = {
   remoteId: string;
   userRemoteId: string;
   loginId: string;
-  credentialType: "password" | "pin";
+  credentialType: CredentialTypeValue;
   passwordHash: string;
   passwordSalt: string;
   hint: string | null;
@@ -46,12 +65,15 @@ export type AuthCredential = {
   remoteId: string;
   userRemoteId: string;
   loginId: string;
-  credentialType: "password" | "pin";
+  credentialType: CredentialTypeValue;
   passwordHash: string;
   passwordSalt: string;
   hint: string | null;
   lastLoginAt: number | null;
   isActive: boolean;
+  failedAttemptCount: number;
+  lockoutUntil: number | null;
+  lastFailedLoginAt: number | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -65,6 +87,7 @@ export const AuthSessionErrorType = {
   DatabaseError: "DATABASE_ERROR",
   ValidationError: "VALIDATION_ERROR",
   InvalidCredentials: "INVALID_CREDENTIALS",
+  TooManyAttempts: "TOO_MANY_ATTEMPTS",
   AuthUserNotFound: "AUTH_USER_NOT_FOUND",
   AuthCredentialNotFound: "AUTH_CREDENTIAL_NOT_FOUND",
   UnknownError: "UNKNOWN_ERROR",
@@ -77,7 +100,7 @@ export type AuthSessionError = {
 
 export const AuthSessionDatabaseError: AuthSessionError = {
   type: AuthSessionErrorType.DatabaseError,
-  message: "An error occurred while accessing the database.",
+  message: "Unable to process your request right now. Please try again.",
 };
 
 export const AuthSessionValidationError = (
@@ -91,6 +114,11 @@ export const InvalidCredentialsError: AuthSessionError = {
   type: AuthSessionErrorType.InvalidCredentials,
   message: "Invalid email or password.",
 };
+
+export const TooManyAttemptsError = (): AuthSessionError => ({
+  type: AuthSessionErrorType.TooManyAttempts,
+  message: "Too many failed attempts. Please try again later.",
+});
 
 export const AuthUserNotFoundError: AuthSessionError = {
   type: AuthSessionErrorType.AuthUserNotFound,

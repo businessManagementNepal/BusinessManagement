@@ -1,16 +1,28 @@
+import { VerifyLocalCredentialUseCase } from "@/feature/session/useCase/verifyLocalCredential.useCase";
+import {
+  AuthSessionErrorType,
+  VerifiedLocalCredential,
+} from "@/feature/session/types/authSession.types";
 import { LoginRepository } from "./login.repository";
 import {
   DatabaseError,
   InvalidCredentialsError,
   LoginError,
   LoginResult,
+  TooManyAttemptsError,
   UnknownError,
+  ValidationError,
 } from "../../types/login.types";
-import { VerifyLocalCredentialUseCase } from "@/feature/session/useCase/verifyLocalCredential.useCase";
-import { AuthSessionErrorType } from "@/feature/session/types/authSession.types";
+
+type LocalLoginRepositoryOptions = {
+  onAuthenticated?: (
+    verifiedCredential: VerifiedLocalCredential,
+  ) => Promise<void> | void;
+};
 
 export const createLocalLoginRepository = (
   verifyLocalCredentialUseCase: VerifyLocalCredentialUseCase,
+  options: LocalLoginRepositoryOptions = {},
 ): LoginRepository => ({
   async loginWithEmail(payload): Promise<LoginResult> {
     const result = await verifyLocalCredentialUseCase.execute({
@@ -18,16 +30,27 @@ export const createLocalLoginRepository = (
       password: payload.password,
     });
 
-    if (result.success) {
+    if (!result.success) {
       return {
-        success: true,
-        value: result.value,
+        success: false,
+        error: mapAuthSessionErrorToLoginError(result.error),
+      };
+    }
+
+    try {
+      if (options.onAuthenticated) {
+        await options.onAuthenticated(result.value);
+      }
+    } catch {
+      return {
+        success: false,
+        error: DatabaseError,
       };
     }
 
     return {
-      success: false,
-      error: mapAuthSessionErrorToLoginError(result.error),
+      success: true,
+      value: result.value,
     };
   },
 });
@@ -50,24 +73,19 @@ const mapAuthSessionErrorToLoginError = (
       return InvalidCredentialsError;
     }
 
+    if (typedError.type === AuthSessionErrorType.TooManyAttempts) {
+      return TooManyAttemptsError;
+    }
+
     if (typedError.type === AuthSessionErrorType.DatabaseError) {
-      return {
-        ...DatabaseError,
-        message: typedError.message,
-      };
+      return DatabaseError;
     }
 
     if (typedError.type === AuthSessionErrorType.ValidationError) {
-      return {
-        type: "VALIDATION_ERROR",
-        message: typedError.message,
-      };
+      return ValidationError(typedError.message);
     }
 
-    return {
-      ...UnknownError,
-      message: typedError.message,
-    };
+    return UnknownError;
   }
 
   if (!(error instanceof Error)) {
@@ -84,14 +102,8 @@ const mapAuthSessionErrorToLoginError = (
     message.includes("timeout");
 
   if (isDatabaseError) {
-    return {
-      ...DatabaseError,
-      message: error.message,
-    };
+    return DatabaseError;
   }
 
-  return {
-    ...UnknownError,
-    message: error.message,
-  };
+  return UnknownError;
 };

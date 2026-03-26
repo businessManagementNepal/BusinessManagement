@@ -1,5 +1,11 @@
-import { AuthCredentialResult } from "../types/authSession.types";
+import {
+  AuthCredentialResult,
+  CredentialTypeValue,
+} from "../types/authSession.types";
 
 export interface GetActiveAuthCredentialByLoginIdUseCase {
-  execute(loginId: string): Promise<AuthCredentialResult>;
+  execute(
+    loginId: string,
+    credentialType?: CredentialTypeValue,
+  ): Promise<AuthCredentialResult>;
 }

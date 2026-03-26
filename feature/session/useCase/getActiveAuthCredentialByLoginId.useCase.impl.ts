@@ -2,13 +2,18 @@ import { AuthCredentialRepository } from "../data/repository/authCredential.repo
 import {
   AuthCredentialResult,
   AuthSessionValidationError,
+  CredentialType,
+  CredentialTypeValue,
 } from "../types/authSession.types";
 import { GetActiveAuthCredentialByLoginIdUseCase } from "./getActiveAuthCredentialByLoginId.useCase";
 
 export const createGetActiveAuthCredentialByLoginIdUseCase = (
   authCredentialRepository: AuthCredentialRepository,
 ): GetActiveAuthCredentialByLoginIdUseCase => ({
-  async execute(loginId: string): Promise<AuthCredentialResult> {
+  async execute(
+    loginId: string,
+    credentialType: CredentialTypeValue = CredentialType.Password,
+  ): Promise<AuthCredentialResult> {
     if (!loginId.trim()) {
       return {
         success: false,
@@ -16,6 +21,9 @@ export const createGetActiveAuthCredentialByLoginIdUseCase = (
       };
     }
 
-    return authCredentialRepository.getActiveAuthCredentialByLoginId(loginId);
+    return authCredentialRepository.getActiveAuthCredentialByLoginId(
+      loginId,
+      credentialType,
+    );
   },
 });

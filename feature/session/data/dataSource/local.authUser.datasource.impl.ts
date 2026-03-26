@@ -1,10 +1,35 @@
 import { Database, Q } from "@nozbe/watermelondb";
 import { Result } from "@/shared/types/result.types";
-import { AuthUserModel } from "./db/authUser.model";
+import { createDatabaseFieldEncryptionService } from "@/shared/utils/security/databaseFieldEncryption.service";
+import {
+  RecordSyncStatus,
+  SaveAuthUserPayload,
+} from "../../types/authSession.types";
 import { AuthUserDatasource } from "./authUser.datasource";
-import { SaveAuthUserPayload } from "../../types/authSession.types";
+import { AuthUserModel } from "./db/authUser.model";
 
 const AUTH_USERS_TABLE = "auth_users";
+const databaseFieldEncryptionService = createDatabaseFieldEncryptionService();
+
+const setCreatedAndUpdatedAt = (record: AuthUserModel, now: number) => {
+  (record as unknown as { _raw: Record<string, number> })._raw.created_at = now;
+  (record as unknown as { _raw: Record<string, number> })._raw.updated_at = now;
+};
+
+const setUpdatedAt = (record: AuthUserModel, now: number) => {
+  (record as unknown as { _raw: Record<string, number> })._raw.updated_at = now;
+};
+
+const updateSyncStatusOnMutation = (record: AuthUserModel) => {
+  if (!record.recordSyncStatus) {
+    record.recordSyncStatus = RecordSyncStatus.PendingUpdate;
+    return;
+  }
+
+  if (record.recordSyncStatus === RecordSyncStatus.Synced) {
+    record.recordSyncStatus = RecordSyncStatus.PendingUpdate;
+  }
+};
 
 export const createLocalAuthUserDatasource = (
   database: Database,
@@ -13,6 +38,22 @@ export const createLocalAuthUserDatasource = (
     payload: SaveAuthUserPayload,
   ): Promise<Result<AuthUserModel>> {
     try {
+      const encryptedFullName = await databaseFieldEncryptionService.encrypt(
+        payload.fullName,
+      );
+      const encryptedEmail = await databaseFieldEncryptionService.encryptNullable(
+        payload.email,
+      );
+      const encryptedPhone = await databaseFieldEncryptionService.encryptNullable(
+        payload.phone,
+      );
+      const encryptedAuthProvider =
+        await databaseFieldEncryptionService.encryptNullable(payload.authProvider);
+      const encryptedProfileImageUrl =
+        await databaseFieldEncryptionService.encryptNullable(payload.profileImageUrl);
+      const encryptedPreferredLanguage =
+        await databaseFieldEncryptionService.encryptNullable(payload.preferredLanguage);
+
       const authUsersCollection = database.get<AuthUserModel>(AUTH_USERS_TABLE);
 
       const matchingUsers = await authUsersCollection
@@ -25,14 +66,16 @@ export const createLocalAuthUserDatasource = (
         await database.write(async () => {
           await existingUser.update((record) => {
             record.remoteId = payload.remoteId;
-            record.fullName = payload.fullName;
-            record.email = payload.email;
-            record.phone = payload.phone;
-            record.authProvider = payload.authProvider;
-            record.profileImageUrl = payload.profileImageUrl;
-            record.preferredLanguage = payload.preferredLanguage;
+            record.fullName = encryptedFullName;
+            record.email = encryptedEmail;
+            record.phone = encryptedPhone;
+            record.authProvider = encryptedAuthProvider;
+            record.profileImageUrl = encryptedProfileImageUrl;
+            record.preferredLanguage = encryptedPreferredLanguage;
             record.isEmailVerified = payload.isEmailVerified;
             record.isPhoneVerified = payload.isPhoneVerified;
+            updateSyncStatusOnMutation(record);
+            setUpdatedAt(record, Date.now());
           });
         });
 
@@ -43,15 +86,23 @@ export const createLocalAuthUserDatasource = (
 
       await database.write(async () => {
         createdUser = await authUsersCollection.create((record) => {
+          const now = Date.now();
+
           record.remoteId = payload.remoteId;
-          record.fullName = payload.fullName;
-          record.email = payload.email;
-          record.phone = payload.phone;
-          record.authProvider = payload.authProvider;
-          record.profileImageUrl = payload.profileImageUrl;
-          record.preferredLanguage = payload.preferredLanguage;
+          record.fullName = encryptedFullName;
+          record.email = encryptedEmail;
+          record.phone = encryptedPhone;
+          record.authProvider = encryptedAuthProvider;
+          record.profileImageUrl = encryptedProfileImageUrl;
+          record.preferredLanguage = encryptedPreferredLanguage;
           record.isEmailVerified = payload.isEmailVerified;
           record.isPhoneVerified = payload.isPhoneVerified;
+
+          record.recordSyncStatus = RecordSyncStatus.PendingCreate;
+          record.lastSyncedAt = null;
+          record.deletedAt = null;
+
+          setCreatedAndUpdatedAt(record, now);
         });
       });
 
@@ -71,7 +122,7 @@ export const createLocalAuthUserDatasource = (
       const authUsersCollection = database.get<AuthUserModel>(AUTH_USERS_TABLE);
 
       const matchingUsers = await authUsersCollection
-        .query(Q.where("remote_id", remoteId))
+        .query(Q.where("remote_id", remoteId), Q.sortBy("updated_at", Q.desc))
         .fetch();
 
       if (matchingUsers.length === 0) {
@@ -91,7 +142,9 @@ export const createLocalAuthUserDatasource = (
     try {
       const authUsersCollection = database.get<AuthUserModel>(AUTH_USERS_TABLE);
 
-      const authUsers = await authUsersCollection.query().fetch();
+      const authUsers = await authUsersCollection
+        .query(Q.sortBy("updated_at", Q.desc))
+        .fetch();
 
       return { success: true, value: authUsers };
     } catch (error) {

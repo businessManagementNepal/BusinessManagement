@@ -5,6 +5,7 @@ import {
   AuthSessionDatabaseError,
   AuthSessionError,
   AuthSessionUnknownError,
+  CredentialTypeValue,
   SaveAuthCredentialPayload,
 } from "../../types/authSession.types";
 import { AuthCredentialDatasource } from "../dataSource/authCredential.datasource";
@@ -20,10 +21,7 @@ export const createAuthCredentialRepository = (
     const result = await localDatasource.saveAuthCredential(payload);
 
     if (result.success) {
-      return {
-        success: true,
-        value: mapAuthCredentialModelToDomain(result.value),
-      };
+      return mapCredentialModel(result.value);
     }
 
     return {
@@ -34,15 +32,15 @@ export const createAuthCredentialRepository = (
 
   async getActiveAuthCredentialByLoginId(
     loginId: string,
+    credentialType: CredentialTypeValue,
   ): Promise<AuthCredentialResult> {
-    const result =
-      await localDatasource.getActiveAuthCredentialByLoginId(loginId);
+    const result = await localDatasource.getActiveAuthCredentialByLoginId(
+      loginId,
+      credentialType,
+    );
 
     if (result.success) {
-      return {
-        success: true,
-        value: mapAuthCredentialModelToDomain(result.value),
-      };
+      return mapCredentialModel(result.value);
     }
 
     return {
@@ -54,14 +52,48 @@ export const createAuthCredentialRepository = (
   async getAuthCredentialByUserRemoteId(
     userRemoteId: string,
   ): Promise<AuthCredentialResult> {
-    const result =
-      await localDatasource.getAuthCredentialByUserRemoteId(userRemoteId);
+    const result = await localDatasource.getAuthCredentialByUserRemoteId(
+      userRemoteId,
+    );
 
     if (result.success) {
-      return {
-        success: true,
-        value: mapAuthCredentialModelToDomain(result.value),
-      };
+      return mapCredentialModel(result.value);
+    }
+
+    return {
+      success: false,
+      error: mapAuthCredentialError(result.error),
+    };
+  },
+
+  async recordFailedLoginAttemptByRemoteId(
+    remoteId: string,
+    maxFailedAttempts: number,
+    lockoutDurationMs: number,
+  ): Promise<AuthCredentialResult> {
+    const result = await localDatasource.recordFailedLoginAttemptByRemoteId(
+      remoteId,
+      maxFailedAttempts,
+      lockoutDurationMs,
+    );
+
+    if (result.success) {
+      return mapCredentialModel(result.value);
+    }
+
+    return {
+      success: false,
+      error: mapAuthCredentialError(result.error),
+    };
+  },
+
+  async markLoginSuccessByRemoteId(
+    remoteId: string,
+  ): Promise<AuthOperationResult> {
+    const result = await localDatasource.markLoginSuccessByRemoteId(remoteId);
+
+    if (result.success) {
+      return { success: true, value: result.value };
     }
 
     return {
@@ -88,8 +120,9 @@ export const createAuthCredentialRepository = (
   async deactivateAuthCredentialByRemoteId(
     remoteId: string,
   ): Promise<AuthOperationResult> {
-    const result =
-      await localDatasource.deactivateAuthCredentialByRemoteId(remoteId);
+    const result = await localDatasource.deactivateAuthCredentialByRemoteId(
+      remoteId,
+    );
 
     if (result.success) {
       return { success: true, value: result.value };
@@ -101,6 +134,22 @@ export const createAuthCredentialRepository = (
     };
   },
 });
+
+const mapCredentialModel = async (
+  model: Parameters<typeof mapAuthCredentialModelToDomain>[0],
+): Promise<AuthCredentialResult> => {
+  try {
+    return {
+      success: true,
+      value: await mapAuthCredentialModelToDomain(model),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: mapAuthCredentialError(error),
+    };
+  }
+};
 
 const mapAuthCredentialError = (error: Error | unknown): AuthSessionError => {
   if (!(error instanceof Error)) {
@@ -124,14 +173,8 @@ const mapAuthCredentialError = (error: Error | unknown): AuthSessionError => {
     message.includes("timeout");
 
   if (isDatabaseError) {
-    return {
-      ...AuthSessionDatabaseError,
-      message: error.message,
-    };
+    return AuthSessionDatabaseError;
   }
 
-  return {
-    ...AuthSessionUnknownError,
-    message: error.message,
-  };
+  return AuthSessionUnknownError;
 };

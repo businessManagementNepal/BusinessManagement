@@ -4,11 +4,16 @@ import { AuthUserRepository } from "../data/repository/authUser.repository";
 import {
   AuthSessionErrorType,
   AuthSessionValidationError,
+  CredentialType,
   InvalidCredentialsError,
+  TooManyAttemptsError,
   VerifiedLocalCredentialResult,
   VerifyLocalCredentialPayload,
 } from "../types/authSession.types";
 import { VerifyLocalCredentialUseCase } from "./verifyLocalCredential.useCase";
+
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 
 export const createVerifyLocalCredentialUseCase = (
   authCredentialRepository: AuthCredentialRepository,
@@ -38,6 +43,7 @@ export const createVerifyLocalCredentialUseCase = (
     const authCredentialResult =
       await authCredentialRepository.getActiveAuthCredentialByLoginId(
         normalizedLoginId,
+        CredentialType.Password,
       );
 
     if (!authCredentialResult.success) {
@@ -56,6 +62,16 @@ export const createVerifyLocalCredentialUseCase = (
 
     const authCredential = authCredentialResult.value;
 
+    if (
+      authCredential.lockoutUntil !== null &&
+      authCredential.lockoutUntil > Date.now()
+    ) {
+      return {
+        success: false,
+        error: TooManyAttemptsError(),
+      };
+    }
+
     const isPasswordValid = await passwordHashService.compare(
       password,
       authCredential.passwordSalt,
@@ -63,10 +79,42 @@ export const createVerifyLocalCredentialUseCase = (
     );
 
     if (!isPasswordValid) {
+      const failedAttemptResult =
+        await authCredentialRepository.recordFailedLoginAttemptByRemoteId(
+          authCredential.remoteId,
+          MAX_FAILED_ATTEMPTS,
+          LOCKOUT_DURATION_MS,
+        );
+
+      if (!failedAttemptResult.success) {
+        return failedAttemptResult;
+      }
+
+      const updatedCredential = failedAttemptResult.value;
+
+      if (
+        updatedCredential.lockoutUntil !== null &&
+        updatedCredential.lockoutUntil > Date.now()
+      ) {
+        return {
+          success: false,
+          error: TooManyAttemptsError(),
+        };
+      }
+
       return {
         success: false,
         error: InvalidCredentialsError,
       };
+    }
+
+    const markLoginSuccessResult =
+      await authCredentialRepository.markLoginSuccessByRemoteId(
+        authCredential.remoteId,
+      );
+
+    if (!markLoginSuccessResult.success) {
+      return markLoginSuccessResult;
     }
 
     const authUserResult = await authUserRepository.getAuthUserByRemoteId(
@@ -81,7 +129,13 @@ export const createVerifyLocalCredentialUseCase = (
       success: true,
       value: {
         authUser: authUserResult.value,
-        authCredential,
+        authCredential: {
+          ...authCredential,
+          lastLoginAt: Date.now(),
+          failedAttemptCount: 0,
+          lockoutUntil: null,
+          lastFailedLoginAt: null,
+        },
       },
     };
   },
