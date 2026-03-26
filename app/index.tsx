@@ -1,6 +1,12 @@
-import React from "react";
-import { AuthScreen } from "./(auth)/login";
+import * as React from "react";
+import { View } from "react-native";
+import "./global.css";
+import LoginRoute from "./(auth)/login";
 
 export default function Index() {
-  return <AuthScreen />;
+  return (
+    <View className="h-full">
+      <LoginRoute />
+    </View>
+  );
 }
