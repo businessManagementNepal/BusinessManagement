@@ -1,12 +1,13 @@
-import { View, Text } from 'react-native'
-import React from 'react'
+import React, { useCallback } from "react";
+import { useRouter } from "expo-router";
+import { GetAccountSelectionScreenFactory } from "@/feature/setting/accounts/accountSelection/factory/getAccountSelectionScreen.factory";
 
-const selectAccount = () => {
-  return (
-    <View>
-      <Text>select-account</Text>
-    </View>
-  )
+export default function SelectAccountRoute() {
+  const router = useRouter();
+
+  const handleBackToLogin = useCallback(() => {
+    router.replace("/(auth)/login");
+  }, [router]);
+
+  return <GetAccountSelectionScreenFactory onBackToLogin={handleBackToLogin} />;
 }
-
-export default selectAccount
