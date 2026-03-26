@@ -1,8 +1,8 @@
-import { AuthUserRepository } from "../data/repositiory/authUser.repository";
+import { AuthUserRepository } from "../data/repository/authUser.repository";
 import {
-  AuthSessionValidationError,
-  AuthUserResult,
-  SaveAuthUserPayload,
+    AuthSessionValidationError,
+    AuthUserResult,
+    SaveAuthUserPayload,
 } from "../types/authSession.types";
 import { SaveAuthUserUseCase } from "./saveAuthUser.useCase";
 
