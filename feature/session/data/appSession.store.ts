@@ -59,6 +59,37 @@ export const getAppSessionState = async (
   };
 };
 
+export const getSelectedLanguage = async (
+  database: Database,
+): Promise<string> => {
+  const sessionState = await getAppSessionState(database);
+  return sessionState.selectedLanguage;
+};
+
+export const setSelectedLanguage = async (
+  database: Database,
+  selectedLanguage: string,
+): Promise<void> => {
+  const normalizedSelectedLanguage = selectedLanguage.trim().toLowerCase();
+
+  if (!normalizedSelectedLanguage) {
+    throw new Error("Cannot set selected language without a valid language code.");
+  }
+
+  const settings = await ensureAppSettingsRecord(database);
+
+  if (settings.selectedLanguage === normalizedSelectedLanguage) {
+    return;
+  }
+
+  await database.write(async () => {
+    await settings.update((record) => {
+      record.selectedLanguage = normalizedSelectedLanguage;
+      setUpdatedAt(record, Date.now());
+    });
+  });
+};
+
 export const hasActiveUserSession = async (
   database: Database,
 ): Promise<boolean> => {

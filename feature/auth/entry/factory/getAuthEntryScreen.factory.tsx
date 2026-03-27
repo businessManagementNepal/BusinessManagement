@@ -39,6 +39,7 @@ export function GetAuthEntryScreenFactory({
   );
 
   const { viewModel } = useAuthEntryFeature({
+    database,
     loginWithEmailUseCase,
     signUpWithEmailUseCase,
     onSuccess,

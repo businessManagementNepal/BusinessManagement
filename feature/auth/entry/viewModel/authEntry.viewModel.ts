@@ -1,6 +1,10 @@
 import { Control } from "react-hook-form";
 import { LoginInput } from "@/feature/auth/login/types/login.types";
 import { SignUpInput } from "@/feature/auth/signUp/types/signUp.types";
+import {
+  SupportedLanguageCode,
+  SupportedLanguageOption,
+} from "@/shared/i18n/resources";
 
 interface AuthEntryLoginViewModel {
   control: Control<LoginInput>;
@@ -22,7 +26,14 @@ interface AuthEntrySignUpViewModel {
   submit: () => Promise<void>;
 }
 
+interface AuthEntryLanguageViewModel {
+  selectedLanguageCode: SupportedLanguageCode;
+  options: readonly SupportedLanguageOption[];
+  onChangeSelectedLanguage: (languageCode: SupportedLanguageCode) => void;
+}
+
 export interface AuthEntryViewModel {
+  language: AuthEntryLanguageViewModel;
   login: AuthEntryLoginViewModel;
   signUp: AuthEntrySignUpViewModel;
   onForgotPasswordPress?: () => void;

@@ -17,9 +17,7 @@ export default function LoginRoute() {
   useEffect(() => {
     let isMounted = true;
 
-    void warmDatabaseFieldEncryptionKey().catch(() => {
-      // Non-fatal: regular auth operations will still surface encryption errors.
-    });
+    void warmDatabaseFieldEncryptionKey().catch(() => {});
 
     const checkSession = async () => {
       try {
@@ -54,5 +52,10 @@ export default function LoginRoute() {
     return null;
   }
 
-  return <GetAuthEntryScreenFactory database={appDatabase} onSuccess={handleOnSuccess} />;
+  return (
+    <GetAuthEntryScreenFactory
+      database={appDatabase}
+      onSuccess={handleOnSuccess}
+    />
+  );
 }

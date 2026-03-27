@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Eye, EyeOff, Lock, Phone, User } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,20 +9,29 @@ import {
 import { TextField } from "@/shared/components/reusable/Form/TextField";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import {
+  isSupportedLanguageCode,
+  useTranslation,
+} from "@/shared/i18n/resources";
 import { LoginInput } from "@/feature/auth/login/types/login.types";
 import { SignUpInput } from "@/feature/auth/signUp/types/signUp.types";
 import { AuthEntryViewModel } from "../viewModel/authEntry.viewModel";
 
 type AuthMode = "login" | "signup";
 
-const LANGUAGE_OPTIONS: DropdownOption[] = [{ label: "English", value: "en" }];
-
 type AuthEntryScreenProps = {
   viewModel: AuthEntryViewModel;
 };
 
 function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
-  const { login, signUp, onForgotPasswordPress } = viewModel;
+  const { t } = useTranslation();
+  const { language, login, signUp, onForgotPasswordPress } = viewModel;
+
+  const {
+    selectedLanguageCode,
+    options: supportedLanguageOptions,
+    onChangeSelectedLanguage,
+  } = language;
 
   const {
     control: loginControl,
@@ -45,11 +54,34 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
   } = signUp;
 
   const [mode, setMode] = useState<AuthMode>("login");
-  const [language, setLanguage] = useState("en");
 
   const insets = useSafeAreaInsets();
   const isLoginMode = mode === "login";
-  const primaryLabel = isLoginMode ? "Login" : "Create Account";
+
+  const dropdownOptions = useMemo<DropdownOption[]>(
+    () =>
+      supportedLanguageOptions.map((option) => ({
+        label: option.label,
+        value: option.code,
+      })),
+    [supportedLanguageOptions],
+  );
+
+  const handleLanguageChange = useCallback(
+    (nextLanguageCode: string): void => {
+      if (!isSupportedLanguageCode(nextLanguageCode)) {
+        return;
+      }
+
+      onChangeSelectedLanguage(nextLanguageCode);
+    },
+    [onChangeSelectedLanguage],
+  );
+
+  const primaryLabel = isLoginMode
+    ? t("auth.entry.actions.login")
+    : t("auth.entry.actions.createAccount");
+
   const isPrimaryBusy = isLoginMode ? isSubmitting : isSigningUp;
   const isPrimaryDisabled = isLoginMode ? isSubmitting : isSigningUp;
 
@@ -62,9 +94,12 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
   };
 
   const footerPrompt = isLoginMode
-    ? "Don't have an account?"
-    : "Already have an account?";
-  const footerActionLabel = isLoginMode ? "Sign Up" : "Login";
+    ? t("auth.entry.footer.noAccount")
+    : t("auth.entry.footer.haveAccount");
+
+  const footerActionLabel = isLoginMode
+    ? t("auth.entry.footer.signUp")
+    : t("auth.entry.footer.login");
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
@@ -72,10 +107,10 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
         <View style={[styles.header, { paddingTop: insets.top + spacing.xxl + spacing.sm }]}>
           <View style={[styles.languageDropdownWrap, { top: insets.top + spacing.xs }]}>
             <Dropdown
-              value={language}
-              options={LANGUAGE_OPTIONS}
-              onChange={setLanguage}
-              placeholder="English"
+              value={selectedLanguageCode}
+              options={dropdownOptions}
+              onChange={handleLanguageChange}
+              placeholder={t("auth.entry.language.placeholder")}
             />
           </View>
 
@@ -84,7 +119,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
           </View>
 
           <Text style={styles.brand}>eLekha</Text>
-          <Text style={styles.brandSub}>Your Business & Finance Companion</Text>
+          <Text style={styles.brandSub}>{t("auth.entry.brand.subtitle")}</Text>
         </View>
 
         <View style={styles.divider} />
@@ -111,7 +146,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                     isLoginMode ? styles.tabLabelActive : undefined,
                   ]}
                 >
-                  Login
+                  {t("auth.entry.tabs.login")}
                 </Text>
               </Pressable>
 
@@ -129,7 +164,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                     !isLoginMode ? styles.tabLabelActive : undefined,
                   ]}
                 >
-                  Sign Up
+                  {t("auth.entry.tabs.signUp")}
                 </Text>
               </Pressable>
             </View>
@@ -139,40 +174,40 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                 <TextField<SignUpInput>
                   control={signUpControl}
                   name="fullName"
-                  placeholder="Full Name"
+                  placeholder={t("auth.entry.fields.fullName")}
                   leftIcon={<User size={18} color={colors.mutedForeground} />}
                   autoCapitalize="words"
                   autoComplete="off"
                   importantForAutofill="no"
                   onFocus={clearSignUpSubmitError}
                   editable={!isSigningUp}
-                  accessibilityLabel="Full name"
+                  accessibilityLabel={t("auth.entry.fields.fullName")}
                 />
 
                 <TextField<SignUpInput>
                   control={signUpControl}
                   name="phoneNumber"
-                  placeholder="Phone Number"
+                  placeholder={t("auth.entry.fields.phoneNumber")}
                   leftIcon={<Phone size={18} color={colors.mutedForeground} />}
                   keyboardType="phone-pad"
                   autoComplete="off"
                   importantForAutofill="no"
                   onFocus={clearSignUpSubmitError}
                   editable={!isSigningUp}
-                  accessibilityLabel="Phone number"
+                  accessibilityLabel={t("auth.entry.fields.phoneNumber")}
                 />
 
                 <TextField<SignUpInput>
                   control={signUpControl}
                   name="password"
-                  placeholder="Password"
+                  placeholder={t("auth.entry.fields.password")}
                   leftIcon={<Lock size={18} color={colors.mutedForeground} />}
                   secureTextEntry={!isSignUpPasswordVisible}
                   autoComplete="off"
                   importantForAutofill="no"
                   onFocus={clearSignUpSubmitError}
                   editable={!isSigningUp}
-                  accessibilityLabel="Sign up password"
+                  accessibilityLabel={t("auth.entry.fields.password")}
                   rightIcon={
                     <Pressable
                       onPress={onToggleSignUpPasswordVisibility}
@@ -195,27 +230,27 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                 <TextField<LoginInput>
                   control={loginControl}
                   name="phoneNumber"
-                  placeholder="Phone Number"
+                  placeholder={t("auth.entry.fields.phoneNumber")}
                   leftIcon={<Phone size={18} color={colors.mutedForeground} />}
                   keyboardType="phone-pad"
                   autoComplete="tel"
                   textContentType="telephoneNumber"
                   onFocus={clearLoginSubmitError}
                   editable={!isSubmitting}
-                  accessibilityLabel="Phone number"
+                  accessibilityLabel={t("auth.entry.fields.phoneNumber")}
                 />
 
                 <TextField<LoginInput>
                   control={loginControl}
                   name="password"
-                  placeholder="Password"
+                  placeholder={t("auth.entry.fields.password")}
                   leftIcon={<Lock size={18} color={colors.mutedForeground} />}
                   secureTextEntry={!isPasswordVisible}
                   autoComplete="password"
                   textContentType="password"
                   onFocus={clearLoginSubmitError}
                   editable={!isSubmitting}
-                  accessibilityLabel="Password"
+                  accessibilityLabel={t("auth.entry.fields.password")}
                   rightIcon={
                     <Pressable
                       onPress={onTogglePasswordVisibility}
@@ -237,7 +272,9 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                     onPress={onForgotPasswordPress}
                     accessibilityRole="button"
                   >
-                    <Text style={styles.forgot}>Forgot Password?</Text>
+                    <Text style={styles.forgot}>
+                      {t("auth.entry.actions.forgotPassword")}
+                    </Text>
                   </Pressable>
                 ) : null}
 
@@ -256,13 +293,13 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
               accessibilityState={{ disabled: isPrimaryDisabled, busy: isPrimaryBusy }}
             >
               <Text style={styles.primaryButtonText}>
-                {isPrimaryBusy ? "Please wait..." : primaryLabel}
+                {isPrimaryBusy ? t("auth.entry.actions.pleaseWait") : primaryLabel}
               </Text>
             </Pressable>
 
             <View style={styles.separatorRow}>
               <View style={styles.separatorLine} />
-              <Text style={styles.separatorLabel}>or continue with</Text>
+              <Text style={styles.separatorLabel}>{t("auth.entry.separator")}</Text>
               <View style={styles.separatorLine} />
             </View>
 
