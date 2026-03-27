@@ -3,6 +3,7 @@ import {
   AuthSessionErrorType,
   VerifiedLocalCredential,
 } from "@/feature/session/types/authSession.types";
+import { normalizePhoneNumber } from "@/shared/utils/auth/phoneNumber.util";
 import { LoginRepository } from "./login.repository";
 import {
   DatabaseError,
@@ -25,21 +26,44 @@ export const createLocalLoginRepository = (
   options: LocalLoginRepositoryOptions = {},
 ): LoginRepository => ({
   async loginWithEmail(payload): Promise<LoginResult> {
-    const result = await verifyLocalCredentialUseCase.execute({
-      loginId: payload.phoneNumber,
-      password: payload.password,
-    });
+    const loginIdCandidates = buildLoginIdCandidates(payload.phoneNumber);
+    let verifiedCredential: VerifiedLocalCredential | null = null;
+    let lastError: { type: string; message: string } | Error | unknown = null;
 
-    if (!result.success) {
+    for (const loginId of loginIdCandidates) {
+      const verificationResult = await verifyLocalCredentialUseCase.execute({
+        loginId,
+        password: payload.password,
+      });
+
+      if (verificationResult.success) {
+        verifiedCredential = verificationResult.value;
+        break;
+      }
+
+      lastError = verificationResult.error;
+
+      if (
+        verificationResult.error.type !==
+        AuthSessionErrorType.AuthCredentialNotFound
+      ) {
+        return {
+          success: false,
+          error: mapAuthSessionErrorToLoginError(verificationResult.error),
+        };
+      }
+    }
+
+    if (!verifiedCredential) {
       return {
         success: false,
-        error: mapAuthSessionErrorToLoginError(result.error),
+        error: mapAuthSessionErrorToLoginError(lastError),
       };
     }
 
     try {
       if (options.onAuthenticated) {
-        await options.onAuthenticated(result.value);
+        await options.onAuthenticated(verifiedCredential);
       }
     } catch {
       return {
@@ -50,10 +74,28 @@ export const createLocalLoginRepository = (
 
     return {
       success: true,
-      value: result.value,
+      value: verifiedCredential,
     };
   },
 });
+
+const buildLoginIdCandidates = (phoneNumber: string): string[] => {
+  const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
+
+  if (!normalizedPhoneNumber) {
+    return [phoneNumber];
+  }
+
+  if (normalizedPhoneNumber.startsWith("+")) {
+    return [normalizedPhoneNumber];
+  }
+
+  const loginIdCandidates = new Set<string>([normalizedPhoneNumber]);
+  loginIdCandidates.add(`+977${normalizedPhoneNumber}`);
+  loginIdCandidates.add(`+91${normalizedPhoneNumber}`);
+
+  return Array.from(loginIdCandidates);
+};
 
 const mapAuthSessionErrorToLoginError = (
   error: { type: string; message: string } | Error | unknown,

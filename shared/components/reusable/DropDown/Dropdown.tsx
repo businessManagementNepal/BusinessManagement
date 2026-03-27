@@ -2,9 +2,12 @@ import React, { useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
+  StyleProp,
   StyleSheet,
   Text,
+  TextStyle,
   View,
+  ViewStyle,
   FlatList,
 } from "react-native";
 import { ChevronDown, Check, Globe } from "lucide-react-native";
@@ -22,6 +25,10 @@ type DropdownProps = {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  modalTitle?: string;
+  showLeadingIcon?: boolean;
+  triggerStyle?: StyleProp<ViewStyle>;
+  triggerTextStyle?: StyleProp<TextStyle>;
 };
 
 export function Dropdown({
@@ -30,6 +37,10 @@ export function Dropdown({
   onChange,
   placeholder = "Select language",
   disabled = false,
+  modalTitle = "Choose option",
+  showLeadingIcon = true,
+  triggerStyle,
+  triggerTextStyle,
 }: DropdownProps) {
   const [visible, setVisible] = useState(false);
 
@@ -45,14 +56,14 @@ export function Dropdown({
   return (
     <>
       <Pressable
-        style={[styles.trigger, disabled && styles.triggerDisabled]}
+        style={[styles.trigger, triggerStyle, disabled && styles.triggerDisabled]}
         onPress={() => {
           if (!disabled) setVisible(true);
         }}
       >
         <View style={styles.leftContent}>
-          <Globe size={14} color={colors.primary} />
-          <Text style={styles.triggerText}>
+          {showLeadingIcon ? <Globe size={14} color={colors.primary} /> : null}
+          <Text style={[styles.triggerText, triggerTextStyle]}>
             {selectedOption?.label ?? placeholder}
           </Text>
         </View>
@@ -66,9 +77,13 @@ export function Dropdown({
         animationType="fade"
         onRequestClose={() => setVisible(false)}
       >
-        <Pressable style={styles.backdrop} onPress={() => setVisible(false)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
-            <Text style={styles.sheetTitle}>Choose Language</Text>
+        <View style={styles.backdrop}>
+          <Pressable
+            style={styles.backdropDismissArea}
+            onPress={() => setVisible(false)}
+          />
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>{modalTitle}</Text>
 
             <FlatList
               data={options}
@@ -101,8 +116,8 @@ export function Dropdown({
               }}
               ItemSeparatorComponent={() => <View style={styles.separator} />}
             />
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </>
   );
@@ -141,6 +156,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 20,
   },
+  backdropDismissArea: {
+    ...StyleSheet.absoluteFillObject,
+  },
   sheet: {
     backgroundColor: colors.card,
     borderRadius: radius.xl ?? 20,
@@ -148,6 +166,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     maxHeight: "70%",
+    zIndex: 1,
   },
   sheetTitle: {
     color: colors.cardForeground,

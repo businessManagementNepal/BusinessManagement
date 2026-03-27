@@ -1,5 +1,5 @@
 import { Database } from "@nozbe/watermelondb";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useLoginViewModel } from "@/feature/auth/login/viewModel/login.viewModel.impl";
 import { LoginWithEmailUseCase } from "@/feature/auth/login/useCase/loginWithEmail.useCase";
 import { useSignUpViewModel } from "@/feature/auth/signUp/viewModel/signUp.viewModel.impl";
@@ -7,9 +7,9 @@ import { SignUpWithEmailUseCase } from "@/feature/auth/signUp/useCase/signUpWith
 import { setSelectedLanguage } from "@/feature/session/data/appSession.store";
 import {
   changeLanguage,
-  getCurrentLanguage,
   SUPPORTED_LANGUAGE_OPTIONS,
   SupportedLanguageCode,
+  useCurrentLanguageCode,
 } from "@/shared/i18n/resources";
 import { Status } from "@/shared/types/status.types";
 import { AuthEntryViewModel } from "../viewModel/authEntry.viewModel";
@@ -31,8 +31,7 @@ export function useAuthEntryFeature(params: UseAuthEntryFeatureParams) {
     onForgotPasswordPress,
   } = params;
 
-  const [selectedLanguageCode, setSelectedLanguageCode] =
-    useState<SupportedLanguageCode>(getCurrentLanguage());
+  const selectedLanguageCode = useCurrentLanguageCode();
 
   const loginViewModel = useLoginViewModel(loginWithEmailUseCase, {
     onSuccess,
@@ -44,18 +43,13 @@ export function useAuthEntryFeature(params: UseAuthEntryFeatureParams) {
 
   const onChangeSelectedLanguage = useCallback(
     (languageCode: SupportedLanguageCode): void => {
-      if (selectedLanguageCode === languageCode) {
-        return;
-      }
-
-      setSelectedLanguageCode(languageCode);
       changeLanguage(languageCode);
 
       void setSelectedLanguage(database, languageCode).catch((error) => {
         console.error("Failed to persist selected language.", error);
       });
     },
-    [database, selectedLanguageCode],
+    [database],
   );
 
   const isLoginSubmitting = loginViewModel.state.status === Status.Loading;
@@ -88,6 +82,11 @@ export function useAuthEntryFeature(params: UseAuthEntryFeatureParams) {
       },
       signUp: {
         control: signUpViewModel.control,
+        selectedPhoneCountryCode: signUpViewModel.selectedPhoneCountryCode,
+        selectedPhoneDialCode: signUpViewModel.selectedPhoneDialCode,
+        phoneNumberMaxLength: signUpViewModel.phoneNumberMaxLength,
+        phoneCountryOptions: signUpViewModel.phoneCountryOptions,
+        onChangeSelectedPhoneCountry: signUpViewModel.onChangeSelectedPhoneCountry,
         clearSubmitError: signUpViewModel.clearSubmitError,
         isPasswordVisible: signUpViewModel.isPasswordVisible,
         togglePasswordVisibility: signUpViewModel.togglePasswordVisibility,
@@ -112,6 +111,11 @@ export function useAuthEntryFeature(params: UseAuthEntryFeatureParams) {
       signUpViewModel.clearSubmitError,
       signUpViewModel.control,
       signUpViewModel.isPasswordVisible,
+      signUpViewModel.onChangeSelectedPhoneCountry,
+      signUpViewModel.phoneNumberMaxLength,
+      signUpViewModel.phoneCountryOptions,
+      signUpViewModel.selectedPhoneDialCode,
+      signUpViewModel.selectedPhoneCountryCode,
       signUpViewModel.submit,
       signUpViewModel.togglePasswordVisibility,
       onForgotPasswordPress,

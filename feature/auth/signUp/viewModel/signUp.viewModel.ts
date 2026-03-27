@@ -1,9 +1,21 @@
 import { Control } from "react-hook-form";
-import { SignUpInput, SignUpState } from "../types/signUp.types";
+import {
+  SignUpInput,
+  SignUpPhoneCountryCode,
+  SignUpPhoneCountryOption,
+  SignUpState,
+} from "../types/signUp.types";
 
 export interface SignUpViewModel {
   state: SignUpState;
   control: Control<SignUpInput>;
+  selectedPhoneCountryCode: SignUpPhoneCountryCode;
+  selectedPhoneDialCode: string;
+  phoneNumberMaxLength: number;
+  phoneCountryOptions: readonly SignUpPhoneCountryOption[];
+  onChangeSelectedPhoneCountry: (
+    countryCode: SignUpPhoneCountryCode,
+  ) => void;
   isPasswordVisible: boolean;
   clearSubmitError: () => void;
   togglePasswordVisibility: () => void;

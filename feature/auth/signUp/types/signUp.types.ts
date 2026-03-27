@@ -40,6 +40,30 @@ export type SignUpInput = {
   password: string;
 };
 
+export type SignUpPhoneCountryCode = "NP" | "IN";
+
+export type SignUpPhoneCountryOption = {
+  code: SignUpPhoneCountryCode;
+  dialCode: string;
+  label: string;
+  flag: string;
+};
+
+export const SIGN_UP_PHONE_COUNTRY_OPTIONS: readonly SignUpPhoneCountryOption[] = [
+  {
+    code: "NP",
+    dialCode: "+977",
+    label: "Nepal (+977)",
+    flag: "🇳🇵",
+  },
+  {
+    code: "IN",
+    dialCode: "+91",
+    label: "India (+91)",
+    flag: "🇮🇳",
+  },
+];
+
 export type SignUpResult = Result<VerifiedLocalCredential, SignUpError>;
 
 export type SignUpState =

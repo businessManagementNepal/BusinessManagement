@@ -113,8 +113,9 @@ const styles = StyleSheet.create({
     borderColor: colors.destructive,
   },
   side: {
-    width: 20,
+    minWidth: 20,
     alignItems: "center",
+    justifyContent: "center",
   },
   input: {
     flex: 1,

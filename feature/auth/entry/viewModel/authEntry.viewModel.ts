@@ -1,6 +1,10 @@
 import { Control } from "react-hook-form";
 import { LoginInput } from "@/feature/auth/login/types/login.types";
-import { SignUpInput } from "@/feature/auth/signUp/types/signUp.types";
+import {
+  SignUpInput,
+  SignUpPhoneCountryCode,
+  SignUpPhoneCountryOption,
+} from "@/feature/auth/signUp/types/signUp.types";
 import {
   SupportedLanguageCode,
   SupportedLanguageOption,
@@ -18,6 +22,13 @@ interface AuthEntryLoginViewModel {
 
 interface AuthEntrySignUpViewModel {
   control: Control<SignUpInput>;
+  selectedPhoneCountryCode: SignUpPhoneCountryCode;
+  selectedPhoneDialCode: string;
+  phoneNumberMaxLength: number;
+  phoneCountryOptions: readonly SignUpPhoneCountryOption[];
+  onChangeSelectedPhoneCountry: (
+    countryCode: SignUpPhoneCountryCode,
+  ) => void;
   clearSubmitError: () => void;
   isPasswordVisible: boolean;
   togglePasswordVisibility: () => void;

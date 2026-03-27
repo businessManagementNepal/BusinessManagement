@@ -2,9 +2,11 @@ import React from "react";
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { bootstrapSelectedLanguage } from "@/shared/i18n/resources/bootstrapSelectedLanguage";
+import { useCurrentLanguageCode } from "@/shared/i18n/resources";
 
 export default function RootLayout() {
   const [isLanguageReady, setIsLanguageReady] = React.useState(false);
+  const languageCode = useCurrentLanguageCode();
 
   React.useEffect(() => {
     let isMounted = true;
@@ -30,7 +32,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack key={languageCode} screenOptions={{ headerShown: false }} />
     </SafeAreaProvider>
   );
 }

@@ -11,20 +11,26 @@ type UseTranslationResult = {
   languageCode: SupportedLanguageCode;
 };
 
-export const useTranslation = (): UseTranslationResult => {
-  const [language, setLanguage] =
+export const useCurrentLanguageCode = (): SupportedLanguageCode => {
+  const [languageCode, setLanguageCode] =
     React.useState<SupportedLanguageCode>(getCurrentLanguage());
 
   React.useEffect(() => {
     const unsubscribe = subscribeToLanguageChange(() => {
-      setLanguage(getCurrentLanguage());
+      setLanguageCode(getCurrentLanguage());
     });
 
     return unsubscribe;
   }, []);
 
+  return languageCode;
+};
+
+export const useTranslation = (): UseTranslationResult => {
+  const languageCode = useCurrentLanguageCode();
+
   return {
     t: translate,
-    languageCode: language,
+    languageCode,
   };
 };
