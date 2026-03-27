@@ -2,7 +2,7 @@ import { Database } from "@nozbe/watermelondb";
 import { useMemo } from "react";
 import { LoginWithEmailUseCase } from "@/feature/auth/login/useCase/loginWithEmail.useCase";
 import { SignUpWithEmailUseCase } from "@/feature/auth/signUp/useCase/signUpWithEmail.useCase";
-import { useLanguageSelectionFeature } from "@/feature/session/hooks/useLanguageSelectionFeature";
+import { useLanguageSelectionFeature } from "@/feature/appSettings/hooks/useLanguageSelectionFeature";
 import { useAuthEntryLoginFeature } from "./useAuthEntryLoginFeature";
 import { useAuthEntrySignUpFeature } from "./useAuthEntrySignUpFeature";
 import { AuthEntryViewModel } from "../viewModel/authEntry.viewModel";
@@ -47,3 +47,4 @@ export function useAuthEntryFeature(params: UseAuthEntryFeatureParams) {
 
   return { viewModel };
 }
+

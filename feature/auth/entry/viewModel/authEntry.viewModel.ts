@@ -5,7 +5,7 @@ import {
   SignUpPhoneCountryCode,
   SignUpPhoneCountryOption,
 } from "@/feature/auth/signUp/types/signUp.types";
-import { LanguageSelectionViewModel } from "@/feature/session/types/languageSelection.types";
+import { LanguageSelectionViewModel } from "@/feature/appSettings/types/languageSelection.types";
 
 export interface AuthEntryLoginViewModel {
   control: Control<LoginInput>;
@@ -40,3 +40,4 @@ export interface AuthEntryViewModel {
   signUp: AuthEntrySignUpViewModel;
   onForgotPasswordPress?: () => void;
 }
+
