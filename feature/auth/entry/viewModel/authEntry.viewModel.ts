@@ -10,7 +10,7 @@ import {
   SupportedLanguageOption,
 } from "@/shared/i18n/resources";
 
-interface AuthEntryLoginViewModel {
+export interface AuthEntryLoginViewModel {
   control: Control<LoginInput>;
   clearSubmitError: () => void;
   isPasswordVisible: boolean;
@@ -20,7 +20,7 @@ interface AuthEntryLoginViewModel {
   submit: () => Promise<void>;
 }
 
-interface AuthEntrySignUpViewModel {
+export interface AuthEntrySignUpViewModel {
   control: Control<SignUpFormInput>;
   selectedPhoneCountryCode: SignUpPhoneCountryCode;
   selectedPhoneDialCode: string;
@@ -37,7 +37,7 @@ interface AuthEntrySignUpViewModel {
   submit: () => Promise<void>;
 }
 
-interface AuthEntryLanguageViewModel {
+export interface AuthEntryLanguageViewModel {
   selectedLanguageCode: SupportedLanguageCode;
   options: readonly SupportedLanguageOption[];
   onChangeSelectedLanguage: (languageCode: SupportedLanguageCode) => void;
