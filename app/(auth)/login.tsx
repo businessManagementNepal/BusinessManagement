@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import appDatabase from "@/app/database/database";
-import { hasActiveUserSession } from "@/feature/appSettings/data/appSettings.store";
+import { hasActiveUserSession } from "@/feature/session/data/appSession.store";
 import { GetAuthEntryScreenFactory } from "@/feature/auth/entry/factory/getAuthEntryScreen.factory";
 import { warmDatabaseFieldEncryptionKey } from "@/shared/utils/security/databaseFieldEncryption.service";
 
@@ -59,4 +59,3 @@ export default function LoginRoute() {
     />
   );
 }
-

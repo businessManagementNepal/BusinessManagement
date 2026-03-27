@@ -4,7 +4,7 @@ import appDatabase from "@/app/database/database";
 import {
   clearActiveUserSession,
   hasActiveUserSession,
-} from "@/feature/appSettings/data/appSettings.store";
+} from "@/feature/session/data/appSession.store";
 import { GetAccountSelectionScreenFactory } from "@/feature/setting/accounts/accountSelection/factory/getAccountSelectionScreen.factory";
 
 export default function SelectAccountRoute() {
@@ -59,4 +59,3 @@ export default function SelectAccountRoute() {
 
   return <GetAccountSelectionScreenFactory onBackToLogin={handleBackToLogin} />;
 }
-

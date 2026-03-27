@@ -1,6 +1,6 @@
 import { Database } from "@nozbe/watermelondb";
 import { useCallback, useMemo } from "react";
-import { setSelectedLanguage } from "@/feature/appSettings/data/appSettings.store";
+import { setSelectedLanguage } from "@/feature/session/data/appSession.store";
 import {
   changeLanguage,
   SUPPORTED_LANGUAGE_OPTIONS,
@@ -39,4 +39,3 @@ export function useLanguageSelectionFeature(
     [selectedLanguageCode, onChangeSelectedLanguage],
   );
 }
-

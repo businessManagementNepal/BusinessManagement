@@ -1,6 +1,6 @@
 import { Database } from "@nozbe/watermelondb";
 import { createPasswordHashService } from "@/shared/utils/auth/passwordHash.service";
-import { setActiveUserSession } from "@/feature/appSettings/data/appSettings.store";
+import { setActiveUserSession } from "@/feature/session/data/appSession.store";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createLocalAuthCredentialDatasource } from "@/feature/session/data/dataSource/local.authCredential.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
