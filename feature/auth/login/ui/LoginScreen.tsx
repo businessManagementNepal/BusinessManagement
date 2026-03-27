@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Eye, EyeOff, Lock, Mail, Phone, User } from "lucide-react-native";
+import { Eye, EyeOff, Lock, Phone, User } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Dropdown,
@@ -16,9 +16,9 @@ const LANGUAGE_OPTIONS: DropdownOption[] = [{ label: "English", value: "en" }];
 
 interface LoginScreenProps {
   onSubmit: () => void | Promise<void>;
-  email: string;
+  phoneNumber: string;
   password: string;
-  onEmailChange: (value: string) => void;
+  onPhoneNumberChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   isPasswordVisible: boolean;
   onTogglePasswordVisibility: () => void;
@@ -27,11 +27,9 @@ interface LoginScreenProps {
   onForgotPasswordPress?: () => void;
 
   signUpFullName: string;
-  signUpEmail: string;
   signUpPhoneNumber: string;
   signUpPassword: string;
   onSignUpFullNameChange: (value: string) => void;
-  onSignUpEmailChange: (value: string) => void;
   onSignUpPhoneNumberChange: (value: string) => void;
   onSignUpPasswordChange: (value: string) => void;
   isSignUpPasswordVisible: boolean;
@@ -43,9 +41,9 @@ interface LoginScreenProps {
 
 export function LoginScreen({
   onSubmit,
-  email,
+  phoneNumber,
   password,
-  onEmailChange,
+  onPhoneNumberChange,
   onPasswordChange,
   isPasswordVisible,
   onTogglePasswordVisibility,
@@ -53,11 +51,9 @@ export function LoginScreen({
   submitError,
   onForgotPasswordPress,
   signUpFullName,
-  signUpEmail,
   signUpPhoneNumber,
   signUpPassword,
   onSignUpFullNameChange,
-  onSignUpEmailChange,
   onSignUpPhoneNumberChange,
   onSignUpPasswordChange,
   isSignUpPasswordVisible,
@@ -174,14 +170,6 @@ export function LoginScreen({
                 />
 
                 <TextField
-                  placeholder="Email Address"
-                  leftIcon={<Mail size={18} color={colors.mutedForeground} />}
-                  keyboardType="email-address"
-                  value={signUpEmail}
-                  onChangeText={onSignUpEmailChange}
-                />
-
-                <TextField
                   placeholder="Password"
                   leftIcon={<Lock size={18} color={colors.mutedForeground} />}
                   secureTextEntry={!isSignUpPasswordVisible}
@@ -207,11 +195,11 @@ export function LoginScreen({
             ) : (
               <View style={styles.form}>
                 <TextField
-                  placeholder="Email Address"
-                  leftIcon={<Mail size={18} color={colors.mutedForeground} />}
-                  value={email}
-                  onChangeText={onEmailChange}
-                  keyboardType="email-address"
+                  placeholder="Phone Number"
+                  leftIcon={<Phone size={18} color={colors.mutedForeground} />}
+                  value={phoneNumber}
+                  onChangeText={onPhoneNumberChange}
+                  keyboardType="phone-pad"
                 />
 
                 <TextField

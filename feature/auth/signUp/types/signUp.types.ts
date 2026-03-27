@@ -4,7 +4,7 @@ import { Status } from "@/shared/types/status.types";
 
 export const SignUpErrorType = {
   ValidationError: "VALIDATION_ERROR",
-  EmailAlreadyInUse: "EMAIL_ALREADY_IN_USE",
+  PhoneNumberAlreadyInUse: "PHONE_NUMBER_ALREADY_IN_USE",
   DatabaseError: "DATABASE_ERROR",
   UnknownError: "UNKNOWN_ERROR",
 } as const;
@@ -19,9 +19,9 @@ export const ValidationError = (message: string): SignUpError => ({
   message,
 });
 
-export const EmailAlreadyInUseError: SignUpError = {
-  type: SignUpErrorType.EmailAlreadyInUse,
-  message: "An account with this email already exists.",
+export const PhoneNumberAlreadyInUseError: SignUpError = {
+  type: SignUpErrorType.PhoneNumberAlreadyInUse,
+  message: "An account with this phone number already exists.",
 };
 
 export const DatabaseError: SignUpError = {
@@ -36,7 +36,6 @@ export const UnknownError: SignUpError = {
 
 export type SignUpInput = {
   fullName: string;
-  email: string;
   phoneNumber: string;
   password: string;
 };

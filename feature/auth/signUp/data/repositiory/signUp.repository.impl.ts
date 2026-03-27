@@ -11,7 +11,7 @@ import {
 import { SignUpRepository } from "./signUp.repository";
 import {
   DatabaseError,
-  EmailAlreadyInUseError,
+  PhoneNumberAlreadyInUseError,
   SignUpError,
   SignUpResult,
   UnknownError,
@@ -24,11 +24,15 @@ type LocalSignUpRepositoryOptions = {
   ) => Promise<void> | void;
 };
 
-const normalizeEmail = (value: string): string => value.trim().toLowerCase();
+const normalizePhoneNumber = (value: string): string => {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return "";
+  }
 
-const normalizeNullable = (value: string): string | null => {
-  const normalized = value.trim();
-  return normalized ? normalized : null;
+  const digits = trimmedValue.replace(/\D/g, "");
+  const hasLeadingPlus = trimmedValue.startsWith("+");
+  return hasLeadingPlus ? `+${digits}` : digits;
 };
 
 export const createLocalSignUpRepository = (
@@ -40,9 +44,8 @@ export const createLocalSignUpRepository = (
 ): SignUpRepository => ({
   async signUpWithEmail(payload): Promise<SignUpResult> {
     const fullName = payload.fullName.trim();
-    const email = normalizeEmail(payload.email);
+    const phoneNumber = normalizePhoneNumber(payload.phoneNumber);
     const password = payload.password.trim();
-    const phone = normalizeNullable(payload.phoneNumber);
 
     if (!fullName) {
       return {
@@ -51,10 +54,10 @@ export const createLocalSignUpRepository = (
       };
     }
 
-    if (!email) {
+    if (!phoneNumber) {
       return {
         success: false,
-        error: ValidationError("Email is required."),
+        error: ValidationError("Phone number is required."),
       };
     }
 
@@ -67,14 +70,14 @@ export const createLocalSignUpRepository = (
 
     const existingCredentialResult =
       await getActiveAuthCredentialByLoginIdUseCase.execute(
-        email,
+        phoneNumber,
         CredentialType.Password,
       );
 
     if (existingCredentialResult.success) {
       return {
         success: false,
-        error: EmailAlreadyInUseError,
+        error: PhoneNumberAlreadyInUseError,
       };
     }
 
@@ -104,8 +107,8 @@ export const createLocalSignUpRepository = (
     const saveAuthUserResult = await saveAuthUserUseCase.execute({
       remoteId: userRemoteId,
       fullName,
-      email,
-      phone,
+      email: null,
+      phone: phoneNumber,
       authProvider: null,
       profileImageUrl: null,
       preferredLanguage: null,
@@ -139,7 +142,7 @@ export const createLocalSignUpRepository = (
     const saveAuthCredentialResult = await saveAuthCredentialUseCase.execute({
       remoteId: credentialRemoteId,
       userRemoteId,
-      loginId: email,
+      loginId: phoneNumber,
       credentialType: CredentialType.Password,
       passwordHash,
       passwordSalt,

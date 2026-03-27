@@ -9,7 +9,7 @@ export const useLoginViewModel = (
   options?: UseLoginViewModelOptions,
 ): LoginViewModel => {
   const [state, setState] = useState<LoginState>({ status: Status.Idle });
-  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
@@ -21,13 +21,13 @@ export const useLoginViewModel = (
     );
   }, []);
 
-  const changeEmail = useCallback(
+  const changePhoneNumber = useCallback(
     (value: string) => {
       if (state.status === Status.Loading) {
         return;
       }
 
-      setEmail(value);
+      setPhoneNumber(value);
       resetError();
     },
     [resetError, state.status],
@@ -58,7 +58,7 @@ export const useLoginViewModel = (
 
     try {
       const result = await useCase.login({
-        email,
+        phoneNumber,
         password,
       });
 
@@ -82,14 +82,14 @@ export const useLoginViewModel = (
         error: error instanceof Error ? error.message : "Unexpected error",
       });
     }
-  }, [email, options, password, state.status, useCase]);
+  }, [options, password, phoneNumber, state.status, useCase]);
 
   return {
     state,
-    email,
+    phoneNumber,
     password,
     isPasswordVisible,
-    changeEmail,
+    changePhoneNumber,
     changePassword,
     togglePasswordVisibility,
     submit,

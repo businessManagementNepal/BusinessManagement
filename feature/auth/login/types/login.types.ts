@@ -22,7 +22,7 @@ export const ValidationError = (message: string): LoginError => ({
 
 export const InvalidCredentialsError: LoginError = {
   type: LoginErrorType.InvalidCredentials,
-  message: "Invalid email or password.",
+  message: "Invalid phone number or password.",
 };
 
 export const TooManyAttemptsError: LoginError = {
@@ -41,7 +41,7 @@ export const UnknownError: LoginError = {
 };
 
 export type LoginInput = {
-  email: string;
+  phoneNumber: string;
   password: string;
 };
 

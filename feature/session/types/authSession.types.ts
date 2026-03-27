@@ -112,7 +112,7 @@ export const AuthSessionValidationError = (
 
 export const InvalidCredentialsError: AuthSessionError = {
   type: AuthSessionErrorType.InvalidCredentials,
-  message: "Invalid email or password.",
+  message: "Invalid phone number or password.",
 };
 
 export const TooManyAttemptsError = (): AuthSessionError => ({

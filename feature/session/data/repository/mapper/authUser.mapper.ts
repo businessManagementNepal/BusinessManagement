@@ -1,27 +1,60 @@
 import { AuthUser } from "@/feature/session/types/authSession.types";
-import { createDatabaseFieldEncryptionService } from "@/shared/utils/security/databaseFieldEncryption.service";
+import {
+  createDatabaseFieldEncryptionService,
+  isDatabaseFieldEncryptedValue,
+} from "@/shared/utils/security/databaseFieldEncryption.service";
 import { AuthUserModel } from "../../dataSource/db/authUser.model";
 
 const databaseFieldEncryptionService = createDatabaseFieldEncryptionService();
 
+const decryptIfLegacyEncrypted = async (value: string): Promise<string> => {
+  if (!isDatabaseFieldEncryptedValue(value)) {
+    return value;
+  }
+
+  return databaseFieldEncryptionService.decrypt(value);
+};
+
+const decryptNullableIfLegacyEncrypted = async (
+  value: string | null,
+): Promise<string | null> => {
+  if (value === null || !isDatabaseFieldEncryptedValue(value)) {
+    return value;
+  }
+
+  return databaseFieldEncryptionService.decrypt(value);
+};
+
 export const mapAuthUserModelToDomain = async (
   model: AuthUserModel,
-): Promise<AuthUser> => ({
-  remoteId: model.remoteId,
-  fullName: await databaseFieldEncryptionService.decrypt(model.fullName),
-  email: await databaseFieldEncryptionService.decryptNullable(model.email),
-  phone: await databaseFieldEncryptionService.decryptNullable(model.phone),
-  authProvider: await databaseFieldEncryptionService.decryptNullable(
-    model.authProvider,
-  ),
-  profileImageUrl: await databaseFieldEncryptionService.decryptNullable(
-    model.profileImageUrl,
-  ),
-  preferredLanguage: await databaseFieldEncryptionService.decryptNullable(
-    model.preferredLanguage,
-  ),
-  isEmailVerified: model.isEmailVerified,
-  isPhoneVerified: model.isPhoneVerified,
-  createdAt: model.createdAt.getTime(),
-  updatedAt: model.updatedAt.getTime(),
-});
+): Promise<AuthUser> => {
+  const [
+    fullName,
+    email,
+    phone,
+    authProvider,
+    profileImageUrl,
+    preferredLanguage,
+  ] = await Promise.all([
+    decryptIfLegacyEncrypted(model.fullName),
+    decryptNullableIfLegacyEncrypted(model.email),
+    decryptNullableIfLegacyEncrypted(model.phone),
+    decryptNullableIfLegacyEncrypted(model.authProvider),
+    decryptNullableIfLegacyEncrypted(model.profileImageUrl),
+    decryptNullableIfLegacyEncrypted(model.preferredLanguage),
+  ]);
+
+  return {
+    remoteId: model.remoteId,
+    fullName,
+    email,
+    phone,
+    authProvider,
+    profileImageUrl,
+    preferredLanguage,
+    isEmailVerified: model.isEmailVerified,
+    isPhoneVerified: model.isPhoneVerified,
+    createdAt: model.createdAt.getTime(),
+    updatedAt: model.updatedAt.getTime(),
+  };
+};

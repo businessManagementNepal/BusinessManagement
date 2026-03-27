@@ -1,6 +1,5 @@
 import { Database, Q } from "@nozbe/watermelondb";
 import { Result } from "@/shared/types/result.types";
-import { createDatabaseFieldEncryptionService } from "@/shared/utils/security/databaseFieldEncryption.service";
 import {
   RecordSyncStatus,
   SaveAuthUserPayload,
@@ -9,7 +8,6 @@ import { AuthUserDatasource } from "./authUser.datasource";
 import { AuthUserModel } from "./db/authUser.model";
 
 const AUTH_USERS_TABLE = "auth_users";
-const databaseFieldEncryptionService = createDatabaseFieldEncryptionService();
 
 const setCreatedAndUpdatedAt = (record: AuthUserModel, now: number) => {
   (record as unknown as { _raw: Record<string, number> })._raw.created_at = now;
@@ -38,21 +36,12 @@ export const createLocalAuthUserDatasource = (
     payload: SaveAuthUserPayload,
   ): Promise<Result<AuthUserModel>> {
     try {
-      const [
-        encryptedFullName,
-        encryptedEmail,
-        encryptedPhone,
-        encryptedAuthProvider,
-        encryptedProfileImageUrl,
-        encryptedPreferredLanguage,
-      ] = await Promise.all([
-        databaseFieldEncryptionService.encrypt(payload.fullName),
-        databaseFieldEncryptionService.encryptNullable(payload.email),
-        databaseFieldEncryptionService.encryptNullable(payload.phone),
-        databaseFieldEncryptionService.encryptNullable(payload.authProvider),
-        databaseFieldEncryptionService.encryptNullable(payload.profileImageUrl),
-        databaseFieldEncryptionService.encryptNullable(payload.preferredLanguage),
-      ]);
+      const fullName = payload.fullName;
+      const email = payload.email;
+      const phone = payload.phone;
+      const authProvider = payload.authProvider;
+      const profileImageUrl = payload.profileImageUrl;
+      const preferredLanguage = payload.preferredLanguage;
 
       const authUsersCollection = database.get<AuthUserModel>(AUTH_USERS_TABLE);
 
@@ -66,12 +55,12 @@ export const createLocalAuthUserDatasource = (
         await database.write(async () => {
           await existingUser.update((record) => {
             record.remoteId = payload.remoteId;
-            record.fullName = encryptedFullName;
-            record.email = encryptedEmail;
-            record.phone = encryptedPhone;
-            record.authProvider = encryptedAuthProvider;
-            record.profileImageUrl = encryptedProfileImageUrl;
-            record.preferredLanguage = encryptedPreferredLanguage;
+            record.fullName = fullName;
+            record.email = email;
+            record.phone = phone;
+            record.authProvider = authProvider;
+            record.profileImageUrl = profileImageUrl;
+            record.preferredLanguage = preferredLanguage;
             record.isEmailVerified = payload.isEmailVerified;
             record.isPhoneVerified = payload.isPhoneVerified;
             updateSyncStatusOnMutation(record);
@@ -89,12 +78,12 @@ export const createLocalAuthUserDatasource = (
           const now = Date.now();
 
           record.remoteId = payload.remoteId;
-          record.fullName = encryptedFullName;
-          record.email = encryptedEmail;
-          record.phone = encryptedPhone;
-          record.authProvider = encryptedAuthProvider;
-          record.profileImageUrl = encryptedProfileImageUrl;
-          record.preferredLanguage = encryptedPreferredLanguage;
+          record.fullName = fullName;
+          record.email = email;
+          record.phone = phone;
+          record.authProvider = authProvider;
+          record.profileImageUrl = profileImageUrl;
+          record.preferredLanguage = preferredLanguage;
           record.isEmailVerified = payload.isEmailVerified;
           record.isPhoneVerified = payload.isPhoneVerified;
 

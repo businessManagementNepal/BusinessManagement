@@ -43,11 +43,11 @@ const tryHexToBytes = (value: string): Uint8Array | null => {
   }
 };
 
-const isEncryptedValue = (value: string): boolean =>
+export const isDatabaseFieldEncryptedValue = (value: string): boolean =>
   value.startsWith(`${ENCRYPTED_VALUE_PREFIX}:`);
 
 const parseEncryptedValue = (value: string): ParsedEncryptedValue | null => {
-  if (!isEncryptedValue(value)) {
+  if (!isDatabaseFieldEncryptedValue(value)) {
     return null;
   }
 
@@ -133,7 +133,7 @@ const buildEncryptedValue = (
 
 export const createDatabaseFieldEncryptionService = (): DatabaseFieldEncryptionService => {
   const encrypt = async (value: string): Promise<string> => {
-    if (isEncryptedValue(value)) {
+    if (isDatabaseFieldEncryptedValue(value)) {
       try {
         parseEncryptedValue(value);
         return value;

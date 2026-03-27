@@ -5,6 +5,7 @@ import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 export interface PasswordHashService {
   hash(value: string, salt: string): Promise<string>;
   compare(value: string, salt: string, hash: string): Promise<boolean>;
+  needsRehash(hash: string): boolean;
   generateSalt(): Promise<string>;
 }
 
@@ -12,12 +13,12 @@ const LEGACY_HASH_SEPARATOR = "::";
 const LEGACY_HASH_ALGORITHM = Crypto.CryptoDigestAlgorithm.SHA256;
 
 const SCRYPT_PREFIX = "scrypt";
-const SCRYPT_N = 2 ** 15;
+const SCRYPT_N = 2 ** 10;
 const SCRYPT_R = 8;
 const SCRYPT_P = 1;
 const SCRYPT_DK_LEN = 32;
 
-const SCRYPT_N_MIN = 2 ** 12;
+const SCRYPT_N_MIN = 2 ** 10;
 const SCRYPT_N_MAX = 2 ** 16;
 const SCRYPT_R_MIN = 1;
 const SCRYPT_R_MAX = 16;
@@ -161,6 +162,21 @@ export const createPasswordHashService = (): PasswordHashService => ({
     );
 
     return timingSafeEqual(computedHash, hash);
+  },
+
+  needsRehash(hash: string): boolean {
+    const parsedScrypt = parseScryptHash(hash);
+
+    if (!parsedScrypt) {
+      return true;
+    }
+
+    return (
+      parsedScrypt.N !== SCRYPT_N ||
+      parsedScrypt.r !== SCRYPT_R ||
+      parsedScrypt.p !== SCRYPT_P ||
+      parsedScrypt.dkLen !== SCRYPT_DK_LEN
+    );
   },
 
   async generateSalt(): Promise<string> {

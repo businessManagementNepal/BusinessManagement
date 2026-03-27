@@ -29,7 +29,7 @@ export const createVerifyLocalCredentialUseCase = (
     if (!normalizedLoginId) {
       return {
         success: false,
-        error: AuthSessionValidationError("Email is required."),
+        error: AuthSessionValidationError("Phone number is required."),
       };
     }
 
@@ -108,21 +108,41 @@ export const createVerifyLocalCredentialUseCase = (
       };
     }
 
-    const markLoginSuccessResult =
-      await authCredentialRepository.markLoginSuccessByRemoteId(
-        authCredential.remoteId,
-      );
+    const [markLoginSuccessResult, authUserResult] = await Promise.all([
+      authCredentialRepository.markLoginSuccessByRemoteId(authCredential.remoteId),
+      authUserRepository.getAuthUserByRemoteId(authCredential.userRemoteId),
+    ]);
 
     if (!markLoginSuccessResult.success) {
       return markLoginSuccessResult;
     }
 
-    const authUserResult = await authUserRepository.getAuthUserByRemoteId(
-      authCredential.userRemoteId,
-    );
-
     if (!authUserResult.success) {
       return authUserResult;
+    }
+
+    if (passwordHashService.needsRehash(authCredential.passwordHash)) {
+      void (async () => {
+        try {
+          const nextPasswordHash = await passwordHashService.hash(
+            password,
+            authCredential.passwordSalt,
+          );
+
+          await authCredentialRepository.saveAuthCredential({
+            remoteId: authCredential.remoteId,
+            userRemoteId: authCredential.userRemoteId,
+            loginId: authCredential.loginId,
+            credentialType: authCredential.credentialType,
+            passwordHash: nextPasswordHash,
+            passwordSalt: authCredential.passwordSalt,
+            hint: authCredential.hint,
+            isActive: authCredential.isActive,
+          });
+        } catch {
+          // Keep login successful even if background rehash fails.
+        }
+      })();
     }
 
     return {

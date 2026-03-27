@@ -20,13 +20,26 @@ type LocalLoginRepositoryOptions = {
   ) => Promise<void> | void;
 };
 
+const normalizePhoneNumber = (value: string): string => {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return "";
+  }
+
+  const digits = trimmedValue.replace(/\D/g, "");
+  const hasLeadingPlus = trimmedValue.startsWith("+");
+  return hasLeadingPlus ? `+${digits}` : digits;
+};
+
 export const createLocalLoginRepository = (
   verifyLocalCredentialUseCase: VerifyLocalCredentialUseCase,
   options: LocalLoginRepositoryOptions = {},
 ): LoginRepository => ({
   async loginWithEmail(payload): Promise<LoginResult> {
+    const phoneNumber = normalizePhoneNumber(payload.phoneNumber);
+
     const result = await verifyLocalCredentialUseCase.execute({
-      loginId: payload.email.trim().toLowerCase(),
+      loginId: phoneNumber,
       password: payload.password,
     });
 

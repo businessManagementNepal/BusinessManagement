@@ -10,7 +10,6 @@ export const useSignUpViewModel = (
 ): SignUpViewModel => {
   const [state, setState] = useState<SignUpState>({ status: Status.Idle });
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -30,18 +29,6 @@ export const useSignUpViewModel = (
       }
 
       setFullName(value);
-      resetError();
-    },
-    [resetError, state.status],
-  );
-
-  const changeEmail = useCallback(
-    (value: string) => {
-      if (state.status === Status.Loading) {
-        return;
-      }
-
-      setEmail(value);
       resetError();
     },
     [resetError, state.status],
@@ -85,7 +72,6 @@ export const useSignUpViewModel = (
     try {
       const result = await useCase.signUp({
         fullName,
-        email,
         phoneNumber,
         password,
       });
@@ -110,17 +96,15 @@ export const useSignUpViewModel = (
         error: error instanceof Error ? error.message : "Unexpected error",
       });
     }
-  }, [email, fullName, options, password, phoneNumber, state.status, useCase]);
+  }, [fullName, options, password, phoneNumber, state.status, useCase]);
 
   return {
     state,
     fullName,
-    email,
     phoneNumber,
     password,
     isPasswordVisible,
     changeFullName,
-    changeEmail,
     changePhoneNumber,
     changePassword,
     togglePasswordVisibility,

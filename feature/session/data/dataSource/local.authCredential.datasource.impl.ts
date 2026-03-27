@@ -59,12 +59,11 @@ export const createLocalAuthCredentialDatasource = (
         throw new Error("Login id is required");
       }
 
-      const [encryptedPasswordHash, encryptedPasswordSalt, encryptedHint] =
-        await Promise.all([
-          databaseFieldEncryptionService.encrypt(payload.passwordHash),
-          databaseFieldEncryptionService.encrypt(payload.passwordSalt),
-          databaseFieldEncryptionService.encryptNullable(payload.hint),
-        ]);
+      const encryptedPasswordHash = await databaseFieldEncryptionService.encrypt(
+        payload.passwordHash,
+      );
+      const passwordSalt = payload.passwordSalt;
+      const hint = payload.hint;
 
       const authCredentialsCollection = database.get<AuthCredentialModel>(
         AUTH_CREDENTIALS_TABLE,
@@ -84,8 +83,8 @@ export const createLocalAuthCredentialDatasource = (
             record.loginId = normalizedLoginId;
             record.credentialType = payload.credentialType;
             record.passwordHash = encryptedPasswordHash;
-            record.passwordSalt = encryptedPasswordSalt;
-            record.hint = encryptedHint;
+            record.passwordSalt = passwordSalt;
+            record.hint = hint;
             record.isActive = payload.isActive;
             updateSyncStatusOnMutation(record);
             setUpdatedAt(record, Date.now());
@@ -106,8 +105,8 @@ export const createLocalAuthCredentialDatasource = (
           record.loginId = normalizedLoginId;
           record.credentialType = payload.credentialType;
           record.passwordHash = encryptedPasswordHash;
-          record.passwordSalt = encryptedPasswordSalt;
-          record.hint = encryptedHint;
+          record.passwordSalt = passwordSalt;
+          record.hint = hint;
           record.lastLoginAt = null;
           record.isActive = payload.isActive;
           record.failedAttemptCount = 0;

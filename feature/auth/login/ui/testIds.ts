@@ -1,7 +1,8 @@
 export const LOGIN_TEST_IDS = {
   LOGIN_SCREEN: {
     SCREEN: "login-screen",
-    EMAIL_INPUT: "login-email-input",
+    PHONE_NUMBER_INPUT: "login-phone-number-input",
+    EMAIL_INPUT: "login-phone-number-input",
     PASSWORD_INPUT: "login-password-input",
     PASSWORD_TOGGLE: "login-password-toggle",
     SUBMIT_BUTTON: "login-submit-button",
