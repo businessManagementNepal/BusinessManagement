@@ -1,12 +1,11 @@
-import { LoginState } from "../types/login.types";
+import { Control } from "react-hook-form";
+import { LoginInput, LoginState } from "../types/login.types";
 
 export interface LoginViewModel {
   state: LoginState;
-  phoneNumber: string;
-  password: string;
+  control: Control<LoginInput>;
   isPasswordVisible: boolean;
-  changePhoneNumber: (value: string) => void;
-  changePassword: (value: string) => void;
+  clearSubmitError: () => void;
   togglePasswordVisibility: () => void;
   submit: () => Promise<void>;
 }

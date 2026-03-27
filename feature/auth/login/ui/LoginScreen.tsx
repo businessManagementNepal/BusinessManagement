@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Eye, EyeOff, Lock, Phone, User } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { Control } from "react-hook-form";
 import {
   Dropdown,
   type DropdownOption,
@@ -9,6 +10,8 @@ import {
 import { TextField } from "@/shared/components/reusable/Form/TextField";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { SignUpInput } from "@/feature/auth/signUp/types/signUp.types";
+import { LoginInput } from "../types/login.types";
 
 type AuthMode = "login" | "signup";
 
@@ -16,22 +19,16 @@ const LANGUAGE_OPTIONS: DropdownOption[] = [{ label: "English", value: "en" }];
 
 interface LoginScreenProps {
   onSubmit: () => void | Promise<void>;
-  phoneNumber: string;
-  password: string;
-  onPhoneNumberChange: (value: string) => void;
-  onPasswordChange: (value: string) => void;
+  loginControl: Control<LoginInput>;
+  clearLoginSubmitError: () => void;
   isPasswordVisible: boolean;
   onTogglePasswordVisibility: () => void;
   isSubmitting: boolean;
   submitError?: string;
   onForgotPasswordPress?: () => void;
 
-  signUpFullName: string;
-  signUpPhoneNumber: string;
-  signUpPassword: string;
-  onSignUpFullNameChange: (value: string) => void;
-  onSignUpPhoneNumberChange: (value: string) => void;
-  onSignUpPasswordChange: (value: string) => void;
+  signUpControl: Control<SignUpInput>;
+  clearSignUpSubmitError: () => void;
   isSignUpPasswordVisible: boolean;
   onToggleSignUpPasswordVisibility: () => void;
   isSigningUp: boolean;
@@ -41,21 +38,15 @@ interface LoginScreenProps {
 
 export function LoginScreen({
   onSubmit,
-  phoneNumber,
-  password,
-  onPhoneNumberChange,
-  onPasswordChange,
+  loginControl,
+  clearLoginSubmitError,
   isPasswordVisible,
   onTogglePasswordVisibility,
   isSubmitting,
   submitError,
   onForgotPasswordPress,
-  signUpFullName,
-  signUpPhoneNumber,
-  signUpPassword,
-  onSignUpFullNameChange,
-  onSignUpPhoneNumberChange,
-  onSignUpPasswordChange,
+  signUpControl,
+  clearSignUpSubmitError,
   isSignUpPasswordVisible,
   onToggleSignUpPasswordVisibility,
   isSigningUp,
@@ -153,28 +144,37 @@ export function LoginScreen({
 
             {!isLoginMode ? (
               <View style={styles.form}>
-                <TextField
+                <TextField<SignUpInput>
+                  control={signUpControl}
+                  name="fullName"
                   placeholder="Full Name"
                   leftIcon={<User size={18} color={colors.mutedForeground} />}
                   autoCapitalize="words"
-                  value={signUpFullName}
-                  onChangeText={onSignUpFullNameChange}
+                  onFocus={clearSignUpSubmitError}
+                  editable={!isSigningUp}
+                  accessibilityLabel="Full name"
                 />
 
-                <TextField
+                <TextField<SignUpInput>
+                  control={signUpControl}
+                  name="phoneNumber"
                   placeholder="Phone Number"
                   leftIcon={<Phone size={18} color={colors.mutedForeground} />}
                   keyboardType="phone-pad"
-                  value={signUpPhoneNumber}
-                  onChangeText={onSignUpPhoneNumberChange}
+                  onFocus={clearSignUpSubmitError}
+                  editable={!isSigningUp}
+                  accessibilityLabel="Phone number"
                 />
 
-                <TextField
+                <TextField<SignUpInput>
+                  control={signUpControl}
+                  name="password"
                   placeholder="Password"
                   leftIcon={<Lock size={18} color={colors.mutedForeground} />}
                   secureTextEntry={!isSignUpPasswordVisible}
-                  value={signUpPassword}
-                  onChangeText={onSignUpPasswordChange}
+                  onFocus={clearSignUpSubmitError}
+                  editable={!isSigningUp}
+                  accessibilityLabel="Sign up password"
                   rightIcon={
                     <Pressable
                       onPress={onToggleSignUpPasswordVisibility}
@@ -194,20 +194,30 @@ export function LoginScreen({
               </View>
             ) : (
               <View style={styles.form}>
-                <TextField
+                <TextField<LoginInput>
+                  control={loginControl}
+                  name="phoneNumber"
                   placeholder="Phone Number"
                   leftIcon={<Phone size={18} color={colors.mutedForeground} />}
-                  value={phoneNumber}
-                  onChangeText={onPhoneNumberChange}
                   keyboardType="phone-pad"
+                  autoComplete="tel"
+                  textContentType="telephoneNumber"
+                  onFocus={clearLoginSubmitError}
+                  editable={!isSubmitting}
+                  accessibilityLabel="Phone number"
                 />
 
-                <TextField
+                <TextField<LoginInput>
+                  control={loginControl}
+                  name="password"
                   placeholder="Password"
                   leftIcon={<Lock size={18} color={colors.mutedForeground} />}
-                  value={password}
-                  onChangeText={onPasswordChange}
                   secureTextEntry={!isPasswordVisible}
+                  autoComplete="password"
+                  textContentType="password"
+                  onFocus={clearLoginSubmitError}
+                  editable={!isSubmitting}
+                  accessibilityLabel="Password"
                   rightIcon={
                     <Pressable
                       onPress={onTogglePasswordVisibility}

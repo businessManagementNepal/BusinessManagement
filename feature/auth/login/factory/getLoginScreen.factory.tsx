@@ -17,11 +17,25 @@ export function GetLoginScreenFactory({
   onSuccess,
   onForgotPasswordPress,
 }: GetLoginScreenFactoryProps) {
-  const loginRepository = createLocalLoginRepositoryWithDatabase(database);
-  const signUpRepository = createLocalSignUpRepositoryWithDatabase(database);
+  const loginRepository = React.useMemo(
+    () => createLocalLoginRepositoryWithDatabase(database),
+    [database],
+  );
 
-  const loginWithEmailUseCase = createLoginWithEmailUseCase(loginRepository);
-  const signUpWithEmailUseCase = createSignUpWithEmailUseCase(signUpRepository);
+  const signUpRepository = React.useMemo(
+    () => createLocalSignUpRepositoryWithDatabase(database),
+    [database],
+  );
+
+  const loginWithEmailUseCase = React.useMemo(
+    () => createLoginWithEmailUseCase(loginRepository),
+    [loginRepository],
+  );
+
+  const signUpWithEmailUseCase = React.useMemo(
+    () => createSignUpWithEmailUseCase(signUpRepository),
+    [signUpRepository],
+  );
 
   return (
     <LoginScreenContainer

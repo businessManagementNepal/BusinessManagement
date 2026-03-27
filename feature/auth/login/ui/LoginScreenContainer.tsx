@@ -37,21 +37,15 @@ export function LoginScreenContainer({
   return (
     <LoginScreen
       onSubmit={loginViewModel.submit}
-      phoneNumber={loginViewModel.phoneNumber}
-      password={loginViewModel.password}
-      onPhoneNumberChange={loginViewModel.changePhoneNumber}
-      onPasswordChange={loginViewModel.changePassword}
+      loginControl={loginViewModel.control}
+      clearLoginSubmitError={loginViewModel.clearSubmitError}
       isPasswordVisible={loginViewModel.isPasswordVisible}
       onTogglePasswordVisibility={loginViewModel.togglePasswordVisibility}
       isSubmitting={loginViewModel.state.status === Status.Loading}
       submitError={loginSubmitError}
       onForgotPasswordPress={onForgotPasswordPress}
-      signUpFullName={signUpViewModel.fullName}
-      signUpPhoneNumber={signUpViewModel.phoneNumber}
-      signUpPassword={signUpViewModel.password}
-      onSignUpFullNameChange={signUpViewModel.changeFullName}
-      onSignUpPhoneNumberChange={signUpViewModel.changePhoneNumber}
-      onSignUpPasswordChange={signUpViewModel.changePassword}
+      signUpControl={signUpViewModel.control}
+      clearSignUpSubmitError={signUpViewModel.clearSubmitError}
       isSignUpPasswordVisible={signUpViewModel.isPasswordVisible}
       onToggleSignUpPasswordVisibility={signUpViewModel.togglePasswordVisibility}
       isSigningUp={signUpViewModel.state.status === Status.Loading}

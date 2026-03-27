@@ -1,44 +1,96 @@
 import React from "react";
-import { StyleSheet, TextInput, TextInputProps, View } from "react-native";
+import {
+  StyleProp,
+  StyleSheet,
+  Text,
+  TextInput,
+  TextInputProps,
+  TextStyle,
+  View,
+  ViewStyle,
+} from "react-native";
+import { Control, Controller, FieldValues, Path } from "react-hook-form";
 import { colors } from "../../theme/colors";
 import { radius } from "../../theme/spacing";
-interface TextFieldProps {
+
+interface TextFieldProps<TFieldValues extends FieldValues>
+  extends Omit<TextInputProps, "value" | "onChangeText" | "onBlur"> {
+  control: Control<TFieldValues>;
+  name: Path<TFieldValues>;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  placeholder: string;
-  secureTextEntry?: boolean;
-  value?: string;
-  onChangeText?: (value: string) => void;
-  keyboardType?: TextInputProps["keyboardType"];
-  autoCapitalize?: TextInputProps["autoCapitalize"];
+  onValueChange?: (value: string) => void;
+  containerStyle?: StyleProp<ViewStyle>;
+  inputStyle?: StyleProp<TextStyle>;
+  containerTestID?: string;
+  errorTestID?: string;
 }
 
-export function TextField({
+export function TextField<TFieldValues extends FieldValues>({
+  control,
+  name,
   leftIcon,
   rightIcon,
+  onValueChange,
+  containerStyle,
+  inputStyle,
+  containerTestID,
+  errorTestID,
   placeholder,
   secureTextEntry = false,
-  value,
-  onChangeText,
-  keyboardType,
   autoCapitalize = "none",
-}: TextFieldProps) {
+  autoCorrect = false,
+  accessibilityState,
+  style,
+  ...inputProps
+}: TextFieldProps<TFieldValues>) {
+
   return (
-    <View style={styles.wrapper}>
-      {leftIcon ? <View style={styles.side}>{leftIcon}</View> : null}
-      <TextInput
-        placeholder={placeholder}
-        placeholderTextColor={colors.mutedForeground}
-        style={styles.input}
-        secureTextEntry={secureTextEntry}
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={false}
-      />
-      {rightIcon ? <View style={styles.side}>{rightIcon}</View> : null}
-    </View>
+    <Controller
+      control={control}
+      name={name}
+      render={({ field: { onBlur, onChange, value }, fieldState }) => {
+        const displayValue =
+          value === null || value === undefined ? "" : String(value);
+        const errorMessage = fieldState.error?.message;
+        const hasError = Boolean(errorMessage);
+
+        return (
+          <View style={containerStyle} testID={containerTestID}>
+            <View style={[styles.wrapper, hasError ? styles.wrapperError : null]}>
+              {leftIcon ? <View style={styles.side}>{leftIcon}</View> : null}
+              <TextInput
+                {...inputProps}
+                placeholder={placeholder}
+                placeholderTextColor={colors.mutedForeground}
+                style={[styles.input, style, inputStyle]}
+                secureTextEntry={secureTextEntry}
+                autoCapitalize={autoCapitalize}
+                autoCorrect={autoCorrect}
+                value={displayValue}
+                onBlur={onBlur}
+                onChangeText={(nextValue) => {
+                  onChange(nextValue);
+
+                  if (onValueChange) {
+                    onValueChange(nextValue);
+                  }
+                }}
+                blurOnSubmit={inputProps.blurOnSubmit}
+                accessibilityState={accessibilityState}
+              />
+              {rightIcon ? <View style={styles.side}>{rightIcon}</View> : null}
+            </View>
+
+            {hasError ? (
+              <Text style={styles.errorText} testID={errorTestID}>
+                {errorMessage}
+              </Text>
+            ) : null}
+          </View>
+        );
+      }}
+    />
   );
 }
 
@@ -54,6 +106,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
+  wrapperError: {
+    borderColor: colors.destructive,
+  },
   side: {
     width: 20,
     alignItems: "center",
@@ -63,5 +118,11 @@ const styles = StyleSheet.create({
     color: colors.cardForeground,
     fontSize: 14,
     paddingVertical: 14,
+  },
+  errorText: {
+    color: colors.destructive,
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 6,
   },
 });

@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "@hookform/resolvers": "^5.2.2",
     "@noble/ciphers": "^2.1.1",
     "@noble/hashes": "^1.8.0",
     "@nozbe/watermelondb": "^0.28.0",
@@ -39,6 +40,7 @@
     "lucide-react-native": "^1.6.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-hook-form": "^7.71.1",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-reanimated": "~4.1.1",
