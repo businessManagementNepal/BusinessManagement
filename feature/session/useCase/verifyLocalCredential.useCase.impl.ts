@@ -3,7 +3,6 @@ import { AuthCredentialRepository } from "../data/repository/authCredential.repo
 import { AuthUserRepository } from "../data/repository/authUser.repository";
 import {
   AuthSessionErrorType,
-  AuthSessionValidationError,
   CredentialType,
   InvalidCredentialsError,
   TooManyAttemptsError,
@@ -23,22 +22,8 @@ export const createVerifyLocalCredentialUseCase = (
   async execute(
     payload: VerifyLocalCredentialPayload,
   ): Promise<VerifiedLocalCredentialResult> {
-    const normalizedLoginId = payload.loginId.trim().toLowerCase();
-    const password = payload.password.trim();
-
-    if (!normalizedLoginId) {
-      return {
-        success: false,
-        error: AuthSessionValidationError("Phone number is required."),
-      };
-    }
-
-    if (!password) {
-      return {
-        success: false,
-        error: AuthSessionValidationError("Password is required."),
-      };
-    }
+    const normalizedLoginId = payload.loginId;
+    const password = payload.password;
 
     const authCredentialResult =
       await authCredentialRepository.getActiveAuthCredentialByLoginId(

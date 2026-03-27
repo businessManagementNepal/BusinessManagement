@@ -24,17 +24,6 @@ type LocalSignUpRepositoryOptions = {
   ) => Promise<void> | void;
 };
 
-const normalizePhoneNumber = (value: string): string => {
-  const trimmedValue = value.trim();
-  if (!trimmedValue) {
-    return "";
-  }
-
-  const digits = trimmedValue.replace(/\D/g, "");
-  const hasLeadingPlus = trimmedValue.startsWith("+");
-  return hasLeadingPlus ? `+${digits}` : digits;
-};
-
 export const createLocalSignUpRepository = (
   getActiveAuthCredentialByLoginIdUseCase: GetActiveAuthCredentialByLoginIdUseCase,
   saveAuthUserUseCase: SaveAuthUserUseCase,
@@ -43,30 +32,9 @@ export const createLocalSignUpRepository = (
   options: LocalSignUpRepositoryOptions = {},
 ): SignUpRepository => ({
   async signUpWithEmail(payload): Promise<SignUpResult> {
-    const fullName = payload.fullName.trim();
-    const phoneNumber = normalizePhoneNumber(payload.phoneNumber);
-    const password = payload.password.trim();
-
-    if (!fullName) {
-      return {
-        success: false,
-        error: ValidationError("Full name is required."),
-      };
-    }
-
-    if (!phoneNumber) {
-      return {
-        success: false,
-        error: ValidationError("Phone number is required."),
-      };
-    }
-
-    if (!password) {
-      return {
-        success: false,
-        error: ValidationError("Password is required."),
-      };
-    }
+    const fullName = payload.fullName;
+    const phoneNumber = payload.phoneNumber;
+    const password = payload.password;
 
     const existingCredentialResult =
       await getActiveAuthCredentialByLoginIdUseCase.execute(
