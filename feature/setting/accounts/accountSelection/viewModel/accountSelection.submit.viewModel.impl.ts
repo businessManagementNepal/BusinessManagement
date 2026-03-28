@@ -2,7 +2,7 @@ import { Database } from "@nozbe/watermelondb";
 import { useCallback, useMemo } from "react";
 import * as Crypto from "expo-crypto";
 import { setActiveAccountSession } from "@/feature/appSettings/data/appSettings.store";
-import { sortAccountsByDefaultAndUpdatedAt } from "@/shared/accountutils/accountSorting.util";
+import { sortAccountsByDefaultAndUpdatedAt } from "@/shared/utils/account/accountSorting.util";
 import { AccountType } from "../types/accountSelection.types";
 import { SaveAccountUseCase } from "../useCase/saveAccount.useCase";
 import {
