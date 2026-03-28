@@ -6,6 +6,7 @@ export const accountsTable = tableSchema({
     { name: "remote_id", type: "string", isIndexed: true },
     { name: "owner_user_remote_id", type: "string", isIndexed: true },
     { name: "account_type", type: "string", isIndexed: true },
+    { name: "business_type", type: "string", isOptional: true },
     { name: "display_name", type: "string" },
     { name: "currency_code", type: "string", isOptional: true },
     { name: "city_or_location", type: "string", isOptional: true },

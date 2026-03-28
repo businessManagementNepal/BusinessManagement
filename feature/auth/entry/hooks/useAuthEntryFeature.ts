@@ -11,7 +11,8 @@ type UseAuthEntryFeatureParams = {
   database: Database;
   loginWithEmailUseCase: LoginWithEmailUseCase;
   signUpWithEmailUseCase: SignUpWithEmailUseCase;
-  onSuccess?: () => void;
+  onLoginSuccess?: () => void;
+  onSignUpSuccess?: () => void;
   onForgotPasswordPress?: () => void;
 };
 
@@ -20,19 +21,20 @@ export function useAuthEntryFeature(params: UseAuthEntryFeatureParams) {
     database,
     loginWithEmailUseCase,
     signUpWithEmailUseCase,
-    onSuccess,
+    onLoginSuccess,
+    onSignUpSuccess,
     onForgotPasswordPress,
   } = params;
   const language = useLanguageSelectionFeature({ database });
 
   const login = useAuthEntryLoginFeature({
     loginWithEmailUseCase,
-    onSuccess,
+    onSuccess: onLoginSuccess,
   });
 
   const signUp = useAuthEntrySignUpFeature({
     signUpWithEmailUseCase,
-    onSuccess,
+    onSuccess: onSignUpSuccess,
   });
 
   const viewModel = useMemo<AuthEntryViewModel>(

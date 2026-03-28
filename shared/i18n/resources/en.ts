@@ -15,6 +15,15 @@ const en = {
         fullName: "Full Name",
         phoneNumber: "Phone Number",
         password: "Password",
+        profileType: "Profile Type",
+        businessType: "Business Type",
+      },
+      profileType: {
+        personal: "Personal",
+        business: "Business",
+      },
+      placeholders: {
+        businessType: "Select business type",
       },
       actions: {
         login: "Login",

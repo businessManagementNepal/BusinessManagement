@@ -7,7 +7,7 @@ import { createLocalAccountDatasource } from "../data/dataSource/local.account.d
 import { createAccountRepository } from "../data/repository/account.repository.impl";
 import { createGetAccountsByOwnerUserRemoteIdUseCase } from "../useCase/getAccountsByOwnerUserRemoteId.useCase.impl";
 import { createSaveAccountUseCase } from "../useCase/saveAccount.useCase.impl";
-import { useAccountSelectionFeature } from "../hooks/useAccountSelectionFeature";
+import { useAccountSelectionViewModel } from "../viewModel/accountSelection.viewModel.impl";
 import { AccountSelectionScreen } from "../ui/AccountSelectionScreen";
 
 type GetAccountSelectionScreenFactoryProps = {
@@ -56,7 +56,7 @@ export function GetAccountSelectionScreenFactory({
     [accountRepository],
   );
 
-  const viewModel = useAccountSelectionFeature({
+  const viewModel = useAccountSelectionViewModel({
     database,
     getAccountsByOwnerUserRemoteIdUseCase,
     saveAccountUseCase,

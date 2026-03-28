@@ -9,13 +9,15 @@ import { AuthEntryScreen } from "../ui/AuthEntryScreen";
 
 type GetAuthEntryScreenFactoryProps = {
   database: Database;
-  onSuccess?: () => void;
+  onLoginSuccess?: () => void;
+  onSignUpSuccess?: () => void;
   onForgotPasswordPress?: () => void;
 };
 
 export function GetAuthEntryScreenFactory({
   database,
-  onSuccess,
+  onLoginSuccess,
+  onSignUpSuccess,
   onForgotPasswordPress,
 }: GetAuthEntryScreenFactoryProps) {
   const loginRepository = React.useMemo(
@@ -42,7 +44,8 @@ export function GetAuthEntryScreenFactory({
     database,
     loginWithEmailUseCase,
     signUpWithEmailUseCase,
-    onSuccess,
+    onLoginSuccess,
+    onSignUpSuccess,
     onForgotPasswordPress,
   });
 

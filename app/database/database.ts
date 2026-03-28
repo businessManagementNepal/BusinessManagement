@@ -7,7 +7,7 @@ import { createDatabase } from "@/shared/database/createDatabase";
 import { appSchema } from "@nozbe/watermelondb";
 
 const schema = appSchema({
-  version: 13,
+  version: 14,
   tables: [
     ...authUserDbConfig.tables,
     ...authCredentialDbConfig.tables,

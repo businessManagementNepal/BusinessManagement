@@ -10,7 +10,7 @@ export default function LoginRoute() {
   const [isSessionLoading, setIsSessionLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
 
-  const handleOnSuccess = useCallback(() => {
+  const handleOnLoginSuccess = useCallback(() => {
     router.replace("/(account-setup)/select-account");
   }, [router]);
 
@@ -55,7 +55,7 @@ export default function LoginRoute() {
   return (
     <GetAuthEntryScreenFactory
       database={appDatabase}
-      onSuccess={handleOnSuccess}
+      onLoginSuccess={handleOnLoginSuccess}
     />
   );
 }

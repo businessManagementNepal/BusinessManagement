@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { normalizePhoneNumber } from "@/shared/utils/auth/phoneNumber.util";
+import { BUSINESS_TYPE_VALUES } from "@/shared/constants/businessType.constants";
+import { SignUpProfileType } from "../types/signUp.types";
 import {
   getInvalidSignUpPhoneMessageForCountry,
   isValidSignUpPhoneForCountry,
@@ -25,6 +27,10 @@ const passwordSchema = z
   });
 
 const phoneCountryCodeSchema = z.enum(["NP", "IN"]);
+const profileTypeSchema = z.enum([
+  SignUpProfileType.Personal,
+  SignUpProfileType.Business,
+]);
 
 const phoneNumberSchema = z.string();
 
@@ -41,6 +47,8 @@ export const signUpFormSchema = z
   .object({
     fullName: fullNameSchema,
     phoneCountryCode: phoneCountryCodeSchema,
+    profileType: profileTypeSchema,
+    businessType: z.string(),
     phoneNumber: phoneNumberSchema,
     password: passwordSchema,
   })
@@ -63,10 +71,57 @@ export const signUpFormSchema = z
         path: ["phoneNumber"],
       });
     }
+
+    if (value.profileType === SignUpProfileType.Business) {
+      if (!value.businessType.trim()) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Business type is required.",
+          path: ["businessType"],
+        });
+        return;
+      }
+
+      if (
+        !BUSINESS_TYPE_VALUES.includes(
+          value.businessType as (typeof BUSINESS_TYPE_VALUES)[number],
+        )
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Business type is invalid.",
+          path: ["businessType"],
+        });
+      }
+    }
   });
 
 export const signUpInputSchema = z.object({
   fullName: fullNameSchema.transform((value) => value.trim()),
   phoneNumber: e164PhoneNumberSchema.transform(normalizePhoneNumber),
   password: passwordSchema.transform((value) => value.trim()),
+  profileType: profileTypeSchema,
+  businessType: z.enum(BUSINESS_TYPE_VALUES).nullable(),
+}).superRefine((value, context) => {
+  if (
+    value.profileType === SignUpProfileType.Business &&
+    value.businessType === null
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Business type is required.",
+      path: ["businessType"],
+    });
+  }
+
+  if (
+    value.profileType === SignUpProfileType.Personal &&
+    value.businessType !== null
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Business type must not be set for personal profile.",
+      path: ["businessType"],
+    });
+  }
 });

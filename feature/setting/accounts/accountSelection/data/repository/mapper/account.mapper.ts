@@ -8,6 +8,7 @@ export const mapAccountModelToDomain = async (
     remoteId: model.remoteId,
     ownerUserRemoteId: model.ownerUserRemoteId,
     accountType: model.accountType,
+    businessType: model.businessType,
     displayName: model.displayName,
     currencyCode: model.currencyCode,
     cityOrLocation: model.cityOrLocation,

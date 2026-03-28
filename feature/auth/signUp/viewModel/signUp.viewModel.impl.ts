@@ -1,12 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Status } from "@/shared/types/status.types";
 import { useCallback, useMemo, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useFormState, useWatch } from "react-hook-form";
 import {
+  SIGN_UP_BUSINESS_TYPE_OPTIONS,
   SIGN_UP_PHONE_COUNTRY_OPTIONS,
   SignUpFormInput,
   SignUpInput,
   SignUpPhoneCountryCode,
+  SignUpProfileType,
+  SignUpProfileTypeValue,
   SignUpState,
 } from "../types/signUp.types";
 import { signUpFormSchema } from "../validation/signUp.schema";
@@ -43,6 +46,8 @@ export const useSignUpViewModel = (
     defaultValues: {
       fullName: "",
       phoneCountryCode: DEFAULT_PHONE_COUNTRY_CODE,
+      profileType: SignUpProfileType.Personal,
+      businessType: "",
       phoneNumber: "",
       password: "",
     },
@@ -56,11 +61,22 @@ export const useSignUpViewModel = (
       control,
       name: "phoneCountryCode",
     }) ?? DEFAULT_PHONE_COUNTRY_CODE;
+  const selectedProfileType =
+    useWatch({
+      control,
+      name: "profileType",
+    }) ?? SignUpProfileType.Personal;
+  const selectedBusinessType =
+    useWatch({
+      control,
+      name: "businessType",
+    }) ?? "";
 
   const selectedPhoneCountryOption = useMemo(
     () => getCountryOptionByCode(selectedPhoneCountryCode),
     [selectedPhoneCountryCode],
   );
+  const { errors } = useFormState({ control });
 
   const phoneNumberMaxLength = useMemo(
     () => getSignUpPhoneLengthForCountry(selectedPhoneCountryCode),
@@ -107,6 +123,44 @@ export const useSignUpViewModel = (
     [clearErrors, getValues, setValue],
   );
 
+  const onChangeSelectedProfileType = useCallback(
+    (profileType: SignUpProfileTypeValue): void => {
+      if (getValues("profileType") === profileType) {
+        return;
+      }
+
+      setValue("profileType", profileType, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: false,
+      });
+
+      if (profileType === SignUpProfileType.Personal) {
+        setValue("businessType", "", {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: false,
+        });
+      }
+
+      clearErrors("businessType");
+    },
+    [clearErrors, getValues, setValue],
+  );
+
+  const onChangeSelectedBusinessType = useCallback(
+    (businessType: SignUpFormInput["businessType"]): void => {
+      setValue("businessType", businessType, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: false,
+      });
+
+      clearErrors("businessType");
+    },
+    [clearErrors, setValue],
+  );
+
   const submitWithValidPayload = useCallback(
     async (payload: SignUpFormInput): Promise<void> => {
       if (state.status === Status.Loading) {
@@ -115,11 +169,19 @@ export const useSignUpViewModel = (
 
       const selectedCountryOption = getCountryOptionByCode(payload.phoneCountryCode);
       const normalizedPhoneDigits = sanitizeSignUpPhoneDigits(payload.phoneNumber);
+      const selectedBusinessTypeOption = SIGN_UP_BUSINESS_TYPE_OPTIONS.find(
+        (option) => option.value === payload.businessType,
+      );
 
       const normalizedPayload: SignUpInput = {
         fullName: payload.fullName,
         phoneNumber: `${selectedCountryOption.dialCode}${normalizedPhoneDigits}`,
         password: payload.password,
+        profileType: payload.profileType,
+        businessType:
+          payload.profileType === SignUpProfileType.Business
+            ? selectedBusinessTypeOption?.value ?? null
+            : null,
       };
 
       setState({ status: Status.Loading });
@@ -166,7 +228,16 @@ export const useSignUpViewModel = (
     selectedPhoneDialCode: selectedPhoneCountryOption.dialCode,
     phoneNumberMaxLength,
     phoneCountryOptions: SIGN_UP_PHONE_COUNTRY_OPTIONS,
+    selectedProfileType,
+    selectedBusinessType,
+    businessTypeOptions: SIGN_UP_BUSINESS_TYPE_OPTIONS,
+    businessTypeError:
+      typeof errors.businessType?.message === "string"
+        ? errors.businessType.message
+        : undefined,
     onChangeSelectedPhoneCountry,
+    onChangeSelectedProfileType,
+    onChangeSelectedBusinessType,
     isPasswordVisible,
     clearSubmitError,
     togglePasswordVisibility,

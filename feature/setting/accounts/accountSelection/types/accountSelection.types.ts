@@ -1,4 +1,5 @@
 import { Result } from "@/shared/types/result.types";
+import { BusinessTypeValue } from "@/shared/constants/businessType.constants";
 
 export const AccountType = {
   Personal: "personal",
@@ -22,6 +23,7 @@ export type SaveAccountPayload = {
   remoteId: string;
   ownerUserRemoteId: string;
   accountType: AccountTypeValue;
+  businessType: BusinessTypeValue | null;
   displayName: string;
   currencyCode: string | null;
   cityOrLocation: string | null;
@@ -34,6 +36,7 @@ export type Account = {
   remoteId: string;
   ownerUserRemoteId: string;
   accountType: AccountTypeValue;
+  businessType: BusinessTypeValue | null;
   displayName: string;
   currencyCode: string | null;
   cityOrLocation: string | null;

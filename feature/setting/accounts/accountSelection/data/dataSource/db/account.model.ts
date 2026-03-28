@@ -1,5 +1,6 @@
 import { Model } from "@nozbe/watermelondb";
 import { date, field, readonly } from "@nozbe/watermelondb/decorators";
+import { BusinessTypeValue } from "@/shared/constants/businessType.constants";
 
 export class AccountModel extends Model {
   static table = "accounts";
@@ -7,6 +8,7 @@ export class AccountModel extends Model {
   @field("remote_id") remoteId!: string;
   @field("owner_user_remote_id") ownerUserRemoteId!: string;
   @field("account_type") accountType!: "personal" | "business";
+  @field("business_type") businessType!: BusinessTypeValue | null;
   @field("display_name") displayName!: string;
   @field("currency_code") currencyCode!: string | null;
   @field("city_or_location") cityOrLocation!: string | null;

@@ -19,6 +19,7 @@ export function useAuthEntrySignUpFeature(
   });
 
   const isSubmitting = signUpViewModel.state.status === Status.Loading;
+  const hasSucceeded = signUpViewModel.state.status === Status.Success;
   const submitError =
     signUpViewModel.state.status === Status.Failure
       ? signUpViewModel.state.error
@@ -31,10 +32,17 @@ export function useAuthEntrySignUpFeature(
       selectedPhoneDialCode: signUpViewModel.selectedPhoneDialCode,
       phoneNumberMaxLength: signUpViewModel.phoneNumberMaxLength,
       phoneCountryOptions: signUpViewModel.phoneCountryOptions,
+      selectedProfileType: signUpViewModel.selectedProfileType,
+      selectedBusinessType: signUpViewModel.selectedBusinessType,
+      businessTypeOptions: signUpViewModel.businessTypeOptions,
+      businessTypeError: signUpViewModel.businessTypeError,
       onChangeSelectedPhoneCountry: signUpViewModel.onChangeSelectedPhoneCountry,
+      onChangeSelectedProfileType: signUpViewModel.onChangeSelectedProfileType,
+      onChangeSelectedBusinessType: signUpViewModel.onChangeSelectedBusinessType,
       clearSubmitError: signUpViewModel.clearSubmitError,
       isPasswordVisible: signUpViewModel.isPasswordVisible,
       togglePasswordVisibility: signUpViewModel.togglePasswordVisibility,
+      hasSucceeded,
       isSubmitting,
       submitError,
       submit: signUpViewModel.submit,
@@ -45,10 +53,17 @@ export function useAuthEntrySignUpFeature(
       signUpViewModel.selectedPhoneDialCode,
       signUpViewModel.phoneNumberMaxLength,
       signUpViewModel.phoneCountryOptions,
+      signUpViewModel.selectedProfileType,
+      signUpViewModel.selectedBusinessType,
+      signUpViewModel.businessTypeOptions,
+      signUpViewModel.businessTypeError,
       signUpViewModel.onChangeSelectedPhoneCountry,
+      signUpViewModel.onChangeSelectedProfileType,
+      signUpViewModel.onChangeSelectedBusinessType,
       signUpViewModel.clearSubmitError,
       signUpViewModel.isPasswordVisible,
       signUpViewModel.togglePasswordVisibility,
+      hasSucceeded,
       signUpViewModel.submit,
       isSubmitting,
       submitError,

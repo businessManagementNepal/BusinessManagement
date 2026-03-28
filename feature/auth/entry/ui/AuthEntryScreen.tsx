@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Eye, EyeOff, Lock, Phone, User } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,7 +11,10 @@ import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { isSupportedLanguageCode, useTranslation } from "@/shared/i18n/resources";
 import { LoginInput } from "@/feature/auth/login/types/login.types";
-import { SignUpFormInput } from "@/feature/auth/signUp/types/signUp.types";
+import {
+  SignUpFormInput,
+  SignUpProfileType,
+} from "@/feature/auth/signUp/types/signUp.types";
 import { AuthEntryViewModel } from "../viewModel/authEntry.viewModel";
 
 type AuthMode = "login" | "signup";
@@ -44,18 +47,26 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
   const {
     control: signUpControl,
     selectedPhoneCountryCode,
+    selectedProfileType,
+    selectedBusinessType,
+    businessTypeOptions,
+    businessTypeError,
     phoneNumberMaxLength,
     phoneCountryOptions,
     onChangeSelectedPhoneCountry,
+    onChangeSelectedProfileType,
+    onChangeSelectedBusinessType,
     clearSubmitError: clearSignUpSubmitError,
     isPasswordVisible: isSignUpPasswordVisible,
     togglePasswordVisibility: onToggleSignUpPasswordVisibility,
+    hasSucceeded: hasSignUpSucceeded,
     isSubmitting: isSigningUp,
     submitError: signUpError,
     submit: onSubmitSignUp,
   } = signUp;
 
   const [mode, setMode] = useState<AuthMode>("login");
+  const hasHandledLatestSignUpSuccess = useRef(false);
 
   const insets = useSafeAreaInsets();
   const isLoginMode = mode === "login";
@@ -85,6 +96,15 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
     [phoneCountryOptions],
   );
 
+  const signUpBusinessTypeDropdownOptions = useMemo<DropdownOption[]>(
+    () =>
+      businessTypeOptions.map((option) => ({
+        label: option.label,
+        value: option.value,
+      })),
+    [businessTypeOptions],
+  );
+
   const handleLanguageChange = useCallback(
     (nextLanguageCode: string): void => {
       if (!isSupportedLanguageCode(nextLanguageCode)) {
@@ -111,6 +131,30 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
     [onChangeSelectedPhoneCountry, phoneCountryOptions],
   );
 
+  const handleSignUpProfileTypeChange = useCallback(
+    (profileType: typeof SignUpProfileType.Personal | typeof SignUpProfileType.Business): void => {
+      onChangeSelectedProfileType(profileType);
+      clearSignUpSubmitError();
+    },
+    [clearSignUpSubmitError, onChangeSelectedProfileType],
+  );
+
+  const handleSignUpBusinessTypeChange = useCallback(
+    (businessType: string): void => {
+      const matchingOption = businessTypeOptions.find(
+        (option) => option.value === businessType,
+      );
+
+      if (!matchingOption) {
+        return;
+      }
+
+      onChangeSelectedBusinessType(matchingOption.value);
+      clearSignUpSubmitError();
+    },
+    [businessTypeOptions, clearSignUpSubmitError, onChangeSelectedBusinessType],
+  );
+
   const primaryLabel = isLoginMode
     ? t("auth.entry.actions.login")
     : t("auth.entry.actions.createAccount");
@@ -133,6 +177,20 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
   const footerActionLabel = isLoginMode
     ? t("auth.entry.footer.signUp")
     : t("auth.entry.footer.login");
+
+  useEffect(() => {
+    if (!hasSignUpSucceeded) {
+      hasHandledLatestSignUpSuccess.current = false;
+      return;
+    }
+
+    if (hasHandledLatestSignUpSuccess.current) {
+      return;
+    }
+
+    hasHandledLatestSignUpSuccess.current = true;
+    setMode("login");
+  }, [hasSignUpSucceeded]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
@@ -205,6 +263,88 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
 
             {!isLoginMode ? (
               <View key="signup-form" style={styles.form}>
+                <Text style={styles.inputLabel}>
+                  {t("auth.entry.fields.profileType")}
+                </Text>
+
+                <View style={styles.profileTypeRow}>
+                  <Pressable
+                    style={[
+                      styles.profileTypeButton,
+                      selectedProfileType === SignUpProfileType.Personal
+                        ? styles.profileTypeButtonActive
+                        : undefined,
+                    ]}
+                    onPress={() =>
+                      handleSignUpProfileTypeChange(SignUpProfileType.Personal)
+                    }
+                    accessibilityRole="button"
+                    accessibilityState={{
+                      selected: selectedProfileType === SignUpProfileType.Personal,
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.profileTypeButtonText,
+                        selectedProfileType === SignUpProfileType.Personal
+                          ? styles.profileTypeButtonTextActive
+                          : undefined,
+                      ]}
+                    >
+                      {t("auth.entry.profileType.personal")}
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.profileTypeButton,
+                      selectedProfileType === SignUpProfileType.Business
+                        ? styles.profileTypeButtonActive
+                        : undefined,
+                    ]}
+                    onPress={() =>
+                      handleSignUpProfileTypeChange(SignUpProfileType.Business)
+                    }
+                    accessibilityRole="button"
+                    accessibilityState={{
+                      selected: selectedProfileType === SignUpProfileType.Business,
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.profileTypeButtonText,
+                        selectedProfileType === SignUpProfileType.Business
+                          ? styles.profileTypeButtonTextActive
+                          : undefined,
+                      ]}
+                    >
+                      {t("auth.entry.profileType.business")}
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {selectedProfileType === SignUpProfileType.Business ? (
+                  <View style={styles.businessTypeWrap}>
+                    <Text style={styles.inputLabel}>
+                      {t("auth.entry.fields.businessType")}
+                    </Text>
+
+                    <Dropdown
+                      value={selectedBusinessType}
+                      options={signUpBusinessTypeDropdownOptions}
+                      onChange={handleSignUpBusinessTypeChange}
+                      placeholder={t("auth.entry.placeholders.businessType")}
+                      modalTitle={t("auth.entry.fields.businessType")}
+                      showLeadingIcon={false}
+                      disabled={isSigningUp}
+                    />
+
+                    {businessTypeError ? (
+                      <Text style={styles.submitError}>{businessTypeError}</Text>
+                    ) : null}
+                  </View>
+                ) : null}
+
                 <TextField<SignUpFormInput>
                   control={signUpControl}
                   name="fullName"
@@ -470,6 +610,41 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: spacing.md,
+  },
+  inputLabel: {
+    color: colors.mutedForeground,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  profileTypeRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  profileTypeButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.secondary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileTypeButtonActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.accent,
+  },
+  profileTypeButtonText: {
+    color: colors.foreground,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  profileTypeButtonTextActive: {
+    color: colors.primary,
+    fontWeight: "700",
+  },
+  businessTypeWrap: {
+    gap: spacing.xs,
   },
   phoneInputRow: {
     flexDirection: "row",

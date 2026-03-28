@@ -1,6 +1,10 @@
 import { Result } from "@/shared/types/result.types";
 import { Database, Q } from "@nozbe/watermelondb";
 import {
+  BUSINESS_TYPE_VALUES,
+  BusinessTypeValue,
+} from "@/shared/constants/businessType.constants";
+import {
   AccountSyncStatus,
   SaveAccountPayload,
 } from "../../types/accountSelection.types";
@@ -18,6 +22,24 @@ const normalizeOptional = (value: string | null): string | null => {
 
   const normalizedValue = value.trim();
   return normalizedValue.length > 0 ? normalizedValue : null;
+};
+
+const normalizeBusinessType = (
+  value: SaveAccountPayload["businessType"],
+): BusinessTypeValue | null => {
+  if (value === null) {
+    return null;
+  }
+
+  const normalizedValue = value.trim();
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  return BUSINESS_TYPE_VALUES.includes(normalizedValue as BusinessTypeValue)
+    ? (normalizedValue as BusinessTypeValue)
+    : null;
 };
 
 const setCreatedAndUpdatedAt = (record: AccountModel, now: number) => {
@@ -98,6 +120,10 @@ export const createLocalAccountDatasource = (
       const normalizedCurrencyCode = normalizeOptional(payload.currencyCode);
       const normalizedCityOrLocation = normalizeOptional(payload.cityOrLocation);
       const normalizedCountryCode = normalizeOptional(payload.countryCode);
+      const normalizedBusinessType =
+        payload.accountType === "business"
+          ? normalizeBusinessType(payload.businessType)
+          : null;
 
       const accountsCollection = database.get<AccountModel>(ACCOUNTS_TABLE);
       const ownerDefaultAccounts = payload.isDefault
@@ -123,6 +149,7 @@ export const createLocalAccountDatasource = (
             record.remoteId = normalizedRemoteId;
             record.ownerUserRemoteId = normalizedOwnerUserRemoteId;
             record.accountType = payload.accountType;
+            record.businessType = normalizedBusinessType;
             record.displayName = normalizedDisplayName;
             record.currencyCode = normalizedCurrencyCode;
             record.cityOrLocation = normalizedCityOrLocation;
@@ -154,6 +181,7 @@ export const createLocalAccountDatasource = (
           record.remoteId = normalizedRemoteId;
           record.ownerUserRemoteId = normalizedOwnerUserRemoteId;
           record.accountType = payload.accountType;
+          record.businessType = normalizedBusinessType;
           record.displayName = normalizedDisplayName;
           record.currencyCode = normalizedCurrencyCode;
           record.cityOrLocation = normalizedCityOrLocation;

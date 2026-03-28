@@ -14,6 +14,7 @@ import {
   DatabaseError,
   PhoneNumberAlreadyInUseError,
   SignUpError,
+  SignUpInput,
   SignUpResult,
   UnknownError,
   ValidationError,
@@ -22,6 +23,7 @@ import {
 type LocalSignUpRepositoryOptions = {
   onRegistered?: (
     verifiedCredential: VerifiedLocalCredential,
+    payload: SignUpInput,
   ) => Promise<void> | void;
 };
 
@@ -136,7 +138,7 @@ export const createLocalSignUpRepository = (
 
     try {
       if (options.onRegistered) {
-        await options.onRegistered(verifiedCredential);
+        await options.onRegistered(verifiedCredential, payload);
       }
     } catch {
       return {
