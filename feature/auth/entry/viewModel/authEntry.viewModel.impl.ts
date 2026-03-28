@@ -2,12 +2,12 @@ import { Database } from "@nozbe/watermelondb";
 import { useMemo } from "react";
 import { LoginWithEmailUseCase } from "@/feature/auth/login/useCase/loginWithEmail.useCase";
 import { SignUpWithEmailUseCase } from "@/feature/auth/signUp/useCase/signUpWithEmail.useCase";
-import { useLanguageSelectionFeature } from "@/feature/appSettings/hooks/useLanguageSelectionFeature";
-import { useAuthEntryLoginFeature } from "./useAuthEntryLoginFeature";
-import { useAuthEntrySignUpFeature } from "./useAuthEntrySignUpFeature";
-import { AuthEntryViewModel } from "../viewModel/authEntry.viewModel";
+import { useAuthEntryLanguageViewModel } from "./authEntry.language.viewModel.impl";
+import { useAuthEntryLoginViewModel } from "./authEntry.login.viewModel.impl";
+import { useAuthEntrySignUpViewModel } from "./authEntry.signUp.viewModel.impl";
+import { AuthEntryViewModel } from "./authEntry.viewModel";
 
-type UseAuthEntryFeatureParams = {
+type UseAuthEntryViewModelParams = {
   database: Database;
   loginWithEmailUseCase: LoginWithEmailUseCase;
   signUpWithEmailUseCase: SignUpWithEmailUseCase;
@@ -16,7 +16,9 @@ type UseAuthEntryFeatureParams = {
   onForgotPasswordPress?: () => void;
 };
 
-export function useAuthEntryFeature(params: UseAuthEntryFeatureParams) {
+export const useAuthEntryViewModel = (
+  params: UseAuthEntryViewModelParams,
+): AuthEntryViewModel => {
   const {
     database,
     loginWithEmailUseCase,
@@ -25,19 +27,20 @@ export function useAuthEntryFeature(params: UseAuthEntryFeatureParams) {
     onSignUpSuccess,
     onForgotPasswordPress,
   } = params;
-  const language = useLanguageSelectionFeature({ database });
 
-  const login = useAuthEntryLoginFeature({
+  const language = useAuthEntryLanguageViewModel({ database });
+
+  const login = useAuthEntryLoginViewModel({
     loginWithEmailUseCase,
     onSuccess: onLoginSuccess,
   });
 
-  const signUp = useAuthEntrySignUpFeature({
+  const signUp = useAuthEntrySignUpViewModel({
     signUpWithEmailUseCase,
     onSuccess: onSignUpSuccess,
   });
 
-  const viewModel = useMemo<AuthEntryViewModel>(
+  return useMemo<AuthEntryViewModel>(
     () => ({
       language,
       login,
@@ -46,7 +49,4 @@ export function useAuthEntryFeature(params: UseAuthEntryFeatureParams) {
     }),
     [language, login, signUp, onForgotPasswordPress],
   );
-
-  return { viewModel };
-}
-
+};

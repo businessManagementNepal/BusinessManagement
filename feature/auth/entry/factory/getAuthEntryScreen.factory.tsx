@@ -4,7 +4,7 @@ import { createLocalLoginRepositoryWithDatabase } from "@/feature/auth/login/fac
 import { createLoginWithEmailUseCase } from "@/feature/auth/login/useCase/loginWithEmail.useCase.impl";
 import { createLocalSignUpRepositoryWithDatabase } from "@/feature/auth/signUp/factory/local.signUp.repository.factory";
 import { createSignUpWithEmailUseCase } from "@/feature/auth/signUp/useCase/signUpWithEmail.useCase.impl";
-import { useAuthEntryFeature } from "../hooks/useAuthEntryFeature";
+import { useAuthEntryViewModel } from "../viewModel/authEntry.viewModel.impl";
 import { AuthEntryScreen } from "../ui/AuthEntryScreen";
 
 type GetAuthEntryScreenFactoryProps = {
@@ -40,7 +40,7 @@ export function GetAuthEntryScreenFactory({
     [signUpRepository],
   );
 
-  const { viewModel } = useAuthEntryFeature({
+  const viewModel = useAuthEntryViewModel({
     database,
     loginWithEmailUseCase,
     signUpWithEmailUseCase,

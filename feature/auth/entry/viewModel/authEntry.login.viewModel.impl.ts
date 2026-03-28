@@ -2,16 +2,16 @@ import { useMemo } from "react";
 import { Status } from "@/shared/types/status.types";
 import { LoginWithEmailUseCase } from "@/feature/auth/login/useCase/loginWithEmail.useCase";
 import { useLoginViewModel } from "@/feature/auth/login/viewModel/login.viewModel.impl";
-import { AuthEntryLoginViewModel } from "../viewModel/authEntry.viewModel";
+import { AuthEntryLoginViewModel } from "./authEntry.login.viewModel";
 
-type UseAuthEntryLoginFeatureParams = {
+type UseAuthEntryLoginViewModelParams = {
   loginWithEmailUseCase: LoginWithEmailUseCase;
   onSuccess?: () => void;
 };
 
-export function useAuthEntryLoginFeature(
-  params: UseAuthEntryLoginFeatureParams,
-): AuthEntryLoginViewModel {
+export const useAuthEntryLoginViewModel = (
+  params: UseAuthEntryLoginViewModelParams,
+): AuthEntryLoginViewModel => {
   const { loginWithEmailUseCase, onSuccess } = params;
 
   const loginViewModel = useLoginViewModel(loginWithEmailUseCase, {
@@ -44,4 +44,4 @@ export function useAuthEntryLoginFeature(
       submitError,
     ],
   );
-}
+};

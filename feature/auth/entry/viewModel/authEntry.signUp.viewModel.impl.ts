@@ -2,16 +2,16 @@ import { useMemo } from "react";
 import { Status } from "@/shared/types/status.types";
 import { SignUpWithEmailUseCase } from "@/feature/auth/signUp/useCase/signUpWithEmail.useCase";
 import { useSignUpViewModel } from "@/feature/auth/signUp/viewModel/signUp.viewModel.impl";
-import { AuthEntrySignUpViewModel } from "../viewModel/authEntry.viewModel";
+import { AuthEntrySignUpViewModel } from "./authEntry.signUp.viewModel";
 
-type UseAuthEntrySignUpFeatureParams = {
+type UseAuthEntrySignUpViewModelParams = {
   signUpWithEmailUseCase: SignUpWithEmailUseCase;
   onSuccess?: () => void;
 };
 
-export function useAuthEntrySignUpFeature(
-  params: UseAuthEntrySignUpFeatureParams,
-): AuthEntrySignUpViewModel {
+export const useAuthEntrySignUpViewModel = (
+  params: UseAuthEntrySignUpViewModelParams,
+): AuthEntrySignUpViewModel => {
   const { signUpWithEmailUseCase, onSuccess } = params;
 
   const signUpViewModel = useSignUpViewModel(signUpWithEmailUseCase, {
@@ -69,4 +69,4 @@ export function useAuthEntrySignUpFeature(
       submitError,
     ],
   );
-}
+};

@@ -17,11 +17,11 @@ import {
 } from "@/feature/auth/signUp/types/signUp.types";
 import { AuthEntryViewModel } from "../viewModel/authEntry.viewModel";
 
-type AuthMode = "login" | "signup";
-
 type AuthEntryScreenProps = {
   viewModel: AuthEntryViewModel;
 };
+
+type AuthMode = "login" | "signup";
 
 function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
   const { t } = useTranslation();
