@@ -1,7 +1,6 @@
 import { Database } from "@nozbe/watermelondb";
 import { useCallback, useMemo } from "react";
 import { getAppSessionState } from "@/feature/appSettings/data/appSettings.store";
-import { GetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase";
 import { AccountType } from "../types/accountSelection.types";
 import { GetAccountsByOwnerUserRemoteIdUseCase } from "../useCase/getAccountsByOwnerUserRemoteId.useCase";
 import {
@@ -15,7 +14,6 @@ type UseAccountSelectionLoadViewModelParams = {
   state: AccountSelectionState;
   actions: AccountSelectionStateActions;
   getAccountsByOwnerUserRemoteIdUseCase: GetAccountsByOwnerUserRemoteIdUseCase;
-  getAuthUserByRemoteIdUseCase: GetAuthUserByRemoteIdUseCase;
 };
 
 export const useAccountSelectionLoadViewModel = (
@@ -26,7 +24,6 @@ export const useAccountSelectionLoadViewModel = (
     state,
     actions,
     getAccountsByOwnerUserRemoteIdUseCase,
-    getAuthUserByRemoteIdUseCase,
   } = params;
 
   const load = useCallback(async (): Promise<void> => {
@@ -63,24 +60,11 @@ export const useAccountSelectionLoadViewModel = (
       const availableAccounts = accountsResult.value;
 
       if (availableAccounts.length === 0) {
-        const authUserResult = await getAuthUserByRemoteIdUseCase.execute(
-          currentActiveUserRemoteId,
-        );
-
-        if (!authUserResult.success) {
-          actions.setAccounts([]);
-          actions.setSelectedAccountRemoteId(null);
-          actions.setIsCreateMode(false);
-          actions.setNewAccountDisplayName("");
-          actions.setSubmitError(authUserResult.error.message);
-          return;
-        }
-
         actions.setAccounts([]);
         actions.setSelectedAccountRemoteId(null);
-        actions.setIsCreateMode(true);
+        actions.setIsCreateMode(false);
         actions.setNewAccountType(AccountType.Personal);
-        actions.setNewAccountDisplayName(authUserResult.value.fullName.trim());
+        actions.setNewAccountDisplayName("");
         return;
       }
 
@@ -121,7 +105,6 @@ export const useAccountSelectionLoadViewModel = (
     actions,
     database,
     getAccountsByOwnerUserRemoteIdUseCase,
-    getAuthUserByRemoteIdUseCase,
   ]);
 
   return useMemo<AccountSelectionLoadViewModel>(

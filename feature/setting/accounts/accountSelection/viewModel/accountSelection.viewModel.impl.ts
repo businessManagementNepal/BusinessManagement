@@ -1,6 +1,5 @@
 import { Database } from "@nozbe/watermelondb";
 import { useEffect, useMemo } from "react";
-import { GetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase";
 import { GetAccountsByOwnerUserRemoteIdUseCase } from "../useCase/getAccountsByOwnerUserRemoteId.useCase";
 import { SaveAccountUseCase } from "../useCase/saveAccount.useCase";
 import { useAccountSelectionLoadViewModel } from "./accountSelection.load.viewModel.impl";
@@ -14,7 +13,6 @@ export type UseAccountSelectionViewModelParams = {
   database: Database;
   getAccountsByOwnerUserRemoteIdUseCase: GetAccountsByOwnerUserRemoteIdUseCase;
   saveAccountUseCase: SaveAccountUseCase;
-  getAuthUserByRemoteIdUseCase: GetAuthUserByRemoteIdUseCase;
   onBackToLogin: () => void;
   onAccountSelected?: (accountRemoteId: string) => Promise<void> | void;
 };
@@ -26,7 +24,6 @@ export function useAccountSelectionViewModel(
     database,
     getAccountsByOwnerUserRemoteIdUseCase,
     saveAccountUseCase,
-    getAuthUserByRemoteIdUseCase,
     onBackToLogin,
     onAccountSelected,
   } = params;
@@ -38,7 +35,6 @@ export function useAccountSelectionViewModel(
     state,
     actions,
     getAccountsByOwnerUserRemoteIdUseCase,
-    getAuthUserByRemoteIdUseCase,
   });
 
   const selectViewModel = useAccountSelectionSelectViewModel({

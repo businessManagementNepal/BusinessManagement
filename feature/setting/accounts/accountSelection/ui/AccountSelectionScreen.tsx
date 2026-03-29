@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { Check } from "lucide-react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Briefcase, ChevronRight, Sparkles, User } from "lucide-react-native";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { AccountType } from "../types/accountSelection.types";
@@ -12,64 +12,62 @@ type AccountSelectionScreenProps = {
 
 const getAccountTypeLabel = (accountType: string): string => {
   if (accountType === AccountType.Business) {
-    return "Business account";
+    return "Business";
   }
 
-  return "Personal account";
+  return "Personal";
 };
 
 export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProps) {
   const {
     accounts,
     selectedAccountRemoteId,
-    isCreateMode,
-    canStartCreateMode,
-    canCancelCreateMode,
-    newAccountType,
-    newAccountDisplayName,
     isLoading,
     isSubmitting,
     submitError,
     successMessage,
     onSelectAccount,
-    onStartCreateMode,
-    onCancelCreateMode,
-    onChangeNewAccountType,
-    onChangeNewAccountDisplayName,
     onConfirmSelection,
     onBackToLogin,
   } = viewModel;
 
   const canSubmit = useMemo(() => {
-    if (isCreateMode) {
-      return !isLoading && !isSubmitting && newAccountDisplayName.trim().length > 0;
-    }
-
-    return !isLoading && !isSubmitting && Boolean(selectedAccountRemoteId);
-  }, [isCreateMode, isLoading, isSubmitting, newAccountDisplayName, selectedAccountRemoteId]);
+    return (
+      !isLoading &&
+      !isSubmitting &&
+      accounts.length > 0 &&
+      Boolean(selectedAccountRemoteId)
+    );
+  }, [accounts.length, isLoading, isSubmitting, selectedAccountRemoteId]);
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>
-          {isCreateMode ? "Create Account" : "Select Account"}
+      <View style={styles.header}>
+        <View style={styles.headerIconWrap}>
+          <Sparkles size={28} color={colors.headerForeground} />
+        </View>
+        <Text style={styles.headerTitle}>Welcome to eLekha</Text>
+        <Text style={styles.headerSubtitle}>
+          Choose an account to get started
         </Text>
-        <Text style={styles.description}>
-          {isCreateMode
-            ? accounts.length === 0
-              ? "Create your first workspace as personal or business."
-              : "Create an additional workspace as personal or business."
-            : "Choose the account you want to use for this session."}
-        </Text>
+      </View>
+      <View style={styles.headerDivider} />
 
-        {isLoading ? (
-          <Text style={styles.infoText}>Loading your accounts...</Text>
-        ) : null}
+      <ScrollView
+        style={styles.scrollArea}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.sectionTitle}>Your Accounts</Text>
 
-        {!isLoading && !isCreateMode ? (
+        {isLoading ? <Text style={styles.infoText}>Loading your accounts...</Text> : null}
+
+        {!isLoading && accounts.length > 0 ? (
           <View style={styles.accountsList}>
             {accounts.map((account) => {
               const isSelected = selectedAccountRemoteId === account.remoteId;
+              const iconColor = isSelected ? colors.primary : colors.mutedForeground;
+              const accountMetaLocation = account.cityOrLocation?.trim();
 
               return (
                 <Pressable
@@ -82,119 +80,41 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
                   accessibilityRole="button"
                   accessibilityState={{ selected: isSelected }}
                 >
-                  <View style={styles.accountHeader}>
-                    <Text style={styles.accountTitle}>{account.displayName}</Text>
+                  <View style={styles.accountIconWrap}>
+                    {account.accountType === AccountType.Business ? (
+                      <Briefcase size={20} color={iconColor} />
+                    ) : (
+                      <User size={20} color={iconColor} />
+                    )}
+                  </View>
 
-                    {isSelected ? (
-                      <View style={styles.selectedBadge}>
-                        <Check size={14} color={colors.primaryForeground} />
-                      </View>
+                  <View style={styles.accountBody}>
+                    <Text style={styles.accountTitle}>{account.displayName}</Text>
+                    <Text style={styles.accountMeta}>
+                      {getAccountTypeLabel(account.accountType)}
+                      {accountMetaLocation ? ` - ${accountMetaLocation}` : ""}
+                    </Text>
+                    {account.isDefault ? (
+                      <Text style={styles.defaultLabel}>Default account</Text>
                     ) : null}
                   </View>
 
-                  <Text style={styles.accountMeta}>
-                    {getAccountTypeLabel(account.accountType)}
-                  </Text>
-
-                  {account.isDefault ? (
-                    <Text style={styles.defaultLabel}>Default account</Text>
-                  ) : null}
+                  <ChevronRight size={18} color={colors.mutedForeground} />
                 </Pressable>
               );
             })}
           </View>
         ) : null}
 
-        {!isLoading && isCreateMode ? (
-          <View style={styles.createContainer}>
-            <View style={styles.typeSelectorRow}>
-              <Pressable
-                style={[
-                  styles.typeButton,
-                  newAccountType === AccountType.Personal
-                    ? styles.typeButtonActive
-                    : undefined,
-                ]}
-                onPress={() => onChangeNewAccountType(AccountType.Personal)}
-                accessibilityRole="button"
-                accessibilityState={{
-                  selected: newAccountType === AccountType.Personal,
-                }}
-              >
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    newAccountType === AccountType.Personal
-                      ? styles.typeButtonTextActive
-                      : undefined,
-                  ]}
-                >
-                  Personal
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={[
-                  styles.typeButton,
-                  newAccountType === AccountType.Business
-                    ? styles.typeButtonActive
-                    : undefined,
-                ]}
-                onPress={() => onChangeNewAccountType(AccountType.Business)}
-                accessibilityRole="button"
-                accessibilityState={{
-                  selected: newAccountType === AccountType.Business,
-                }}
-              >
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    newAccountType === AccountType.Business
-                      ? styles.typeButtonTextActive
-                      : undefined,
-                  ]}
-                >
-                  Business
-                </Text>
-              </Pressable>
-            </View>
-
-            <Text style={styles.inputLabel}>Account name</Text>
-            <TextInput
-              value={newAccountDisplayName}
-              onChangeText={onChangeNewAccountDisplayName}
-              placeholder="Enter account name"
-              style={styles.nameInput}
-              autoCapitalize="words"
-              autoCorrect={false}
-              accessibilityLabel="Account name"
-            />
-          </View>
+        {!isLoading && accounts.length === 0 ? (
+          <Text style={styles.emptyStateText}>
+            No accounts available for this profile. Please sign in again.
+          </Text>
         ) : null}
 
         {submitError ? <Text style={styles.errorText}>{submitError}</Text> : null}
         {successMessage ? (
           <Text style={styles.successText}>{successMessage}</Text>
-        ) : null}
-
-        {!isLoading && canStartCreateMode ? (
-          <Pressable
-            style={styles.secondaryButton}
-            onPress={onStartCreateMode}
-            accessibilityRole="button"
-          >
-            <Text style={styles.secondaryButtonText}>Create New Account</Text>
-          </Pressable>
-        ) : null}
-
-        {!isLoading && canCancelCreateMode ? (
-          <Pressable
-            style={styles.secondaryButton}
-            onPress={onCancelCreateMode}
-            accessibilityRole="button"
-          >
-            <Text style={styles.secondaryButtonText}>Cancel</Text>
-          </Pressable>
         ) : null}
 
         <Pressable
@@ -210,11 +130,7 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
           accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
         >
           <Text style={styles.primaryButtonText}>
-            {isSubmitting
-              ? "Saving..."
-              : isCreateMode
-                ? "Create and Continue"
-                : "Continue"}
+            {isSubmitting ? "Saving..." : "Continue"}
           </Text>
         </Pressable>
 
@@ -225,7 +141,7 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
         >
           <Text style={styles.secondaryButtonText}>Back To Login</Text>
         </Pressable>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -234,29 +150,57 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  header: {
+    backgroundColor: colors.header,
     alignItems: "center",
     justifyContent: "center",
-    padding: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl * 2,
+    paddingBottom: spacing.xxl,
+    gap: spacing.xs,
   },
-  card: {
-    width: "100%",
-    maxWidth: 560,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    padding: spacing.lg,
-    gap: spacing.sm,
+  headerIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.lg,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.sm,
   },
-  title: {
-    color: colors.foreground,
-    fontSize: 22,
+  headerTitle: {
+    color: colors.headerForeground,
+    fontSize: 28,
     fontWeight: "800",
   },
-  description: {
+  headerSubtitle: {
+    color: colors.headerForeground,
+    fontSize: 13,
+    fontWeight: "500",
+    opacity: 0.9,
+  },
+  headerDivider: {
+    height: 4,
+    width: "100%",
+    backgroundColor: colors.destructive,
+  },
+  scrollArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    width: "100%",
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.sm,
+  },
+  sectionTitle: {
     color: colors.mutedForeground,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
     marginBottom: spacing.xs,
   },
   infoText: {
@@ -266,95 +210,55 @@ const styles = StyleSheet.create({
   },
   accountsList: {
     gap: spacing.sm,
-  },
-  createContainer: {
-    gap: spacing.sm,
-  },
-  typeSelectorRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  typeButton: {
-    flex: 1,
-    minHeight: 42,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.secondary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  typeButtonActive: {
-    backgroundColor: colors.accent,
-    borderColor: colors.primary,
-  },
-  typeButtonText: {
-    color: colors.foreground,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  typeButtonTextActive: {
-    color: colors.primary,
-    fontWeight: "700",
-  },
-  inputLabel: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  nameInput: {
-    minHeight: 46,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    color: colors.foreground,
-    paddingHorizontal: spacing.md,
-    fontSize: 14,
-    fontWeight: "500",
+    marginBottom: spacing.md,
   },
   accountItem: {
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.md + 2,
     paddingHorizontal: spacing.md,
-    backgroundColor: colors.secondary,
-    gap: spacing.xs,
+    backgroundColor: colors.card,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
   },
   accountItemSelected: {
     borderColor: colors.primary,
     backgroundColor: colors.accent,
   },
-  accountHeader: {
-    flexDirection: "row",
+  accountIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.pill,
+    backgroundColor: colors.secondary,
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
+    justifyContent: "center",
+  },
+  accountBody: {
+    flex: 1,
+    gap: 2,
   },
   accountTitle: {
     color: colors.cardForeground,
     fontSize: 15,
     fontWeight: "700",
-    flex: 1,
-  },
-  selectedBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
   },
   accountMeta: {
     color: colors.mutedForeground,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "500",
   },
   defaultLabel: {
     color: colors.primary,
     fontSize: 12,
     fontWeight: "700",
+  },
+  emptyStateText: {
+    color: colors.mutedForeground,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: spacing.md,
   },
   errorText: {
     color: colors.destructive,
@@ -367,7 +271,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   primaryButton: {
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
     minHeight: 46,
     borderRadius: radius.md,
     backgroundColor: colors.primary,

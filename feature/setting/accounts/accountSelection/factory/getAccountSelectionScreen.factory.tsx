@@ -1,8 +1,5 @@
 import React from "react";
 import { Database } from "@nozbe/watermelondb";
-import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
-import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
-import { createGetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase.impl";
 import { createLocalAccountDatasource } from "../data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "../data/repository/account.repository.impl";
 import { createGetAccountsByOwnerUserRemoteIdUseCase } from "../useCase/getAccountsByOwnerUserRemoteId.useCase.impl";
@@ -21,21 +18,6 @@ export function GetAccountSelectionScreenFactory({
   onBackToLogin,
   onAccountSelected,
 }: GetAccountSelectionScreenFactoryProps) {
-  const authUserDatasource = React.useMemo(
-    () => createLocalAuthUserDatasource(database),
-    [database],
-  );
-
-  const authUserRepository = React.useMemo(
-    () => createAuthUserRepository(authUserDatasource),
-    [authUserDatasource],
-  );
-
-  const getAuthUserByRemoteIdUseCase = React.useMemo(
-    () => createGetAuthUserByRemoteIdUseCase(authUserRepository),
-    [authUserRepository],
-  );
-
   const accountDatasource = React.useMemo(
     () => createLocalAccountDatasource(database),
     [database],
@@ -60,7 +42,6 @@ export function GetAccountSelectionScreenFactory({
     database,
     getAccountsByOwnerUserRemoteIdUseCase,
     saveAccountUseCase,
-    getAuthUserByRemoteIdUseCase,
     onBackToLogin,
     onAccountSelected,
   });
