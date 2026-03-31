@@ -1,4 +1,3 @@
-import { Database } from "@nozbe/watermelondb";
 import {
   AccountTypeValue,
 } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
@@ -9,7 +8,7 @@ import {
 } from "@/feature/profile/screen/types/profileScreen.types";
 
 export type UseProfileBusinessCreatorViewModelParams = {
-  database: Database;
+  setActiveAccountSession: (accountRemoteId: string) => Promise<void>;
   activeUserRemoteId: string | null;
   createBusinessWorkspaceUseCase: CreateBusinessWorkspaceUseCase;
   onNavigateHome: (accountType: AccountTypeValue) => void;

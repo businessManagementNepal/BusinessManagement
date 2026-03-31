@@ -3,6 +3,7 @@ import { Database } from "@nozbe/watermelondb";
 import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { useProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel.impl";
 import { BusinessDetailsScreen } from "@/feature/profile/screen/ui/BusinessDetailsScreen";
+import { useProfileScreenDependencies } from "@/feature/profile/screen/factory/useProfileScreenDependencies.factory";
 
 type GetBusinessDetailsScreenFactoryProps = {
   database: Database;
@@ -23,8 +24,10 @@ export function GetBusinessDetailsScreenFactory({
   onLogout,
   onBack,
 }: GetBusinessDetailsScreenFactoryProps) {
+  const dependencies = useProfileScreenDependencies(database);
+
   const viewModel = useProfileScreenViewModel({
-    database,
+    dependencies,
     activeUserRemoteId,
     activeAccountRemoteId,
     onNavigateHome,

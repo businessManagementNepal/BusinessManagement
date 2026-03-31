@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import {
   createDefaultBusinessProfileForm,
@@ -25,14 +25,18 @@ export const useProfileLoaderViewModel = (
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string>();
+  const activeRequestIdRef = useRef(0);
 
   const reload = useCallback(async (): Promise<void> => {
+    const requestId = ++activeRequestIdRef.current;
     setIsLoading(true);
     setLoadError(undefined);
 
     try {
       if (!activeUserRemoteId) {
-        setLoadError("Active user session not found.");
+        if (requestId === activeRequestIdRef.current) {
+          setLoadError("Active user session not found.");
+        }
         return;
       }
 
@@ -42,7 +46,9 @@ export const useProfileLoaderViewModel = (
       ]);
 
       if (!accountsResult.success) {
-        setLoadError(accountsResult.error.message);
+        if (requestId === activeRequestIdRef.current) {
+          setLoadError(accountsResult.error.message);
+        }
         return;
       }
 
@@ -70,22 +76,24 @@ export const useProfileLoaderViewModel = (
         : createEmptyPersonalProfile();
 
       if (!activeAccount) {
-        onLoaded({
-          profileName:
-            personalProfile.fullName.trim() ||
-            accountOptions[0]?.displayName ||
-            "eLekha User",
-          loadedAuthUser: userResult.success ? userResult.value : null,
-          accountOptions,
-          activeAccountRemoteId: null,
-          activeAccountType: null,
-          activeAccountDisplayName: "",
-          personalProfile,
-          activeBusinessProfile: createDefaultBusinessProfileForm(),
-          hasActiveBusinessProfile: false,
-        });
+        if (requestId === activeRequestIdRef.current) {
+          onLoaded({
+            profileName:
+              personalProfile.fullName.trim() ||
+              accountOptions[0]?.displayName ||
+              "eLekha User",
+            loadedAuthUser: userResult.success ? userResult.value : null,
+            accountOptions,
+            activeAccountRemoteId: null,
+            activeAccountType: null,
+            activeAccountDisplayName: "",
+            personalProfile,
+            activeBusinessProfile: createDefaultBusinessProfileForm(),
+            hasActiveBusinessProfile: false,
+          });
 
-        setLoadError("Active account not found. Please select account again.");
+          setLoadError("Active account not found. Please select account again.");
+        }
         return;
       }
 
@@ -110,23 +118,29 @@ export const useProfileLoaderViewModel = (
         }
       }
 
-      onLoaded({
-        profileName:
-          personalProfile.fullName.trim() || activeAccount.displayName,
-        loadedAuthUser: userResult.success ? userResult.value : null,
-        accountOptions,
-        activeAccountRemoteId: activeAccount.remoteId,
-        activeAccountType: activeAccount.accountType,
-        activeAccountDisplayName: activeAccount.displayName,
-        personalProfile,
-        activeBusinessProfile,
-        hasActiveBusinessProfile,
-      });
+      if (requestId === activeRequestIdRef.current) {
+        onLoaded({
+          profileName:
+            personalProfile.fullName.trim() || activeAccount.displayName,
+          loadedAuthUser: userResult.success ? userResult.value : null,
+          accountOptions,
+          activeAccountRemoteId: activeAccount.remoteId,
+          activeAccountType: activeAccount.accountType,
+          activeAccountDisplayName: activeAccount.displayName,
+          personalProfile,
+          activeBusinessProfile,
+          hasActiveBusinessProfile,
+        });
+      }
     } catch (error) {
       console.error("Failed to load profile context.", error);
-      setLoadError("Unable to load profile details. Please try again.");
+      if (requestId === activeRequestIdRef.current) {
+        setLoadError("Unable to load profile details. Please try again.");
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === activeRequestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [
     activeAccountRemoteId,
@@ -138,18 +152,10 @@ export const useProfileLoaderViewModel = (
   ]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const run = async () => {
-      await reload();
-    };
-
-    if (isMounted) {
-      void run();
-    }
+    void reload();
 
     return () => {
-      isMounted = false;
+      activeRequestIdRef.current += 1;
     };
   }, [reload]);
 

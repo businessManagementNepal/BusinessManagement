@@ -1,27 +1,22 @@
 import React from "react";
 import { Redirect } from "expo-router";
-import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 import { useAppRouteSession } from "@/feature/session/ui/AppRouteSessionProvider";
+import { resolveEntryRoute } from "@/feature/session/ui/entryRouteDecision.util";
 
 export default function IndexRoute() {
-  const {
+  const { isLoading, hasActiveSession, hasActiveAccount, activeAccountType } =
+    useAppRouteSession();
+
+  const targetRoute = resolveEntryRoute({
     isLoading,
     hasActiveSession,
     hasActiveAccount,
     activeAccountType,
-  } = useAppRouteSession();
+  });
 
-  if (isLoading) {
+  if (!targetRoute) {
     return null;
   }
 
-  if (!hasActiveSession) {
-    return <Redirect href="/(auth)/login" />;
-  }
-
-  if (!hasActiveAccount) {
-    return <Redirect href="/(account-setup)/select-account" />;
-  }
-
-  return <Redirect href={getDashboardHomePath(activeAccountType)} />;
+  return <Redirect href={targetRoute} />;
 }

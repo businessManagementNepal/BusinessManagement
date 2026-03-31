@@ -1,5 +1,4 @@
 import { useCallback, useState } from "react";
-import { setActiveAccountSession } from "@/feature/appSettings/data/appSettings.store";
 import {
   ProfileAccountSwitchViewModel,
   UseProfileAccountSwitchViewModelParams,
@@ -9,7 +8,7 @@ export const useProfileAccountSwitchViewModel = (
   params: UseProfileAccountSwitchViewModelParams,
 ): ProfileAccountSwitchViewModel => {
   const {
-    database,
+    setActiveAccountSession,
     data,
     onUpdateData,
     onNavigateHome,
@@ -40,7 +39,7 @@ export const useProfileAccountSwitchViewModel = (
       }
 
       try {
-        await setActiveAccountSession(database, selectedAccount.remoteId);
+        await setActiveAccountSession(selectedAccount.remoteId);
         onUpdateData((previousData) => ({
           ...previousData,
           activeAccountRemoteId: selectedAccount.remoteId,
@@ -58,9 +57,9 @@ export const useProfileAccountSwitchViewModel = (
     [
       clearSuccessMessage,
       data.accountOptions,
-      database,
       onNavigateHome,
       onUpdateData,
+      setActiveAccountSession,
       setLoadError,
     ],
   );

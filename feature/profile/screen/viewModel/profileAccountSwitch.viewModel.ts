@@ -1,9 +1,8 @@
-import { Database } from "@nozbe/watermelondb";
 import { ProfileScreenData } from "@/feature/profile/screen/types/profileScreen.types";
 import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 
 export type UseProfileAccountSwitchViewModelParams = {
-  database: Database;
+  setActiveAccountSession: (accountRemoteId: string) => Promise<void>;
   data: ProfileScreenData;
   onUpdateData: (
     updater: (previousData: ProfileScreenData) => ProfileScreenData,

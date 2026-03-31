@@ -1,10 +1,16 @@
-import { Database } from "@nozbe/watermelondb";
 import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import {
   EditableBusinessProfile,
   EditablePersonalProfile,
   ProfileAccountOption,
 } from "@/feature/profile/screen/types/profileScreen.types";
+import { GetAccountsByOwnerUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccountsByOwnerUserRemoteId.useCase";
+import { SaveAccountUseCase } from "@/feature/setting/accounts/accountSelection/useCase/saveAccount.useCase";
+import { GetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase";
+import { SaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase";
+import { GetBusinessProfileByAccountRemoteIdUseCase } from "@/feature/profile/business/useCase/getBusinessProfileByAccountRemoteId.useCase";
+import { SaveBusinessProfileUseCase } from "@/feature/profile/business/useCase/saveBusinessProfile.useCase";
+import { CreateBusinessWorkspaceUseCase } from "@/feature/profile/business/useCase/createBusinessWorkspace.useCase";
 import {
   BUSINESS_TYPE_OPTIONS,
   BusinessTypeValue,
@@ -70,8 +76,19 @@ export interface ProfileScreenViewModel {
   onBack: () => void;
 }
 
+export type ProfileScreenDependencies = {
+  getAccountsByOwnerUserRemoteIdUseCase: GetAccountsByOwnerUserRemoteIdUseCase;
+  saveAccountUseCase: SaveAccountUseCase;
+  getAuthUserByRemoteIdUseCase: GetAuthUserByRemoteIdUseCase;
+  saveAuthUserUseCase: SaveAuthUserUseCase;
+  getBusinessProfileByAccountRemoteIdUseCase: GetBusinessProfileByAccountRemoteIdUseCase;
+  saveBusinessProfileUseCase: SaveBusinessProfileUseCase;
+  createBusinessWorkspaceUseCase: CreateBusinessWorkspaceUseCase;
+  setActiveAccountSession: (accountRemoteId: string) => Promise<void>;
+};
+
 export type UseProfileScreenViewModelParams = {
-  database: Database;
+  dependencies: ProfileScreenDependencies;
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   onNavigateHome: (accountType: AccountTypeValue) => void;

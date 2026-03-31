@@ -1,5 +1,4 @@
 import { useCallback, useState } from "react";
-import { setActiveAccountSession } from "@/feature/appSettings/data/appSettings.store";
 import {
   AccountType,
 } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
@@ -16,7 +15,7 @@ export const useProfileBusinessCreatorViewModel = (
   params: UseProfileBusinessCreatorViewModelParams,
 ): ProfileBusinessCreatorViewModel => {
   const {
-    database,
+    setActiveAccountSession,
     activeUserRemoteId,
     createBusinessWorkspaceUseCase,
     onNavigateHome,
@@ -82,7 +81,7 @@ export const useProfileBusinessCreatorViewModel = (
         return;
       }
 
-      await setActiveAccountSession(database, createResult.value.account.remoteId);
+      await setActiveAccountSession(createResult.value.account.remoteId);
 
       onUpdateData((previousData) => ({
         ...previousData,
@@ -133,9 +132,9 @@ export const useProfileBusinessCreatorViewModel = (
     activeUserRemoteId,
     createBusinessProfileForm,
     createBusinessWorkspaceUseCase,
-    database,
     onNavigateHome,
     onUpdateData,
+    setActiveAccountSession,
     setLoadError,
     setSuccessMessage,
   ]);
