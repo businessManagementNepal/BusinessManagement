@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.nav,
     borderTopWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.xl,
+    borderRadius: 7,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.xs,
     zIndex: 40,
@@ -196,10 +196,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
     color: colors.navForeground,
     fontSize: 10,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   activeLabel: {
     color: colors.navActive,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
 });
+

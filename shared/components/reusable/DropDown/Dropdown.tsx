@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   triggerText: {
     color: colors.cardForeground,
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: "InterBold",
   },
   backdrop: {
     flex: 1,
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   sheetTitle: {
     color: colors.cardForeground,
     fontSize: 16,
-    fontWeight: "800",
+    fontFamily: "InterBold",
     marginBottom: 12,
   },
   optionRow: {
@@ -188,13 +188,14 @@ const styles = StyleSheet.create({
   optionText: {
     color: colors.cardForeground,
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   optionTextSelected: {
     color: colors.primary,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
   separator: {
     height: 8,
   },
 });
+

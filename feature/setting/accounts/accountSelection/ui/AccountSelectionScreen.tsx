@@ -1,6 +1,8 @@
 import React, { useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Briefcase, ChevronRight, Sparkles, User } from "lucide-react-native";
+import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { CardPressable } from "@/shared/components/reusable/Cards/Card";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { AccountType } from "../types/accountSelection.types";
@@ -70,14 +72,13 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
               const accountMetaLocation = account.cityOrLocation?.trim();
 
               return (
-                <Pressable
+                <CardPressable
                   key={account.remoteId}
                   style={[
                     styles.accountItem,
                     isSelected ? styles.accountItemSelected : undefined,
                   ]}
                   onPress={() => onSelectAccount(account.remoteId)}
-                  accessibilityRole="button"
                   accessibilityState={{ selected: isSelected }}
                 >
                   <View style={styles.accountIconWrap}>
@@ -100,7 +101,7 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
                   </View>
 
                   <ChevronRight size={18} color={colors.mutedForeground} />
-                </Pressable>
+                </CardPressable>
               );
             })}
           </View>
@@ -117,7 +118,10 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
           <Text style={styles.successText}>{successMessage}</Text>
         ) : null}
 
-        <Pressable
+        <AppButton
+          label={isSubmitting ? "Saving..." : "Continue"}
+          variant="primary"
+          size="md"
           style={[
             styles.primaryButton,
             !canSubmit ? styles.primaryButtonDisabled : undefined,
@@ -126,21 +130,16 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
             void onConfirmSelection();
           }}
           disabled={!canSubmit}
-          accessibilityRole="button"
           accessibilityState={{ disabled: !canSubmit, busy: isSubmitting }}
-        >
-          <Text style={styles.primaryButtonText}>
-            {isSubmitting ? "Saving..." : "Continue"}
-          </Text>
-        </Pressable>
+        />
 
-        <Pressable
+        <AppButton
+          label="Back To Login"
+          variant="secondary"
+          size="md"
           style={styles.secondaryButton}
           onPress={onBackToLogin}
-          accessibilityRole="button"
-        >
-          <Text style={styles.secondaryButtonText}>Back To Login</Text>
-        </Pressable>
+        />
       </ScrollView>
     </View>
   );
@@ -172,12 +171,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: colors.headerForeground,
     fontSize: 28,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
   headerSubtitle: {
     color: colors.headerForeground,
     fontSize: 13,
-    fontWeight: "500",
+    fontFamily: "InterMedium",
     opacity: 0.9,
   },
   headerDivider: {
@@ -198,7 +197,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.mutedForeground,
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: "InterBold",
     letterSpacing: 1,
     textTransform: "uppercase",
     marginBottom: spacing.xs,
@@ -206,19 +205,15 @@ const styles = StyleSheet.create({
   infoText: {
     color: colors.mutedForeground,
     fontSize: 13,
-    fontWeight: "500",
+    fontFamily: "InterMedium",
   },
   accountsList: {
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
   accountItem: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
     paddingVertical: spacing.md + 2,
     paddingHorizontal: spacing.md,
-    backgroundColor: colors.card,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
@@ -242,17 +237,17 @@ const styles = StyleSheet.create({
   accountTitle: {
     color: colors.cardForeground,
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: "InterBold",
   },
   accountMeta: {
     color: colors.mutedForeground,
     fontSize: 12,
-    fontWeight: "500",
+    fontFamily: "InterMedium",
   },
   defaultLabel: {
     color: colors.primary,
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: "InterBold",
   },
   emptyStateText: {
     color: colors.mutedForeground,
@@ -263,41 +258,21 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.destructive,
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   successText: {
     color: colors.success,
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   primaryButton: {
     marginTop: spacing.md,
-    minHeight: 46,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
   },
   primaryButtonDisabled: {
     opacity: 0.6,
   },
-  primaryButtonText: {
-    color: colors.primaryForeground,
-    fontSize: 14,
-    fontWeight: "700",
-  },
   secondaryButton: {
-    minHeight: 44,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.secondary,
-  },
-  secondaryButtonText: {
-    color: colors.foreground,
-    fontSize: 14,
-    fontWeight: "700",
+    marginTop: spacing.xs,
   },
 });
+

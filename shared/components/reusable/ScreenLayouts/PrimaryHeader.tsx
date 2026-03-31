@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     color: colors.headerForeground,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
   iconButton: {
     width: 38,
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   profileText: {
     color: colors.headerForeground,
     fontSize: 12,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
   subtitle: {
     color: "rgba(255,255,255,0.8)",
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.headerForeground,
     fontSize: 20,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
   bottomContent: {
     marginTop: 14,

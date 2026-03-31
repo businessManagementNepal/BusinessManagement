@@ -1,5 +1,6 @@
 import React from "react";
 import { Stack } from "expo-router";
+import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -12,6 +13,9 @@ import {
 import { colors } from "@/shared/components/theme/colors";
 import { bootstrapSelectedLanguage } from "@/shared/i18n/resources/bootstrapSelectedLanguage";
 import { useCurrentLanguageCode } from "@/shared/i18n/resources";
+import { applyGlobalTypographyDefaults, fontFamily } from "@/shared/components/theme/typography";
+
+applyGlobalTypographyDefaults();
 
 void SplashScreen.preventAutoHideAsync().catch(() => {
   console.warn("Failed to lock splash screen visibility.");
@@ -21,19 +25,24 @@ type RootNavigatorProps = {
   languageCode: string;
   startupStatus: "loading" | "ready" | "failed";
   startupError?: string;
+  fontsLoaded: boolean;
 };
 
 type SplashScreenControllerProps = {
   startupStatus: "loading" | "ready" | "failed";
+  fontsLoaded: boolean;
 };
 
-function SplashScreenController({ startupStatus }: SplashScreenControllerProps) {
+function SplashScreenController({
+  startupStatus,
+  fontsLoaded,
+}: SplashScreenControllerProps) {
   const { isLoading } = useAppRouteSession();
   const isStartupReady = startupStatus === "ready";
   const isStartupFailed = startupStatus === "failed";
 
   React.useEffect(() => {
-    if (startupStatus === "loading") {
+    if (startupStatus === "loading" || !fontsLoaded) {
       return;
     }
 
@@ -44,7 +53,7 @@ function SplashScreenController({ startupStatus }: SplashScreenControllerProps) 
     void SplashScreen.hideAsync().catch(() => {
       console.warn("Failed to hide splash screen.");
     });
-  }, [isLoading, isStartupFailed, isStartupReady, startupStatus]);
+  }, [fontsLoaded, isLoading, isStartupFailed, isStartupReady, startupStatus]);
 
   return null;
 }
@@ -53,6 +62,7 @@ function RootNavigator({
   languageCode,
   startupStatus,
   startupError,
+  fontsLoaded,
 }: RootNavigatorProps) {
   const { isLoading, hasActiveSession, hasActiveAccount, sessionStatus } =
     useAppRouteSession();
@@ -68,7 +78,7 @@ function RootNavigator({
     );
   }
 
-  if (startupStatus !== "ready" || isLoading) {
+  if (!fontsLoaded || startupStatus !== "ready" || isLoading) {
     return null;
   }
 
@@ -103,11 +113,33 @@ function RootNavigator({
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontsError] = useFonts({
+    InterRegular: require("../assets/fonts/Inter_18pt-Regular.ttf"),
+    InterMedium: require("../assets/fonts/Inter_18pt-Medium.ttf"),
+    InterSemiBold: require("../assets/fonts/Inter_18pt-SemiBold.ttf"),
+    InterBold: require("../assets/fonts/Inter_18pt-Bold.ttf"),
+  });
+
   const [startupStatus, setStartupStatus] = React.useState<
     "loading" | "ready" | "failed"
   >("loading");
   const [startupError, setStartupError] = React.useState<string>();
   const languageCode = useCurrentLanguageCode();
+
+  React.useEffect(() => {
+    if (!fontsError) {
+      return;
+    }
+
+    const resolvedError =
+      fontsError instanceof Error
+        ? fontsError.message
+        : "Unable to load app fonts.";
+
+    console.error("App font loading failed.", fontsError);
+    setStartupError(resolvedError);
+    setStartupStatus("failed");
+  }, [fontsError]);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -148,11 +180,15 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider style={{ flex: 1 }}>
       <AppRouteSessionProvider database={appDatabase}>
-        <SplashScreenController startupStatus={startupStatus} />
+        <SplashScreenController
+          startupStatus={startupStatus}
+          fontsLoaded={fontsLoaded}
+        />
         <RootNavigator
           languageCode={languageCode}
           startupStatus={startupStatus}
           startupError={startupError}
+          fontsLoaded={fontsLoaded}
         />
       </AppRouteSessionProvider>
     </SafeAreaProvider>
@@ -169,13 +205,14 @@ const styles = StyleSheet.create({
   },
   startupErrorTitle: {
     color: colors.destructive,
+    fontFamily: fontFamily.bold,
     fontSize: 20,
-    fontWeight: "700",
     marginBottom: 12,
     textAlign: "center",
   },
   startupErrorMessage: {
     color: colors.foreground,
+    fontFamily: fontFamily.regular,
     fontSize: 14,
     lineHeight: 20,
     textAlign: "center",

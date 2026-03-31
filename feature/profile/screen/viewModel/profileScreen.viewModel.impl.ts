@@ -40,6 +40,7 @@ export const useProfileScreenViewModel = (
     activeUserRemoteId,
     activeAccountRemoteId,
     onNavigateHome,
+    onOpenBusinessDetails,
     onLogout,
     onBack,
   } = params;
@@ -237,6 +238,7 @@ export const useProfileScreenViewModel = (
       onCreateBusinessProfile: businessCreator.onCreateBusinessProfile,
 
       businessTypeOptions: PROFILE_BUSINESS_TYPE_OPTIONS,
+      onOpenBusinessDetails,
       onLogout,
       onBack,
     }),
@@ -277,6 +279,7 @@ export const useProfileScreenViewModel = (
       personalEditor.personalProfileForm,
       roleLabel,
       successMessage,
+      onOpenBusinessDetails,
     ],
   );
 };

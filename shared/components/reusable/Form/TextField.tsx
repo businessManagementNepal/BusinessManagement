@@ -126,7 +126,8 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.destructive,
     fontSize: 12,
-    fontWeight: "500",
+    fontFamily: "InterMedium",
     marginTop: 6,
   },
 });
+

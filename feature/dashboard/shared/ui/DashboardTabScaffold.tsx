@@ -1,8 +1,9 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
+import { Card } from "@/shared/components/reusable/Cards/Card";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
-import { radius, spacing } from "@/shared/components/theme/spacing";
+import { spacing } from "@/shared/components/theme/spacing";
 
 type DashboardTabScaffoldProps = {
   children: React.ReactNode;
@@ -31,10 +32,10 @@ export function DashboardInfoCard({
   description,
 }: DashboardInfoCardProps) {
   return (
-    <View style={styles.infoCard}>
+    <Card style={styles.infoCard}>
       <Text style={styles.infoCardTitle}>{title}</Text>
       <Text style={styles.infoCardDescription}>{description}</Text>
-    </View>
+    </Card>
   );
 }
 
@@ -45,17 +46,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   infoCard: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
   infoCardTitle: {
     color: colors.cardForeground,
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: "InterBold",
     marginBottom: 4,
   },
   infoCardDescription: {
@@ -64,3 +61,4 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
 });
+

@@ -2,13 +2,13 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import {
   AlertCircle,
-  ArrowDownLeft,
   ArrowLeftRight,
-  ArrowUpRight,
   Package,
   ReceiptText,
   Users,
 } from "lucide-react-native";
+import { Card } from "@/shared/components/reusable/Cards/Card";
+import { DirectionArrowIcon } from "@/shared/components/reusable/Icons/DirectionArrowIcon";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
@@ -28,36 +28,68 @@ export function BusinessDashboardScreen({
     >
       <View style={styles.summaryRow}>
         {viewModel.summaryCards.map((summaryCard) => {
-          const toneColor =
-            summaryCard.tone === "receive" ? colors.success : colors.destructive;
+          const isReceive = summaryCard.tone === "receive";
+          const toneColor = isReceive ? colors.success : colors.destructive;
 
           return (
-            <View key={summaryCard.id} style={styles.summaryCard}>
+            <Card key={summaryCard.id} style={styles.summaryCard}>
+              <View
+                style={[
+                  styles.summaryIconWrap,
+                  isReceive
+                    ? styles.summaryIconWrapReceive
+                    : styles.summaryIconWrapPay,
+                ]}
+              >
+                {isReceive ? (
+                  <DirectionArrowIcon
+                    variant="trend-receive"
+                    size={14}
+                    color={colors.success}
+                    strokeWidth={2.2}
+                  />
+                ) : (
+                  <DirectionArrowIcon
+                    variant="trend-pay"
+                    size={14}
+                    color={colors.destructive}
+                    strokeWidth={2.2}
+                  />
+                )}
+              </View>
               <Text style={styles.summaryLabel}>{summaryCard.title}</Text>
               <Text style={[styles.summaryValue, { color: toneColor }]}>
                 {summaryCard.value}
               </Text>
-            </View>
+            </Card>
           );
         })}
       </View>
 
       <View style={styles.statRow}>
-        <View style={styles.statCard}>
-          <ArrowDownLeft size={16} color={colors.success} />
+        <Card style={styles.statCard}>
+          <DirectionArrowIcon
+            variant="corner-receive"
+            size={16}
+            color={colors.success}
+          />
           <Text style={styles.statValue}>NPR 12,500</Text>
           <Text style={styles.statLabel}>Today In</Text>
-        </View>
-        <View style={styles.statCard}>
-          <ArrowUpRight size={16} color={colors.destructive} />
+        </Card>
+        <Card style={styles.statCard}>
+          <DirectionArrowIcon
+            variant="corner-pay"
+            size={16}
+            color={colors.destructive}
+          />
           <Text style={styles.statValue}>NPR 3,200</Text>
           <Text style={styles.statLabel}>Today Out</Text>
-        </View>
-        <View style={styles.statCard}>
+        </Card>
+        <Card style={styles.statCard}>
           <AlertCircle size={16} color={colors.warning} />
           <Text style={styles.statValue}>7</Text>
           <Text style={styles.statLabel}>Overdue</Text>
-        </View>
+        </Card>
       </View>
 
       <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -75,16 +107,16 @@ export function BusinessDashboardScreen({
             );
 
           return (
-            <View key={quickAction.id} style={styles.quickActionCard}>
+            <Card key={quickAction.id} style={styles.quickActionCard}>
               <View style={styles.quickActionIconWrap}>{icon}</View>
               <Text style={styles.quickActionLabel}>{quickAction.label}</Text>
-            </View>
+            </Card>
           );
         })}
       </View>
 
       <Text style={styles.sectionTitle}>Due Today</Text>
-      <View style={styles.dueListContainer}>
+      <Card style={styles.dueListCard}>
         {viewModel.dueItems.map((dueItem) => (
           <View key={dueItem.id} style={styles.dueRow}>
             <View style={styles.dueAvatar}>
@@ -107,13 +139,35 @@ export function BusinessDashboardScreen({
               >
                 {dueItem.amount}
               </Text>
-              <Text style={styles.dueDirectionLabel}>
-                {dueItem.direction === "receive" ? "To Receive" : "To Pay"}
-              </Text>
+              <View style={styles.dueDirectionWrap}>
+                {dueItem.direction === "receive" ? (
+                  <DirectionArrowIcon
+                    variant="corner-receive"
+                    size={11}
+                    color={colors.success}
+                  />
+                ) : (
+                  <DirectionArrowIcon
+                    variant="corner-pay"
+                    size={11}
+                    color={colors.destructive}
+                  />
+                )}
+                <Text
+                  style={[
+                    styles.dueDirectionLabel,
+                    dueItem.direction === "receive"
+                      ? styles.dueDirectionReceive
+                      : styles.dueDirectionPay,
+                  ]}
+                >
+                  {dueItem.direction === "receive" ? "To Receive" : "To Pay"}
+                </Text>
+              </View>
             </View>
           </View>
         ))}
-      </View>
+      </Card>
     </ScreenContainer>
   );
 }
@@ -129,21 +183,32 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 2,
+  },
+  summaryIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  summaryIconWrapReceive: {
+    backgroundColor: colors.accent,
+  },
+  summaryIconWrapPay: {
+    backgroundColor: "#FDEAEA",
   },
   summaryLabel: {
     color: colors.mutedForeground,
     fontSize: 12,
-    marginBottom: 4,
+    fontFamily: "InterMedium",
+    marginBottom: 2,
   },
   summaryValue: {
     fontSize: 20,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
   statRow: {
     marginTop: spacing.sm,
@@ -152,10 +217,6 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: spacing.sm,
@@ -165,7 +226,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: colors.cardForeground,
     fontSize: 13,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
   statLabel: {
     marginTop: 2,
@@ -177,7 +238,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     color: colors.foreground,
     fontSize: 17,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
   quickActionRow: {
     flexDirection: "row",
@@ -186,10 +247,6 @@ const styles = StyleSheet.create({
   },
   quickActionCard: {
     width: "48%",
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.lg,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.sm,
     alignItems: "center",
@@ -207,14 +264,10 @@ const styles = StyleSheet.create({
   quickActionLabel: {
     color: colors.cardForeground,
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: "InterBold",
   },
-  dueListContainer: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    overflow: "hidden",
+  dueListCard: {
+    padding: 0,
   },
   dueRow: {
     flexDirection: "row",
@@ -236,7 +289,7 @@ const styles = StyleSheet.create({
   dueAvatarText: {
     color: colors.primary,
     fontSize: 13,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
   dueBody: {
     flex: 1,
@@ -244,7 +297,7 @@ const styles = StyleSheet.create({
   dueName: {
     color: colors.cardForeground,
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   dueSubtitle: {
     marginTop: 2,
@@ -254,9 +307,15 @@ const styles = StyleSheet.create({
   dueAmountWrap: {
     alignItems: "flex-end",
   },
+  dueDirectionWrap: {
+    marginTop: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
   dueAmount: {
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: "InterBold",
   },
   dueAmountReceive: {
     color: colors.success,
@@ -265,8 +324,14 @@ const styles = StyleSheet.create({
     color: colors.destructive,
   },
   dueDirectionLabel: {
-    marginTop: 2,
-    color: colors.mutedForeground,
     fontSize: 10,
+    fontFamily: "InterMedium",
+  },
+  dueDirectionReceive: {
+    color: colors.success,
+  },
+  dueDirectionPay: {
+    color: colors.destructive,
   },
 });
+

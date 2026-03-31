@@ -4,16 +4,21 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 type SmoothHref = Parameters<ReturnType<typeof useRouter>["replace"]>[0];
 type NormalizableHref = SmoothHref | string;
 
+const stripRouteGroups = (path: string): string => {
+  const withoutGroups = path.replace(/\/\([^/]+\)/g, "");
+  return withoutGroups.length > 0 ? withoutGroups : "/";
+};
+
 const normalizePath = (href: NormalizableHref): string => {
   if (typeof href === "string") {
-    return href.split("?")[0].split("#")[0];
+    return stripRouteGroups(href.split("?")[0].split("#")[0]);
   }
 
   if (href && typeof href === "object" && "pathname" in href) {
     const pathname = href.pathname;
 
     if (typeof pathname === "string") {
-      return pathname.split("?")[0].split("#")[0];
+      return stripRouteGroups(pathname.split("?")[0].split("#")[0]);
     }
   }
 

@@ -1,10 +1,13 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Edit3, Save, X } from "lucide-react-native";
 import { EditablePersonalProfile } from "@/feature/profile/screen/types/profileScreen.types";
+import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
+import { Card } from "@/shared/components/reusable/Cards/Card";
 import { ProfileField } from "./ProfileField";
 import { colors } from "@/shared/components/theme/colors";
-import { radius, spacing } from "@/shared/components/theme/spacing";
+import { spacing } from "@/shared/components/theme/spacing";
 
 type PersonalProfileSectionProps = {
   personalProfileForm: EditablePersonalProfile;
@@ -29,36 +32,31 @@ export function PersonalProfileSection({
   onSavePersonalProfile,
 }: PersonalProfileSectionProps) {
   return (
-    <View style={styles.sectionCard}>
+    <Card style={styles.sectionCard}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Personal Profile</Text>
         {!isPersonalEditing ? (
-          <Pressable
+          <AppButton
             onPress={onStartPersonalEdit}
-            style={styles.inlineActionButton}
-            accessibilityRole="button"
-          >
-            <Edit3 size={14} color={colors.primary} />
-            <Text style={styles.inlineActionButtonText}>Edit</Text>
-          </Pressable>
+            label="Edit"
+            variant="accent"
+            size="sm"
+            leadingIcon={<Edit3 size={14} color={colors.primary} />}
+          />
         ) : (
           <View style={styles.inlineActionsWrap}>
-            <Pressable
+            <AppIconButton
               onPress={onCancelPersonalEdit}
-              style={styles.iconActionButton}
-              accessibilityRole="button"
             >
               <X size={14} color={colors.destructive} />
-            </Pressable>
-            <Pressable
+            </AppIconButton>
+            <AppIconButton
               onPress={() => {
                 void onSavePersonalProfile();
               }}
-              style={styles.iconActionButton}
-              accessibilityRole="button"
             >
               <Save size={14} color={colors.success} />
-            </Pressable>
+            </AppIconButton>
           </View>
         )}
       </View>
@@ -97,16 +95,12 @@ export function PersonalProfileSection({
       {isSavingPersonalProfile ? (
         <Text style={styles.pendingText}>Saving personal profile...</Text>
       ) : null}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   sectionCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.card,
     padding: spacing.md,
     gap: spacing.sm,
   },
@@ -119,38 +113,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.cardForeground,
     fontSize: 14,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
   inlineActionsWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
   },
-  inlineActionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent,
-  },
-  inlineActionButtonText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  iconActionButton: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   pendingText: {
     color: colors.mutedForeground,
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
 });
+

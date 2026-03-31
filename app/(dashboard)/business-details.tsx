@@ -3,14 +3,14 @@ import appDatabase from "@/shared/database/appDatabase";
 import {
   clearActiveUserSession,
 } from "@/feature/appSettings/data/appSettings.store";
-import { GetProfileScreenFactory } from "@/feature/profile/screen/factory/getProfileScreen.factory";
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
 import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 import { useAppRouteSession } from "@/feature/session/ui/AppRouteSessionProvider";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { GetBusinessDetailsScreenFactory } from "@/feature/profile/screen/factory/getBusinessDetailsScreen.factory";
 
-export default function DashboardProfileRoute() {
+export default function DashboardBusinessDetailsRoute() {
   const navigation = useSmoothNavigation();
   const dashboardContext = useDashboardRouteContext();
   const { refreshSession } = useAppRouteSession();
@@ -32,15 +32,15 @@ export default function DashboardProfileRoute() {
   }, [refreshSession]);
 
   const handleBack = useCallback(() => {
-    navigation.replace(getDashboardHomePath(dashboardContext.activeAccountType));
-  }, [dashboardContext.activeAccountType, navigation]);
+    navigation.replace("/(dashboard)/profile");
+  }, [navigation]);
 
   const handleOpenBusinessDetails = useCallback(() => {
     navigation.push("/(dashboard)/business-details");
   }, [navigation]);
 
   return (
-    <GetProfileScreenFactory
+    <GetBusinessDetailsScreenFactory
       database={appDatabase}
       activeUserRemoteId={dashboardContext.activeUserRemoteId}
       activeAccountRemoteId={dashboardContext.activeAccountRemoteId}

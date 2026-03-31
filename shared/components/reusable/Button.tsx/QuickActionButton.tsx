@@ -37,7 +37,8 @@ const styles = StyleSheet.create({
   label: {
     color: colors.cardForeground,
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: "InterBold",
     textAlign: 'center',
   },
 });
+

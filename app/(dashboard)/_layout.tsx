@@ -21,6 +21,7 @@ import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 
 type DashboardRouteKey =
   | "business"
+  | "business-details"
   | "personal"
   | "ledger"
   | "pos"
@@ -48,6 +49,7 @@ const resolveDashboardRouteKey = (segments: string[]): DashboardRouteKey => {
 
   switch (routeKey) {
     case "business":
+    case "business-details":
     case "personal":
     case "ledger":
     case "pos":
@@ -188,7 +190,7 @@ export default function DashboardLayout() {
     return null;
   }
 
-  if (routeKey === "profile") {
+  if (routeKey === "profile" || routeKey === "business-details") {
     return (
       <View style={styles.container}>
         <Slot />

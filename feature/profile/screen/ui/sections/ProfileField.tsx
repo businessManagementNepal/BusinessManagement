@@ -65,12 +65,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    fontWeight: "700",
+    fontFamily: "InterBold",
   },
   fieldValue: {
     color: colors.cardForeground,
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   inputField: {
     minHeight: 42,
@@ -88,3 +88,4 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
 });
+

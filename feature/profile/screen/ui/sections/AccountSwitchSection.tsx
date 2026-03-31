@@ -6,6 +6,7 @@ import {
   AccountTypeValue,
 } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { ProfileAccountOption } from "@/feature/profile/screen/types/profileScreen.types";
+import { Card, CardPressable } from "@/shared/components/reusable/Cards/Card";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 
@@ -61,10 +62,9 @@ export function AccountSwitchSection({
 }: AccountSwitchSectionProps) {
   return (
     <View style={styles.accountSwitchWrap}>
-      <Pressable
+      <CardPressable
         style={styles.accountSwitchButton}
         onPress={onToggleSwitchExpanded}
-        accessibilityRole="button"
       >
         <View style={styles.accountSwitchLeft}>
           <View style={styles.accountIconWrap}>
@@ -90,10 +90,10 @@ export function AccountSwitchSection({
           color={colors.mutedForeground}
           style={isSwitchExpanded ? styles.chevronOpen : undefined}
         />
-      </Pressable>
+      </CardPressable>
 
       {isSwitchExpanded ? (
-        <View style={styles.accountOptionsWrap}>
+        <Card style={styles.accountOptionsCard}>
           {accountOptions.map((accountOption) => {
             const isActive = accountOption.remoteId === activeAccountRemoteId;
 
@@ -124,7 +124,7 @@ export function AccountSwitchSection({
               </Pressable>
             );
           })}
-        </View>
+        </Card>
       ) : null}
     </View>
   );
@@ -135,10 +135,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   accountSwitchButton: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     flexDirection: "row",
@@ -161,7 +157,7 @@ const styles = StyleSheet.create({
   accountTitle: {
     color: colors.cardForeground,
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: "InterBold",
   },
   accountSubtitle: {
     color: colors.mutedForeground,
@@ -171,12 +167,8 @@ const styles = StyleSheet.create({
   chevronOpen: {
     transform: [{ rotate: "180deg" }],
   },
-  accountOptionsWrap: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    overflow: "hidden",
+  accountOptionsCard: {
+    padding: 0,
   },
   accountOptionRow: {
     flexDirection: "row",
@@ -193,7 +185,7 @@ const styles = StyleSheet.create({
   accountOptionTitle: {
     color: colors.cardForeground,
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: "InterBold",
     marginBottom: 2,
   },
   accountOptionSubtitle: {
@@ -201,3 +193,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
+

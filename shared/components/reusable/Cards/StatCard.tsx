@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
   value: {
     color: colors.cardForeground,
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: "InterBold",
     marginBottom: 2,
   },
   label: {
@@ -43,3 +43,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+

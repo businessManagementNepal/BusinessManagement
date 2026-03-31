@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   User,
 } from "lucide-react-native";
+import { Card } from "@/shared/components/reusable/Cards/Card";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { DashboardTabScaffold } from "@/feature/dashboard/shared/ui/DashboardTabScaffold";
@@ -24,7 +25,7 @@ export function MoreDashboardScreen({ viewModel }: MoreDashboardScreenProps) {
       {viewModel.sections.map((section) => (
         <View key={section.id} style={styles.sectionWrap}>
           <Text style={styles.sectionTitle}>{section.title}</Text>
-          <View style={styles.sectionCard}>
+          <Card style={styles.sectionCard}>
             {section.items.map((item) => (
               <Pressable
                 key={item.id}
@@ -42,7 +43,7 @@ export function MoreDashboardScreen({ viewModel }: MoreDashboardScreenProps) {
                 <ChevronRight size={16} color={colors.mutedForeground} />
               </Pressable>
             ))}
-          </View>
+          </Card>
         </View>
       ))}
     </DashboardTabScaffold>
@@ -75,16 +76,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.mutedForeground,
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: "InterBold",
     letterSpacing: 0.7,
     textTransform: "uppercase",
   },
   sectionCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    overflow: "hidden",
+    padding: 0,
   },
   row: {
     paddingHorizontal: spacing.md,
@@ -109,7 +106,7 @@ const styles = StyleSheet.create({
   rowTitle: {
     color: colors.cardForeground,
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: "InterBold",
     marginBottom: 2,
   },
   rowSubtitle: {
@@ -118,3 +115,4 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
 });
+

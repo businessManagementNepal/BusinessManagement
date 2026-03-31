@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.cardForeground,
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: "InterBold",
   },
   subtitle: {
     color: colors.mutedForeground,
@@ -63,7 +63,8 @@ const styles = StyleSheet.create({
   value: {
     color: colors.primary,
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: "InterBold",
     marginRight: 6,
   },
 });
+

@@ -1,6 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Edit3, Save, X } from "lucide-react-native";
+import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
+import { Card } from "@/shared/components/reusable/Cards/Card";
 import { Dropdown, DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { EditableBusinessProfile } from "@/feature/profile/screen/types/profileScreen.types";
 import { ProfileField } from "./ProfileField";
@@ -44,38 +47,31 @@ export function BusinessProfileSection({
   );
 
   return (
-    <View style={styles.sectionCard}>
+    <Card style={styles.sectionCard}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Active Business Profile</Text>
         {!isBusinessEditing ? (
-          <Pressable
+          <AppButton
             onPress={onStartBusinessEdit}
-            style={styles.inlineActionButton}
-            accessibilityRole="button"
-          >
-            <Edit3 size={14} color={colors.primary} />
-            <Text style={styles.inlineActionButtonText}>
-              {hasActiveBusinessProfile ? "Edit" : "Set up"}
-            </Text>
-          </Pressable>
+            label={hasActiveBusinessProfile ? "Edit" : "Set up"}
+            variant="accent"
+            size="sm"
+            leadingIcon={<Edit3 size={14} color={colors.primary} />}
+          />
         ) : (
           <View style={styles.inlineActionsWrap}>
-            <Pressable
+            <AppIconButton
               onPress={onCancelBusinessEdit}
-              style={styles.iconActionButton}
-              accessibilityRole="button"
             >
               <X size={14} color={colors.destructive} />
-            </Pressable>
-            <Pressable
+            </AppIconButton>
+            <AppIconButton
               onPress={() => {
                 void onSaveBusinessProfile();
               }}
-              style={styles.iconActionButton}
-              accessibilityRole="button"
             >
               <Save size={14} color={colors.success} />
-            </Pressable>
+            </AppIconButton>
           </View>
         )}
       </View>
@@ -115,17 +111,15 @@ export function BusinessProfileSection({
         multiline
       />
 
-      <Pressable
+      <AppButton
+        label={isAdvancedExpanded ? "Show less" : "Show more"}
+        variant="accent"
+        size="sm"
+        style={styles.showMoreButton}
         onPress={() => {
           setIsAdvancedExpanded((previousValue) => !previousValue);
         }}
-        style={styles.showMoreButton}
-        accessibilityRole="button"
-      >
-        <Text style={styles.showMoreButtonText}>
-          {isAdvancedExpanded ? "Show less" : "Show more"}
-        </Text>
-      </Pressable>
+      />
 
       {isAdvancedExpanded ? (
         <View style={styles.advancedFieldsWrap}>
@@ -237,16 +231,12 @@ export function BusinessProfileSection({
       {isSavingBusinessProfile ? (
         <Text style={styles.pendingText}>Saving business profile...</Text>
       ) : null}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   sectionCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.card,
     padding: spacing.md,
     gap: spacing.sm,
   },
@@ -259,46 +249,15 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.cardForeground,
     fontSize: 14,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
   inlineActionsWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
   },
-  inlineActionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent,
-  },
-  inlineActionButtonText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  iconActionButton: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   showMoreButton: {
     alignSelf: "flex-start",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent,
-  },
-  showMoreButtonText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: "700",
   },
   advancedFieldsWrap: {
     gap: spacing.sm,
@@ -311,7 +270,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    fontWeight: "700",
+    fontFamily: "InterBold",
   },
   dropdownTrigger: {
     minHeight: 42,
@@ -321,19 +280,20 @@ const styles = StyleSheet.create({
   },
   dropdownTriggerText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
     color: colors.cardForeground,
   },
   readOnlyValue: {
     color: colors.cardForeground,
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
     minHeight: 42,
     textAlignVertical: "center",
   },
   pendingText: {
     color: colors.mutedForeground,
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
 });
+

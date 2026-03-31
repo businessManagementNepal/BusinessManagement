@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.foreground,
     fontSize: 17,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
   action: {
     flexDirection: "row",
@@ -49,6 +49,7 @@ const styles = StyleSheet.create({
   actionLabel: {
     color: colors.primary,
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: "InterBold",
   },
 });
+

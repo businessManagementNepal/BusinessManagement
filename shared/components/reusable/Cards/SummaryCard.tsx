@@ -48,6 +48,7 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: "InterBold",
   },
 });
+

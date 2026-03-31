@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Plus } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { Card } from "@/shared/components/reusable/Cards/Card";
 import { Dropdown, DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { EditableBusinessProfile } from "@/feature/profile/screen/types/profileScreen.types";
 import { ProfileField } from "./ProfileField";
@@ -46,7 +48,7 @@ export function CreateBusinessProfileSection({
   }, [isCreateBusinessExpanded]);
 
   return (
-    <View style={styles.sectionCard}>
+    <Card style={styles.sectionCard}>
       <Pressable
         style={styles.createHeaderButton}
         onPress={onToggleCreateBusinessExpanded}
@@ -108,17 +110,15 @@ export function CreateBusinessProfileSection({
             multiline
           />
 
-          <Pressable
+          <AppButton
+            label={isAdvancedExpanded ? "Show less" : "Show more"}
+            variant="accent"
+            size="sm"
+            style={styles.showMoreButton}
             onPress={() => {
               setIsAdvancedExpanded((previousValue) => !previousValue);
             }}
-            style={styles.showMoreButton}
-            accessibilityRole="button"
-          >
-            <Text style={styles.showMoreButtonText}>
-              {isAdvancedExpanded ? "Show less" : "Show more"}
-            </Text>
-          </Pressable>
+          />
 
           {isAdvancedExpanded ? (
             <View style={styles.advancedFieldsWrap}>
@@ -225,33 +225,29 @@ export function CreateBusinessProfileSection({
             </View>
           ) : null}
 
-          <Pressable
+          <AppButton
+            label={
+              isCreatingBusinessProfile
+                ? "Creating..."
+                : "Create Business Profile"
+            }
+            variant="primary"
+            size="md"
             style={styles.primaryButton}
             onPress={() => {
               void onCreateBusinessProfile();
             }}
             disabled={isCreatingBusinessProfile}
-            accessibilityRole="button"
             accessibilityState={{ busy: isCreatingBusinessProfile }}
-          >
-            <Text style={styles.primaryButtonText}>
-              {isCreatingBusinessProfile
-                ? "Creating..."
-                : "Create Business Profile"}
-            </Text>
-          </Pressable>
+          />
         </View>
       ) : null}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   sectionCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.card,
     padding: spacing.md,
     gap: spacing.sm,
   },
@@ -277,7 +273,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.cardForeground,
     fontSize: 14,
-    fontWeight: "800",
+    fontFamily: "InterBold",
   },
   sectionSubtitle: {
     color: colors.mutedForeground,
@@ -293,15 +289,6 @@ const styles = StyleSheet.create({
   },
   showMoreButton: {
     alignSelf: "flex-start",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent,
-  },
-  showMoreButtonText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: "700",
   },
   advancedFieldsWrap: {
     gap: spacing.sm,
@@ -314,7 +301,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    fontWeight: "700",
+    fontFamily: "InterBold",
   },
   dropdownTrigger: {
     minHeight: 42,
@@ -324,20 +311,11 @@ const styles = StyleSheet.create({
   },
   dropdownTriggerText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
     color: colors.cardForeground,
   },
   primaryButton: {
-    minHeight: 44,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
     marginTop: spacing.xs,
   },
-  primaryButtonText: {
-    color: colors.primaryForeground,
-    fontSize: 13,
-    fontWeight: "700",
-  },
 });
+

@@ -6,6 +6,7 @@ import {
   Dropdown,
   type DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
+import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { TextField } from "@/shared/components/reusable/Form/TextField";
 import { KeyboardSafeScrollView } from "@/shared/components/reusable/ScreenLayouts/KeyboardSafeScrollView";
 import { colors } from "@/shared/components/theme/colors";
@@ -564,20 +565,17 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
               </View>
             )}
 
-            <Pressable
-              style={[
-                styles.primaryButton,
-                isPrimaryDisabled ? styles.primaryButtonDisabled : undefined,
-              ]}
+            <AppButton
+              label={
+                isPrimaryBusy ? t("auth.entry.actions.pleaseWait") : primaryLabel
+              }
+              variant="primary"
+              size="lg"
+              style={styles.primaryButton}
               onPress={handlePrimaryAction}
               disabled={isPrimaryDisabled}
-              accessibilityRole="button"
               accessibilityState={{ disabled: isPrimaryDisabled, busy: isPrimaryBusy }}
-            >
-              <Text style={styles.primaryButtonText}>
-                {isPrimaryBusy ? t("auth.entry.actions.pleaseWait") : primaryLabel}
-              </Text>
-            </Pressable>
+            />
 
             <View style={styles.separatorRow}>
               <View style={styles.separatorLine} />
@@ -645,7 +643,7 @@ const styles = StyleSheet.create({
   logoText: {
     color: colors.headerForeground,
     fontSize: 24,
-    fontWeight: "700",
+    fontFamily: "InterBold",
     lineHeight: 28,
   },
   logoTextCompact: {
@@ -655,7 +653,7 @@ const styles = StyleSheet.create({
   brand: {
     color: colors.headerForeground,
     fontSize: 24,
-    fontWeight: "700",
+    fontFamily: "InterBold",
     lineHeight: 28,
   },
   brandCompact: {
@@ -666,7 +664,7 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.8)",
     marginTop: 4,
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "InterMedium",
     textAlign: "center",
   },
   divider: {
@@ -701,7 +699,7 @@ const styles = StyleSheet.create({
   tabLabel: {
     color: colors.mutedForeground,
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   tabLabelActive: {
     color: colors.primaryForeground,
@@ -712,7 +710,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     color: colors.mutedForeground,
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   profileTypeRow: {
     flexDirection: "row",
@@ -735,11 +733,11 @@ const styles = StyleSheet.create({
   profileTypeButtonText: {
     color: colors.foreground,
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   profileTypeButtonTextActive: {
     color: colors.primary,
-    fontWeight: "700",
+    fontFamily: "InterBold",
   },
   businessTypeWrap: {
     gap: spacing.xs,
@@ -758,7 +756,7 @@ const styles = StyleSheet.create({
   },
   phoneCountryDropdownText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
     color: colors.cardForeground,
   },
   phoneNumberInputWrap: {
@@ -771,28 +769,15 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textAlign: "right",
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "InterMedium",
   },
   submitError: {
     color: colors.destructive,
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   primaryButton: {
     marginTop: spacing.md,
-    backgroundColor: colors.primary,
-    borderRadius: radius.lg,
-    minHeight: 52,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryButtonDisabled: {
-    opacity: 0.7,
-  },
-  primaryButtonText: {
-    color: colors.primaryForeground,
-    fontWeight: "600",
-    fontSize: 14,
   },
   separatorRow: {
     flexDirection: "row",
@@ -809,7 +794,7 @@ const styles = StyleSheet.create({
   separatorLabel: {
     color: colors.mutedForeground,
     fontSize: 12,
-    fontWeight: "500",
+    fontFamily: "InterMedium",
   },
   footerRow: {
     flexDirection: "row",
@@ -819,12 +804,13 @@ const styles = StyleSheet.create({
   footerText: {
     color: colors.mutedForeground,
     fontSize: 12,
-    fontWeight: "500",
+    fontFamily: "InterMedium",
   },
   footerLink: {
     color: colors.primary,
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
 });
+
 

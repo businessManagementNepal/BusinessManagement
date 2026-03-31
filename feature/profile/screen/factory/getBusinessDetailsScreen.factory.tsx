@@ -2,9 +2,9 @@ import React from "react";
 import { Database } from "@nozbe/watermelondb";
 import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { useProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel.impl";
-import { ProfileScreen } from "@/feature/profile/screen/ui/ProfileScreen";
+import { BusinessDetailsScreen } from "@/feature/profile/screen/ui/BusinessDetailsScreen";
 
-type GetProfileScreenFactoryProps = {
+type GetBusinessDetailsScreenFactoryProps = {
   database: Database;
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
@@ -14,7 +14,7 @@ type GetProfileScreenFactoryProps = {
   onBack: () => void;
 };
 
-export function GetProfileScreenFactory({
+export function GetBusinessDetailsScreenFactory({
   database,
   activeUserRemoteId,
   activeAccountRemoteId,
@@ -22,7 +22,7 @@ export function GetProfileScreenFactory({
   onOpenBusinessDetails,
   onLogout,
   onBack,
-}: GetProfileScreenFactoryProps) {
+}: GetBusinessDetailsScreenFactoryProps) {
   const viewModel = useProfileScreenViewModel({
     database,
     activeUserRemoteId,
@@ -33,5 +33,5 @@ export function GetProfileScreenFactory({
     onBack,
   });
 
-  return <ProfileScreen viewModel={viewModel} />;
+  return <BusinessDetailsScreen viewModel={viewModel} />;
 }

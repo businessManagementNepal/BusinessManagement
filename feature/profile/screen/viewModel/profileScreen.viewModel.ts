@@ -65,6 +65,7 @@ export interface ProfileScreenViewModel {
     value: BusinessTypeValue;
     label: string;
   }[];
+  onOpenBusinessDetails: () => void;
   onLogout: () => Promise<void>;
   onBack: () => void;
 }
@@ -74,6 +75,7 @@ export type UseProfileScreenViewModelParams = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   onNavigateHome: (accountType: AccountTypeValue) => void;
+  onOpenBusinessDetails: () => void;
   onLogout: () => Promise<void>;
   onBack: () => void;
 };
