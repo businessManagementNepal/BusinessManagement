@@ -1,37 +1,34 @@
 import React from "react";
 import { Database } from "@nozbe/watermelondb";
 import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { useDashboardProfileViewModel } from "../viewModel/profile.viewModel.impl";
-import { DashboardProfileScreen } from "../ui/ProfileDashboardScreen";
+import { useProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel.impl";
+import { ProfileScreen } from "@/feature/profile/screen/ui/ProfileScreen";
 
-type GetDashboardProfileScreenFactoryProps = {
+type GetProfileScreenFactoryProps = {
   database: Database;
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   onNavigateHome: (accountType: AccountTypeValue) => void;
-  onSwitchAccountViaSelector: () => void;
   onLogout: () => Promise<void>;
   onBack: () => void;
 };
 
-export function GetDashboardProfileScreenFactory({
+export function GetProfileScreenFactory({
   database,
   activeUserRemoteId,
   activeAccountRemoteId,
   onNavigateHome,
-  onSwitchAccountViaSelector,
   onLogout,
   onBack,
-}: GetDashboardProfileScreenFactoryProps) {
-  const viewModel = useDashboardProfileViewModel({
+}: GetProfileScreenFactoryProps) {
+  const viewModel = useProfileScreenViewModel({
     database,
     activeUserRemoteId,
     activeAccountRemoteId,
     onNavigateHome,
-    onSwitchAccountViaSelector,
     onLogout,
     onBack,
   });
 
-  return <DashboardProfileScreen viewModel={viewModel} />;
+  return <ProfileScreen viewModel={viewModel} />;
 }

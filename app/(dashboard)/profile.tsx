@@ -3,7 +3,7 @@ import appDatabase from "@/shared/database/appDatabase";
 import {
   clearActiveUserSession,
 } from "@/feature/appSettings/data/appSettings.store";
-import { GetDashboardProfileScreenFactory } from "@/feature/dashboard/profile/factory/getDashboardProfileScreen.factory";
+import { GetProfileScreenFactory } from "@/feature/profile/screen/factory/getProfileScreen.factory";
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
 import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 import { useAppRouteSession } from "@/feature/session/ui/AppRouteSessionProvider";
@@ -22,10 +22,6 @@ export default function DashboardProfileRoute() {
     [navigation],
   );
 
-  const handleSwitchAccountViaSelector = useCallback(() => {
-    navigation.replace("/(account-setup)/select-account");
-  }, [navigation]);
-
   const handleLogout = useCallback(async () => {
     try {
       await clearActiveUserSession(appDatabase);
@@ -40,12 +36,11 @@ export default function DashboardProfileRoute() {
   }, [dashboardContext.activeAccountType, navigation]);
 
   return (
-    <GetDashboardProfileScreenFactory
+    <GetProfileScreenFactory
       database={appDatabase}
       activeUserRemoteId={dashboardContext.activeUserRemoteId}
       activeAccountRemoteId={dashboardContext.activeAccountRemoteId}
       onNavigateHome={handleNavigateHome}
-      onSwitchAccountViaSelector={handleSwitchAccountViaSelector}
       onLogout={handleLogout}
       onBack={handleBack}
     />

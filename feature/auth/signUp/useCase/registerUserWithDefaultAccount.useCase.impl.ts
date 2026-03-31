@@ -11,15 +11,15 @@ import {
   VerifiedLocalCredential,
 } from "@/feature/session/types/authSession.types";
 import { SaveAccountUseCase } from "@/feature/setting/accounts/accountSelection/useCase/saveAccount.useCase";
-import { SignUpProfileType } from "../types/signUp.types";
 import {
   DatabaseError,
   PhoneNumberAlreadyInUseError,
   SignUpError,
   SignUpInput,
   SignUpResult,
-  UnknownError,
+  SignUpProfileType,
   ValidationError,
+  UnknownError,
 } from "../types/signUp.types";
 import { RegisterUserWithDefaultAccountUseCase } from "./registerUserWithDefaultAccount.useCase";
 

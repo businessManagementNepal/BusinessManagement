@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Platform,
   ScrollView,
   ScrollViewProps,
   StyleProp,
@@ -45,6 +46,8 @@ export function ScreenContainer({
           contentContainerStyle,
         ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         {...scrollProps}
       >
         {children}
