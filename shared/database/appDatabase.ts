@@ -5,6 +5,7 @@ import { authUserDbConfig } from "@/feature/session/data/dataSource/db/authUserD
 import { accountDbConfig } from "@/feature/setting/accounts/accountSelection/data/dataSource/db/accountDbConfig";
 import { businessProfileDbConfig } from "@/feature/profile/business/data/dataSource/db/businessProfileDbConfig";
 import { userManagementDbConfig } from "@/feature/setting/accounts/userManagement/data/dataSource/db/userManagementDbConfig";
+import { transactionDbConfig } from "@/feature/transactions/data/dataSource/db/transactionDbConfig";
 import { AppSettingsModel } from "@/feature/appSettings/data/dataSource/db/appSettings.model";
 import {
   assertDatabaseSetupHealthy,
@@ -15,7 +16,7 @@ import { appSchema } from "@nozbe/watermelondb";
 const APP_SETTINGS_TABLE = "app_settings";
 
 const schema = appSchema({
-  version: 18,
+  version: 19,
   tables: [
     ...authUserDbConfig.tables,
     ...authCredentialDbConfig.tables,
@@ -23,6 +24,7 @@ const schema = appSchema({
     ...businessProfileDbConfig.tables,
     ...appSettingsDbConfig.tables,
     ...userManagementDbConfig.tables,
+    ...transactionDbConfig.tables,
   ],
 });
 
@@ -35,6 +37,7 @@ export const database = createDatabase({
     ...businessProfileDbConfig.models,
     ...appSettingsDbConfig.models,
     ...userManagementDbConfig.models,
+    ...transactionDbConfig.models,
   ],
   migrations,
 });
