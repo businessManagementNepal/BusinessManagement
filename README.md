@@ -38,3 +38,4 @@ npx tsc --noEmit
 npm run test
 npx expo export --platform ios,android
 ```
+"# BusinessManagement" 
