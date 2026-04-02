@@ -40,7 +40,7 @@ export interface PosDatasource {
     params: PosApplyAmountAdjustmentParams,
   ): Promise<PosTotalsResult>;
   clearCart(): Promise<PosOperationResult>;
-  getSlots(): Promise<readonly PosBootstrap["slots"]>;
+  getSlots(): Promise<PosBootstrap["slots"]>;
   getCartLines(): Promise<readonly PosCartLine[]>;
   getTotals(): Promise<PosTotalsResult>;
   completePayment(

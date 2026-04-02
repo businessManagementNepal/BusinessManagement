@@ -4,7 +4,7 @@ import {
   PosProduct,
   PosReceipt,
   PosTotals,
-} from "../../types/pos.entity.types";
+} from "../../../types/pos.entity.types";
 
 export const mapPosProductToDomain = (product: PosProduct): PosProduct => ({
   ...product,

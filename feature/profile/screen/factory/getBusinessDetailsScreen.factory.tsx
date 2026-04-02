@@ -10,7 +10,6 @@ type GetBusinessDetailsScreenFactoryProps = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   onNavigateHome: (accountType: AccountTypeValue) => void;
-  onOpenBusinessDetails: () => void;
   onLogout: () => Promise<void>;
   onBack: () => void;
 };
@@ -20,7 +19,6 @@ export function GetBusinessDetailsScreenFactory({
   activeUserRemoteId,
   activeAccountRemoteId,
   onNavigateHome,
-  onOpenBusinessDetails,
   onLogout,
   onBack,
 }: GetBusinessDetailsScreenFactoryProps) {
@@ -31,7 +29,6 @@ export function GetBusinessDetailsScreenFactory({
     activeUserRemoteId,
     activeAccountRemoteId,
     onNavigateHome,
-    onOpenBusinessDetails,
     onLogout,
     onBack,
   });

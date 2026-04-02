@@ -59,7 +59,9 @@ export function BusinessDetailsScreen({ viewModel }: BusinessDetailsScreenProps)
       {!viewModel.isLoading && isBusinessAccount ? (
         <BusinessProfileSection
           activeBusinessProfileForm={viewModel.activeBusinessProfileForm}
+          activeBusinessEstablishedYear={viewModel.activeBusinessEstablishedYear}
           hasActiveBusinessProfile={viewModel.hasActiveBusinessProfile}
+          canEditBusinessProfile={viewModel.canEditBusinessProfile}
           isBusinessEditing={viewModel.isBusinessEditing}
           isSavingBusinessProfile={viewModel.isSavingBusinessProfile}
           businessTypeOptions={viewModel.businessTypeOptions}
