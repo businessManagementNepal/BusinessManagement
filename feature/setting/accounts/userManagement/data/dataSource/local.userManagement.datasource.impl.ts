@@ -45,7 +45,10 @@ const updateRoleSyncStatusOnMutation = (record: AccountRoleModel): void => {
     return;
   }
 
-  if (record.recordSyncStatus === "synced") {
+  if (
+    record.recordSyncStatus === RecordSyncStatus.Synced ||
+    record.recordSyncStatus === RecordSyncStatus.PendingDelete
+  ) {
     record.recordSyncStatus = "pending_update";
   }
 };
@@ -56,10 +59,46 @@ const updateMemberSyncStatusOnMutation = (record: AccountMemberModel): void => {
     return;
   }
 
-  if (record.recordSyncStatus === "synced") {
+  if (
+    record.recordSyncStatus === RecordSyncStatus.Synced ||
+    record.recordSyncStatus === RecordSyncStatus.PendingDelete
+  ) {
     record.recordSyncStatus = "pending_update";
   }
 };
+
+const markRolePendingDelete = (record: AccountRoleModel): void => {
+  record.recordSyncStatus = RecordSyncStatus.PendingDelete;
+};
+
+const markMemberPendingDelete = (record: AccountMemberModel): void => {
+  record.recordSyncStatus = RecordSyncStatus.PendingDelete;
+};
+
+const selectLatestByTimestamps = <T extends { updatedAt: Date; createdAt: Date }>(
+  records: readonly T[],
+): T | null => {
+  if (records.length === 0) {
+    return null;
+  }
+
+  return [...records].sort((left, right) => {
+    const updatedDiff = right.updatedAt.getTime() - left.updatedAt.getTime();
+    if (updatedDiff !== 0) {
+      return updatedDiff;
+    }
+
+    return right.createdAt.getTime() - left.createdAt.getTime();
+  })[0]!;
+};
+
+const getActiveRoleRecords = (
+  roles: readonly AccountRoleModel[],
+): AccountRoleModel[] => roles.filter((role) => role.deletedAt === null);
+
+const getActiveMemberRecords = (
+  members: readonly AccountMemberModel[],
+): AccountMemberModel[] => members.filter((member) => member.deletedAt === null);
 
 export const createLocalUserManagementDatasource = (
   database: Database,
@@ -151,10 +190,11 @@ export const createLocalUserManagementDatasource = (
       const matchingRoles = await rolesCollection
         .query(Q.where("remote_id", remoteId))
         .fetch();
+      const activeRoles = getActiveRoleRecords(matchingRoles);
 
       return {
         success: true,
-        value: matchingRoles[0] ?? null,
+        value: selectLatestByTimestamps(activeRoles),
       };
     } catch (error) {
       return {
@@ -173,10 +213,22 @@ export const createLocalUserManagementDatasource = (
       const roles = await rolesCollection
         .query(Q.where("account_remote_id", accountRemoteId))
         .fetch();
+      const activeRoles = getActiveRoleRecords(roles);
+      const roleByRemoteId = new Map<string, AccountRoleModel>();
+
+      for (const role of [...activeRoles].sort((left, right) => {
+        return right.updatedAt.getTime() - left.updatedAt.getTime();
+      })) {
+        if (roleByRemoteId.has(role.remoteId)) {
+          continue;
+        }
+
+        roleByRemoteId.set(role.remoteId, role);
+      }
 
       return {
         success: true,
-        value: roles,
+        value: [...roleByRemoteId.values()],
       };
     } catch (error) {
       return {
@@ -194,10 +246,11 @@ export const createLocalUserManagementDatasource = (
       const matchingMembers = await membersCollection
         .query(Q.where("remote_id", remoteId))
         .fetch();
+      const activeMembers = getActiveMemberRecords(matchingMembers);
 
       return {
         success: true,
-        value: matchingMembers[0] ?? null,
+        value: selectLatestByTimestamps(activeMembers),
       };
     } catch (error) {
       return {
@@ -215,10 +268,24 @@ export const createLocalUserManagementDatasource = (
       const members = await membersCollection
         .query(Q.where("account_remote_id", accountRemoteId))
         .fetch();
+      const activeMembers = getActiveMemberRecords(members);
+      const memberByAccountAndUser = new Map<string, AccountMemberModel>();
+
+      for (const member of [...activeMembers].sort((left, right) => {
+        return right.updatedAt.getTime() - left.updatedAt.getTime();
+      })) {
+        const dedupeKey = `${member.accountRemoteId}:${member.userRemoteId}`;
+
+        if (memberByAccountAndUser.has(dedupeKey)) {
+          continue;
+        }
+
+        memberByAccountAndUser.set(dedupeKey, member);
+      }
 
       return {
         success: true,
-        value: members,
+        value: [...memberByAccountAndUser.values()],
       };
     } catch (error) {
       return {
@@ -240,10 +307,11 @@ export const createLocalUserManagementDatasource = (
           Q.where("user_remote_id", userRemoteId),
         )
         .fetch();
+      const activeMembers = getActiveMemberRecords(matchingMembers);
 
       return {
         success: true,
-        value: matchingMembers[0] ?? null,
+        value: selectLatestByTimestamps(activeMembers),
       };
     } catch (error) {
       return {
@@ -260,6 +328,7 @@ export const createLocalUserManagementDatasource = (
       const authUsersCollection = database.get<AuthUserModel>(AUTH_USERS_TABLE);
       const authCredentialsCollection = database.get<AuthCredentialModel>(AUTH_CREDENTIALS_TABLE);
       const membersCollection = database.get<AccountMemberModel>(ACCOUNT_MEMBERS_TABLE);
+      const rolesCollection = database.get<AccountRoleModel>(ACCOUNT_ROLES_TABLE);
       const accountUserRolesCollection = database.get<AccountUserRoleModel>(
         ACCOUNT_USER_ROLES_TABLE,
       );
@@ -302,7 +371,11 @@ export const createLocalUserManagementDatasource = (
             Q.where("user_remote_id", payload.member.userRemoteId),
           )
           .fetch();
-        if (existingMemberByAccountAndUser[0]) {
+        const activeMemberByAccountAndUser = getActiveMemberRecords(
+          existingMemberByAccountAndUser,
+        );
+
+        if (activeMemberByAccountAndUser[0]) {
           throw new Error("Conflict: account member already exists for this user.");
         }
 
@@ -314,6 +387,19 @@ export const createLocalUserManagementDatasource = (
           .fetch();
         if (existingAssignments[0]) {
           throw new Error("Conflict: user role assignment already exists.");
+        }
+
+        const matchingRoles = await rolesCollection
+          .query(Q.where("remote_id", payload.roleAssignment.roleRemoteId))
+          .fetch();
+        const matchingRole = selectLatestByTimestamps(getActiveRoleRecords(matchingRoles));
+
+        if (!matchingRole) {
+          throw new Error("Role not found.");
+        }
+
+        if (matchingRole.accountRemoteId !== payload.roleAssignment.accountRemoteId) {
+          throw new Error("Validation: role does not belong to selected account.");
         }
 
         await authUsersCollection.create((record) => {
@@ -392,6 +478,7 @@ export const createLocalUserManagementDatasource = (
     try {
       const authUsersCollection = database.get<AuthUserModel>(AUTH_USERS_TABLE);
       const authCredentialsCollection = database.get<AuthCredentialModel>(AUTH_CREDENTIALS_TABLE);
+      const rolesCollection = database.get<AccountRoleModel>(ACCOUNT_ROLES_TABLE);
       const accountUserRolesCollection = database.get<AccountUserRoleModel>(
         ACCOUNT_USER_ROLES_TABLE,
       );
@@ -467,19 +554,39 @@ export const createLocalUserManagementDatasource = (
         });
 
         if (payload.roleAssignment) {
+          const matchingRoles = await rolesCollection
+            .query(Q.where("remote_id", payload.roleAssignment.roleRemoteId))
+            .fetch();
+          const matchingRole = selectLatestByTimestamps(getActiveRoleRecords(matchingRoles));
+
+          if (!matchingRole) {
+            throw new Error("Role not found.");
+          }
+
+          if (matchingRole.accountRemoteId !== payload.roleAssignment.accountRemoteId) {
+            throw new Error("Validation: role does not belong to selected account.");
+          }
+
           const existingAssignments = await accountUserRolesCollection
             .query(
               Q.where("account_remote_id", payload.roleAssignment.accountRemoteId),
               Q.where("user_remote_id", payload.roleAssignment.userRemoteId),
             )
             .fetch();
-          const existingAssignment = existingAssignments[0];
+          const existingAssignment = selectLatestByTimestamps(existingAssignments);
+          const duplicateAssignments = existingAssignments.filter(
+            (assignment) => assignment.id !== existingAssignment?.id,
+          );
 
           if (existingAssignment) {
             await existingAssignment.update((record) => {
               record.roleRemoteId = payload.roleAssignment?.roleRemoteId ?? record.roleRemoteId;
               setUpdatedAt(record, Date.now());
             });
+
+            for (const duplicateAssignment of duplicateAssignments) {
+              await duplicateAssignment.destroyPermanently();
+            }
           } else {
             await accountUserRolesCollection.create((record) => {
               const now = Date.now();
@@ -506,14 +613,26 @@ export const createLocalUserManagementDatasource = (
   ): Promise<Result<AccountMemberModel>> {
     try {
       const membersCollection = database.get<AccountMemberModel>(ACCOUNT_MEMBERS_TABLE);
-      const existingMembers = await membersCollection
+      const membersByRemoteId = await membersCollection
         .query(Q.where("remote_id", payload.remoteId))
         .fetch();
-
-      const existingMember = existingMembers[0];
+      const membersByAccountAndUser = await membersCollection
+        .query(
+          Q.where("account_remote_id", payload.accountRemoteId),
+          Q.where("user_remote_id", payload.userRemoteId),
+        )
+        .fetch();
+      const activeMembersByAccountAndUser = getActiveMemberRecords(membersByAccountAndUser);
+      const existingMemberByRemoteId = selectLatestByTimestamps(membersByRemoteId);
+      const existingMemberByAccountAndUser = selectLatestByTimestamps(
+        activeMembersByAccountAndUser,
+      );
+      const existingMember = existingMemberByRemoteId ?? existingMemberByAccountAndUser;
 
       if (existingMember) {
         await database.write(async () => {
+          const now = Date.now();
+
           await existingMember.update((record) => {
             record.remoteId = payload.remoteId;
             record.accountRemoteId = payload.accountRemoteId;
@@ -522,9 +641,23 @@ export const createLocalUserManagementDatasource = (
             record.invitedByUserRemoteId = payload.invitedByUserRemoteId;
             record.joinedAt = payload.joinedAt;
             record.lastActiveAt = payload.lastActiveAt;
+            record.deletedAt = null;
             updateMemberSyncStatusOnMutation(record);
-            setUpdatedAt(record, Date.now());
+            setUpdatedAt(record, now);
           });
+
+          const duplicateMembers = activeMembersByAccountAndUser.filter(
+            (member) => member.id !== existingMember.id,
+          );
+
+          for (const duplicateMember of duplicateMembers) {
+            await duplicateMember.update((record) => {
+              record.status = "inactive";
+              record.deletedAt = now;
+              markMemberPendingDelete(record);
+              setUpdatedAt(record, now);
+            });
+          }
         });
 
         return {
@@ -570,11 +703,13 @@ export const createLocalUserManagementDatasource = (
   async deleteMemberByRemoteId(remoteId: string): Promise<Result<boolean>> {
     try {
       const membersCollection = database.get<AccountMemberModel>(ACCOUNT_MEMBERS_TABLE);
+      const accountUserRolesCollection = database.get<AccountUserRoleModel>(
+        ACCOUNT_USER_ROLES_TABLE,
+      );
       const matchingMembers = await membersCollection
         .query(Q.where("remote_id", remoteId))
         .fetch();
-
-      const targetMember = matchingMembers[0];
+      const targetMember = selectLatestByTimestamps(getActiveMemberRecords(matchingMembers));
 
       if (!targetMember) {
         return {
@@ -584,7 +719,24 @@ export const createLocalUserManagementDatasource = (
       }
 
       await database.write(async () => {
-        await targetMember.destroyPermanently();
+        const now = Date.now();
+        const assignments = await accountUserRolesCollection
+          .query(
+            Q.where("account_remote_id", targetMember.accountRemoteId),
+            Q.where("user_remote_id", targetMember.userRemoteId),
+          )
+          .fetch();
+
+        for (const assignment of assignments) {
+          await assignment.destroyPermanently();
+        }
+
+        await targetMember.update((record) => {
+          record.status = "inactive";
+          record.deletedAt = now;
+          markMemberPendingDelete(record);
+          setUpdatedAt(record, now);
+        });
       });
 
       return {
@@ -610,9 +762,10 @@ export const createLocalUserManagementDatasource = (
           Q.where("status", "active"),
         )
         .fetch();
+      const nonDeletedMembers = getActiveMemberRecords(activeMembers);
 
       const uniqueAccountRemoteIds = Array.from(
-        new Set(activeMembers.map((member) => member.accountRemoteId)),
+        new Set(nonDeletedMembers.map((member) => member.accountRemoteId)),
       );
 
       return {
@@ -632,23 +785,53 @@ export const createLocalUserManagementDatasource = (
   ): Promise<Result<AccountRoleModel>> {
     try {
       const rolesCollection = database.get<AccountRoleModel>(ACCOUNT_ROLES_TABLE);
-      const existingRoles = await rolesCollection
+      const rolesByRemoteId = await rolesCollection
         .query(Q.where("remote_id", payload.remoteId))
         .fetch();
+      const rolesByAccountAndName = await rolesCollection
+        .query(
+          Q.where("account_remote_id", payload.accountRemoteId),
+          Q.where("name", payload.name),
+        )
+        .fetch();
+      const activeRolesByAccountAndName = getActiveRoleRecords(rolesByAccountAndName);
+      const existingRoleByRemoteId = selectLatestByTimestamps(rolesByRemoteId);
+      const conflictingRoleByName = activeRolesByAccountAndName.find(
+        (role) => role.remoteId !== payload.remoteId,
+      );
 
-      const existingRole = existingRoles[0];
+      if (conflictingRoleByName) {
+        throw new Error("Conflict: role name already exists for this account.");
+      }
+
+      const existingRole = existingRoleByRemoteId;
 
       if (existingRole) {
         await database.write(async () => {
+          const now = Date.now();
           await existingRole.update((record) => {
             record.remoteId = payload.remoteId;
             record.accountRemoteId = payload.accountRemoteId;
             record.name = payload.name;
             record.isSystem = payload.isSystem;
             record.isDefault = payload.isDefault;
+            record.deletedAt = null;
             updateRoleSyncStatusOnMutation(record);
-            setUpdatedAt(record, Date.now());
+            setUpdatedAt(record, now);
           });
+
+          const duplicateRolesByRemoteId = rolesByRemoteId.filter(
+            (role) => role.id !== existingRole.id && role.deletedAt === null,
+          );
+
+          for (const duplicateRole of duplicateRolesByRemoteId) {
+            await duplicateRole.update((record) => {
+              record.deletedAt = now;
+              record.isDefault = false;
+              markRolePendingDelete(record);
+              setUpdatedAt(record, now);
+            });
+          }
         });
 
         return {
@@ -692,10 +875,16 @@ export const createLocalUserManagementDatasource = (
   async deleteRoleByRemoteId(remoteId: string): Promise<Result<boolean>> {
     try {
       const rolesCollection = database.get<AccountRoleModel>(ACCOUNT_ROLES_TABLE);
+      const rolePermissionsCollection = database.get<AccountRolePermissionModel>(
+        ACCOUNT_ROLE_PERMISSIONS_TABLE,
+      );
+      const accountUserRolesCollection = database.get<AccountUserRoleModel>(
+        ACCOUNT_USER_ROLES_TABLE,
+      );
       const matchingRoles = await rolesCollection
         .query(Q.where("remote_id", remoteId))
         .fetch();
-      const targetRole = matchingRoles[0];
+      const targetRole = selectLatestByTimestamps(getActiveRoleRecords(matchingRoles));
 
       if (!targetRole) {
         return {
@@ -705,7 +894,31 @@ export const createLocalUserManagementDatasource = (
       }
 
       await database.write(async () => {
-        await targetRole.destroyPermanently();
+        const activeAssignments = await accountUserRolesCollection
+          .query(Q.where("role_remote_id", remoteId))
+          .fetch();
+
+        if (activeAssignments.length > 0) {
+          throw new Error(
+            "Conflict: role is currently assigned to users. Reassign members first.",
+          );
+        }
+
+        const rolePermissions = await rolePermissionsCollection
+          .query(Q.where("role_remote_id", remoteId))
+          .fetch();
+
+        for (const rolePermission of rolePermissions) {
+          await rolePermission.destroyPermanently();
+        }
+
+        const now = Date.now();
+        await targetRole.update((record) => {
+          record.deletedAt = now;
+          record.isDefault = false;
+          markRolePendingDelete(record);
+          setUpdatedAt(record, now);
+        });
       });
 
       return {
@@ -777,12 +990,13 @@ export const createLocalUserManagementDatasource = (
         ),
       );
       const nextPermissionCodeSet = new Set(normalizedPermissionCodes);
-      const existingByPermissionCode = new Map(
-        existingRolePermissions.map((rolePermission) => [
-          rolePermission.permissionCode,
-          rolePermission,
-        ]),
-      );
+      const existingByPermissionCode = new Map<string, AccountRolePermissionModel[]>();
+
+      for (const existingRolePermission of existingRolePermissions) {
+        const existing = existingByPermissionCode.get(existingRolePermission.permissionCode) ?? [];
+        existing.push(existingRolePermission);
+        existingByPermissionCode.set(existingRolePermission.permissionCode, existing);
+      }
 
       await database.write(async () => {
         for (const existingRolePermission of existingRolePermissions) {
@@ -794,9 +1008,18 @@ export const createLocalUserManagementDatasource = (
         }
 
         for (const permissionCode of normalizedPermissionCodes) {
-          const existingRolePermission = existingByPermissionCode.get(permissionCode);
+          const existingRolePermissionRecords = existingByPermissionCode.get(permissionCode) ?? [];
+          const canonicalRolePermission = selectLatestByTimestamps(existingRolePermissionRecords);
 
-          if (existingRolePermission) {
+          if (canonicalRolePermission) {
+            const duplicates = existingRolePermissionRecords.filter(
+              (rolePermission) => rolePermission.id !== canonicalRolePermission.id,
+            );
+
+            for (const duplicateRolePermission of duplicates) {
+              await duplicateRolePermission.destroyPermanently();
+            }
+
             continue;
           }
 
@@ -869,14 +1092,23 @@ export const createLocalUserManagementDatasource = (
         )
         .fetch();
 
-      const existingAssignment = existingAssignments[0];
+      const existingAssignment = selectLatestByTimestamps(existingAssignments);
 
       if (existingAssignment) {
         await database.write(async () => {
+          const now = Date.now();
           await existingAssignment.update((record) => {
             record.roleRemoteId = payload.roleRemoteId;
-            setUpdatedAt(record, Date.now());
+            setUpdatedAt(record, now);
           });
+
+          const duplicateAssignments = existingAssignments.filter(
+            (assignment) => assignment.id !== existingAssignment.id,
+          );
+
+          for (const duplicateAssignment of duplicateAssignments) {
+            await duplicateAssignment.destroyPermanently();
+          }
         });
 
         return {
@@ -929,7 +1161,7 @@ export const createLocalUserManagementDatasource = (
 
       return {
         success: true,
-        value: assignments[0] ?? null,
+        value: selectLatestByTimestamps(assignments),
       };
     } catch (error) {
       return {
@@ -950,10 +1182,23 @@ export const createLocalUserManagementDatasource = (
       const assignments = await accountUserRolesCollection
         .query(Q.where("account_remote_id", accountRemoteId))
         .fetch();
+      const assignmentByAccountAndUser = new Map<string, AccountUserRoleModel>();
+
+      for (const assignment of [...assignments].sort((left, right) => {
+        return right.updatedAt.getTime() - left.updatedAt.getTime();
+      })) {
+        const dedupeKey = `${assignment.accountRemoteId}:${assignment.userRemoteId}`;
+
+        if (assignmentByAccountAndUser.has(dedupeKey)) {
+          continue;
+        }
+
+        assignmentByAccountAndUser.set(dedupeKey, assignment);
+      }
 
       return {
         success: true,
-        value: assignments,
+        value: [...assignmentByAccountAndUser.values()],
       };
     } catch (error) {
       return {
@@ -977,9 +1222,8 @@ export const createLocalUserManagementDatasource = (
           Q.where("user_remote_id", userRemoteId),
         )
         .fetch();
-      const targetAssignment = assignments[0];
 
-      if (!targetAssignment) {
+      if (assignments.length === 0) {
         return {
           success: true,
           value: true,
@@ -987,7 +1231,9 @@ export const createLocalUserManagementDatasource = (
       }
 
       await database.write(async () => {
-        await targetAssignment.destroyPermanently();
+        for (const assignment of assignments) {
+          await assignment.destroyPermanently();
+        }
       });
 
       return {

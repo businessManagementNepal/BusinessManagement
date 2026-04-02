@@ -48,6 +48,7 @@ export interface ProfileScreenViewModel {
 
   activeBusinessProfileForm: EditableBusinessProfile;
   hasActiveBusinessProfile: boolean;
+  canEditBusinessProfile: boolean;
   isBusinessEditing: boolean;
   isSavingBusinessProfile: boolean;
   onStartBusinessEdit: () => void;

@@ -29,7 +29,7 @@ export const sanitizeSignUpPhoneDigits = (value: string): string => {
 export const getSignUpPhoneLengthForCountry = (
   countryCode: SignUpPhoneCountryCode,
 ): number => {
-  return SIGN_UP_PHONE_RULES[countryCode].maxLength;
+  return SIGN_UP_PHONE_RULES[countryCode]?.maxLength ?? 10;
 };
 
 export const isValidSignUpPhoneForCountry = (
@@ -37,6 +37,10 @@ export const isValidSignUpPhoneForCountry = (
   countryCode: SignUpPhoneCountryCode,
 ): boolean => {
   const rule = SIGN_UP_PHONE_RULES[countryCode];
+
+  if (!rule) {
+    return false;
+  }
 
   if (
     phoneDigits.length < rule.minLength ||
@@ -51,6 +55,7 @@ export const isValidSignUpPhoneForCountry = (
 export const getInvalidSignUpPhoneMessageForCountry = (
   countryCode: SignUpPhoneCountryCode,
 ): string => {
-  return SIGN_UP_PHONE_RULES[countryCode].invalidMessage;
+  return (
+    SIGN_UP_PHONE_RULES[countryCode]?.invalidMessage ?? "Enter a valid phone number."
+  );
 };
-

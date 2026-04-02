@@ -1,20 +1,28 @@
 import React from "react";
-import {
-  DashboardInfoCard,
-  DashboardTabScaffold,
-} from "@/feature/dashboard/shared/ui/DashboardTabScaffold";
+import appDatabase from "@/shared/database/appDatabase";
+import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
+import { GetEmiLoansScreenFactory } from "@/feature/emiLoans/factory/getEmiLoansScreen.factory";
 
 export default function EmiLoansDashboardRoute() {
+  const {
+    isLoading,
+    hasActiveSession,
+    hasActiveAccount,
+    activeAccountType,
+    activeUserRemoteId,
+    activeAccountRemoteId,
+  } = useDashboardRouteContext();
+
+  if (isLoading || !hasActiveSession || !hasActiveAccount) {
+    return null;
+  }
+
   return (
-    <DashboardTabScaffold>
-      <DashboardInfoCard
-        title="EMI Tracker"
-        description="Track installments, pending dues and payment schedule from this tab for both personal and business modes."
-      />
-      <DashboardInfoCard
-        title="Next"
-        description="Connect EMI records, reminders and settlement actions in this route when you build the module."
-      />
-    </DashboardTabScaffold>
+    <GetEmiLoansScreenFactory
+      database={appDatabase}
+      activeAccountType={activeAccountType}
+      activeUserRemoteId={activeUserRemoteId}
+      activeAccountRemoteId={activeAccountRemoteId}
+    />
   );
 }

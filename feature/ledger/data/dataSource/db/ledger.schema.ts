@@ -1,0 +1,27 @@
+import { tableSchema } from "@nozbe/watermelondb";
+
+export const ledgerEntriesTable = tableSchema({
+  name: "ledger_entries",
+  columns: [
+    { name: "remote_id", type: "string", isIndexed: true },
+    { name: "business_account_remote_id", type: "string", isIndexed: true },
+    { name: "owner_user_remote_id", type: "string", isIndexed: true },
+    { name: "party_name", type: "string", isIndexed: true },
+    { name: "party_phone", type: "string", isOptional: true },
+    { name: "entry_type", type: "string", isIndexed: true },
+    { name: "balance_direction", type: "string", isIndexed: true },
+    { name: "title", type: "string" },
+    { name: "amount", type: "number" },
+    { name: "currency_code", type: "string", isOptional: true },
+    { name: "note", type: "string", isOptional: true },
+    { name: "happened_at", type: "number", isIndexed: true },
+    { name: "due_at", type: "number", isOptional: true, isIndexed: true },
+    { name: "settlement_account_remote_id", type: "string", isOptional: true, isIndexed: true },
+    { name: "settlement_account_display_name_snapshot", type: "string", isOptional: true },
+    { name: "sync_status", type: "string", isIndexed: true },
+    { name: "last_synced_at", type: "number", isOptional: true },
+    { name: "deleted_at", type: "number", isOptional: true },
+    { name: "created_at", type: "number" },
+    { name: "updated_at", type: "number" },
+  ],
+});

@@ -2,14 +2,18 @@ import React from "react";
 import {
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { X } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
+import {
+  ChipSelectorField,
+  ChipSelectorOption,
+} from "@/shared/components/reusable/Form/ChipSelectorField";
+import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
@@ -68,6 +72,15 @@ export function StaffMemberEditorModal({
   onSave,
 }: StaffMemberEditorModalProps) {
   const title = mode === "create" ? "Add Staff Member" : "Edit Staff Member";
+  const phoneCountrySelectorOptions: ChipSelectorOption<SignUpPhoneCountryCode>[] =
+    phoneCountryOptions.map((phoneCountryOption) => ({
+      value: phoneCountryOption.code,
+      label: phoneCountryOption.label,
+    }));
+  const roleSelectorOptions: ChipSelectorOption<string>[] = roleOptions.map((roleOption) => ({
+    value: roleOption.remoteId,
+    label: roleOption.label,
+  }));
 
   return (
     <Modal
@@ -88,128 +101,71 @@ export function StaffMemberEditorModal({
               <Text style={styles.modalSubtitle}>Set profile and role access</Text>
             </View>
 
-            <Pressable
-              style={styles.closeButton}
+            <AppIconButton
               onPress={onCancel}
               accessibilityRole="button"
               accessibilityLabel="Close staff editor"
             >
               <X size={18} color={colors.mutedForeground} />
-            </Pressable>
+            </AppIconButton>
           </View>
 
-          <Text style={styles.inputLabel}>Full name</Text>
-          <TextInput
+          <LabeledTextInput
+            label="Full name"
             value={fullName}
             onChangeText={onChangeFullName}
             placeholder="Enter full name"
-            placeholderTextColor={colors.mutedForeground}
-            style={styles.input}
             editable={!isSaving}
+            containerStyle={styles.fieldSpacing}
           />
 
-          <Text style={styles.inputLabel}>Phone country</Text>
-          <ScrollView
-            horizontal={true}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.roleOptionsRow}
-          >
-            {phoneCountryOptions.map((phoneCountryOption) => {
-              const isSelected = phoneCountryOption.code === phoneCountryCode;
+          <ChipSelectorField
+            label="Phone country"
+            options={phoneCountrySelectorOptions}
+            selectedValue={phoneCountryCode}
+            onSelect={onChangeSelectedPhoneCountry}
+            disabled={isSaving}
+          />
 
-              return (
-                <Pressable
-                  key={phoneCountryOption.code}
-                  style={[
-                    styles.roleChip,
-                    isSelected ? styles.roleChipSelected : null,
-                  ]}
-                  onPress={() => onChangeSelectedPhoneCountry(phoneCountryOption.code)}
-                  disabled={isSaving}
-                  accessibilityRole="button"
-                >
-                  <Text
-                    style={[
-                      styles.roleChipText,
-                      isSelected ? styles.roleChipTextSelected : null,
-                    ]}
-                  >
-                    {phoneCountryOption.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
-          <Text style={styles.inputLabel}>Phone number</Text>
-          <TextInput
+          <LabeledTextInput
+            label="Phone number"
             value={phone}
             onChangeText={onChangePhone}
             placeholder="Enter local phone number"
-            placeholderTextColor={colors.mutedForeground}
-            style={styles.input}
             keyboardType="phone-pad"
             editable={!isSaving}
+            containerStyle={styles.fieldSpacing}
           />
 
-          <Text style={styles.inputLabel}>Email (optional)</Text>
-          <TextInput
+          <LabeledTextInput
+            label="Email (optional)"
             value={email}
             onChangeText={onChangeEmail}
             placeholder="Enter email"
-            placeholderTextColor={colors.mutedForeground}
-            style={styles.input}
             keyboardType="email-address"
             autoCapitalize="none"
             editable={!isSaving}
+            containerStyle={styles.fieldSpacing}
           />
 
-          <Text style={styles.inputLabel}>
-            {mode === "create" ? "Password" : "Reset password (optional)"}
-          </Text>
-          <TextInput
+          <LabeledTextInput
+            label={mode === "create" ? "Password" : "Reset password (optional)"}
             value={password}
             onChangeText={onChangePassword}
             placeholder={mode === "create" ? "Set password" : "Leave blank to keep current password"}
-            placeholderTextColor={colors.mutedForeground}
-            style={styles.input}
             secureTextEntry={true}
             editable={!isSaving}
+            containerStyle={styles.fieldSpacing}
           />
 
-          <Text style={styles.roleLabel}>Role</Text>
-          <ScrollView
-            horizontal={true}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.roleOptionsRow}
-          >
-            {roleOptions.map((roleOption) => {
-              const isSelected = roleOption.remoteId === roleRemoteId;
-
-              return (
-                <Pressable
-                  key={roleOption.remoteId}
-                  style={[
-                    styles.roleChip,
-                    isSelected ? styles.roleChipSelected : null,
-                    !canAssignRoles ? styles.roleChipDisabled : null,
-                  ]}
-                  onPress={() => onChangeRole(roleOption.remoteId)}
-                  disabled={!canAssignRoles || isSaving}
-                  accessibilityRole="button"
-                >
-                  <Text
-                    style={[
-                      styles.roleChipText,
-                      isSelected ? styles.roleChipTextSelected : null,
-                    ]}
-                  >
-                    {roleOption.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+          <ChipSelectorField
+            label="Role"
+            options={roleSelectorOptions}
+            selectedValue={roleRemoteId}
+            onSelect={onChangeRole}
+            disabled={isSaving}
+            isOptionDisabled={() => !canAssignRoles}
+          />
 
           <View style={styles.actionRow}>
             <AppButton
@@ -283,68 +239,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "InterMedium",
   },
-  closeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.background,
-  },
-  inputLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-    marginBottom: 6,
-  },
-  input: {
-    minHeight: 46,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    backgroundColor: colors.background,
-    paddingHorizontal: 12,
-    color: colors.cardForeground,
-    fontSize: 14,
+  fieldSpacing: {
     marginBottom: spacing.sm,
-  },
-  roleLabel: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterBold",
-    marginBottom: spacing.xs,
-  },
-  roleOptionsRow: {
-    gap: spacing.xs,
-    paddingBottom: spacing.sm,
-  },
-  roleChip: {
-    minHeight: 30,
-    paddingHorizontal: 12,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.secondary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  roleChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  roleChipDisabled: {
-    opacity: 0.45,
-  },
-  roleChipText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 14,
-    fontFamily: "InterSemiBold",
-  },
-  roleChipTextSelected: {
-    color: colors.primaryForeground,
   },
   actionRow: {
     marginTop: spacing.xs,

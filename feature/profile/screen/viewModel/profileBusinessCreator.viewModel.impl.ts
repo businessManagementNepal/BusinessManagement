@@ -89,6 +89,7 @@ export const useProfileBusinessCreatorViewModel = (
           ...previousData.accountOptions,
           {
             remoteId: createResult.value.account.remoteId,
+            ownerUserRemoteId: createResult.value.account.ownerUserRemoteId,
             displayName: createResult.value.account.displayName,
             accountType: createResult.value.account.accountType,
             businessType: createResult.value.account.businessType,
@@ -101,6 +102,8 @@ export const useProfileBusinessCreatorViewModel = (
         activeAccountRemoteId: createResult.value.account.remoteId,
         activeAccountType: createResult.value.account.accountType,
         activeAccountDisplayName: createResult.value.account.displayName,
+        activeAccountRoleLabel: "Owner",
+        grantedPermissionCodes: [],
         activeBusinessProfile: {
           legalBusinessName: createResult.value.businessProfile.legalBusinessName,
           businessType: createResult.value.businessProfile.businessType,

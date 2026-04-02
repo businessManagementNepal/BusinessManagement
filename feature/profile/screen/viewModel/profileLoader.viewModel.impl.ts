@@ -55,6 +55,7 @@ export const useProfileLoaderViewModel = (
 
       const accountOptions = accountsResult.value.map((account) => ({
         remoteId: account.remoteId,
+        ownerUserRemoteId: account.ownerUserRemoteId,
         displayName: account.displayName,
         accountType: account.accountType,
         businessType: account.businessType,
@@ -89,6 +90,7 @@ export const useProfileLoaderViewModel = (
             activeAccountType: null,
             activeAccountDisplayName: "",
             activeAccountRoleLabel: "",
+            grantedPermissionCodes: [],
             personalProfile,
             activeBusinessProfile: createDefaultBusinessProfileForm(),
             hasActiveBusinessProfile: false,
@@ -105,6 +107,7 @@ export const useProfileLoaderViewModel = (
         activeAccount.accountType === AccountType.Business
           ? "Business Owner"
           : "Personal Account";
+      let grantedPermissionCodes: string[] = [];
 
       if (activeAccount.accountType === AccountType.Business) {
         const [businessProfileResult, userManagementSnapshotResult] = await Promise.all([
@@ -132,6 +135,7 @@ export const useProfileLoaderViewModel = (
           );
 
           activeAccountRoleLabel = activeMember?.roleName ?? activeAccountRoleLabel;
+          grantedPermissionCodes = [...userManagementSnapshotResult.value.grantedPermissionCodes];
         }
       }
 
@@ -145,6 +149,7 @@ export const useProfileLoaderViewModel = (
           activeAccountType: activeAccount.accountType,
           activeAccountDisplayName: activeAccount.displayName,
           activeAccountRoleLabel,
+          grantedPermissionCodes,
           personalProfile,
           activeBusinessProfile,
           hasActiveBusinessProfile,

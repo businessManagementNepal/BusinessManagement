@@ -61,6 +61,7 @@ export const createInitialProfileScreenData = (): ProfileScreenData => ({
   activeAccountType: null,
   activeAccountDisplayName: "",
   activeAccountRoleLabel: "",
+  grantedPermissionCodes: [],
   personalProfile: createEmptyPersonalProfile(),
   activeBusinessProfile: createDefaultBusinessProfileForm(),
   hasActiveBusinessProfile: false,

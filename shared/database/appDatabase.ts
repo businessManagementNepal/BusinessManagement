@@ -12,11 +12,13 @@ import {
   createDatabase,
 } from "@/shared/database/createDatabase";
 import { appSchema } from "@nozbe/watermelondb";
+import { ledgerDbConfig } from "@/feature/ledger/data/dataSource/db/ledgerDbConfig";
+import { emiDbConfig } from "@/feature/emiLoans/data/dataSource/db/emiDbConfig";
 
 const APP_SETTINGS_TABLE = "app_settings";
 
 const schema = appSchema({
-  version: 19,
+  version: 21,
   tables: [
     ...authUserDbConfig.tables,
     ...authCredentialDbConfig.tables,
@@ -25,6 +27,8 @@ const schema = appSchema({
     ...appSettingsDbConfig.tables,
     ...userManagementDbConfig.tables,
     ...transactionDbConfig.tables,
+    ...ledgerDbConfig.tables,
+      ...emiDbConfig.tables,
   ],
 });
 
@@ -38,6 +42,8 @@ export const database = createDatabase({
     ...appSettingsDbConfig.models,
     ...userManagementDbConfig.models,
     ...transactionDbConfig.models,
+    ...ledgerDbConfig.models,
+     ...emiDbConfig.models,
   ],
   migrations,
 });
@@ -45,9 +51,8 @@ export const database = createDatabase({
 export const ensureDatabaseReady = async (): Promise<void> => {
   assertDatabaseSetupHealthy();
 
-  const appSettingsCollection = database.get<AppSettingsModel>(
-    APP_SETTINGS_TABLE,
-  );
+  const appSettingsCollection =
+    database.get<AppSettingsModel>(APP_SETTINGS_TABLE);
 
   await appSettingsCollection.query().fetchCount();
   assertDatabaseSetupHealthy();

@@ -16,9 +16,14 @@ describe("phoneNumber.util", () => {
     expect(normalizeE164PhoneNumber("+0123456789")).toBe("");
   });
 
-  it("does not guess multi-country login IDs", () => {
+  it("builds fallback login-id candidates for supported country codes", () => {
     expect(buildPhoneLoginIdCandidates("+919876543210")).toEqual([
       "+919876543210",
+      "9876543210",
+    ]);
+    expect(buildPhoneLoginIdCandidates("+9779812345678")).toEqual([
+      "+9779812345678",
+      "9812345678",
     ]);
     expect(buildPhoneLoginIdCandidates("9876543210")).toEqual([]);
   });

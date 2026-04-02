@@ -19,6 +19,8 @@ import { useProfileAccountSwitchViewModel } from "./profileAccountSwitch.viewMod
 import { useProfileLoaderViewModel } from "./profileLoader.viewModel.impl";
 import { ProfileScreenData } from "@/feature/profile/screen/types/profileScreen.types";
 
+const PROFILE_EDIT_PERMISSION_CODE = "profile.edit";
+
 export const useProfileScreenViewModel = (
   params: UseProfileScreenViewModelParams,
 ): ProfileScreenViewModel => {
@@ -115,6 +117,10 @@ export const useProfileScreenViewModel = (
     () => getAccountTypeLabel(data.activeAccountType),
     [data.activeAccountType],
   );
+  const canEditBusinessProfile = useMemo(
+    () => data.grantedPermissionCodes.includes(PROFILE_EDIT_PERMISSION_CODE),
+    [data.grantedPermissionCodes],
+  );
 
   return useMemo<ProfileScreenViewModel>(
     () => ({
@@ -142,6 +148,7 @@ export const useProfileScreenViewModel = (
 
       activeBusinessProfileForm: businessEditor.activeBusinessProfileForm,
       hasActiveBusinessProfile: businessEditor.hasActiveBusinessProfile,
+      canEditBusinessProfile,
       isBusinessEditing: businessEditor.isBusinessEditing,
       isSavingBusinessProfile: businessEditor.isSavingBusinessProfile,
       onStartBusinessEdit: businessEditor.onStartBusinessEdit,
@@ -182,6 +189,7 @@ export const useProfileScreenViewModel = (
       businessEditor.onSaveBusinessProfile,
       businessEditor.onStartBusinessEdit,
       businessEditor.onUpdateBusinessProfileField,
+      canEditBusinessProfile,
       data.accountOptions,
       data.activeAccountDisplayName,
       data.activeAccountRemoteId,

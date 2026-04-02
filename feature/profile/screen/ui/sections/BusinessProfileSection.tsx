@@ -13,6 +13,7 @@ import { radius, spacing } from "@/shared/components/theme/spacing";
 type BusinessProfileSectionProps = {
   activeBusinessProfileForm: EditableBusinessProfile;
   hasActiveBusinessProfile: boolean;
+  canEditBusinessProfile: boolean;
   isBusinessEditing: boolean;
   isSavingBusinessProfile: boolean;
   businessTypeOptions: readonly { value: string; label: string }[];
@@ -28,6 +29,7 @@ type BusinessProfileSectionProps = {
 export function BusinessProfileSection({
   activeBusinessProfileForm,
   hasActiveBusinessProfile,
+  canEditBusinessProfile,
   isBusinessEditing,
   isSavingBusinessProfile,
   businessTypeOptions,
@@ -50,7 +52,7 @@ export function BusinessProfileSection({
     <Card style={styles.sectionCard}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Active Business Profile</Text>
-        {!isBusinessEditing ? (
+        {!isBusinessEditing && canEditBusinessProfile ? (
           <AppButton
             onPress={onStartBusinessEdit}
             label={hasActiveBusinessProfile ? "Edit" : "Set up"}
@@ -58,7 +60,7 @@ export function BusinessProfileSection({
             size="sm"
             leadingIcon={<Edit3 size={14} color={colors.primary} />}
           />
-        ) : (
+        ) : isBusinessEditing ? (
           <View style={styles.inlineActionsWrap}>
             <AppIconButton
               onPress={onCancelBusinessEdit}
@@ -73,6 +75,8 @@ export function BusinessProfileSection({
               <Save size={14} color={colors.success} />
             </AppIconButton>
           </View>
+        ) : (
+          <Text style={styles.readOnlyBadge}>Read only</Text>
         )}
       </View>
 
@@ -250,6 +254,13 @@ const styles = StyleSheet.create({
     color: colors.cardForeground,
     fontSize: 14,
     fontFamily: "InterBold",
+  },
+  readOnlyBadge: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+    fontFamily: "InterSemiBold",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
   inlineActionsWrap: {
     flexDirection: "row",

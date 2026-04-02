@@ -293,6 +293,124 @@ export const createUserManagementRepository = ({
     return { success: true, value: accountResult.value.ownerUserRemoteId };
   };
 
+  const validateRoleAssignment = async (payload: {
+    accountRemoteId: string;
+    userRemoteId: string;
+    roleRemoteId: string;
+    actorUserRemoteId?: string | null;
+  }): Promise<
+    | {
+        success: true;
+        value: {
+          ownerUserRemoteId: string;
+          ownerRoleRemoteId: string;
+        };
+      }
+    | { success: false; error: UserManagementError }
+  > => {
+    const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
+    const normalizedUserRemoteId = normalizeRequired(payload.userRemoteId);
+    const normalizedRoleRemoteId = normalizeRequired(payload.roleRemoteId);
+    const normalizedActorUserRemoteId = payload.actorUserRemoteId
+      ? normalizeRequired(payload.actorUserRemoteId)
+      : null;
+
+    if (!normalizedAccountRemoteId) {
+      return {
+        success: false,
+        error: UserManagementValidationError("Account remote id is required."),
+      };
+    }
+
+    if (!normalizedUserRemoteId) {
+      return {
+        success: false,
+        error: UserManagementValidationError("User remote id is required."),
+      };
+    }
+
+    if (!normalizedRoleRemoteId) {
+      return {
+        success: false,
+        error: UserManagementValidationError("Role remote id is required."),
+      };
+    }
+
+    const ownerUserResult = await getOwnerUserRemoteIdResult(normalizedAccountRemoteId);
+
+    if (!ownerUserResult.success) {
+      return ownerUserResult;
+    }
+
+    const ownerUserRemoteId = ownerUserResult.value;
+    const ownerRoleRemoteId = getOwnerRoleRemoteId(normalizedAccountRemoteId);
+    const isTargetOwner = normalizedUserRemoteId === ownerUserRemoteId;
+
+    if (normalizedRoleRemoteId === ownerRoleRemoteId && !isTargetOwner) {
+      return {
+        success: false,
+        error: UserManagementForbiddenError(
+          "Owner role can only be assigned to the account owner.",
+        ),
+      };
+    }
+
+    if (isTargetOwner && normalizedRoleRemoteId !== ownerRoleRemoteId) {
+      return {
+        success: false,
+        error: UserManagementForbiddenError(
+          "Account owner role assignment cannot be changed.",
+        ),
+      };
+    }
+
+    if (
+      normalizedActorUserRemoteId &&
+      normalizedActorUserRemoteId !== ownerUserRemoteId &&
+      (isTargetOwner || normalizedRoleRemoteId === ownerRoleRemoteId)
+    ) {
+      return {
+        success: false,
+        error: UserManagementForbiddenError(
+          "Only account owner can modify owner role assignments.",
+        ),
+      };
+    }
+
+    const roleResult = await localDatasource.getRoleByRemoteId(normalizedRoleRemoteId);
+
+    if (!roleResult.success) {
+      return {
+        success: false,
+        error: mapUserManagementError(roleResult.error),
+      };
+    }
+
+    if (!roleResult.value) {
+      return {
+        success: false,
+        error: UserManagementNotFoundError("Role not found."),
+      };
+    }
+
+    if (roleResult.value.accountRemoteId !== normalizedAccountRemoteId) {
+      return {
+        success: false,
+        error: UserManagementValidationError(
+          "Cannot assign a role from another account.",
+        ),
+      };
+    }
+
+    return {
+      success: true,
+      value: {
+        ownerUserRemoteId,
+        ownerRoleRemoteId,
+      },
+    };
+  };
+
   const repository: UserManagementRepository = {
     async ensurePermissionCatalogSeeded(): Promise<UserManagementOperationResult> {
       const result = await localDatasource.ensurePermissionCatalogSeeded(
@@ -794,7 +912,46 @@ export const createUserManagementRepository = ({
       member: SaveAccountMemberPayload;
       roleRemoteId: string;
     }): Promise<UserManagementOperationResult> {
+      const normalizedAccountRemoteId = normalizeRequired(payload.member.accountRemoteId);
+      const normalizedMemberUserRemoteId = normalizeRequired(payload.member.userRemoteId);
+      const normalizedAuthUserRemoteId = normalizeRequired(payload.authUser.remoteId);
+      const normalizedCredentialUserRemoteId = normalizeRequired(
+        payload.authCredential.userRemoteId,
+      );
       const normalizedRoleRemoteId = normalizeRequired(payload.roleRemoteId);
+
+      if (!normalizedAccountRemoteId) {
+        return {
+          success: false,
+          error: UserManagementValidationError("Account remote id is required."),
+        };
+      }
+
+      if (!normalizedMemberUserRemoteId) {
+        return {
+          success: false,
+          error: UserManagementValidationError("User remote id is required."),
+        };
+      }
+
+      if (!normalizedAuthUserRemoteId || !normalizedCredentialUserRemoteId) {
+        return {
+          success: false,
+          error: UserManagementValidationError("Auth user context is required."),
+        };
+      }
+
+      if (
+        normalizedAuthUserRemoteId !== normalizedMemberUserRemoteId ||
+        normalizedCredentialUserRemoteId !== normalizedMemberUserRemoteId
+      ) {
+        return {
+          success: false,
+          error: UserManagementValidationError(
+            "Auth identity and member identity must match.",
+          ),
+        };
+      }
 
       if (!normalizedRoleRemoteId) {
         return {
@@ -803,21 +960,31 @@ export const createUserManagementRepository = ({
         };
       }
 
+      const roleAssignmentValidationResult = await validateRoleAssignment({
+        accountRemoteId: normalizedAccountRemoteId,
+        userRemoteId: normalizedMemberUserRemoteId,
+        roleRemoteId: normalizedRoleRemoteId,
+      });
+
+      if (!roleAssignmentValidationResult.success) {
+        return roleAssignmentValidationResult;
+      }
+
       const saveResult = await localDatasource.createMemberAccessRecord({
         authUser: payload.authUser,
         authCredential: payload.authCredential,
         member: {
           remoteId: payload.member.remoteId ?? createMemberRemoteId(),
-          accountRemoteId: payload.member.accountRemoteId,
-          userRemoteId: payload.member.userRemoteId,
+          accountRemoteId: normalizedAccountRemoteId,
+          userRemoteId: normalizedMemberUserRemoteId,
           status: payload.member.status,
           invitedByUserRemoteId: payload.member.invitedByUserRemoteId ?? null,
           joinedAt: payload.member.joinedAt ?? null,
           lastActiveAt: payload.member.lastActiveAt ?? null,
         },
         roleAssignment: {
-          accountRemoteId: payload.member.accountRemoteId,
-          userRemoteId: payload.member.userRemoteId,
+          accountRemoteId: normalizedAccountRemoteId,
+          userRemoteId: normalizedMemberUserRemoteId,
           roleRemoteId: normalizedRoleRemoteId,
         },
       });
@@ -837,14 +1004,79 @@ export const createUserManagementRepository = ({
       authCredential: SaveAuthCredentialPayload;
       roleAssignment?: AssignUserManagementRolePayload | null;
     }): Promise<UserManagementOperationResult> {
+      const normalizedAuthUserRemoteId = normalizeRequired(payload.authUser.remoteId);
+      const normalizedCredentialUserRemoteId = normalizeRequired(
+        payload.authCredential.userRemoteId,
+      );
+
+      if (!normalizedAuthUserRemoteId || !normalizedCredentialUserRemoteId) {
+        return {
+          success: false,
+          error: UserManagementValidationError("Auth user context is required."),
+        };
+      }
+
+      if (normalizedAuthUserRemoteId !== normalizedCredentialUserRemoteId) {
+        return {
+          success: false,
+          error: UserManagementValidationError(
+            "Auth user and credential user must match.",
+          ),
+        };
+      }
+
+      const normalizedRoleAssignmentPayload = payload.roleAssignment
+        ? {
+            accountRemoteId: normalizeRequired(payload.roleAssignment.accountRemoteId),
+            userRemoteId: normalizeRequired(payload.roleAssignment.userRemoteId),
+            roleRemoteId: normalizeRequired(payload.roleAssignment.roleRemoteId),
+            actorUserRemoteId: payload.roleAssignment.actorUserRemoteId
+              ? normalizeRequired(payload.roleAssignment.actorUserRemoteId)
+              : null,
+          }
+        : null;
+
+      if (normalizedRoleAssignmentPayload) {
+        if (
+          !normalizedRoleAssignmentPayload.accountRemoteId ||
+          !normalizedRoleAssignmentPayload.userRemoteId ||
+          !normalizedRoleAssignmentPayload.roleRemoteId
+        ) {
+          return {
+            success: false,
+            error: UserManagementValidationError("Role assignment payload is invalid."),
+          };
+        }
+
+        if (normalizedRoleAssignmentPayload.userRemoteId !== normalizedAuthUserRemoteId) {
+          return {
+            success: false,
+            error: UserManagementValidationError(
+              "Role assignment user must match the updated auth user.",
+            ),
+          };
+        }
+
+        const roleAssignmentValidationResult = await validateRoleAssignment({
+          accountRemoteId: normalizedRoleAssignmentPayload.accountRemoteId,
+          userRemoteId: normalizedRoleAssignmentPayload.userRemoteId,
+          roleRemoteId: normalizedRoleAssignmentPayload.roleRemoteId,
+          actorUserRemoteId: normalizedRoleAssignmentPayload.actorUserRemoteId,
+        });
+
+        if (!roleAssignmentValidationResult.success) {
+          return roleAssignmentValidationResult;
+        }
+      }
+
       const updateResult = await localDatasource.updateMemberAccessRecord({
         authUser: payload.authUser,
         authCredential: payload.authCredential,
-        roleAssignment: payload.roleAssignment
+        roleAssignment: normalizedRoleAssignmentPayload
           ? {
-              accountRemoteId: payload.roleAssignment.accountRemoteId,
-              userRemoteId: payload.roleAssignment.userRemoteId,
-              roleRemoteId: payload.roleAssignment.roleRemoteId,
+              accountRemoteId: normalizedRoleAssignmentPayload.accountRemoteId,
+              userRemoteId: normalizedRoleAssignmentPayload.userRemoteId,
+              roleRemoteId: normalizedRoleAssignmentPayload.roleRemoteId,
             }
           : null,
       });
@@ -896,18 +1128,6 @@ export const createUserManagementRepository = ({
         return {
           success: false,
           error: UserManagementForbiddenError("Account owner cannot be removed."),
-        };
-      }
-
-      const deleteAssignmentResult = await localDatasource.deleteUserRoleAssignment(
-        memberResult.value.accountRemoteId,
-        memberResult.value.userRemoteId,
-      );
-
-      if (!deleteAssignmentResult.success) {
-        return {
-          success: false,
-          error: mapUserManagementError(deleteAssignmentResult.error),
         };
       }
 
@@ -1177,26 +1397,6 @@ export const createUserManagementRepository = ({
         };
       }
 
-      const deleteRolePermissionsResult =
-        await localDatasource.deleteRolePermissionsByRoleRemoteId(normalizedRoleRemoteId);
-
-      if (!deleteRolePermissionsResult.success) {
-        return {
-          success: false,
-          error: mapUserManagementError(deleteRolePermissionsResult.error),
-        };
-      }
-
-      const deleteRoleAssignmentsResult =
-        await localDatasource.deleteUserRoleAssignmentsByRoleRemoteId(normalizedRoleRemoteId);
-
-      if (!deleteRoleAssignmentsResult.success) {
-        return {
-          success: false,
-          error: mapUserManagementError(deleteRoleAssignmentsResult.error),
-        };
-      }
-
       const deleteRoleResult = await localDatasource.deleteRoleByRemoteId(
         normalizedRoleRemoteId,
       );
@@ -1242,61 +1442,15 @@ export const createUserManagementRepository = ({
         };
       }
 
-      const ownerUserResult = await getOwnerUserRemoteIdResult(normalizedAccountRemoteId);
+      const roleAssignmentValidationResult = await validateRoleAssignment({
+        accountRemoteId: normalizedAccountRemoteId,
+        userRemoteId: normalizedUserRemoteId,
+        roleRemoteId: normalizedRoleRemoteId,
+        actorUserRemoteId: normalizedActorUserRemoteId,
+      });
 
-      if (!ownerUserResult.success) {
-        return ownerUserResult;
-      }
-
-      const ownerUserRemoteId = ownerUserResult.value;
-      const ownerRoleRemoteId = getOwnerRoleRemoteId(normalizedAccountRemoteId);
-      const isTargetOwner = normalizedUserRemoteId === ownerUserRemoteId;
-
-      if (isTargetOwner && normalizedRoleRemoteId !== ownerRoleRemoteId) {
-        return {
-          success: false,
-          error: UserManagementForbiddenError(
-            "Account owner role assignment cannot be changed.",
-          ),
-        };
-      }
-
-      if (
-        normalizedActorUserRemoteId &&
-        normalizedActorUserRemoteId !== ownerUserRemoteId &&
-        (isTargetOwner || normalizedRoleRemoteId === ownerRoleRemoteId)
-      ) {
-        return {
-          success: false,
-          error: UserManagementForbiddenError(
-            "Only account owner can modify owner role assignments.",
-          ),
-        };
-      }
-
-      const roleResult = await localDatasource.getRoleByRemoteId(normalizedRoleRemoteId);
-
-      if (!roleResult.success) {
-        return {
-          success: false,
-          error: mapUserManagementError(roleResult.error),
-        };
-      }
-
-      if (!roleResult.value) {
-        return {
-          success: false,
-          error: UserManagementNotFoundError("Role not found."),
-        };
-      }
-
-      if (roleResult.value.accountRemoteId !== normalizedAccountRemoteId) {
-        return {
-          success: false,
-          error: UserManagementValidationError(
-            "Cannot assign a role from another account.",
-          ),
-        };
+      if (!roleAssignmentValidationResult.success) {
+        return roleAssignmentValidationResult;
       }
 
       const existingMemberResult = await localDatasource.getMemberByAccountAndUser(
@@ -1313,15 +1467,21 @@ export const createUserManagementRepository = ({
 
       const now = Date.now();
       const existingMember = existingMemberResult.value;
+      const resolvedStatus = existingMember?.status ?? AccountMemberStatus.Active;
       const saveMemberResult = await localDatasource.saveMember({
         remoteId: existingMember?.remoteId ?? createMemberRemoteId(),
         accountRemoteId: normalizedAccountRemoteId,
         userRemoteId: normalizedUserRemoteId,
-        status: AccountMemberStatus.Active,
+        status: resolvedStatus,
         invitedByUserRemoteId:
           normalizedActorUserRemoteId ?? existingMember?.invitedByUserRemoteId ?? null,
-        joinedAt: existingMember?.joinedAt ?? now,
-        lastActiveAt: now,
+        joinedAt:
+          existingMember?.joinedAt ??
+          (resolvedStatus === AccountMemberStatus.Active ? now : null),
+        lastActiveAt:
+          resolvedStatus === AccountMemberStatus.Active
+            ? now
+            : existingMember?.lastActiveAt ?? null,
       });
 
       if (!saveMemberResult.success) {
@@ -1683,6 +1843,29 @@ export const createUserManagementRepository = ({
           success: false,
           error: UserManagementForbiddenError(
             "No role assignment found for this account user.",
+          ),
+        };
+      }
+
+      const assignedRoleResult = await localDatasource.getRoleByRemoteId(
+        assignmentResult.value.roleRemoteId,
+      );
+
+      if (!assignedRoleResult.success) {
+        return {
+          success: false,
+          error: mapUserManagementError(assignedRoleResult.error),
+        };
+      }
+
+      if (
+        !assignedRoleResult.value ||
+        assignedRoleResult.value.accountRemoteId !== normalizedAccountRemoteId
+      ) {
+        return {
+          success: false,
+          error: UserManagementForbiddenError(
+            "Assigned role is invalid for this account user.",
           ),
         };
       }

@@ -11,6 +11,7 @@ import {
 import {
   CircleCheck,
   CircleDashed,
+  ChevronRight,
   Pencil,
   Power,
   Plus,
@@ -19,7 +20,10 @@ import {
   Trash2,
   Users,
 } from "lucide-react-native";
-import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
+import { ActionCardButton } from "@/shared/components/reusable/Cards/ActionCardButton";
+import { Card } from "@/shared/components/reusable/Cards/Card";
+import { StatCard } from "@/shared/components/reusable/Cards/StatCard";
 import { PrimaryHeader } from "@/shared/components/reusable/ScreenLayouts/PrimaryHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
@@ -114,11 +118,11 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
       contentContainerStyle={styles.contentContainer}
     >
       {viewModel.isLoading ? (
-        <View style={styles.listCard}>
+        <Card style={styles.listCard}>
           <View style={styles.emptyStateWrap}>
             <Text style={styles.loadingText}>Loading role access and permissions...</Text>
           </View>
-        </View>
+        </Card>
       ) : (
         <>
           <View style={styles.summaryRow}>
@@ -132,21 +136,21 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
                   : colors.foreground;
 
               return (
-                <View key={summaryCard.id} style={styles.summaryCard}>
-                  <View style={styles.summaryIconWrap}>
-                    {summaryCard.id === "total" ? (
+                <StatCard
+                  key={summaryCard.id}
+                  icon={
+                    summaryCard.id === "total" ? (
                       <Users size={16} color={toneColor} />
                     ) : summaryCard.id === "active" ? (
                       <CircleCheck size={16} color={toneColor} />
                     ) : (
                       <CircleDashed size={16} color={toneColor} />
-                    )}
-                  </View>
-                  <Text style={[styles.summaryValue, { color: toneColor }]}>
-                    {summaryCard.value}
-                  </Text>
-                  <Text style={styles.summaryLabel}>{summaryCard.label}</Text>
-                </View>
+                    )
+                  }
+                  value={String(summaryCard.value)}
+                  label={summaryCard.label}
+                  valueColor={toneColor}
+                />
               );
             })}
           </View>
@@ -198,7 +202,7 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
             })}
           </ScrollView>
 
-          <View style={styles.listCard}>
+          <Card style={styles.listCard}>
             {viewModel.memberListItems.length === 0 ? (
               <View style={styles.emptyStateWrap}>
                 <Text style={styles.emptyStateText}>
@@ -252,9 +256,11 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
 
                     <View style={styles.actionRow}>
                       {memberListItem.canEdit ? (
-                        <Pressable
+                        <AppIconButton
+                          size="sm"
                           style={[
                             styles.iconButton,
+                            styles.iconButtonSuccess,
                             !memberListItem.canEdit ? styles.iconButtonDisabled : null,
                           ]}
                           onPress={() =>
@@ -271,13 +277,17 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
                                 : colors.mutedForeground
                             }
                           />
-                        </Pressable>
+                        </AppIconButton>
                       ) : null}
 
                       {memberListItem.canToggleStatus ? (
-                        <Pressable
+                        <AppIconButton
+                          size="sm"
                           style={[
                             styles.iconButton,
+                            memberListItem.isActive
+                              ? styles.iconButtonWarning
+                              : styles.iconButtonSuccess,
                             viewModel.isUpdatingMemberStatus || viewModel.isDeletingMember
                               ? styles.iconButtonDisabled
                               : null,
@@ -324,13 +334,15 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
                                 : colors.success
                             }
                           />
-                        </Pressable>
+                        </AppIconButton>
                       ) : null}
 
                       {memberListItem.canDelete ? (
-                        <Pressable
+                        <AppIconButton
+                          size="sm"
                           style={[
                             styles.iconButton,
+                            styles.iconButtonDanger,
                             viewModel.isDeletingMember ? styles.iconButtonDisabled : null,
                           ]}
                           onPress={() =>
@@ -355,17 +367,17 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
                           accessibilityRole="button"
                         >
                           <Trash2 size={15} color={colors.destructive} />
-                        </Pressable>
+                        </AppIconButton>
                       ) : null}
                     </View>
                   </View>
                 );
               })
             )}
-          </View>
+          </Card>
 
           {viewModel.canManageRoles ? (
-            <View style={styles.roleListCard}>
+            <Card style={styles.roleListCard}>
               <View style={styles.roleListHeader}>
                 <Shield size={14} color={colors.primary} />
                 <Text style={styles.roleListHeaderText}>Roles</Text>
@@ -402,18 +414,21 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
 
                     <View style={styles.actionRow}>
                       {roleListItem.canEdit ? (
-                        <Pressable
-                          style={styles.iconButton}
+                        <AppIconButton
+                          size="sm"
+                          style={[styles.iconButton, styles.iconButtonSuccess]}
                           onPress={() => viewModel.onStartEditRole(roleListItem.roleRemoteId)}
                           accessibilityRole="button"
                         >
                           <Pencil size={15} color={colors.success} />
-                        </Pressable>
+                        </AppIconButton>
                       ) : null}
 
-                      <Pressable
+                      <AppIconButton
+                        size="sm"
                         style={[
                           styles.iconButton,
+                          styles.iconButtonDanger,
                           isDeleteDisabled ? styles.iconButtonDisabled : null,
                         ]}
                         onPress={() =>
@@ -440,36 +455,36 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
                           color={
                             isDeleteDisabled
                               ? colors.mutedForeground
-                              : colors.destructive
+                            : colors.destructive
                           }
                         />
-                      </Pressable>
+                      </AppIconButton>
                     </View>
                   </View>
                 );
               })}
-            </View>
+            </Card>
           ) : null}
 
           {viewModel.canManageStaff ? (
-            <AppButton
-              label="Add Staff Member"
-              variant="primary"
-              size="lg"
+            <ActionCardButton
+              title="Add Staff Member"
+              subtitle="Create a new staff login and assign access."
               style={styles.addButton}
-              labelStyle={styles.addButtonLabel}
               leadingIcon={<Plus size={16} color={colors.primaryForeground} />}
-              onPress={viewModel.onStartCreateMember}
+              trailingIcon={<ChevronRight size={16} color={colors.mutedForeground} />}
+              onPress={() => viewModel.onStartCreateMember()}
             />
           ) : null}
 
           {viewModel.canManageRoles ? (
-            <AppButton
-              label="Create Role"
-              variant="secondary"
-              size="md"
+            <ActionCardButton
+              title="Create Role"
+              subtitle="Define a reusable permission set."
               style={styles.secondaryButton}
-              onPress={viewModel.onStartCreateRole}
+              leadingIcon={<Shield size={16} color={colors.primary} />}
+              trailingIcon={<ChevronRight size={16} color={colors.mutedForeground} />}
+              onPress={() => viewModel.onStartCreateRole()}
             />
           ) : null}
 
@@ -480,15 +495,15 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
           ) : null}
 
           {viewModel.screenError ? (
-            <View style={styles.feedbackCardError}>
+            <Card style={styles.feedbackCardError}>
               <Text style={styles.feedbackErrorText}>{viewModel.screenError}</Text>
-            </View>
+            </Card>
           ) : null}
 
           {viewModel.screenSuccess ? (
-            <View style={styles.feedbackCardSuccess}>
+            <Card style={styles.feedbackCardSuccess}>
               <Text style={styles.feedbackSuccessText}>{viewModel.screenSuccess}</Text>
-            </View>
+            </Card>
           ) : null}
         </>
       )}
@@ -550,30 +565,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.sm,
   },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  summaryIconWrap: {
-    marginBottom: 4,
-  },
-  summaryValue: {
-    fontSize: 28,
-    lineHeight: 30,
-    fontFamily: "InterBold",
-  },
-  summaryLabel: {
-    marginTop: 2,
-    fontSize: 12,
-    color: colors.mutedForeground,
-    fontFamily: "InterMedium",
-  },
   searchWrap: {
     minHeight: 44,
     borderWidth: 1,
@@ -625,17 +616,11 @@ const styles = StyleSheet.create({
     color: colors.primaryForeground,
   },
   listCard: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
+    padding: 0,
     overflow: "hidden",
   },
   roleListCard: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
+    padding: 0,
     overflow: "hidden",
   },
   roleListHeader: {
@@ -797,24 +782,26 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   iconButton: {
-    width: 28,
-    height: 28,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 30,
+    height: 30,
+  },
+  iconButtonSuccess: {
+    backgroundColor: "#E4F4EA",
+  },
+  iconButtonWarning: {
+    backgroundColor: "#FFF2D7",
+  },
+  iconButtonDanger: {
+    backgroundColor: "#FBE4E4",
   },
   iconButtonDisabled: {
     opacity: 0.45,
   },
   addButton: {
     marginTop: spacing.xs,
-    borderRadius: radius.lg,
   },
   secondaryButton: {
-    borderRadius: radius.lg,
-  },
-  addButtonLabel: {
-    fontSize: 18,
-    fontFamily: "InterBold",
+    marginTop: spacing.xs,
   },
   permissionWarningText: {
     color: colors.warning,
@@ -823,10 +810,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   feedbackCardError: {
-    borderWidth: 1,
     borderColor: "#F6D1D1",
     backgroundColor: "#FFF2F2",
-    borderRadius: radius.lg,
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.sm,
   },
@@ -837,10 +822,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   feedbackCardSuccess: {
-    borderWidth: 1,
     borderColor: "#CCEBD8",
     backgroundColor: "#F0FAF4",
-    borderRadius: radius.lg,
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.sm,
   },

@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
+import { AuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository";
+import {
+  AuthSessionErrorType,
+  CredentialType,
+} from "@/feature/session/types/authSession.types";
 import { GetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase";
-import { SaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase";
 import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
 import { createUpdateAccountMemberUseCase } from "@/feature/setting/accounts/userManagement/useCase/updateAccountMember.useCase.impl";
 import {
@@ -18,15 +22,6 @@ describe("updateAccountMember.useCase", () => {
       getAccountMemberByRemoteId: vi.fn(async () => {
         throw new Error("should not be called");
       }),
-      getUserRoleAssignment: vi.fn(async () => {
-        throw new Error("should not be called");
-      }),
-      assignUserRole: vi.fn(async () => {
-        throw new Error("should not be called");
-      }),
-      getAccountMembersWithRoleByAccountRemoteId: vi.fn(async () => {
-        throw new Error("should not be called");
-      }),
     } as unknown as UserManagementRepository;
 
     const getAuthUserByRemoteIdUseCase = {
@@ -36,17 +31,24 @@ describe("updateAccountMember.useCase", () => {
       })),
     } as unknown as GetAuthUserByRemoteIdUseCase;
 
-    const saveAuthUserUseCase = {
-      execute: vi.fn(async () => ({
-        success: true as const,
-        value: true,
-      })),
-    } as unknown as SaveAuthUserUseCase;
+    const authCredentialRepository = {
+      getAuthCredentialByUserRemoteId: vi.fn(async () => {
+        throw new Error("should not be called");
+      }),
+    } as unknown as AuthCredentialRepository;
+
+    const passwordHashService = {
+      generateSalt: vi.fn(async () => "salt"),
+      hash: vi.fn(async () => "hash"),
+      compare: vi.fn(async () => true),
+      needsRehash: vi.fn(() => false),
+    };
 
     const useCase = createUpdateAccountMemberUseCase({
       userManagementRepository,
       getAuthUserByRemoteIdUseCase,
-      saveAuthUserUseCase,
+      authCredentialRepository,
+      passwordHashService: passwordHashService as any,
     });
 
     const result = await useCase.execute({
@@ -57,16 +59,14 @@ describe("updateAccountMember.useCase", () => {
     });
 
     expect(result.success).toBe(false);
-
-    if (result.success) {
-      return;
-    }
-
-    expect(result.error.type).toBe(UserManagementErrorType.Forbidden);
     expect(userManagementRepository.getAccountMemberByRemoteId).not.toHaveBeenCalled();
+
+    if (!result.success) {
+      expect(result.error.type).toBe(UserManagementErrorType.Forbidden);
+    }
   });
 
-  it("updates profile without role reassignment when role is unchanged", async () => {
+  it("updates profile without role reassignment when role remains unchanged", async () => {
     const userManagementRepository = {
       getPermissionCodesByAccountUser: vi.fn(async () => ({
         success: true as const,
@@ -96,15 +96,9 @@ describe("updateAccountMember.useCase", () => {
           updatedAt: 1,
         },
       })),
-      assignUserRole: vi.fn(async () => ({
+      updateMemberAccessTransaction: vi.fn(async () => ({
         success: true as const,
-        value: {
-          accountRemoteId: "account-1",
-          userRemoteId: "staff-1",
-          roleRemoteId: "role-staff",
-          createdAt: 1,
-          updatedAt: 1,
-        },
+        value: true,
       })),
       getAccountMembersWithRoleByAccountRemoteId: vi.fn(async () => ({
         success: true as const,
@@ -118,10 +112,10 @@ describe("updateAccountMember.useCase", () => {
             joinedAt: 1,
             lastActiveAt: 1,
             createdAt: 1,
-            updatedAt: 1,
+            updatedAt: 2,
             fullName: "Updated Name",
             email: "staff@elekha.com",
-            phone: "9800000000",
+            phone: "+9779800000000",
             roleRemoteId: "role-staff",
             roleName: "Staff",
             isAccountOwner: false,
@@ -137,7 +131,7 @@ describe("updateAccountMember.useCase", () => {
           remoteId: "staff-1",
           fullName: "Staff User",
           email: "staff@elekha.com",
-          phone: "9800000000",
+          phone: "+9779800000000",
           authProvider: null,
           profileImageUrl: null,
           preferredLanguage: null,
@@ -149,29 +143,47 @@ describe("updateAccountMember.useCase", () => {
       })),
     } as unknown as GetAuthUserByRemoteIdUseCase;
 
-    const saveAuthUserUseCase = {
-      execute: vi.fn(async () => ({
+    const authCredentialRepository = {
+      getAuthCredentialByUserRemoteId: vi.fn(async () => ({
         success: true as const,
         value: {
-          remoteId: "staff-1",
-          fullName: "Updated Name",
-          email: "staff@elekha.com",
-          phone: "9800000000",
-          authProvider: null,
-          profileImageUrl: null,
-          preferredLanguage: null,
-          isEmailVerified: false,
-          isPhoneVerified: false,
+          remoteId: "cred-1",
+          userRemoteId: "staff-1",
+          loginId: "+9779800000000",
+          credentialType: CredentialType.Password,
+          passwordHash: "hash",
+          passwordSalt: "salt",
+          hint: null,
+          lastLoginAt: null,
+          isActive: true,
+          failedAttemptCount: 0,
+          lockoutUntil: null,
+          lastFailedLoginAt: null,
           createdAt: 1,
-          updatedAt: 2,
+          updatedAt: 1,
         },
       })),
-    } as unknown as SaveAuthUserUseCase;
+      getAuthCredentialByLoginId: vi.fn(async () => ({
+        success: false as const,
+        error: {
+          type: AuthSessionErrorType.AuthCredentialNotFound,
+          message: "not found",
+        },
+      })),
+    } as unknown as AuthCredentialRepository;
+
+    const passwordHashService = {
+      generateSalt: vi.fn(async () => "salt"),
+      hash: vi.fn(async () => "hash"),
+      compare: vi.fn(async () => true),
+      needsRehash: vi.fn(() => false),
+    };
 
     const useCase = createUpdateAccountMemberUseCase({
       userManagementRepository,
       getAuthUserByRemoteIdUseCase,
-      saveAuthUserUseCase,
+      authCredentialRepository,
+      passwordHashService: passwordHashService as any,
     });
 
     const result = await useCase.execute({
@@ -183,15 +195,19 @@ describe("updateAccountMember.useCase", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(saveAuthUserUseCase.execute).toHaveBeenCalledTimes(1);
-    expect(userManagementRepository.assignUserRole).not.toHaveBeenCalled();
+    expect(userManagementRepository.updateMemberAccessTransaction).toHaveBeenCalledTimes(1);
+    expect(userManagementRepository.updateMemberAccessTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        roleAssignment: null,
+      }),
+    );
   });
 
-  it("rolls back profile changes when role assignment fails", async () => {
+  it("blocks role reassignment when actor lacks assign-role permission", async () => {
     const userManagementRepository = {
       getPermissionCodesByAccountUser: vi.fn(async () => ({
         success: true as const,
-        value: ["user_management.manage_staff", "user_management.assign_role"],
+        value: ["user_management.manage_staff"],
       })),
       getAccountMemberByRemoteId: vi.fn(async () => ({
         success: true as const,
@@ -217,14 +233,7 @@ describe("updateAccountMember.useCase", () => {
           updatedAt: 1,
         },
       })),
-      assignUserRole: vi.fn(async () => ({
-        success: false as const,
-        error: {
-          type: UserManagementErrorType.Conflict,
-          message: "role conflict",
-        },
-      })),
-      getAccountMembersWithRoleByAccountRemoteId: vi.fn(async () => {
+      updateMemberAccessTransaction: vi.fn(async () => {
         throw new Error("should not be called");
       }),
     } as unknown as UserManagementRepository;
@@ -236,7 +245,7 @@ describe("updateAccountMember.useCase", () => {
           remoteId: "staff-1",
           fullName: "Staff User",
           email: "staff@elekha.com",
-          phone: "9800000000",
+          phone: "+9779800000000",
           authProvider: null,
           profileImageUrl: null,
           preferredLanguage: null,
@@ -248,79 +257,61 @@ describe("updateAccountMember.useCase", () => {
       })),
     } as unknown as GetAuthUserByRemoteIdUseCase;
 
-    const saveAuthUserUseCase = {
-      execute: vi
-        .fn()
-        .mockResolvedValueOnce({
-          success: true as const,
-          value: {
-            remoteId: "staff-1",
-            fullName: "Updated Name",
-            email: "updated@elekha.com",
-            phone: "9800000000",
-            authProvider: null,
-            profileImageUrl: null,
-            preferredLanguage: null,
-            isEmailVerified: false,
-            isPhoneVerified: false,
-            createdAt: 1,
-            updatedAt: 2,
-          },
-        })
-        .mockResolvedValueOnce({
-          success: true as const,
-          value: {
-            remoteId: "staff-1",
-            fullName: "Staff User",
-            email: "staff@elekha.com",
-            phone: "9800000000",
-            authProvider: null,
-            profileImageUrl: null,
-            preferredLanguage: null,
-            isEmailVerified: false,
-            isPhoneVerified: false,
-            createdAt: 1,
-            updatedAt: 3,
-          },
-        }),
-    } as unknown as SaveAuthUserUseCase;
+    const authCredentialRepository = {
+      getAuthCredentialByUserRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: {
+          remoteId: "cred-1",
+          userRemoteId: "staff-1",
+          loginId: "+9779800000000",
+          credentialType: CredentialType.Password,
+          passwordHash: "hash",
+          passwordSalt: "salt",
+          hint: null,
+          lastLoginAt: null,
+          isActive: true,
+          failedAttemptCount: 0,
+          lockoutUntil: null,
+          lastFailedLoginAt: null,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      })),
+      getAuthCredentialByLoginId: vi.fn(async () => ({
+        success: false as const,
+        error: {
+          type: AuthSessionErrorType.AuthCredentialNotFound,
+          message: "not found",
+        },
+      })),
+    } as unknown as AuthCredentialRepository;
+
+    const passwordHashService = {
+      generateSalt: vi.fn(async () => "salt"),
+      hash: vi.fn(async () => "hash"),
+      compare: vi.fn(async () => true),
+      needsRehash: vi.fn(() => false),
+    };
 
     const useCase = createUpdateAccountMemberUseCase({
       userManagementRepository,
       getAuthUserByRemoteIdUseCase,
-      saveAuthUserUseCase,
+      authCredentialRepository,
+      passwordHashService: passwordHashService as any,
     });
 
     const result = await useCase.execute({
       accountRemoteId: "account-1",
       actorUserRemoteId: "manager-1",
       memberRemoteId: "member-1",
-      fullName: "Updated Name",
-      email: "updated@elekha.com",
       roleRemoteId: "role-new",
     });
 
     expect(result.success).toBe(false);
+    expect(userManagementRepository.updateMemberAccessTransaction).not.toHaveBeenCalled();
 
-    if (result.success) {
-      return;
+    if (!result.success) {
+      expect(result.error.type).toBe(UserManagementErrorType.Forbidden);
     }
-
-    expect(result.error.type).toBe(UserManagementErrorType.Conflict);
-    expect(saveAuthUserUseCase.execute).toHaveBeenCalledTimes(2);
-    expect(saveAuthUserUseCase.execute).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        fullName: "Updated Name",
-        email: "updated@elekha.com",
-      }),
-    );
-    expect(saveAuthUserUseCase.execute).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        fullName: "Staff User",
-        email: "staff@elekha.com",
-      }),
-    );
   });
 });

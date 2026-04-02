@@ -10,6 +10,8 @@ import {
   UseProfileBusinessEditorViewModelParams,
 } from "./profileBusinessEditor.viewModel";
 
+const PROFILE_EDIT_PERMISSION_CODE = "profile.edit";
+
 const buildAccountLocation = (
   city: string,
   stateOrDistrict: string,
@@ -59,10 +61,15 @@ export const useProfileBusinessEditorViewModel = (
       return;
     }
 
+    if (!data.grantedPermissionCodes.includes(PROFILE_EDIT_PERMISSION_CODE)) {
+      setLoadError("You do not have permission to edit business profile.");
+      return;
+    }
+
     setIsBusinessEditing(true);
     setLoadError(undefined);
     setSuccessMessage(undefined);
-  }, [data.activeAccountType, setLoadError, setSuccessMessage]);
+  }, [data.activeAccountType, data.grantedPermissionCodes, setLoadError, setSuccessMessage]);
 
   const onCancelBusinessEdit = useCallback(() => {
     setActiveBusinessProfileForm(baseBusinessProfileForm);
@@ -96,6 +103,11 @@ export const useProfileBusinessEditorViewModel = (
       return;
     }
 
+    if (!data.grantedPermissionCodes.includes(PROFILE_EDIT_PERMISSION_CODE)) {
+      setLoadError("You do not have permission to edit business profile.");
+      return;
+    }
+
     const activeAccountOption = data.accountOptions.find(
       (account) => account.remoteId === data.activeAccountRemoteId,
     );
@@ -115,7 +127,7 @@ export const useProfileBusinessEditorViewModel = (
 
       const saveAccountResult = await saveAccountUseCase.execute({
         remoteId: data.activeAccountRemoteId,
-        ownerUserRemoteId: activeUserRemoteId,
+        ownerUserRemoteId: activeAccountOption.ownerUserRemoteId,
         accountType: AccountType.Business,
         businessType: activeBusinessProfileForm.businessType,
         displayName: activeBusinessProfileForm.legalBusinessName,
@@ -133,7 +145,7 @@ export const useProfileBusinessEditorViewModel = (
 
       const saveBusinessProfileResult = await saveBusinessProfileUseCase.execute({
         accountRemoteId: data.activeAccountRemoteId,
-        ownerUserRemoteId: activeUserRemoteId,
+        ownerUserRemoteId: activeAccountOption.ownerUserRemoteId,
         legalBusinessName: activeBusinessProfileForm.legalBusinessName,
         businessType: activeBusinessProfileForm.businessType,
         businessLogoUrl: activeBusinessProfileForm.businessLogoUrl.trim() || null,
@@ -201,6 +213,7 @@ export const useProfileBusinessEditorViewModel = (
     data.accountOptions,
     data.activeAccountRemoteId,
     data.activeAccountType,
+    data.grantedPermissionCodes,
     onUpdateData,
     saveAccountUseCase,
     saveBusinessProfileUseCase,

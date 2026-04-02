@@ -5,11 +5,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Check, CircleDashed, X } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
+import { Card } from "@/shared/components/reusable/Cards/Card";
+import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { UserManagementPermission } from "../../types/userManagement.types";
@@ -65,24 +67,22 @@ export function RoleEditorModal({
               <Text style={styles.modalSubtitle}>Set role name and permissions</Text>
             </View>
 
-            <Pressable
-              style={styles.closeButton}
+            <AppIconButton
               onPress={onCancel}
               accessibilityRole="button"
               accessibilityLabel="Close role editor"
             >
               <X size={18} color={colors.mutedForeground} />
-            </Pressable>
+            </AppIconButton>
           </View>
 
-          <Text style={styles.inputLabel}>Role name</Text>
-          <TextInput
+          <LabeledTextInput
+            label="Role name"
             value={roleName}
             onChangeText={onRoleNameChange}
             placeholder="Enter role name"
-            placeholderTextColor={colors.mutedForeground}
-            style={styles.roleNameInput}
             editable={!isSaving}
+            containerStyle={styles.roleNameField}
           />
 
           <Text style={styles.permissionSelectorTitle}>Permissions</Text>
@@ -93,7 +93,7 @@ export function RoleEditorModal({
             showsVerticalScrollIndicator={false}
           >
             {permissionGroups.map((permissionGroup) => (
-              <View key={permissionGroup.module} style={styles.permissionGroupWrap}>
+              <Card key={permissionGroup.module} style={styles.permissionGroupWrap}>
                 <Text style={styles.permissionGroupTitle}>{permissionGroup.module}</Text>
                 {permissionGroup.permissions.map((permission) => {
                   const isSelected = selectedPermissionCodes.includes(permission.code);
@@ -121,7 +121,7 @@ export function RoleEditorModal({
                     </Pressable>
                   );
                 })}
-              </View>
+              </Card>
             ))}
           </ScrollView>
 
@@ -197,31 +197,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "InterMedium",
   },
-  closeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.background,
-  },
-  inputLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-    marginBottom: 6,
-  },
-  roleNameInput: {
-    minHeight: 46,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    backgroundColor: colors.background,
-    paddingHorizontal: 12,
-    color: colors.cardForeground,
-    fontSize: 14,
+  roleNameField: {
     marginBottom: spacing.sm,
   },
   permissionSelectorTitle: {
@@ -238,12 +214,9 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   permissionGroupWrap: {
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.md,
     padding: spacing.sm,
     gap: spacing.xs,
-    backgroundColor: colors.background,
   },
   permissionGroupTitle: {
     color: colors.primary,
