@@ -103,6 +103,7 @@ export function StaffMemberEditorModal({
       onClose={onCancel}
       closeAccessibilityLabel="Close staff editor"
       contentContainerStyle={styles.content}
+      presentation="dialog"
     >
       <LabeledTextInput
         label="Full Name"

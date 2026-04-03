@@ -32,6 +32,7 @@ export function EmiPlanEditorModal({
       onClose={viewModel.close}
       closeAccessibilityLabel="Close EMI plan editor"
       contentContainerStyle={styles.content}
+      presentation="dialog"
     >
       <ChipSelectorField
         label="Plan Type"

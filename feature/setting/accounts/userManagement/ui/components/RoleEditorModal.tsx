@@ -55,7 +55,7 @@ export function RoleEditorModal({
       onClose={onCancel}
       closeAccessibilityLabel="Close role editor"
       contentContainerStyle={styles.content}
-      sheetStyle={styles.sheet}
+      presentation="dialog"
     >
       <LabeledTextInput
         label="Role Name"
@@ -134,9 +134,6 @@ export function RoleEditorModal({
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    minHeight: "78%",
-  },
   content: {
     gap: spacing.sm,
     paddingBottom: spacing.md,

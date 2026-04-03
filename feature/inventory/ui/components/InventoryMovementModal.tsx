@@ -1,9 +1,9 @@
 import React from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Calendar, X } from "lucide-react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
+import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
@@ -13,7 +13,7 @@ import {
 } from "@/feature/inventory/types/inventory.types";
 import { InventoryMovementFormState } from "@/feature/inventory/viewModel/inventory.viewModel";
 
-type Props = {
+type InventoryMovementModalProps = {
   visible: boolean;
   editorType: InventoryMovementTypeValue;
   title: string;
@@ -35,135 +35,123 @@ export function InventoryMovementModal({
   onClose,
   onChange,
   onSubmit,
-}: Props) {
+}: InventoryMovementModalProps) {
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <Pressable style={styles.dismissArea} onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.headerRow}>
-            <Text style={styles.title}>{title}</Text>
-            <Pressable onPress={onClose} style={styles.closeButton}>
-              <X size={20} color={colors.mutedForeground} />
-            </Pressable>
-          </View>
-          <ScrollView contentContainerStyle={styles.formWrap} showsVerticalScrollIndicator={false}>
-            <Dropdown
-              value={form.productRemoteId}
-              options={productOptions}
-              onChange={(value) => onChange("productRemoteId", value)}
-              placeholder="Select Product *"
-              modalTitle="Select product"
-              showLeadingIcon={false}
-              triggerStyle={styles.dropdownTrigger}
-              triggerTextStyle={styles.dropdownText}
-            />
-            <View style={styles.doubleRow}>
-              <AppTextInput
-                value={form.quantity}
-                placeholder="Quantity *"
-                keyboardType="decimal-pad"
-                onChangeText={(value) => onChange("quantity", value)}
-                containerStyle={styles.flexOne}
-              />
-              <AppTextInput
-                value={form.unitRate}
-                placeholder="Rate (NPR)"
-                keyboardType="decimal-pad"
-                onChangeText={(value) => onChange("unitRate", value)}
-                containerStyle={styles.flexOne}
-              />
-            </View>
-            {editorType === InventoryMovementType.Adjustment ? (
-              <Dropdown
-                value={form.reason}
-                options={adjustmentReasonOptions.map((item) => ({ label: item.label, value: item.value }))}
-                onChange={(value) => onChange("reason", value)}
-                placeholder="Select reason"
-                modalTitle="Select adjustment reason"
-                showLeadingIcon={false}
-                triggerStyle={styles.dropdownTrigger}
-                triggerTextStyle={styles.dropdownText}
-              />
-            ) : null}
-            <AppTextInput
-              value={form.movementDate}
-              placeholder="yyyy-mm-dd"
-              onChangeText={(value) => onChange("movementDate", value)}
-              rightIcon={<Calendar size={18} color={colors.mutedForeground} />}
-            />
-            <AppTextInput
-              value={form.remark}
-              placeholder="Remarks"
-              onChangeText={(value) => onChange("remark", value)}
-              multiline
-              numberOfLines={4}
-              style={styles.multilineInput}
-            />
-            <AppButton
-              label={editorType === InventoryMovementType.StockIn ? "Save" : "Save"}
-              size="lg"
-              onPress={() => {
-                void onSubmit();
-              }}
-            />
-          </ScrollView>
-        </View>
+    <FormSheetModal
+      visible={visible}
+      title={title}
+      subtitle="Record stock movement details"
+      onClose={onClose}
+      closeAccessibilityLabel="Close inventory movement editor"
+      presentation="dialog"
+      contentContainerStyle={styles.content}
+    >
+      <View style={styles.fieldWrap}>
+        <Text style={styles.inputLabel}>Product</Text>
+        <Dropdown
+          value={form.productRemoteId}
+          options={productOptions}
+          onChange={(value) => onChange("productRemoteId", value)}
+          placeholder="Select product"
+          modalTitle="Select product"
+          showLeadingIcon={false}
+          triggerStyle={styles.dropdownTrigger}
+          triggerTextStyle={styles.dropdownText}
+        />
       </View>
-    </Modal>
+
+      <View style={styles.doubleRow}>
+        <LabeledTextInput
+          label="Quantity"
+          value={form.quantity}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          onChangeText={(value) => onChange("quantity", value)}
+          containerStyle={styles.flexOne}
+        />
+
+        <LabeledTextInput
+          label="Unit Rate (NPR)"
+          value={form.unitRate}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          onChangeText={(value) => onChange("unitRate", value)}
+          containerStyle={styles.flexOne}
+        />
+      </View>
+
+      {editorType === InventoryMovementType.Adjustment ? (
+        <View style={styles.fieldWrap}>
+          <Text style={styles.inputLabel}>Adjustment Reason</Text>
+          <Dropdown
+            value={form.reason}
+            options={adjustmentReasonOptions.map((adjustmentReasonOption) => ({
+              label: adjustmentReasonOption.label,
+              value: adjustmentReasonOption.value,
+            }))}
+            onChange={(value) => onChange("reason", value)}
+            placeholder="Select reason"
+            modalTitle="Select adjustment reason"
+            showLeadingIcon={false}
+            triggerStyle={styles.dropdownTrigger}
+            triggerTextStyle={styles.dropdownText}
+          />
+        </View>
+      ) : null}
+
+      <LabeledTextInput
+        label="Movement Date"
+        value={form.movementDate}
+        placeholder="YYYY-MM-DD"
+        onChangeText={(value) => onChange("movementDate", value)}
+      />
+
+      <LabeledTextInput
+        label="Remark"
+        value={form.remark}
+        placeholder="Optional remark"
+        onChangeText={(value) => onChange("remark", value)}
+        multiline={true}
+        numberOfLines={4}
+      />
+
+      <AppButton
+        label="Save"
+        size="lg"
+        onPress={() => {
+          void onSubmit();
+        }}
+      />
+    </FormSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: "center",
-    paddingHorizontal: spacing.lg,
+  content: {
+    gap: spacing.sm,
+    paddingBottom: spacing.xl,
   },
-  dismissArea: {
-    ...StyleSheet.absoluteFillObject,
+  fieldWrap: {
+    gap: 6,
   },
-  sheet: {
-    maxHeight: "82%",
-    backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    zIndex: 1,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.md,
-  },
-  title: {
-    color: colors.cardForeground,
-    fontSize: 18,
+  inputLabel: {
+    color: colors.mutedForeground,
+    fontSize: 11,
     fontFamily: "InterBold",
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  formWrap: {
-    gap: spacing.md,
-    paddingBottom: spacing.md,
+    textTransform: "uppercase",
+    letterSpacing: 0.45,
   },
   dropdownTrigger: {
-    minHeight: 54,
+    minHeight: 50,
     borderRadius: radius.lg,
-    paddingHorizontal: 12,
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.md,
+    borderColor: colors.border,
   },
   dropdownText: {
+    color: colors.cardForeground,
     fontSize: 14,
     fontFamily: "InterMedium",
-    color: colors.cardForeground,
   },
   doubleRow: {
     flexDirection: "row",
@@ -171,9 +159,5 @@ const styles = StyleSheet.create({
   },
   flexOne: {
     flex: 1,
-  },
-  multilineInput: {
-    minHeight: 90,
-    textAlignVertical: "top",
   },
 });

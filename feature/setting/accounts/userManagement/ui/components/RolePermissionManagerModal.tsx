@@ -50,7 +50,7 @@ export function RolePermissionManagerModal({
       onClose={onCancel}
       closeAccessibilityLabel="Close role permissions"
       contentContainerStyle={styles.content}
-      sheetStyle={styles.sheet}
+      presentation="dialog"
     >
       <ScrollView
         style={styles.permissionScroll}
@@ -90,9 +90,6 @@ export function RolePermissionManagerModal({
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    minHeight: "78%",
-  },
   content: {
     gap: spacing.sm,
     paddingBottom: spacing.md,
