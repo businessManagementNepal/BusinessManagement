@@ -46,6 +46,7 @@ export function LedgerEntryEditorModal({
       onClose={viewModel.close}
       closeAccessibilityLabel="Close ledger entry editor"
       contentContainerStyle={styles.content}
+      presentation="dialog"
     >
       <ChipSelectorField
         label="Entry Type"

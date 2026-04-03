@@ -19,11 +19,13 @@ const BUSINESS_ONLY_ROUTES = new Set<DashboardRouteKey>([
   "inventory",
   "user-management",
 ]);
+
 const PERSONAL_ONLY_ROUTES = new Set<DashboardRouteKey>([
   "personal",
   "personal-transactions",
   "personal-budget",
 ]);
+
 const SLOT_ONLY_ROUTES = new Set<DashboardRouteKey>([
   "profile",
   "user-management",
@@ -101,7 +103,7 @@ export const resolveDashboardHeaderConfig = (
         subtitle: null,
         showBell: false,
         showProfile: false,
-        showBack: false,
+        showBack: true,
       };
     case "inventory":
       return {
@@ -109,7 +111,7 @@ export const resolveDashboardHeaderConfig = (
         subtitle: null,
         showBell: false,
         showProfile: false,
-        showBack: false,
+        showBack: true,
       };
     case "emi-loans":
       return {

@@ -24,7 +24,12 @@ type MoreDashboardScreenProps = {
 
 export function MoreDashboardScreen({ viewModel }: MoreDashboardScreenProps) {
   return (
-    <DashboardTabScaffold>
+    <DashboardTabScaffold
+      footer={null}
+      baseBottomPadding={110}
+      contentContainerStyle={null}
+      showDivider={false}
+    >
       {viewModel.sections.map((section) => (
         <View key={section.id} style={styles.sectionWrap}>
           <Text style={styles.sectionTitle}>{section.title}</Text>
@@ -124,4 +129,3 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
 });
-

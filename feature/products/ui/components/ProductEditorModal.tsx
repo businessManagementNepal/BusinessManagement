@@ -2,21 +2,14 @@ import { ProductKind } from "@/feature/products/types/product.types";
 import { ProductFormState } from "@/feature/products/viewModel/products.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
-import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
+import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
-import { X } from "lucide-react-native";
 import React from "react";
-import {
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
-type Props = {
+type ProductEditorModalProps = {
   visible: boolean;
   mode: "create" | "edit";
   form: ProductFormState;
@@ -38,196 +31,192 @@ export function ProductEditorModal({
   onClose,
   onChange,
   onSubmit,
-}: Props) {
+}: ProductEditorModalProps) {
+  const title = mode === "create" ? "New Product" : "Edit Product";
+
   return (
-    <Modal
+    <FormSheetModal
       visible={visible}
-      animationType="fade"
-      transparent
-      onRequestClose={onClose}
+      title={title}
+      subtitle="Manage item or service pricing and stock details"
+      onClose={onClose}
+      closeAccessibilityLabel="Close product editor"
+      presentation="dialog"
+      contentContainerStyle={styles.content}
     >
-      <View style={styles.backdrop}>
-        <Pressable style={styles.dismissArea} onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.headerRow}>
-            <Text style={styles.title}>
-              {mode === "create" ? "New Product" : "Edit Product"}
-            </Text>
-            <Pressable onPress={onClose} style={styles.closeButton}>
-              <X size={20} color={colors.mutedForeground} />
-            </Pressable>
-          </View>
-          <ScrollView
-            contentContainerStyle={styles.formWrap}
-            showsVerticalScrollIndicator={false}
-          >
-            <AppTextInput
-              value={form.imageUrl}
-              placeholder="Product photo URL (optional)"
-              onChangeText={(value) => onChange("imageUrl", value)}
-            />
-            <AppTextInput
-              value={form.name}
-              placeholder="Product Name *"
-              onChangeText={(value) => onChange("name", value)}
-              autoCapitalize="words"
-            />
-            <Dropdown
-              value={form.kind}
-              options={[
-                { label: "Item", value: ProductKind.Item },
-                { label: "Service", value: ProductKind.Service },
-              ]}
-              onChange={(value) => onChange("kind", value)}
-              placeholder="Select kind"
-              modalTitle="Select product kind"
-              showLeadingIcon={false}
-              triggerStyle={styles.dropdownTrigger}
-              triggerTextStyle={styles.dropdownText}
-            />
-            <Dropdown
-              value={form.categoryName}
-              options={categoryOptions.map((item) => ({
-                label: item,
-                value: item,
-              }))}
-              onChange={(value) => onChange("categoryName", value)}
-              placeholder="Select Category"
-              modalTitle="Select category"
-              showLeadingIcon={false}
-              triggerStyle={styles.dropdownTrigger}
-              triggerTextStyle={styles.dropdownText}
-            />
-            <View style={styles.doubleRow}>
-              <AppTextInput
-                value={form.salePrice}
-                placeholder="Sale Price *"
-                keyboardType="decimal-pad"
-                onChangeText={(value) => onChange("salePrice", value)}
-                containerStyle={styles.flexOne}
-              />
-              <AppTextInput
-                value={form.costPrice}
-                placeholder="Cost Price"
-                keyboardType="decimal-pad"
-                onChangeText={(value) => onChange("costPrice", value)}
-                containerStyle={styles.flexOne}
-              />
-            </View>
-            {form.kind === ProductKind.Item ? (
-              <View style={styles.doubleRow}>
-                <AppTextInput
-                  value={form.stockQuantity}
-                  placeholder="Stock Qty"
-                  keyboardType="decimal-pad"
-                  onChangeText={(value) => onChange("stockQuantity", value)}
-                  containerStyle={styles.flexOne}
-                />
-                <View style={styles.flexOne}>
-                  <Dropdown
-                    value={form.unitLabel}
-                    options={unitOptions.map((item) => ({
-                      label: item,
-                      value: item,
-                    }))}
-                    onChange={(value) => onChange("unitLabel", value)}
-                    placeholder="Unit"
-                    modalTitle="Select unit"
-                    showLeadingIcon={false}
-                    triggerStyle={styles.dropdownTrigger}
-                    triggerTextStyle={styles.dropdownText}
-                  />
-                </View>
-              </View>
-            ) : null}
-            <AppTextInput
-              value={form.skuOrBarcode}
-              placeholder="SKU / Barcode"
-              onChangeText={(value) => onChange("skuOrBarcode", value)}
-            />
-            <Dropdown
-              value={form.taxRateLabel}
-              options={taxRateOptions.map((item) => ({
-                label: item,
-                value: item,
-              }))}
-              onChange={(value) => onChange("taxRateLabel", value)}
-              placeholder="Tax Rate"
-              modalTitle="Select tax rate"
-              showLeadingIcon={false}
-              triggerStyle={styles.dropdownTrigger}
-              triggerTextStyle={styles.dropdownText}
-            />
-            <AppTextInput
-              value={form.description}
-              placeholder="Description"
-              onChangeText={(value) => onChange("description", value)}
-              multiline
-              numberOfLines={4}
-              style={styles.multilineInput}
-            />
-            <AppButton
-              label={mode === "create" ? "Save Product" : "Update Product"}
-              size="lg"
-              onPress={() => {
-                void onSubmit();
-              }}
-            />
-          </ScrollView>
-        </View>
+      <LabeledTextInput
+        label="Image URL"
+        value={form.imageUrl}
+        placeholder="Product photo URL (optional)"
+        onChangeText={(value) => onChange("imageUrl", value)}
+      />
+
+      <LabeledTextInput
+        label="Product Name"
+        value={form.name}
+        placeholder="Enter product name"
+        onChangeText={(value) => onChange("name", value)}
+        autoCapitalize="words"
+      />
+
+      <View style={styles.fieldWrap}>
+        <Text style={styles.inputLabel}>Type</Text>
+        <Dropdown
+          value={form.kind}
+          options={[
+            { label: "Item", value: ProductKind.Item },
+            { label: "Service", value: ProductKind.Service },
+          ]}
+          onChange={(value) => onChange("kind", value)}
+          placeholder="Select type"
+          modalTitle="Select product type"
+          showLeadingIcon={false}
+          triggerStyle={styles.dropdownTrigger}
+          triggerTextStyle={styles.dropdownText}
+        />
       </View>
-    </Modal>
+
+      <View style={styles.fieldWrap}>
+        <Text style={styles.inputLabel}>Category</Text>
+        <Dropdown
+          value={form.categoryName}
+          options={categoryOptions.map((categoryName) => ({
+            label: categoryName,
+            value: categoryName,
+          }))}
+          onChange={(value) => onChange("categoryName", value)}
+          placeholder="Select category"
+          modalTitle="Select category"
+          showLeadingIcon={false}
+          triggerStyle={styles.dropdownTrigger}
+          triggerTextStyle={styles.dropdownText}
+        />
+      </View>
+
+      <View style={styles.doubleRow}>
+        <LabeledTextInput
+          label="Sale Price"
+          value={form.salePrice}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          onChangeText={(value) => onChange("salePrice", value)}
+          containerStyle={styles.flexOne}
+        />
+        <LabeledTextInput
+          label="Cost Price"
+          value={form.costPrice}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          onChangeText={(value) => onChange("costPrice", value)}
+          containerStyle={styles.flexOne}
+        />
+      </View>
+
+      {form.kind === ProductKind.Item ? (
+        <View style={styles.doubleRow}>
+          <LabeledTextInput
+            label="Stock Quantity"
+            value={form.stockQuantity}
+            placeholder="0"
+            keyboardType="decimal-pad"
+            onChangeText={(value) => onChange("stockQuantity", value)}
+            containerStyle={styles.flexOne}
+          />
+          <View style={[styles.flexOne, styles.fieldWrap]}>
+            <Text style={styles.inputLabel}>Unit</Text>
+            <Dropdown
+              value={form.unitLabel}
+              options={unitOptions.map((unitLabel) => ({
+                label: unitLabel,
+                value: unitLabel,
+              }))}
+              onChange={(value) => onChange("unitLabel", value)}
+              placeholder="Select unit"
+              modalTitle="Select unit"
+              showLeadingIcon={false}
+              triggerStyle={styles.dropdownTrigger}
+              triggerTextStyle={styles.dropdownText}
+            />
+          </View>
+        </View>
+      ) : null}
+
+      <LabeledTextInput
+        label="SKU / Barcode"
+        value={form.skuOrBarcode}
+        placeholder="Optional SKU or barcode"
+        onChangeText={(value) => onChange("skuOrBarcode", value)}
+      />
+
+      <View style={styles.fieldWrap}>
+        <Text style={styles.inputLabel}>Tax Rate</Text>
+        <Dropdown
+          value={form.taxRateLabel}
+          options={taxRateOptions.map((taxRate) => ({
+            label: taxRate,
+            value: taxRate,
+          }))}
+          onChange={(value) => onChange("taxRateLabel", value)}
+          placeholder="Select tax rate"
+          modalTitle="Select tax rate"
+          showLeadingIcon={false}
+          triggerStyle={styles.dropdownTrigger}
+          triggerTextStyle={styles.dropdownText}
+        />
+      </View>
+
+      <LabeledTextInput
+        label="Description"
+        value={form.description}
+        placeholder="Optional description"
+        onChangeText={(value) => onChange("description", value)}
+        multiline={true}
+        numberOfLines={4}
+      />
+
+      <AppButton
+        label={mode === "create" ? "Save Product" : "Update Product"}
+        size="lg"
+        onPress={() => {
+          void onSubmit();
+        }}
+      />
+    </FormSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: "center",
-    paddingHorizontal: spacing.lg,
+  content: {
+    gap: spacing.sm,
+    paddingBottom: spacing.xl,
   },
-  dismissArea: { ...StyleSheet.absoluteFillObject },
-  sheet: {
-    maxHeight: "86%",
-    backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    zIndex: 1,
+  fieldWrap: {
+    gap: 6,
   },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.md,
-  },
-  title: {
-    color: colors.cardForeground,
-    fontSize: 18,
+  inputLabel: {
+    color: colors.mutedForeground,
+    fontSize: 11,
     fontFamily: "InterBold",
+    textTransform: "uppercase",
+    letterSpacing: 0.45,
   },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  formWrap: { gap: spacing.md, paddingBottom: spacing.md },
   dropdownTrigger: {
-    minHeight: 54,
+    minHeight: 50,
     borderRadius: radius.lg,
-    paddingHorizontal: 12,
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.md,
+    borderColor: colors.border,
   },
   dropdownText: {
+    color: colors.cardForeground,
     fontSize: 14,
     fontFamily: "InterMedium",
-    color: colors.cardForeground,
   },
-  doubleRow: { flexDirection: "row", gap: spacing.sm },
-  flexOne: { flex: 1 },
-  multilineInput: { minHeight: 90, textAlignVertical: "top" },
+  doubleRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  flexOne: {
+    flex: 1,
+  },
 });
-

@@ -10,12 +10,17 @@ import {
 import { DashboardTabScaffold } from "@/feature/dashboard/shared/ui/DashboardTabScaffold";
 import { InventoryViewModel } from "@/feature/inventory/viewModel/inventory.viewModel";
 import { InventoryMovementType } from "@/feature/inventory/types/inventory.types";
-import { Card } from "@/shared/components/reusable/Cards/Card";
 import { StatCard } from "@/shared/components/reusable/Cards/StatCard";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
+import { InlineSectionHeader } from "@/shared/components/reusable/ScreenLayouts/InlineSectionHeader";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { InventoryMovementModal } from "./components/InventoryMovementModal";
+
+type InventoryScreenProps = {
+  viewModel: InventoryViewModel;
+};
 
 const formatCurrency = (value: number): string => {
   if (value >= 1000 && value % 1000 === 0) {
@@ -26,157 +31,220 @@ const formatCurrency = (value: number): string => {
 };
 
 const formatMovementDate = (timestamp: number): string => {
-  const date = new Date(timestamp);
+  const movementDate = new Date(timestamp);
   const today = new Date();
   const yesterday = new Date();
   yesterday.setDate(today.getDate() - 1);
 
-  const formatKey = (value: Date): string =>
-    `${value.getFullYear()}-${value.getMonth()}-${value.getDate()}`;
+  const formatDateKey = (value: Date): string => {
+    return `${value.getFullYear()}-${value.getMonth()}-${value.getDate()}`;
+  };
 
-  const currentKey = formatKey(date);
-  if (currentKey === formatKey(today)) {
+  const movementDateKey = formatDateKey(movementDate);
+  if (movementDateKey === formatDateKey(today)) {
     return "Today";
   }
-  if (currentKey === formatKey(yesterday)) {
+
+  if (movementDateKey === formatDateKey(yesterday)) {
     return "Yesterday";
   }
 
-  return date.toLocaleDateString(undefined, {
+  return movementDate.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
   });
 };
 
-export function   InventoryScreen({ viewModel }: { viewModel: InventoryViewModel }) {
+const formatMovementTypeLabel = (movementType: string, reason: string | null): string => {
+  if (movementType === InventoryMovementType.StockIn) {
+    return "Purchase";
+  }
+
+  if (movementType === InventoryMovementType.SaleOut) {
+    return "Sale";
+  }
+
+  if (reason === null || reason.length === 0) {
+    return "Adjustment";
+  }
+
+  return reason.replace("_", " ");
+};
+
+export function InventoryScreen({ viewModel }: InventoryScreenProps) {
   const lowStockItems = viewModel.stockItems.filter((item) => item.isLowStock);
 
   return (
-    <DashboardTabScaffold>
-      <View style={styles.summaryRow}>
-        <StatCard
-          icon={<Package size={18} color={colors.primary} />}
-          value={String(viewModel.summary.totalProducts)}
-          label="Products"
-        />
-        <StatCard
-          icon={<AlertTriangle size={18} color={colors.warning} />}
-          value={String(viewModel.summary.lowStockCount)}
-          label="Low Stock"
-          valueColor={colors.warning}
-        />
-        <StatCard
-          icon={<Text style={styles.currencyIcon}>Rs</Text>}
-          value={formatCurrency(viewModel.summary.stockValue)}
-          label="Stock Value"
-        />
-      </View>
+    <>
+      <DashboardTabScaffold
+        footer={
+          <BottomTabAwareFooter>
+            <View style={styles.footerActionRow}>
+              <AppButton
+                label="Stock In"
+                variant="primary"
+                size="lg"
+                style={styles.footerActionButton}
+                leadingIcon={<ArrowDownLeft size={18} color={colors.primaryForeground} />}
+                onPress={viewModel.onOpenStockIn}
+                disabled={!viewModel.canManage}
+              />
+              <AppButton
+                label="Adjust"
+                variant="secondary"
+                size="lg"
+                style={styles.footerActionButton}
+                leadingIcon={<ArrowUpRight size={18} color={colors.primary} />}
+                onPress={viewModel.onOpenAdjustment}
+                disabled={!viewModel.canManage}
+              />
+            </View>
+          </BottomTabAwareFooter>
+        }
+        baseBottomPadding={170}
+        contentContainerStyle={styles.content}
+        showDivider={false}
+      >
+        <View style={styles.summaryRow}>
+          <StatCard
+            icon={<Package size={18} color={colors.primary} />}
+            value={String(viewModel.summary.totalProducts)}
+            label="Products"
+          />
+          <StatCard
+            icon={<AlertTriangle size={18} color={colors.warning} />}
+            value={String(viewModel.summary.lowStockCount)}
+            label="Low Stock"
+            valueColor={colors.warning}
+          />
+          <StatCard
+            icon={<Text style={styles.currencyIcon}>Rs</Text>}
+            value={formatCurrency(viewModel.summary.stockValue)}
+            label="Stock Value"
+          />
+        </View>
 
-      {lowStockItems.length > 0 ? (
-        <Card style={styles.bannerCard}>
-          <View style={styles.bannerIconWrap}>
-            <AlertTriangle size={18} color={colors.warning} />
+        {lowStockItems.length > 0 ? (
+          <View style={styles.bannerCard}>
+            <View style={styles.bannerIconWrap}>
+              <AlertTriangle size={18} color={colors.warning} />
+            </View>
+            <View style={styles.bannerBody}>
+              <Text style={styles.bannerTitle}>{`${lowStockItems.length} items low on stock`}</Text>
+              <Text style={styles.bannerSubtitle}>Restock soon to avoid disruptions</Text>
+            </View>
           </View>
-          <View style={styles.bannerBody}>
-            <Text style={styles.bannerTitle}>{`${lowStockItems.length} items low on stock`}</Text>
-            <Text style={styles.bannerSubtitle}>Restock soon to avoid disruptions</Text>
+        ) : null}
+
+        {viewModel.isLoading ? (
+          <View style={styles.centerState}>
+            <ActivityIndicator color={colors.primary} />
           </View>
-        </Card>
-      ) : null}
-
-      {viewModel.errorMessage ? <Text style={styles.errorText}>{viewModel.errorMessage}</Text> : null}
-      {viewModel.isLoading ? <ActivityIndicator color={colors.primary} /> : null}
-
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>Stock on Hand</Text>
-        <Text style={styles.sectionAction}>View All</Text>
-      </View>
-
-      <View style={styles.listWrap}>
-        {viewModel.stockItems.length === 0 ? (
-          <Card>
-            <Text style={styles.emptyText}>No item products available for inventory yet.</Text>
-          </Card>
+        ) : viewModel.errorMessage ? (
+          <View style={styles.centerState}>
+            <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
+          </View>
         ) : (
-          viewModel.stockItems.map((item) => (
-            <Card key={item.productRemoteId} style={styles.listCard}>
-              <View style={styles.iconWrap}>
-                <Boxes size={20} color={colors.primary} />
+          <>
+            <InlineSectionHeader title="Stock on Hand" />
+
+            {viewModel.stockItems.length === 0 ? (
+              <View style={styles.centerState}>
+                <Text style={styles.emptyText}>No item products available for inventory yet.</Text>
               </View>
-              <View style={styles.listBody}>
-                <Text style={styles.itemTitle}>{item.name}</Text>
-                <Text style={styles.itemSubtitle}>
-                  {item.stockQuantity} {item.unitLabel ?? "unit"} in stock
-                </Text>
+            ) : (
+              <View style={styles.tableContainer}>
+                {viewModel.stockItems.map((item, index) => (
+                  <View
+                    key={item.productRemoteId}
+                    style={[
+                      styles.stockRow,
+                      index < viewModel.stockItems.length - 1 ? styles.stockRowDivider : null,
+                    ]}
+                  >
+                    <View style={styles.itemIconWrap}>
+                      <Boxes size={18} color={colors.primary} />
+                    </View>
+
+                    <View style={styles.stockBody}>
+                      <Text style={styles.itemTitle}>{item.name}</Text>
+                      <Text style={styles.itemSubtitle}>
+                        {item.stockQuantity} {item.unitLabel === null ? "unit" : item.unitLabel} in stock
+                      </Text>
+                    </View>
+
+                    <View style={styles.stockValueWrap}>
+                      <Text style={styles.valueText}>{formatCurrency(item.stockValue)}</Text>
+                      {item.isLowStock ? (
+                        <View style={styles.lowStockBadge}>
+                          <Text style={styles.lowStockBadgeText}>Low Stock</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
+                ))}
               </View>
-              <View style={styles.valueWrap}>
-                <Text style={styles.valueText}>{formatCurrency(item.stockValue)}</Text>
+            )}
+            <InlineSectionHeader title="Recent Movements" />
+
+            {viewModel.recentMovements.length === 0 ? (
+              <View style={styles.centerState}>
+                <Text style={styles.emptyText}>No inventory movement yet.</Text>
               </View>
-            </Card>
-          ))
+            ) : (
+              <View style={styles.tableContainer}>
+                {viewModel.recentMovements.map((movement, index) => {
+                  const isPositiveMovement = movement.deltaQuantity > 0;
+                  return (
+                    <View
+                      key={movement.remoteId}
+                      style={[
+                        styles.movementRow,
+                        index < viewModel.recentMovements.length - 1
+                          ? styles.movementRowDivider
+                          : null,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.itemIconWrap,
+                          isPositiveMovement ? styles.positiveIcon : styles.negativeIcon,
+                        ]}
+                      >
+                        {isPositiveMovement ? (
+                          <ArrowDownLeft size={18} color={colors.success} />
+                        ) : (
+                          <ArrowUpRight size={18} color={colors.destructive} />
+                        )}
+                      </View>
+
+                      <View style={styles.stockBody}>
+                        <Text style={styles.itemTitle}>{movement.productName}</Text>
+                        <Text style={styles.itemSubtitle}>
+                          {formatMovementDate(movement.movementAt)} | {" "}
+                          {formatMovementTypeLabel(movement.type, movement.reason)}
+                        </Text>
+                      </View>
+
+                      <View style={styles.stockValueWrap}>
+                        <Text
+                          style={[
+                            styles.deltaText,
+                            isPositiveMovement ? styles.deltaPositive : styles.deltaNegative,
+                          ]}
+                        >
+                          {isPositiveMovement ? "+" : "-"}
+                          {Math.abs(movement.deltaQuantity)} {movement.productUnitLabel ?? "unit"}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </>
         )}
-      </View>
-
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>Recent Movements</Text>
-        <Text style={styles.sectionAction}>View All</Text>
-      </View>
-
-      <Card style={styles.movementCard}>
-        {viewModel.recentMovements.length === 0 ? (
-          <Text style={styles.emptyText}>No inventory movement yet.</Text>
-        ) : (
-          viewModel.recentMovements.map((movement, index) => {
-            const isPositive = movement.deltaQuantity > 0;
-            const isLast = index === viewModel.recentMovements.length - 1;
-            return (
-              <View
-                key={movement.remoteId}
-                style={[styles.movementRow, !isLast ? styles.movementRowBorder : null]}
-              >
-                <View style={[styles.iconWrap, isPositive ? styles.positiveIcon : styles.negativeIcon]}>
-                  {isPositive ? (
-                    <ArrowDownLeft size={18} color={colors.success} />
-                  ) : (
-                    <ArrowUpRight size={18} color={colors.destructive} />
-                  )}
-                </View>
-                <View style={styles.listBody}>
-                  <Text style={styles.itemTitle}>{movement.productName}</Text>
-                  <Text style={styles.itemSubtitle}>
-                    {formatMovementDate(movement.movementAt)} | {movement.type === InventoryMovementType.StockIn ? "Purchase" : movement.type === InventoryMovementType.SaleOut ? "Sale" : movement.reason ? movement.reason.replace("_", " ") : "Adjustment"}
-                  </Text>
-                </View>
-                <Text style={[styles.deltaText, isPositive ? styles.deltaPositive : styles.deltaNegative]}>
-                  {isPositive ? "+" : "-"}
-                  {Math.abs(movement.deltaQuantity)} {movement.productUnitLabel ?? "unit"}
-                </Text>
-              </View>
-            );
-          })
-        )}
-      </Card>
-
-      <View style={styles.buttonRow}>
-        <AppButton
-          label="Stock In"
-          variant="primary"
-          size="lg"
-          style={styles.flexButton}
-          leadingIcon={<ArrowDownLeft size={18} color={colors.primaryForeground} />}
-          onPress={viewModel.onOpenStockIn}
-          disabled={!viewModel.canManage}
-        />
-        <AppButton
-          label="Adjust"
-          variant="secondary"
-          size="lg"
-          style={styles.flexButton}
-          leadingIcon={<ArrowUpRight size={18} color={colors.primary} />}
-          onPress={viewModel.onOpenAdjustment}
-          disabled={!viewModel.canManage}
-        />
-      </View>
+      </DashboardTabScaffold>
 
       <InventoryMovementModal
         visible={viewModel.isEditorVisible}
@@ -189,11 +257,14 @@ export function   InventoryScreen({ viewModel }: { viewModel: InventoryViewModel
         onChange={viewModel.onFormChange}
         onSubmit={viewModel.onSubmit}
       />
-    </DashboardTabScaffold>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  content: {
+    gap: spacing.sm,
+  },
   summaryRow: {
     flexDirection: "row",
     gap: spacing.sm,
@@ -209,6 +280,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     backgroundColor: "#F7F0E1",
     borderColor: "#E8D6A7",
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
   bannerIconWrap: {
     width: 34,
@@ -231,38 +306,27 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
     fontSize: 13,
   },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    fontFamily: "InterMedium",
+  tableContainer: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
   },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: spacing.xs,
-  },
-  sectionTitle: {
-    color: colors.cardForeground,
-    fontFamily: "InterBold",
-    fontSize: 18,
-  },
-  sectionAction: {
-    color: colors.primary,
-    fontFamily: "InterMedium",
-    fontSize: 13,
-  },
-  listWrap: {
-    gap: spacing.sm,
-  },
-  listCard: {
+  stockRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 13,
   },
-  iconWrap: {
-    width: 50,
-    height: 50,
+  stockRowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  itemIconWrap: {
+    width: 40,
+    height: 40,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
@@ -274,47 +338,54 @@ const styles = StyleSheet.create({
   negativeIcon: {
     backgroundColor: "#FBE9E9",
   },
-  listBody: {
+  stockBody: {
     flex: 1,
+    gap: 2,
   },
   itemTitle: {
     color: colors.cardForeground,
     fontFamily: "InterBold",
-    fontSize: 15,
-    marginBottom: 4,
+    fontSize: 14,
   },
   itemSubtitle: {
     color: colors.mutedForeground,
     fontSize: 12,
-    textTransform: "none",
   },
-  valueWrap: {
+  stockValueWrap: {
     alignItems: "flex-end",
+    gap: 4,
+    maxWidth: 140,
   },
   valueText: {
     color: colors.cardForeground,
     fontFamily: "InterBold",
-    fontSize: 14,
+    fontSize: 13,
   },
-  movementCard: {
-    paddingVertical: 0,
-    paddingHorizontal: 0,
-    overflow: "hidden",
+  lowStockBadge: {
+    borderRadius: radius.pill,
+    backgroundColor: "#FBEDEB",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  lowStockBadgeText: {
+    color: colors.destructive,
+    fontSize: 10,
+    fontFamily: "InterMedium",
   },
   movementRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 13,
   },
-  movementRowBorder: {
+  movementRowDivider: {
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   deltaText: {
     fontFamily: "InterBold",
-    fontSize: 14,
+    fontSize: 13,
   },
   deltaPositive: {
     color: colors.success,
@@ -322,18 +393,29 @@ const styles = StyleSheet.create({
   deltaNegative: {
     color: colors.destructive,
   },
-  emptyText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.lg,
-  },
-  buttonRow: {
+  footerActionRow: {
     flexDirection: "row",
     gap: spacing.sm,
   },
-  flexButton: {
+  footerActionButton: {
     flex: 1,
+  },
+  centerState: {
+    minHeight: 180,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.lg,
+  },
+  errorText: {
+    color: colors.destructive,
+    fontSize: 13,
+    textAlign: "center",
+  },
+  emptyText: {
+    color: colors.mutedForeground,
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 20,
   },
 });
 

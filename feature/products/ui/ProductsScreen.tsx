@@ -1,161 +1,210 @@
 import { DashboardTabScaffold } from "@/feature/dashboard/shared/ui/DashboardTabScaffold";
 import {
+  Product,
   ProductKind,
   ProductKindValue,
 } from "@/feature/products/types/product.types";
 import { ProductsViewModel } from "@/feature/products/viewModel/products.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { CardPressable } from "@/shared/components/reusable/Cards/Card";
 import { StatCard } from "@/shared/components/reusable/Cards/StatCard";
-import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
+import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
+import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow";
+import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
+import { InlineSectionHeader } from "@/shared/components/reusable/ScreenLayouts/InlineSectionHeader";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
-import { Box, Plus, Search } from "lucide-react-native";
-import React from "react";
+import { Box, Plus } from "lucide-react-native";
+import React, { useCallback } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  GestureResponderEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { ProductEditorModal } from "./components/ProductEditorModal";
 
-export function ProductsScreen({
-  viewModel,
-}: {
+type ProductsScreenProps = {
   viewModel: ProductsViewModel;
-}) {
-  const kindOptions: readonly {
-    label: string;
-    value: "all" | ProductKindValue;
-  }[] = [
-    { label: "All", value: "all" },
-    { label: "Items", value: ProductKind.Item },
-    { label: "Services", value: ProductKind.Service },
-  ];
+};
+
+const PRODUCT_KIND_FILTER_OPTIONS: readonly {
+  label: string;
+  value: "all" | ProductKindValue;
+}[] = [
+  { label: "All", value: "all" },
+  { label: "Items", value: ProductKind.Item },
+  { label: "Services", value: ProductKind.Service },
+];
+
+const formatPriceLabel = (price: number): string => {
+  return `NPR ${price.toLocaleString()}`;
+};
+
+const buildProductSubtitle = (product: Product): string => {
+  const productTypeLabel = product.kind === ProductKind.Item ? "Item" : "Service";
+
+  if (product.kind === ProductKind.Service) {
+    return productTypeLabel;
+  }
+
+  if (product.stockQuantity === null) {
+    return productTypeLabel;
+  }
+
+  const unitLabel = product.unitLabel === null ? "unit" : product.unitLabel;
+  return `${productTypeLabel} | Stock: ${product.stockQuantity} ${unitLabel}`;
+};
+
+export function ProductsScreen({ viewModel }: ProductsScreenProps) {
+  const handleClearFilters = useCallback((): void => {
+    viewModel.onSearchChange("");
+    viewModel.onKindFilterChange("all");
+  }, [viewModel]);
+
+  const handleDeleteProduct = useCallback(
+    (product: Product): void => {
+      if (!viewModel.canManage) {
+        return;
+      }
+
+      Alert.alert("Delete product", `Delete ${product.name}?`, [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            void viewModel.onDelete(product);
+          },
+        },
+      ]);
+    },
+    [viewModel],
+  );
+
+  const handleDeletePress = useCallback(
+    (event: GestureResponderEvent, product: Product): void => {
+      event.stopPropagation();
+      handleDeleteProduct(product);
+    },
+    [handleDeleteProduct],
+  );
 
   return (
-    <DashboardTabScaffold>
-      <View style={styles.summaryRow}>
-        <StatCard
-          icon={<Text style={styles.statIcon}>#</Text>}
-          value={String(viewModel.summary.totalItems)}
-          label="Items"
-        />
-        <StatCard
-          icon={<Text style={styles.statIcon}>#</Text>}
-          value={String(viewModel.summary.totalServices)}
-          label="Services"
-        />
-        <StatCard
-          icon={<Text style={styles.statIcon}>!</Text>}
-          value={String(viewModel.summary.lowStockCount)}
-          label="Low Stock"
-          valueColor={colors.warning}
-        />
-      </View>
+    <>
+      <DashboardTabScaffold
+        footer={
+          <BottomTabAwareFooter>
+            <AppButton
+              label="Add Product"
+              size="lg"
+              style={styles.primaryActionButton}
+              leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
+              onPress={viewModel.onOpenCreate}
+              disabled={!viewModel.canManage}
+            />
+          </BottomTabAwareFooter>
+        }
+        baseBottomPadding={140}
+        contentContainerStyle={styles.content}
+        showDivider={false}
+      >
+        <View style={styles.summaryRow}>
+          <StatCard
+            icon={<Text style={styles.statIcon}>#</Text>}
+            value={String(viewModel.summary.totalItems)}
+            label="Items"
+          />
+          <StatCard
+            icon={<Text style={styles.statIcon}>#</Text>}
+            value={String(viewModel.summary.totalServices)}
+            label="Services"
+          />
+          <StatCard
+            icon={<Text style={styles.statIcon}>!</Text>}
+            value={String(viewModel.summary.lowStockCount)}
+            label="Low Stock"
+            valueColor={colors.warning}
+          />
+        </View>
 
-      <AppTextInput
-        value={viewModel.searchQuery}
-        placeholder="Search products..."
-        onChangeText={viewModel.onSearchChange}
-        leftIcon={<Search size={18} color={colors.mutedForeground} />}
-      />
+        <SearchInputRow
+          value={viewModel.searchQuery}
+          onChangeText={viewModel.onSearchChange}
+          placeholder="Search products"
+          inputStyle={styles.searchInput}
+        />
 
-      <View style={styles.filterRow}>
-        {kindOptions.map((option) => {
-          const isActive = viewModel.selectedKind === option.value;
-          return (
-            <Pressable
-              key={option.value}
-              style={[styles.pill, isActive ? styles.pillActive : null]}
-              onPress={() => viewModel.onKindFilterChange(option.value)}
-            >
-              <Text
+        <FilterChipGroup
+          options={PRODUCT_KIND_FILTER_OPTIONS}
+          selectedValue={viewModel.selectedKind}
+          onSelect={viewModel.onKindFilterChange}
+        />
+
+        <InlineSectionHeader
+          title="Products"
+          actionLabel="Clear Filters"
+          onActionPress={handleClearFilters}
+        />
+
+        {viewModel.isLoading ? (
+          <View style={styles.centerState}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : viewModel.errorMessage ? (
+          <View style={styles.centerState}>
+            <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
+          </View>
+        ) : viewModel.products.length === 0 ? (
+          <View style={styles.centerState}>
+            <Text style={styles.emptyText}>No products found for selected filters.</Text>
+          </View>
+        ) : (
+          <View style={styles.tableContainer}>
+            {viewModel.products.map((product, index) => (
+              <Pressable
+                key={product.remoteId}
                 style={[
-                  styles.pillText,
-                  isActive ? styles.pillTextActive : null,
+                  styles.productRow,
+                  index < viewModel.products.length - 1 ? styles.productRowDivider : null,
                 ]}
+                onPress={() => {
+                  if (viewModel.canManage) {
+                    viewModel.onOpenEdit(product);
+                  }
+                }}
+                disabled={!viewModel.canManage}
               >
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+                <View style={styles.productIconWrap}>
+                  <Box size={18} color={colors.primary} />
+                </View>
 
-      {viewModel.isLoading ? (
-        <ActivityIndicator color={colors.primary} />
-      ) : null}
-      {viewModel.errorMessage ? (
-        <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
-      ) : null}
+                <View style={styles.productBody}>
+                  <Text style={styles.productTitle}>{product.name}</Text>
+                  <Text style={styles.productSubtitle}>{buildProductSubtitle(product)}</Text>
+                </View>
 
-      <View style={styles.listWrap}>
-        {viewModel.products.map((product) => (
-          <CardPressable
-            key={product.remoteId}
-            style={styles.listCard}
-            onPress={() => {
-              if (viewModel.canManage) {
-                viewModel.onOpenEdit(product);
-              }
-            }}
-          >
-            <View style={styles.listIconWrap}>
-              <Box size={20} color={colors.primary} />
-            </View>
-            <View style={styles.listBody}>
-              <Text style={styles.productTitle}>{product.name}</Text>
-              <Text style={styles.productSubtitle}>
-                {product.kind === ProductKind.Item ? "Item" : "Service"}
-                {product.kind === ProductKind.Item &&
-                product.stockQuantity !== null
-                  ? ` | Stock: ${product.stockQuantity}${product.unitLabel ? ` ${product.unitLabel}` : ""}`
-                  : ""}
-              </Text>
-            </View>
-            <View style={styles.priceWrap}>
-              <Text style={styles.salePrice}>
-                NPR {product.salePrice.toLocaleString()}
-              </Text>
-              {product.costPrice !== null ? (
-                <Text style={styles.costPrice}>
-                  Cost: NPR {product.costPrice.toLocaleString()}
-                </Text>
-              ) : null}
-              {viewModel.canManage ? (
-                <Pressable
-                  onPress={() => {
-                    Alert.alert("Delete product", `Delete ${product.name}?`, [
-                      { text: "Cancel", style: "cancel" },
-                      {
-                        text: "Delete",
-                        style: "destructive",
-                        onPress: () => {
-                          void viewModel.onDelete(product);
-                        },
-                      },
-                    ]);
-                  }}
-                >
-                  <Text style={styles.deleteText}>Delete</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          </CardPressable>
-        ))}
-      </View>
-
-      <AppButton
-        label="Add Product"
-        size="lg"
-        leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
-        onPress={viewModel.onOpenCreate}
-        disabled={!viewModel.canManage}
-      />
+                <View style={styles.priceWrap}>
+                  <Text style={styles.salePrice}>{formatPriceLabel(product.salePrice)}</Text>
+                  {product.costPrice !== null ? (
+                    <Text style={styles.costPrice}>Cost: {formatPriceLabel(product.costPrice)}</Text>
+                  ) : null}
+                  {viewModel.canManage ? (
+                    <Pressable
+                      onPress={(event) => handleDeletePress(event, product)}
+                      hitSlop={8}
+                    >
+                      <Text style={styles.deleteText}>Delete</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </DashboardTabScaffold>
 
       <ProductEditorModal
         visible={viewModel.isEditorVisible}
@@ -168,72 +217,103 @@ export function ProductsScreen({
         onChange={viewModel.onFormChange}
         onSubmit={viewModel.onSubmit}
       />
-    </DashboardTabScaffold>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  summaryRow: { flexDirection: "row", gap: spacing.sm },
-  statIcon: { color: colors.primary, fontFamily: "InterBold", fontSize: 18 },
-  filterRow: {
+  content: {
+    gap: spacing.sm,
+  },
+  primaryActionButton: {
+    width: "100%",
+  },
+  summaryRow: {
     flexDirection: "row",
     gap: spacing.sm,
-    marginTop: spacing.xs,
-    marginBottom: spacing.xs,
   },
-  pill: {
-    minHeight: 36,
-    paddingHorizontal: 16,
-    borderRadius: radius.pill,
+  statIcon: {
+    color: colors.primary,
+    fontFamily: "InterBold",
+    fontSize: 18,
+  },
+  searchInput: {
+    color: colors.cardForeground,
+  },
+  tableContainer: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
+    overflow: "hidden",
+  },
+  productRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.card,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 13,
   },
-  pillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  pillText: {
-    color: colors.cardForeground,
-    fontFamily: "InterBold",
-    fontSize: 12,
+  productRowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  pillTextActive: { color: colors.primaryForeground },
-  listWrap: { gap: spacing.sm },
-  listCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  listIconWrap: {
-    width: 50,
-    height: 50,
+  productIconWrap: {
+    width: 40,
+    height: 40,
     borderRadius: radius.pill,
+    backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.accent,
   },
-  listBody: { flex: 1 },
+  productBody: {
+    flex: 1,
+    gap: 2,
+  },
   productTitle: {
     color: colors.cardForeground,
+    fontSize: 14,
     fontFamily: "InterBold",
-    fontSize: 15,
-    marginBottom: 4,
   },
-  productSubtitle: { color: colors.mutedForeground, fontSize: 12 },
-  priceWrap: { alignItems: "flex-end", gap: 2 },
+  productSubtitle: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+  },
+  priceWrap: {
+    alignItems: "flex-end",
+    gap: 2,
+    maxWidth: 150,
+  },
   salePrice: {
     color: colors.cardForeground,
+    fontSize: 13,
     fontFamily: "InterBold",
-    fontSize: 14,
   },
-  costPrice: { color: colors.mutedForeground, fontSize: 11 },
+  costPrice: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+  },
   deleteText: {
     color: colors.destructive,
+    fontSize: 11,
     fontFamily: "InterBold",
-    fontSize: 12,
-    marginTop: 4,
+    marginTop: 2,
+  },
+  centerState: {
+    minHeight: 180,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.lg,
   },
   errorText: {
     color: colors.destructive,
-    fontSize: 12,
-    fontFamily: "InterMedium",
+    fontSize: 13,
+    textAlign: "center",
+  },
+  emptyText: {
+    color: colors.mutedForeground,
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 20,
   },
 });
-
-

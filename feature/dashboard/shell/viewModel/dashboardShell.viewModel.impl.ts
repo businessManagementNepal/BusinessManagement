@@ -42,6 +42,11 @@ const DASHBOARD_ROUTE_PERMISSION_CODE: Partial<
   "personal-budget": "budget.view",
 };
 
+const MORE_SECTION_ROUTES = new Set<Exclude<DashboardRouteKey, null>>([
+  "products",
+  "inventory",
+]);
+
 export const useDashboardShellViewModel = (): DashboardShellViewModel => {
   const navigation = useSmoothNavigation();
   const segments = useSegments();
@@ -72,8 +77,13 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
   }, [navigation]);
 
   const onHeaderBack = useCallback(() => {
+    if (routeKey && MORE_SECTION_ROUTES.has(routeKey)) {
+      navigation.replace("/(dashboard)/more");
+      return;
+    }
+
     navigation.replace(homePath);
-  }, [homePath, navigation]);
+  }, [homePath, navigation, routeKey]);
 
   const onTabPress = useCallback(
     (tab: DashboardTabValue) => {

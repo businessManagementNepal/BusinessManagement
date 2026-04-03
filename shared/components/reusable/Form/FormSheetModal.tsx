@@ -16,6 +16,8 @@ import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButto
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 
+type FormSheetModalPresentation = "bottom-sheet" | "dialog";
+
 type FormSheetModalProps = {
   visible: boolean;
   title: string;
@@ -26,6 +28,8 @@ type FormSheetModalProps = {
   contentContainerStyle?: StyleProp<ViewStyle>;
   sheetStyle?: StyleProp<ViewStyle>;
   scrollEnabled?: boolean;
+  presentation?: FormSheetModalPresentation;
+  backdropStyle?: StyleProp<ViewStyle>;
 };
 
 export function FormSheetModal({
@@ -38,23 +42,43 @@ export function FormSheetModal({
   contentContainerStyle,
   sheetStyle,
   scrollEnabled = true,
+  presentation = "bottom-sheet",
+  backdropStyle,
 }: FormSheetModalProps) {
+  const isDialogPresentation = presentation === "dialog";
+
   return (
     <Modal
       visible={visible}
       transparent={true}
-      animationType="slide"
+      animationType={isDialogPresentation ? "fade" : "slide"}
       onRequestClose={onClose}
     >
-      <View style={styles.backdrop}>
-        <Pressable style={styles.dismissArea} onPress={onClose} />
+      <View
+        style={[
+          styles.backdrop,
+          isDialogPresentation ? styles.dialogBackdrop : styles.sheetBackdrop,
+          backdropStyle,
+        ]}
+      >
+        <Pressable
+          style={isDialogPresentation ? styles.dialogDismissArea : styles.sheetDismissArea}
+          onPress={onClose}
+        />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
+          style={isDialogPresentation ? styles.dialogKeyboardWrap : null}
         >
-          <View style={[styles.sheet, sheetStyle]}>
-            <View style={styles.handle} />
+          <View
+            style={[
+              styles.sheet,
+              isDialogPresentation ? styles.dialogSheet : styles.bottomSheet,
+              sheetStyle,
+            ]}
+          >
+            {isDialogPresentation ? null : <View style={styles.handle} />}
 
             <View style={styles.headerRow}>
               <View style={styles.headerTextWrap}>
@@ -94,21 +118,42 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: colors.overlay,
+  },
+  sheetBackdrop: {
     justifyContent: "flex-end",
   },
-  dismissArea: {
+  dialogBackdrop: {
+    justifyContent: "center",
+    paddingHorizontal: spacing.lg,
+  },
+  sheetDismissArea: {
     flex: 1,
   },
+  dialogDismissArea: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  dialogKeyboardWrap: {
+    width: "100%",
+  },
   sheet: {
-    maxHeight: "92%",
     backgroundColor: colors.card,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  bottomSheet: {
+    maxHeight: "92%",
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xs,
     paddingBottom: spacing.xl,
+  },
+  dialogSheet: {
+    maxHeight: "86%",
+    borderRadius: radius.xl,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
   },
   handle: {
     width: 42,
