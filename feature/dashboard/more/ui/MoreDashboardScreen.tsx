@@ -10,6 +10,7 @@ import {
   PiggyBank,
   ShieldCheck,
   ShoppingCart,
+  Tags,
   User,
 } from "lucide-react-native";
 import { Card } from "@/shared/components/reusable/Cards/Card";
@@ -68,6 +69,8 @@ const getItemIcon = (itemId: string) => {
       return <ShoppingCart size={18} color={colors.primary} />;
     case "products":
       return <Box size={18} color={colors.primary} />;
+    case "categories":
+      return <Tags size={18} color={colors.primary} />;
     case "inventory":
       return <Boxes size={18} color={colors.primary} />;
     case "emi":

@@ -42,6 +42,11 @@ const businessSections: readonly MoreDashboardSection[] = [
         subtitle: "Catalog for items and services",
       },
       {
+        id: "categories",
+        title: "Categories",
+        subtitle: "Category setup for products and reports",
+      },
+      {
         id: "inventory",
         title: "Inventory",
         subtitle: "Stock levels and movements",
@@ -99,6 +104,7 @@ export const useMoreDashboardViewModel = (
     onOpenLedger,
     onOpenPos,
     onOpenProducts,
+    onOpenCategories,
     onOpenInventory,
     onOpenEmi,
     onOpenTransactions,
@@ -121,6 +127,9 @@ export const useMoreDashboardViewModel = (
           return;
         case "products":
           onOpenProducts();
+          return;
+        case "categories":
+          onOpenCategories();
           return;
         case "inventory":
           onOpenInventory();
@@ -146,6 +155,7 @@ export const useMoreDashboardViewModel = (
       onOpenEmi,
       onOpenLedger,
       onOpenInventory,
+      onOpenCategories,
       onOpenPos,
       onOpenProducts,
       onOpenProfile,

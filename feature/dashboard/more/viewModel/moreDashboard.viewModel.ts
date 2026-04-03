@@ -14,6 +14,7 @@ export type UseMoreDashboardViewModelParams = {
   onOpenLedger: () => void;
   onOpenPos: () => void;
   onOpenProducts: () => void;
+  onOpenCategories: () => void;
   onOpenInventory: () => void;
   onOpenEmi: () => void;
   onOpenTransactions: () => void;
