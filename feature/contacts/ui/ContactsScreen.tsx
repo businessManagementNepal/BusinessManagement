@@ -62,13 +62,13 @@ export function ContactsScreen({
             label="Total"
           />
           <StatCard
-            icon={<Text style={styles.statIcon}>{viewModel.currencyPrefix}</Text>}
+            icon={<Text style={styles.statIcon}>+</Text>}
             value={viewModel.summary.receiveAmountLabel}
             label="Receivable"
             valueColor={colors.success}
           />
           <StatCard
-            icon={<Text style={styles.statIcon}>{viewModel.currencyPrefix}</Text>}
+            icon={<Text style={styles.statIcon}>-</Text>}
             value={viewModel.summary.payAmountLabel}
             label="Payable"
             valueColor={colors.destructive}
