@@ -46,8 +46,13 @@ const groupPermissionsByModule = (
   permissions: readonly UserManagementPermission[],
 ): RoleEditorPermissionGroup[] => {
   const groupedPermissions = new Map<string, UserManagementPermission[]>();
+  const uniquePermissionsByCode = new Map<string, UserManagementPermission>();
 
   for (const permission of permissions) {
+    uniquePermissionsByCode.set(permission.code, permission);
+  }
+
+  for (const permission of uniquePermissionsByCode.values()) {
     const existingPermissions = groupedPermissions.get(permission.module) ?? [];
 
     existingPermissions.push(permission);

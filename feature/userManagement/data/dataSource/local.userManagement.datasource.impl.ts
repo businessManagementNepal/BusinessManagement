@@ -112,13 +112,42 @@ export const createLocalUserManagementDatasource = (
           USER_MANAGEMENT_PERMISSIONS_TABLE,
         );
       const existingPermissions = await permissionsCollection.query().fetch();
-      const existingByCode = new Map(
-        existingPermissions.map((permission) => [permission.code, permission]),
-      );
+      const existingByCode = new Map<string, UserManagementPermissionModel[]>();
+
+      for (const existingPermission of existingPermissions) {
+        const records = existingByCode.get(existingPermission.code) ?? [];
+        records.push(existingPermission);
+        existingByCode.set(existingPermission.code, records);
+      }
 
       await database.write(async () => {
+        const canonicalPermissionByCode = new Map<
+          string,
+          UserManagementPermissionModel
+        >();
+
+        for (const [permissionCode, permissionRecords] of existingByCode.entries()) {
+          const canonicalPermission = selectLatestByTimestamps(permissionRecords);
+
+          if (!canonicalPermission) {
+            continue;
+          }
+
+          canonicalPermissionByCode.set(permissionCode, canonicalPermission);
+
+          const duplicatePermissions = permissionRecords.filter(
+            (permission) => permission.id !== canonicalPermission.id,
+          );
+
+          for (const duplicatePermission of duplicatePermissions) {
+            await duplicatePermission.destroyPermanently();
+          }
+        }
+
         for (const permissionSeed of seed) {
-          const existingPermission = existingByCode.get(permissionSeed.code);
+          const existingPermission = canonicalPermissionByCode.get(
+            permissionSeed.code,
+          );
 
           if (existingPermission) {
             const hasChanged =
@@ -140,7 +169,7 @@ export const createLocalUserManagementDatasource = (
             continue;
           }
 
-          await permissionsCollection.create((record) => {
+          const createdPermission = await permissionsCollection.create((record) => {
             const now = Date.now();
 
             record.code = permissionSeed.code;
@@ -150,6 +179,8 @@ export const createLocalUserManagementDatasource = (
 
             setCreatedAndUpdatedAt(record, now);
           });
+
+          canonicalPermissionByCode.set(permissionSeed.code, createdPermission);
         }
       });
 
@@ -170,10 +201,26 @@ export const createLocalUserManagementDatasource = (
         );
 
       const permissions = await permissionsCollection.query().fetch();
+      const groupedByCode = new Map<string, UserManagementPermissionModel[]>();
+
+      for (const permission of permissions) {
+        const records = groupedByCode.get(permission.code) ?? [];
+        records.push(permission);
+        groupedByCode.set(permission.code, records);
+      }
+
+      const dedupedPermissions: UserManagementPermissionModel[] = [];
+
+      for (const groupedPermissions of groupedByCode.values()) {
+        const canonicalPermission = selectLatestByTimestamps(groupedPermissions);
+        if (canonicalPermission) {
+          dedupedPermissions.push(canonicalPermission);
+        }
+      }
 
       return {
         success: true,
-        value: permissions,
+        value: dedupedPermissions,
       };
     } catch (error) {
       return {
