@@ -14,6 +14,8 @@ export default function LedgerDashboardRoute() {
     activeAccountType,
     activeUserRemoteId,
     activeAccountRemoteId,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
   } = useDashboardRouteContext();
 
   useEffect(() => {
@@ -44,6 +46,8 @@ export default function LedgerDashboardRoute() {
     <GetLedgerScreenFactory
       activeUserRemoteId={activeUserRemoteId}
       activeBusinessAccountRemoteId={activeAccountRemoteId}
+      activeBusinessAccountCurrencyCode={activeAccountCurrencyCode}
+      activeBusinessAccountCountryCode={activeAccountCountryCode}
     />
   );
 }

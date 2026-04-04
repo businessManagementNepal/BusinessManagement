@@ -12,10 +12,18 @@ import { BillingScreen } from "@/feature/billing/ui/BillingScreen";
 type Props = {
   database: Database;
   activeAccountRemoteId: string | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
   canManage: boolean;
 };
 
-export function GetBillingScreenFactory({ database, activeAccountRemoteId, canManage }: Props) {
+export function GetBillingScreenFactory({
+  database,
+  activeAccountRemoteId,
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
+  canManage,
+}: Props) {
   const datasource = React.useMemo(
     () => createLocalBillingDatasource(database),
     [database],
@@ -48,6 +56,8 @@ export function GetBillingScreenFactory({ database, activeAccountRemoteId, canMa
 
   const viewModel = useBillingViewModel({
     accountRemoteId: activeAccountRemoteId,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
     canManage,
     getBillingOverviewUseCase,
     saveBillingDocumentUseCase,

@@ -22,6 +22,8 @@ export interface ProductsViewModel {
   isLoading: boolean;
   errorMessage: string | null;
   canManage: boolean;
+  currencyCode: string;
+  countryCode: string | null;
   searchQuery: string;
   selectedKind: "all" | ProductKindValue;
   summary: {

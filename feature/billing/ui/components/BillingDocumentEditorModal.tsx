@@ -8,6 +8,7 @@ import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { BillingDocumentFormState, BillingLineItemFormState } from "@/feature/billing/viewModel/billing.viewModel";
 import { BILLING_STATUS_OPTIONS, BILLING_TAX_RATE_OPTIONS, BILLING_TEMPLATE_OPTIONS } from "@/feature/billing/types/billing.types";
+import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 
 export function BillingDocumentEditorModal({
   visible,
@@ -22,6 +23,8 @@ export function BillingDocumentEditorModal({
   onSubmit,
   onPrintPreview,
   onExportPdf,
+  currencyCode,
+  countryCode,
   draftTotals,
 }: {
   visible: boolean;
@@ -36,6 +39,8 @@ export function BillingDocumentEditorModal({
   onSubmit: () => Promise<void>;
   onPrintPreview: () => void;
   onExportPdf: () => void;
+  currencyCode: string;
+  countryCode: string | null;
   draftTotals: { subtotalAmount: number; taxAmount: number; totalAmount: number };
 }) {
   return (
@@ -138,10 +143,10 @@ export function BillingDocumentEditorModal({
             />
 
             <View style={styles.totalCard}>
-              <View style={styles.totalRow}><Text style={styles.totalLabel}>Subtotal</Text><Text style={styles.totalValue}>NPR {draftTotals.subtotalAmount.toLocaleString()}</Text></View>
-              <View style={styles.totalRow}><Text style={styles.totalLabel}>Tax ({form.taxRatePercent || "0"}%)</Text><Text style={styles.totalValue}>NPR {draftTotals.taxAmount.toLocaleString()}</Text></View>
+              <View style={styles.totalRow}><Text style={styles.totalLabel}>Subtotal</Text><Text style={styles.totalValue}>{formatCurrencyAmount({ amount: draftTotals.subtotalAmount, currencyCode, countryCode })}</Text></View>
+              <View style={styles.totalRow}><Text style={styles.totalLabel}>Tax ({form.taxRatePercent || "0"}%)</Text><Text style={styles.totalValue}>{formatCurrencyAmount({ amount: draftTotals.taxAmount, currencyCode, countryCode })}</Text></View>
               <View style={styles.totalDivider} />
-              <View style={styles.totalRow}><Text style={styles.totalHeading}>Total</Text><Text style={styles.totalHeadingValue}>NPR {draftTotals.totalAmount.toLocaleString()}</Text></View>
+              <View style={styles.totalRow}><Text style={styles.totalHeading}>Total</Text><Text style={styles.totalHeadingValue}>{formatCurrencyAmount({ amount: draftTotals.totalAmount, currencyCode, countryCode })}</Text></View>
             </View>
 
             <View style={styles.actionRow}>

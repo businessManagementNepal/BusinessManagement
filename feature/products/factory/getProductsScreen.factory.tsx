@@ -14,11 +14,15 @@ const PRODUCTS_MANAGE_PERMISSION_CODE = "products.manage";
 type Props = {
   activeAccountRemoteId: string | null;
   activeUserRemoteId: string | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
 };
 
 export function GetProductsScreenFactory({
   activeAccountRemoteId,
   activeUserRemoteId,
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
 }: Props) {
   const permissionAccess = useAccountPermissionAccess({
     activeUserRemoteId,
@@ -48,6 +52,8 @@ export function GetProductsScreenFactory({
 
   const viewModel = useProductsViewModel({
     accountRemoteId: activeAccountRemoteId,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
     canManage: permissionAccess.hasPermission(PRODUCTS_MANAGE_PERMISSION_CODE),
     getProductsUseCase,
     saveProductUseCase,

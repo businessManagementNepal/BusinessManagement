@@ -10,8 +10,10 @@ import {
   MoneyAccountFormState,
   MoneyAccountsViewModel,
 } from "./moneyAccounts.viewModel";
-
-const DEFAULT_CURRENCY = "NPR";
+import {
+  formatCurrencyAmount,
+  resolveCurrencyCode,
+} from "@/shared/utils/currency/accountCurrency";
 
 const EMPTY_FORM: MoneyAccountFormState = {
   remoteId: null,
@@ -42,10 +44,6 @@ const parseBalance = (value: string): number | null => {
   return Number.isFinite(parsedValue) ? parsedValue : null;
 };
 
-const formatCurrency = (value: number, currencyLabel: string): string => {
-  return `${currencyLabel} ${value.toLocaleString()}`;
-};
-
 const sortAccounts = (accounts: readonly MoneyAccount[]): MoneyAccount[] => {
   return [...accounts].sort((leftAccount, rightAccount) => {
     if (leftAccount.isPrimary && !rightAccount.isPrimary) {
@@ -63,6 +61,8 @@ const sortAccounts = (accounts: readonly MoneyAccount[]): MoneyAccount[] => {
 type UseMoneyAccountsViewModelParams = {
   activeUserRemoteId: string | null;
   scopeAccountRemoteId: string | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
   canManage: boolean;
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   saveMoneyAccountUseCase: SaveMoneyAccountUseCase;
@@ -71,6 +71,8 @@ type UseMoneyAccountsViewModelParams = {
 export const useMoneyAccountsViewModel = ({
   activeUserRemoteId,
   scopeAccountRemoteId,
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
   canManage,
   getMoneyAccountsUseCase,
   saveMoneyAccountUseCase,
@@ -155,6 +157,15 @@ export const useMoneyAccountsViewModel = ({
     return accounts.reduce((sum, account) => sum + account.currentBalance, 0);
   }, [accounts]);
 
+  const currencyCode = useMemo(
+    () =>
+      resolveCurrencyCode({
+        currencyCode: activeAccountCurrencyCode,
+        countryCode: activeAccountCountryCode,
+      }),
+    [activeAccountCountryCode, activeAccountCurrencyCode],
+  );
+
   const onSubmit = useCallback(async () => {
     if (!canManage) {
       setErrorMessage("You do not have permission to manage money accounts.");
@@ -191,7 +202,7 @@ export const useMoneyAccountsViewModel = ({
       type: form.type,
       currentBalance: parsedBalance,
       description: form.description || null,
-      currencyCode: DEFAULT_CURRENCY,
+      currencyCode,
       isPrimary: existingRecord?.isPrimary ?? isFirstScopeAccount,
       isActive: true,
     });
@@ -212,6 +223,7 @@ export const useMoneyAccountsViewModel = ({
     loadMoneyAccounts,
     saveMoneyAccountUseCase,
     scopeAccountRemoteId,
+    currencyCode,
   ]);
 
   return useMemo(
@@ -219,8 +231,14 @@ export const useMoneyAccountsViewModel = ({
       isLoading,
       errorMessage,
       canManage,
-      currencyLabel: DEFAULT_CURRENCY,
-      totalBalanceLabel: formatCurrency(totalBalance, DEFAULT_CURRENCY),
+      currencyCode,
+      countryCode: activeAccountCountryCode,
+      currencyLabel: currencyCode,
+      totalBalanceLabel: formatCurrencyAmount({
+        amount: totalBalance,
+        currencyCode,
+        countryCode: activeAccountCountryCode,
+      }),
       accounts,
       isEditorVisible,
       editorMode,
@@ -235,9 +253,11 @@ export const useMoneyAccountsViewModel = ({
     [
       accounts,
       canManage,
+      currencyCode,
       editorMode,
       errorMessage,
       form,
+      activeAccountCountryCode,
       isEditorVisible,
       isLoading,
       loadMoneyAccounts,

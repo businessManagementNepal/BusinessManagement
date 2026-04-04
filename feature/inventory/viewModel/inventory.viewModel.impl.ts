@@ -11,6 +11,10 @@ import {
   InventoryMovementFormState,
   InventoryViewModel,
 } from "./inventory.viewModel";
+import {
+  resolveCurrencyCode,
+  resolveCurrencyPrefix,
+} from "@/shared/utils/currency/accountCurrency";
 
 const formatDateInput = (timestamp: number): string => {
   const date = new Date(timestamp);
@@ -55,6 +59,8 @@ const createEmptyForm = (): InventoryMovementFormState => ({
 
 type Params = {
   accountRemoteId: string | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
   canManage: boolean;
   getInventorySnapshotUseCase: GetInventorySnapshotUseCase;
   saveInventoryMovementUseCase: SaveInventoryMovementUseCase;
@@ -62,6 +68,8 @@ type Params = {
 
 export const useInventoryViewModel = ({
   accountRemoteId,
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
   canManage,
   getInventorySnapshotUseCase,
   saveInventoryMovementUseCase,
@@ -75,6 +83,22 @@ export const useInventoryViewModel = ({
     InventoryMovementType.StockIn,
   );
   const [form, setForm] = useState<InventoryMovementFormState>(createEmptyForm);
+  const currencyCode = useMemo(
+    () =>
+      resolveCurrencyCode({
+        currencyCode: activeAccountCurrencyCode,
+        countryCode: activeAccountCountryCode,
+      }),
+    [activeAccountCountryCode, activeAccountCurrencyCode],
+  );
+  const currencyPrefix = useMemo(
+    () =>
+      resolveCurrencyPrefix({
+        currencyCode,
+        countryCode: activeAccountCountryCode,
+      }),
+    [activeAccountCountryCode, currencyCode],
+  );
 
   const loadInventory = useCallback(async () => {
     if (!accountRemoteId) {
@@ -222,6 +246,9 @@ export const useInventoryViewModel = ({
     () => ({
       isLoading,
       errorMessage,
+      currencyCode,
+      countryCode: activeAccountCountryCode,
+      currencyPrefix,
       summary,
       stockItems,
       recentMovements,
@@ -245,6 +272,9 @@ export const useInventoryViewModel = ({
       editorType,
       errorMessage,
       form,
+      currencyCode,
+      currencyPrefix,
+      activeAccountCountryCode,
       isEditorVisible,
       isLoading,
       loadInventory,

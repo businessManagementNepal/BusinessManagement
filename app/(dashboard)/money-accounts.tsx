@@ -18,6 +18,8 @@ export default function MoneyAccountsDashboardRoute() {
     activeUserRemoteId,
     activeAccountRemoteId,
     activeAccountType,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
   } = useDashboardRouteContext();
 
   const permissionAccess = useAccountPermissionAccess({
@@ -77,6 +79,8 @@ export default function MoneyAccountsDashboardRoute() {
     <GetMoneyAccountsScreenFactory
       activeUserRemoteId={activeUserRemoteId}
       activeAccountRemoteId={activeAccountRemoteId}
+      activeAccountCurrencyCode={activeAccountCurrencyCode}
+      activeAccountCountryCode={activeAccountCountryCode}
       canManage={canManageMoneyAccounts}
     />
   );

@@ -17,17 +17,10 @@ import { InlineSectionHeader } from "@/shared/components/reusable/ScreenLayouts/
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { InventoryMovementModal } from "./components/InventoryMovementModal";
+import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 
 type InventoryScreenProps = {
   viewModel: InventoryViewModel;
-};
-
-const formatCurrency = (value: number): string => {
-  if (value >= 1000 && value % 1000 === 0) {
-    return `NPR ${Math.round(value / 1000)}K`;
-  }
-
-  return `NPR ${value.toLocaleString()}`;
 };
 
 const formatMovementDate = (timestamp: number): string => {
@@ -118,8 +111,12 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
             valueColor={colors.warning}
           />
           <StatCard
-            icon={<Text style={styles.currencyIcon}>Rs</Text>}
-            value={formatCurrency(viewModel.summary.stockValue)}
+            icon={<Text style={styles.currencyIcon}>{viewModel.currencyPrefix}</Text>}
+            value={formatCurrencyAmount({
+              amount: viewModel.summary.stockValue,
+              currencyCode: viewModel.currencyCode,
+              countryCode: viewModel.countryCode,
+            })}
             label="Stock Value"
           />
         </View>
@@ -174,7 +171,13 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
                     </View>
 
                     <View style={styles.stockValueWrap}>
-                      <Text style={styles.valueText}>{formatCurrency(item.stockValue)}</Text>
+                      <Text style={styles.valueText}>
+                        {formatCurrencyAmount({
+                          amount: item.stockValue,
+                          currencyCode: viewModel.currencyCode,
+                          countryCode: viewModel.countryCode,
+                        })}
+                      </Text>
                       {item.isLowStock ? (
                         <View style={styles.lowStockBadge}>
                           <Text style={styles.lowStockBadgeText}>Low Stock</Text>
@@ -253,6 +256,7 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
         form={viewModel.form}
         productOptions={viewModel.productOptions}
         adjustmentReasonOptions={viewModel.adjustmentReasonOptions}
+        currencyPrefix={viewModel.currencyPrefix}
         onClose={viewModel.onCloseEditor}
         onChange={viewModel.onFormChange}
         onSubmit={viewModel.onSubmit}

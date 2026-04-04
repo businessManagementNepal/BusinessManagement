@@ -9,6 +9,7 @@ import {
   CompletePosCheckoutParams,
   CompletePosCheckoutUseCase,
 } from "./completePosCheckout.useCase";
+import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 
 type CreateCompletePosCheckoutUseCaseParams = {
   completePaymentUseCase: CompletePaymentUseCase;
@@ -29,6 +30,11 @@ export const createCompletePosCheckoutUseCase = ({
   addLedgerEntryUseCase,
 }: CreateCompletePosCheckoutUseCaseParams): CompletePosCheckoutUseCase => ({
   async execute(params: CompletePosCheckoutParams): Promise<PosPaymentResult> {
+    const currencyCode = resolveCurrencyCode({
+      currencyCode: params.activeAccountCurrencyCode,
+      countryCode: params.activeAccountCountryCode,
+    });
+
     const paymentResult = await completePaymentUseCase.execute({
       paidAmount: params.paidAmount,
       activeSettlementAccountRemoteId: params.activeSettlementAccountRemoteId,
@@ -70,7 +76,7 @@ export const createCompletePosCheckoutUseCase = ({
       balanceDirection: LedgerBalanceDirection.Receive,
       title: `POS Sale ${receipt.receiptNumber}`,
       amount: receipt.dueAmount,
-      currencyCode: "NPR",
+      currencyCode,
       note: `Unpaid balance from POS receipt ${receipt.receiptNumber}.`,
       happenedAt: Date.now(),
       dueAt: null,

@@ -26,11 +26,15 @@ import React, { useCallback, useMemo, useState } from "react";
 export type GetTransactionsScreenFactoryProps = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
 };
 
 export function GetTransactionsScreenFactory({
   activeUserRemoteId,
   activeAccountRemoteId,
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
 }: GetTransactionsScreenFactoryProps) {
   const [reloadSignal, setReloadSignal] = useState(0);
 
@@ -164,6 +168,8 @@ export function GetTransactionsScreenFactory({
   const listViewModel = useTransactionsListViewModel({
     ownerUserRemoteId: activeUserRemoteId ?? "",
     activeAccountRemoteId,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
     getTransactionsUseCase,
     onOpenCreate: editorViewModel.openCreate,
     onOpenEdit: editorViewModel.openEdit,

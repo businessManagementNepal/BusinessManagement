@@ -15,17 +15,18 @@ import {
   EmiInstallmentItemState,
   EmiPlanDetailState,
 } from "@/feature/emiLoans/types/emi.state.types";
+import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 
 export const formatCurrency = (
   amount: number,
   currencyCode: string | null,
+  countryCode: string | null = null,
 ): string => {
-  const normalizedCurrencyCode = currencyCode?.trim().toUpperCase() || "NPR";
-  const formattedAmount = new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: 0,
-  }).format(amount);
-
-  return `${normalizedCurrencyCode} ${formattedAmount}`;
+  return formatCurrencyAmount({
+    amount,
+    currencyCode,
+    countryCode,
+  });
 };
 
 export const formatDateLabel = (timestamp: number | null): string => {

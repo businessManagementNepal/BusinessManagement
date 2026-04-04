@@ -6,7 +6,15 @@ import { createCalculateTaxBreakdownUseCase } from "@/feature/appSettings/taxCal
 import { createGetTaxCalculatorPresetsUseCase } from "@/feature/appSettings/taxCalculator/useCase/getTaxCalculatorPresets.useCase.impl";
 import { useTaxCalculatorViewModel } from "@/feature/appSettings/taxCalculator/viewModel/taxCalculator.viewModel.impl";
 
-export function GetTaxCalculatorSettingsScreenFactory() {
+type Props = {
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
+};
+
+export function GetTaxCalculatorSettingsScreenFactory({
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
+}: Props) {
   const datasource = React.useMemo(() => createLocalTaxCalculatorDatasource(), []);
   const repository = React.useMemo(
     () => createTaxCalculatorRepository(datasource),
@@ -22,6 +30,8 @@ export function GetTaxCalculatorSettingsScreenFactory() {
   );
 
   const viewModel = useTaxCalculatorViewModel({
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
     getTaxCalculatorPresetsUseCase,
     calculateTaxBreakdownUseCase,
   });

@@ -129,7 +129,7 @@ export function EmiLoansScreen({
       ? summaryById.get("to-pay")
       : summaryById.get("my-plans");
 
-  const dueBannerLabel = dueSummary?.value ?? "NPR 0";
+  const dueBannerLabel = dueSummary?.value ?? listViewModel.zeroAmountLabel;
   const shouldShowDueBanner = !isZeroLike(dueBannerLabel) || Boolean(overdueSummary);
 
   return (
@@ -173,7 +173,7 @@ export function EmiLoansScreen({
               {primaryLeftSummary?.label ?? "Total Outstanding"}
             </Text>
             <Text style={styles.summaryValue}>
-              {primaryLeftSummary?.value ?? "NPR 0"}
+              {primaryLeftSummary?.value ?? listViewModel.zeroAmountLabel}
             </Text>
           </View>
 

@@ -10,6 +10,7 @@ import {
   LedgerDetailEntryItemState,
   LedgerPartyDetailState,
 } from "@/feature/ledger/types/ledger.state.types";
+import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 
 type PartyAggregate = {
   id: string;
@@ -36,18 +37,16 @@ const settlementEntryTypes = new Set<LedgerEntryTypeValue>([
   LedgerEntryType.PaymentOut,
 ]);
 
-const formatBaseNumber = (amount: number): string => {
-  return new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
-
 export const formatCurrency = (
   amount: number,
   currencyCode: string | null,
+  countryCode: string | null = null,
 ): string => {
-  const normalizedCurrencyCode = currencyCode?.trim().toUpperCase() || "NPR";
-  return `${normalizedCurrencyCode} ${formatBaseNumber(amount)}`;
+  return formatCurrencyAmount({
+    amount,
+    currencyCode,
+    countryCode,
+  });
 };
 
 export const formatDateLabel = (timestamp: number | null): string => {

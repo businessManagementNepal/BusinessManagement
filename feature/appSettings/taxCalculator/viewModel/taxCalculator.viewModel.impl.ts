@@ -11,13 +11,11 @@ import {
   TaxCalculatorScreenViewModel,
   TaxCalculationSummaryState,
 } from "./taxCalculator.viewModel";
-
-const formatCurrency = (value: number): string => {
-  return `NPR ${value.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })}`;
-};
+import {
+  formatCurrencyAmount,
+  resolveCurrencyCode,
+  resolveCurrencyPrefix,
+} from "@/shared/utils/currency/accountCurrency";
 
 const parseAmountInput = (value: string): number | null => {
   const normalized = value.replace(/,/g, "").trim();
@@ -35,23 +33,44 @@ const parseAmountInput = (value: string): number | null => {
 
 const buildCalculationSummary = (
   breakdown: TaxBreakdown,
+  currencyCode: string,
+  countryCode: string | null,
 ): TaxCalculationSummaryState => ({
   presetLabel: breakdown.presetLabel,
   modeLabel:
     breakdown.mode === TaxCalculationMode.Inclusive
       ? "Tax Inclusive"
       : "Tax Exclusive",
-  subtotalLabel: formatCurrency(breakdown.subtotalAmount),
-  taxAmountLabel: formatCurrency(breakdown.taxAmount),
-  totalAmountLabel: formatCurrency(breakdown.totalAmount),
+  subtotalLabel: formatCurrencyAmount({
+    amount: breakdown.subtotalAmount,
+    currencyCode,
+    countryCode,
+    maximumFractionDigits: 2,
+  }),
+  taxAmountLabel: formatCurrencyAmount({
+    amount: breakdown.taxAmount,
+    currencyCode,
+    countryCode,
+    maximumFractionDigits: 2,
+  }),
+  totalAmountLabel: formatCurrencyAmount({
+    amount: breakdown.totalAmount,
+    currencyCode,
+    countryCode,
+    maximumFractionDigits: 2,
+  }),
 });
 
 type Params = {
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
   getTaxCalculatorPresetsUseCase: GetTaxCalculatorPresetsUseCase;
   calculateTaxBreakdownUseCase: CalculateTaxBreakdownUseCase;
 };
 
 export const useTaxCalculatorViewModel = ({
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
   getTaxCalculatorPresetsUseCase,
   calculateTaxBreakdownUseCase,
 }: Params): TaxCalculatorScreenViewModel => {
@@ -68,6 +87,21 @@ export const useTaxCalculatorViewModel = ({
   const [calculationSummary, setCalculationSummary] =
     useState<TaxCalculationSummaryState | null>(null);
   const [isCalculatorVisible, setIsCalculatorVisible] = useState(false);
+  const currencyCode = useMemo(
+    () =>
+      resolveCurrencyCode({
+        currencyCode: activeAccountCurrencyCode,
+        countryCode: activeAccountCountryCode,
+      }),
+    [activeAccountCountryCode, activeAccountCurrencyCode],
+  );
+  const amountInputPlaceholder = useMemo(() => {
+    const currencyPrefix = resolveCurrencyPrefix({
+      currencyCode,
+      countryCode: activeAccountCountryCode,
+    });
+    return `Enter Amount (${currencyPrefix})`;
+  }, [activeAccountCountryCode, currencyCode]);
 
   const loadPresets = useCallback(async () => {
     setIsLoading(true);
@@ -146,7 +180,13 @@ export const useTaxCalculatorViewModel = ({
         return;
       }
 
-      setCalculationSummary(buildCalculationSummary(result.value));
+      setCalculationSummary(
+        buildCalculationSummary(
+          result.value,
+          currencyCode,
+          activeAccountCountryCode,
+        ),
+      );
       setCalculationErrorMessage(null);
     };
 
@@ -157,7 +197,9 @@ export const useTaxCalculatorViewModel = ({
     };
   }, [
     amountInput,
+    activeAccountCountryCode,
     calculateTaxBreakdownUseCase,
+    currencyCode,
     isLoading,
     loadErrorMessage,
     selectedMode,
@@ -201,6 +243,7 @@ export const useTaxCalculatorViewModel = ({
       errorMessage,
       isCalculatorVisible,
       amountInput,
+      amountInputPlaceholder,
       selectedPresetCode,
       selectedMode,
       presetOptions,
@@ -217,6 +260,7 @@ export const useTaxCalculatorViewModel = ({
     }),
     [
       amountInput,
+      amountInputPlaceholder,
       calculationSummary,
       calculationErrorMessage,
       errorMessage,

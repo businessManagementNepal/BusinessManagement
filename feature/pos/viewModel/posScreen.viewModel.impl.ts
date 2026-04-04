@@ -12,6 +12,10 @@ import { RemoveProductFromSlotUseCase } from "../useCase/removeProductFromSlot.u
 import { SearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase";
 import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
 import { PosCartLine, PosSlot, PosTotals } from "../types/pos.entity.types";
+import {
+  formatCurrencyAmount,
+  resolveCurrencyCode,
+} from "@/shared/utils/currency/accountCurrency";
 
 const EMPTY_TOTALS: PosTotals = {
   itemCount: 0,
@@ -94,6 +98,8 @@ export type UsePosScreenViewModelParams = {
   activeBusinessAccountRemoteId: string | null;
   activeOwnerUserRemoteId: string | null;
   activeSettlementAccountRemoteId: string | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
   getPosBootstrapUseCase: GetPosBootstrapUseCase;
   searchPosProductsUseCase: SearchPosProductsUseCase;
   assignProductToSlotUseCase: AssignProductToSlotUseCase;
@@ -113,6 +119,8 @@ export function usePosScreenViewModel(
     activeBusinessAccountRemoteId,
     activeOwnerUserRemoteId,
     activeSettlementAccountRemoteId,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
     getPosBootstrapUseCase,
     searchPosProductsUseCase,
     assignProductToSlotUseCase,
@@ -126,6 +134,14 @@ export function usePosScreenViewModel(
   } = params;
 
   const [state, setState] = useState<PosScreenState>(INITIAL_STATE);
+  const currencyCode = useMemo(
+    () =>
+      resolveCurrencyCode({
+        currencyCode: activeAccountCurrencyCode,
+        countryCode: activeAccountCountryCode,
+      }),
+    [activeAccountCountryCode, activeAccountCurrencyCode],
+  );
 
   const recalculateTotals = useCallback((cartLines: readonly PosCartLine[]) => {
     setState((currentState) => ({
@@ -421,9 +437,20 @@ export function usePosScreenViewModel(
 
     setState((currentState) => ({
       ...currentState,
-      infoMessage: `Split preview: ${splitCount} people x NPR ${splitAmount.toFixed(2)}`,
+      infoMessage: `Split preview: ${splitCount} people x ${formatCurrencyAmount({
+        amount: splitAmount,
+        currencyCode,
+        countryCode: activeAccountCountryCode,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
     }));
-  }, [state.paymentSplitCountInput, state.totals.grandTotal]);
+  }, [
+    activeAccountCountryCode,
+    currencyCode,
+    state.paymentSplitCountInput,
+    state.totals.grandTotal,
+  ]);
 
   const onApplyDiscount = useCallback(async () => {
     const result = await applyDiscountUseCase.execute({
@@ -490,6 +517,8 @@ export function usePosScreenViewModel(
       activeBusinessAccountRemoteId,
       activeOwnerUserRemoteId,
       activeSettlementAccountRemoteId,
+      activeAccountCurrencyCode: currencyCode,
+      activeAccountCountryCode,
     });
 
     if (!result.success) {
@@ -513,17 +542,31 @@ export function usePosScreenViewModel(
       filteredProducts: products,
       infoMessage:
         result.value.ledgerEffect.type === "due_balance_created"
-          ? `Sale completed. NPR ${result.value.dueAmount.toFixed(2)} was posted as ledger due.`
+          ? `Sale completed. ${formatCurrencyAmount({
+              amount: result.value.dueAmount,
+              currencyCode,
+              countryCode: activeAccountCountryCode,
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })} was posted as ledger due.`
           : result.value.ledgerEffect.type === "due_balance_create_failed"
-            ? `Sale completed. NPR ${result.value.dueAmount.toFixed(2)} due could not be posted automatically. Add it from Ledger.`
+            ? `Sale completed. ${formatCurrencyAmount({
+                amount: result.value.dueAmount,
+                currencyCode,
+                countryCode: activeAccountCountryCode,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })} due could not be posted automatically. Add it from Ledger.`
             : "Sale completed successfully.",
       errorMessage: null,
     }));
   }, [
+    activeAccountCountryCode,
     activeBusinessAccountRemoteId,
     activeOwnerUserRemoteId,
     activeSettlementAccountRemoteId,
     completePosCheckoutUseCase,
+    currencyCode,
     searchPosProductsUseCase,
     state.paymentInput,
   ]);
@@ -549,6 +592,8 @@ export function usePosScreenViewModel(
     () => ({
       status: state.status,
       screenTitle: "POS Checkout",
+      currencyCode,
+      countryCode: activeAccountCountryCode,
       slots: state.slots,
       cartLines: state.cartLines,
       totals: state.totals,
@@ -596,8 +641,10 @@ export function usePosScreenViewModel(
     }),
     [
       activeBusinessAccountRemoteId,
+      activeAccountCountryCode,
       activeOwnerUserRemoteId,
       activeSettlementAccountRemoteId,
+      currencyCode,
       load,
       onApplyDiscount,
       onApplySurcharge,

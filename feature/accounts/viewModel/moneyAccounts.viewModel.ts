@@ -15,6 +15,8 @@ export interface MoneyAccountsViewModel {
   isLoading: boolean;
   errorMessage: string | null;
   canManage: boolean;
+  currencyCode: string;
+  countryCode: string | null;
   currencyLabel: string;
   totalBalanceLabel: string;
   accounts: readonly MoneyAccount[];

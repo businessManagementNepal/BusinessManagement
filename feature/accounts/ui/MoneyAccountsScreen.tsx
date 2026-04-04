@@ -18,10 +18,7 @@ import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { MoneyAccountEditorModal } from "./components/MoneyAccountEditorModal";
-
-const formatCurrency = (value: number, currencyLabel: string): string => {
-  return `${currencyLabel} ${value.toLocaleString()}`;
-};
+import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 
 const resolveAccountTypeLabel = (account: MoneyAccount): string => {
   switch (account.type) {
@@ -136,10 +133,11 @@ export function MoneyAccountsScreen({ viewModel }: MoneyAccountsScreenProps) {
                 </View>
 
                 <Text style={styles.accountBalance}>
-                  {formatCurrency(
-                    account.currentBalance,
-                    viewModel.currencyLabel,
-                  )}
+                  {formatCurrencyAmount({
+                    amount: account.currentBalance,
+                    currencyCode: viewModel.currencyCode,
+                    countryCode: viewModel.countryCode,
+                  })}
                 </Text>
               </CardPressable>
             );

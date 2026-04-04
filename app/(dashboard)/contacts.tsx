@@ -18,6 +18,8 @@ export default function ContactsDashboardRoute() {
     activeUserRemoteId,
     activeAccountRemoteId,
     activeAccountType,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
   } = useDashboardRouteContext();
 
   const permissionAccess = useAccountPermissionAccess({
@@ -78,6 +80,8 @@ export default function ContactsDashboardRoute() {
       activeUserRemoteId={activeUserRemoteId}
       activeAccountRemoteId={activeAccountRemoteId}
       activeAccountType={activeAccountType}
+      activeAccountCurrencyCode={activeAccountCurrencyCode}
+      activeAccountCountryCode={activeAccountCountryCode}
       canManage={canManageContacts}
     />
   );

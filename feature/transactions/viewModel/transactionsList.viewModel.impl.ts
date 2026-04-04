@@ -13,15 +13,10 @@ import {
 } from "@/feature/transactions/types/transaction.state.types";
 import { GetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase";
 import { TransactionsListViewModel } from "./transactionsList.viewModel";
-
-const formatCurrency = (amount: number, currencyCode: string | null): string => {
-  const normalizedCurrencyCode = currencyCode?.trim().toUpperCase() || "NPR";
-  const formattedAmount = new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: 0,
-  }).format(amount);
-
-  return `${normalizedCurrencyCode} ${formattedAmount}`;
-};
+import {
+  formatCurrencyAmount,
+  resolveCurrencyCode,
+} from "@/shared/utils/currency/accountCurrency";
 
 const formatTransactionDate = (happenedAt: number): string => {
   const date = new Date(happenedAt);
@@ -53,8 +48,16 @@ const buildSubtitle = (transaction: Transaction): string => {
   return `${dateLabel} • ${typeLabel} • ${accountLabel}`;
 };
 
-const buildAmountLabel = (transaction: Transaction): string => {
-  const amountLabel = formatCurrency(transaction.amount, transaction.currencyCode);
+const buildAmountLabel = (
+  transaction: Transaction,
+  fallbackCurrencyCode: string,
+  fallbackCountryCode: string | null,
+): string => {
+  const amountLabel = formatCurrencyAmount({
+    amount: transaction.amount,
+    currencyCode: transaction.currencyCode ?? fallbackCurrencyCode,
+    countryCode: fallbackCountryCode,
+  });
 
   return transaction.direction === TransactionDirection.In
     ? `+${amountLabel}`
@@ -79,6 +82,8 @@ const getTransactionTypeLabel = (transactionType: TransactionTypeValue): string 
 type UseTransactionsListViewModelParams = {
   ownerUserRemoteId: string;
   activeAccountRemoteId: string | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
   getTransactionsUseCase: GetTransactionsUseCase;
   onOpenCreate: (type: TransactionTypeValue) => void;
   onOpenEdit: (remoteId: string) => void;
@@ -88,6 +93,8 @@ type UseTransactionsListViewModelParams = {
 export const useTransactionsListViewModel = ({
   ownerUserRemoteId,
   activeAccountRemoteId,
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
   getTransactionsUseCase,
   onOpenCreate,
   onOpenEdit,
@@ -99,6 +106,14 @@ export const useTransactionsListViewModel = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<TransactionListFilterValue>(
     TransactionListFilter.All,
+  );
+  const resolvedCurrencyCode = useMemo(
+    () =>
+      resolveCurrencyCode({
+        currencyCode: activeAccountCurrencyCode,
+        countryCode: activeAccountCountryCode,
+      }),
+    [activeAccountCountryCode, activeAccountCurrencyCode],
   );
 
   const loadTransactions = useCallback(async (): Promise<void> => {
@@ -172,35 +187,47 @@ export const useTransactionsListViewModel = ({
         : sum;
     }, 0);
 
-    const currencyCode = transactions[0]?.currencyCode ?? "NPR";
+    const currencyCode = transactions[0]?.currencyCode ?? resolvedCurrencyCode;
 
     return [
       {
         id: "money-in",
         label: "Money In",
-        value: formatCurrency(moneyIn, currencyCode),
+        value: formatCurrencyAmount({
+          amount: moneyIn,
+          currencyCode,
+          countryCode: activeAccountCountryCode,
+        }),
         tone: "income",
       },
       {
         id: "money-out",
         label: "Money Out",
-        value: formatCurrency(moneyOut, currencyCode),
+        value: formatCurrencyAmount({
+          amount: moneyOut,
+          currencyCode,
+          countryCode: activeAccountCountryCode,
+        }),
         tone: "expense",
       },
     ];
-  }, [transactions]);
+  }, [activeAccountCountryCode, resolvedCurrencyCode, transactions]);
 
   const transactionItems = useMemo<readonly TransactionListItemState[]>(() => {
     return filteredTransactions.map((transaction) => ({
       remoteId: transaction.remoteId,
       title: transaction.title,
       subtitle: buildSubtitle(transaction),
-      amountLabel: buildAmountLabel(transaction),
+      amountLabel: buildAmountLabel(
+        transaction,
+        resolvedCurrencyCode,
+        activeAccountCountryCode,
+      ),
       tone:
         transaction.direction === TransactionDirection.In ? "income" : "expense",
       transactionType: transaction.transactionType,
     }));
-  }, [filteredTransactions]);
+  }, [activeAccountCountryCode, filteredTransactions, resolvedCurrencyCode]);
 
   const emptyStateMessage = useMemo(() => {
     if (transactions.length === 0) {

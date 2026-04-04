@@ -13,11 +13,15 @@ const INVENTORY_MANAGE_PERMISSION_CODE = "inventory.manage";
 type Props = {
   activeAccountRemoteId: string | null;
   activeUserRemoteId: string | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
 };
 
 export function GetInventoryScreenFactory({
   activeAccountRemoteId,
   activeUserRemoteId,
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
 }: Props) {
   const permissionAccess = useAccountPermissionAccess({
     activeUserRemoteId,
@@ -43,6 +47,8 @@ export function GetInventoryScreenFactory({
 
   const viewModel = useInventoryViewModel({
     accountRemoteId: activeAccountRemoteId,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
     canManage: permissionAccess.hasPermission(INVENTORY_MANAGE_PERMISSION_CODE),
     getInventorySnapshotUseCase,
     saveInventoryMovementUseCase,

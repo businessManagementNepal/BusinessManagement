@@ -59,6 +59,8 @@ describe("completePosCheckout.useCase", () => {
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
       activeSettlementAccountRemoteId: "business-1",
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
     });
 
     expect(result.success).toBe(true);
@@ -98,6 +100,8 @@ describe("completePosCheckout.useCase", () => {
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
       activeSettlementAccountRemoteId: "business-1",
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
     });
 
     expect(result.success).toBe(true);
@@ -139,6 +143,8 @@ describe("completePosCheckout.useCase", () => {
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
       activeSettlementAccountRemoteId: "business-1",
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
     });
 
     expect(result.success).toBe(true);

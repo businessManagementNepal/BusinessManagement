@@ -152,7 +152,11 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                               {assignedProduct?.name}
                             </Text>
                             <Text style={styles.slotPriceText}>
-                              {formatCurrency(assignedProduct?.price ?? 0)}
+                              {formatCurrency(
+                                assignedProduct?.price ?? 0,
+                                viewModel.currencyCode,
+                                viewModel.countryCode,
+                              )}
                             </Text>
                           </>
                         ) : (
@@ -189,7 +193,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                     {selectedCartLine.productName}
                   </Text>
                   <Text style={styles.slotDetailMeta}>
-                    {selectedCartLine.categoryLabel} | {formatCurrency(selectedCartLine.unitPrice)} x {selectedCartLine.quantity} = {formatCurrency(selectedCartLine.lineSubtotal)}
+                    {selectedCartLine.categoryLabel} | {formatCurrency(selectedCartLine.unitPrice, viewModel.currencyCode, viewModel.countryCode)} x {selectedCartLine.quantity} = {formatCurrency(selectedCartLine.lineSubtotal, viewModel.currencyCode, viewModel.countryCode)}
                   </Text>
                 </>
               ) : selectedAssignedProduct ? (
@@ -198,7 +202,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                     {selectedAssignedProduct.name}
                   </Text>
                   <Text style={styles.slotDetailMeta}>
-                    Assigned to slot at {formatCurrency(selectedAssignedProduct.price)}. Tap slot to add it to cart.
+                    Assigned to slot at {formatCurrency(selectedAssignedProduct.price, viewModel.currencyCode, viewModel.countryCode)}. Tap slot to add it to cart.
                   </Text>
                 </>
               ) : (
@@ -231,7 +235,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                     {cartLine.productName}
                   </Text>
                   <Text style={styles.cartLineMeta}>
-                    {formatCurrency(cartLine.unitPrice)} x {cartLine.quantity}
+                    {formatCurrency(cartLine.unitPrice, viewModel.currencyCode, viewModel.countryCode)} x {cartLine.quantity}
                   </Text>
                 </View>
                 <View style={styles.cartLineActions}>
@@ -252,7 +256,11 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                   </AppIconButton>
                 </View>
                 <Text style={styles.cartLineAmount}>
-                  {formatCurrency(cartLine.lineSubtotal)}
+                  {formatCurrency(
+                    cartLine.lineSubtotal,
+                    viewModel.currencyCode,
+                    viewModel.countryCode,
+                  )}
                 </Text>
                 <Pressable
                   style={styles.cartDeleteButton}
@@ -270,14 +278,23 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Gross</Text>
               <Text style={styles.totalValue}>
-                {formatCurrency(viewModel.totals.gross)}
+                {formatCurrency(
+                  viewModel.totals.gross,
+                  viewModel.currencyCode,
+                  viewModel.countryCode,
+                )}
               </Text>
             </View>
             {viewModel.totals.discountAmount > 0 ? (
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Discount</Text>
                 <Text style={styles.totalValue}>
-                  - {formatCurrency(viewModel.totals.discountAmount)}
+                  -{" "}
+                  {formatCurrency(
+                    viewModel.totals.discountAmount,
+                    viewModel.currencyCode,
+                    viewModel.countryCode,
+                  )}
                 </Text>
               </View>
             ) : null}
@@ -285,21 +302,33 @@ export function PosScreen({ viewModel }: PosScreenProps) {
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Surcharge</Text>
                 <Text style={styles.totalValue}>
-                  {formatCurrency(viewModel.totals.surchargeAmount)}
+                  {formatCurrency(
+                    viewModel.totals.surchargeAmount,
+                    viewModel.currencyCode,
+                    viewModel.countryCode,
+                  )}
                 </Text>
               </View>
             ) : null}
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>VAT (13%)</Text>
               <Text style={styles.totalValue}>
-                {formatCurrency(viewModel.totals.taxAmount)}
+                {formatCurrency(
+                  viewModel.totals.taxAmount,
+                  viewModel.currencyCode,
+                  viewModel.countryCode,
+                )}
               </Text>
             </View>
           </View>
           <View style={styles.grandTotalRow}>
             <Text style={styles.grandTotalLabel}>Grand Total</Text>
             <Text style={styles.grandTotalValue}>
-              {formatCurrency(viewModel.totals.grandTotal)}
+              {formatCurrency(
+                viewModel.totals.grandTotal,
+                viewModel.currencyCode,
+                viewModel.countryCode,
+              )}
             </Text>
           </View>
         </Card>
@@ -352,7 +381,11 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         </Card>
 
         <AppButton
-          label={`Pay ${formatCurrency(viewModel.totals.grandTotal)}`}
+          label={`Pay ${formatCurrency(
+            viewModel.totals.grandTotal,
+            viewModel.currencyCode,
+            viewModel.countryCode,
+          )}`}
           size="lg"
           style={styles.bottomPayButton}
           leadingIcon={
@@ -372,6 +405,8 @@ export function PosScreen({ viewModel }: PosScreenProps) {
       <PosProductSelectionModal
         visible={viewModel.activeModal === "product-selection"}
         products={viewModel.products}
+        currencyCode={viewModel.currencyCode}
+        countryCode={viewModel.countryCode}
         searchTerm={viewModel.productSearchTerm}
         onSearchChange={(value) => {
           void viewModel.onProductSearchChange(value);
@@ -407,6 +442,8 @@ export function PosScreen({ viewModel }: PosScreenProps) {
       <PosPaymentModal
         visible={viewModel.activeModal === "payment"}
         totals={viewModel.totals}
+        currencyCode={viewModel.currencyCode}
+        countryCode={viewModel.countryCode}
         paidAmount={viewModel.paymentInput}
         splitCount={viewModel.paymentSplitCountInput}
         onPaidAmountChange={viewModel.onPaymentInputChange}
@@ -421,6 +458,8 @@ export function PosScreen({ viewModel }: PosScreenProps) {
       <PosReceiptModal
         visible={viewModel.activeModal === "receipt"}
         receipt={viewModel.receipt}
+        currencyCode={viewModel.currencyCode}
+        countryCode={viewModel.countryCode}
         onClose={viewModel.onCloseModal}
         onPrint={() => {
           void viewModel.onPrintReceipt();

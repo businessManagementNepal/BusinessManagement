@@ -18,6 +18,8 @@ import { formatCurrency } from "./posScreen.shared";
 type PosProductSelectionModalProps = {
   visible: boolean;
   products: readonly PosProduct[];
+  currencyCode: string;
+  countryCode: string | null;
   searchTerm: string;
   onSearchChange: (value: string) => void;
   onClose: () => void;
@@ -27,6 +29,8 @@ type PosProductSelectionModalProps = {
 export function PosProductSelectionModal({
   visible,
   products,
+  currencyCode,
+  countryCode,
   searchTerm,
   onSearchChange,
   onClose,
@@ -72,7 +76,9 @@ export function PosProductSelectionModal({
                   <Text style={styles.productTitle}>{product.name}</Text>
                   <Text style={styles.productMeta}>{product.categoryLabel}</Text>
                 </View>
-                <Text style={styles.productPrice}>{formatCurrency(product.price)}</Text>
+                <Text style={styles.productPrice}>
+                  {formatCurrency(product.price, currencyCode, countryCode)}
+                </Text>
               </CardPressable>
             ))}
           </ScrollView>

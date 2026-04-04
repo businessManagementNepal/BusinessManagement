@@ -29,6 +29,7 @@ type Props = {
   onClose: () => void;
   onChange: (field: keyof ContactFormState, value: string) => void;
   onSubmit: () => Promise<void>;
+  openingBalancePlaceholder: string;
   disableSubmit?: boolean;
 };
 
@@ -40,6 +41,7 @@ export function ContactEditorModal({
   onClose,
   onChange,
   onSubmit,
+  openingBalancePlaceholder,
   disableSubmit = false,
 }: Props) {
   return (
@@ -110,7 +112,7 @@ export function ContactEditorModal({
             />
             <AppTextInput
               value={form.openingBalance}
-              placeholder="Opening Balance (NPR)"
+              placeholder={openingBalancePlaceholder}
               keyboardType="decimal-pad"
               onChangeText={(value) => onChange("openingBalance", value)}
             />

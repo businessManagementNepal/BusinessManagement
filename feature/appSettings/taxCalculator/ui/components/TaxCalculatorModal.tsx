@@ -22,6 +22,7 @@ import { TaxCalculationSummaryState } from "@/feature/appSettings/taxCalculator/
 type TaxCalculatorModalProps = {
   visible: boolean;
   amountInput: string;
+  amountInputPlaceholder: string;
   selectedMode: TaxCalculationModeValue;
   selectedPresetCode: string;
   presetOptions: readonly TaxToolPresetOption[];
@@ -36,6 +37,7 @@ type TaxCalculatorModalProps = {
 export function TaxCalculatorModal({
   visible,
   amountInput,
+  amountInputPlaceholder,
   selectedMode,
   selectedPresetCode,
   presetOptions,
@@ -85,7 +87,7 @@ export function TaxCalculatorModal({
             value={amountInput}
             onChangeText={onAmountChange}
             keyboardType="decimal-pad"
-            placeholder="Enter Amount (NPR)"
+            placeholder={amountInputPlaceholder}
             containerStyle={styles.inputWrap}
           />
 

@@ -27,6 +27,7 @@ import {
     shouldShowDirectionSelector,
 } from "./ledger.shared";
 import { LedgerEditorViewModel } from "./ledgerEditor.viewModel";
+import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 
 const DEFAULT_LEDGER_STATE: LedgerEditorFormState = {
   visible: false,
@@ -294,8 +295,9 @@ export const useLedgerEditorViewModel = ({
         : resolveDefaultDirectionForEntryType(state.entryType),
       title: normalizedTitle,
       amount,
-      currencyCode:
-        selectedAccount?.currencyCode ?? activeBusinessCurrencyCode ?? "NPR",
+      currencyCode: resolveCurrencyCode({
+        currencyCode: selectedAccount?.currencyCode ?? activeBusinessCurrencyCode,
+      }),
       note: state.note.trim() || null,
       happenedAt,
       dueAt: state.dueAt.trim().length === 0 ? null : dueAt,

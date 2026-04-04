@@ -10,6 +10,8 @@ export default function EmiLoansDashboardRoute() {
     activeAccountType,
     activeUserRemoteId,
     activeAccountRemoteId,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
   } = useDashboardRouteContext();
 
   if (isLoading || !hasActiveSession || !hasActiveAccount) {
@@ -21,6 +23,8 @@ export default function EmiLoansDashboardRoute() {
       activeAccountType={activeAccountType}
       activeUserRemoteId={activeUserRemoteId}
       activeAccountRemoteId={activeAccountRemoteId}
+      activeAccountCurrencyCode={activeAccountCurrencyCode}
+      activeAccountCountryCode={activeAccountCountryCode}
     />
   );
 }

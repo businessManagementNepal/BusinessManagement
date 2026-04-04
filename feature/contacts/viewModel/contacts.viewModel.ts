@@ -35,6 +35,8 @@ export interface ContactsViewModel {
   errorMessage: string | null;
   contacts: readonly Contact[];
   filteredContacts: readonly Contact[];
+  currencyPrefix: string;
+  openingBalancePlaceholder: string;
   selectedFilter: ContactFilterValue;
   searchQuery: string;
   summary: ContactSummaryState;

@@ -19,6 +19,8 @@ export default function BillingDashboardRoute() {
     activeUserRemoteId,
     activeAccountRemoteId,
     activeAccountType,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
   } = useDashboardRouteContext();
 
   const permissionAccess = useAccountPermissionAccess({
@@ -75,6 +77,8 @@ export default function BillingDashboardRoute() {
     <GetBillingScreenFactory
       database={appDatabase}
       activeAccountRemoteId={activeAccountRemoteId}
+      activeAccountCurrencyCode={activeAccountCurrencyCode}
+      activeAccountCountryCode={activeAccountCountryCode}
       canManage={canManageBilling}
     />
   );

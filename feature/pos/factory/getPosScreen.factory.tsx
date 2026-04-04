@@ -23,12 +23,16 @@ type GetPosScreenFactoryProps = {
   activeBusinessAccountRemoteId: string | null;
   activeOwnerUserRemoteId: string | null;
   activeSettlementAccountRemoteId: string | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
 };
 
 export function GetPosScreenFactory({
   activeBusinessAccountRemoteId,
   activeOwnerUserRemoteId,
   activeSettlementAccountRemoteId,
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
 }: GetPosScreenFactoryProps) {
   const datasource = React.useMemo(
     () => createLocalPosDatasource({ database: appDatabase }),
@@ -101,6 +105,8 @@ export function GetPosScreenFactory({
     activeBusinessAccountRemoteId,
     activeOwnerUserRemoteId,
     activeSettlementAccountRemoteId,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
     getPosBootstrapUseCase,
     searchPosProductsUseCase,
     assignProductToSlotUseCase,

@@ -62,13 +62,13 @@ export function ContactsScreen({
             label="Total"
           />
           <StatCard
-            icon={<Text style={styles.statIcon}>Rs</Text>}
+            icon={<Text style={styles.statIcon}>{viewModel.currencyPrefix}</Text>}
             value={viewModel.summary.receiveAmountLabel}
             label="Receivable"
             valueColor={colors.success}
           />
           <StatCard
-            icon={<Text style={styles.statIcon}>Rs</Text>}
+            icon={<Text style={styles.statIcon}>{viewModel.currencyPrefix}</Text>}
             value={viewModel.summary.payAmountLabel}
             label="Payable"
             valueColor={colors.destructive}
@@ -137,7 +137,7 @@ export function ContactsScreen({
                               : styles.payValue,
                           ]}
                         >
-                          NPR {amountLabel}
+                          {viewModel.currencyPrefix} {amountLabel}
                         </Text>
                         <Text style={styles.amountCaption}>
                           {amountTone === ContactBalanceDirection.Receive
@@ -162,6 +162,7 @@ export function ContactsScreen({
         onClose={viewModel.onCloseEditor}
         onChange={viewModel.onFormChange}
         onSubmit={viewModel.onSubmit}
+        openingBalancePlaceholder={viewModel.openingBalancePlaceholder}
         disableSubmit={!viewModel.canManage}
       />
     </>

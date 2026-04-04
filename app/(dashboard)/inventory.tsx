@@ -14,6 +14,8 @@ export default function InventoryDashboardRoute() {
     activeAccountType,
     activeUserRemoteId,
     activeAccountRemoteId,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
   } = useDashboardRouteContext();
 
   useEffect(() => {
@@ -44,6 +46,8 @@ export default function InventoryDashboardRoute() {
     <GetInventoryScreenFactory
       activeAccountRemoteId={activeAccountRemoteId}
       activeUserRemoteId={activeUserRemoteId}
+      activeAccountCurrencyCode={activeAccountCurrencyCode}
+      activeAccountCountryCode={activeAccountCountryCode}
     />
   );
 }

@@ -40,6 +40,8 @@ export type PosScreenState = {
 export type PosScreenViewModel = {
   status: StatusType;
   screenTitle: string;
+  currencyCode: string;
+  countryCode: string | null;
   slots: readonly PosSlot[];
   cartLines: readonly PosCartLine[];
   totals: PosTotals;

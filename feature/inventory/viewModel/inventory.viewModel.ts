@@ -23,6 +23,9 @@ export type InventorySummaryState = {
 export interface InventoryViewModel {
   isLoading: boolean;
   errorMessage: string | null;
+  currencyCode: string;
+  countryCode: string | null;
+  currencyPrefix: string;
   summary: InventorySummaryState;
   stockItems: InventoryStockItem[];
   recentMovements: InventoryMovement[];

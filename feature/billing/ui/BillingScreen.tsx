@@ -31,10 +31,7 @@ import {
 } from "react-native";
 import { BillingDocumentEditorModal } from "./components/BillingDocumentEditorModal";
 import { BillingTemplatesModal } from "./components/BillingTemplatesModal";
-
-const formatCurrency = (value: number): string => {
-  return `NPR ${value.toLocaleString()}`;
-};
+import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 
 const formatDate = (value: number): string => {
   return new Date(value).toISOString().slice(0, 10);
@@ -77,18 +74,26 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
           value={String(viewModel.summary.totalDocuments)}
           label="Total"
         />
-        <StatCard
-          icon={<Text style={styles.summaryIcon}>!</Text>}
-          value={formatCurrency(viewModel.summary.pendingAmount)}
-          label="Pending"
-          valueColor={colors.warning}
-        />
-        <StatCard
-          icon={<Text style={styles.summaryIcon}>!</Text>}
-          value={formatCurrency(viewModel.summary.overdueAmount)}
-          label="Overdue"
-          valueColor={colors.destructive}
-        />
+          <StatCard
+            icon={<Text style={styles.summaryIcon}>!</Text>}
+            value={formatCurrencyAmount({
+              amount: viewModel.summary.pendingAmount,
+              currencyCode: viewModel.currencyCode,
+              countryCode: viewModel.countryCode,
+            })}
+            label="Pending"
+            valueColor={colors.warning}
+          />
+          <StatCard
+            icon={<Text style={styles.summaryIcon}>!</Text>}
+            value={formatCurrencyAmount({
+              amount: viewModel.summary.overdueAmount,
+              currencyCode: viewModel.currencyCode,
+              countryCode: viewModel.countryCode,
+            })}
+            label="Overdue"
+            valueColor={colors.destructive}
+          />
       </View>
 
       <View style={styles.tabRow}>
@@ -214,7 +219,13 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
                   </View>
 
                   <View style={styles.amountWrap}>
-                    <Text style={styles.amountText}>{formatCurrency(document.totalAmount)}</Text>
+                    <Text style={styles.amountText}>
+                      {formatCurrencyAmount({
+                        amount: document.totalAmount,
+                        currencyCode: viewModel.currencyCode,
+                        countryCode: viewModel.countryCode,
+                      })}
+                    </Text>
                     {viewModel.canManage ? (
                       <Pressable
                         onPress={() => {
@@ -266,6 +277,8 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
         onSubmit={viewModel.onSubmit}
         onPrintPreview={viewModel.onPrintPreview}
         onExportPdf={viewModel.onExportPdf}
+        currencyCode={viewModel.currencyCode}
+        countryCode={viewModel.countryCode}
         draftTotals={viewModel.draftTotals}
       />
     </DashboardTabScaffold>

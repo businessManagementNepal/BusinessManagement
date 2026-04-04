@@ -23,6 +23,8 @@ type UseEmiListViewModelParams = {
   planMode: "personal" | "business";
   ownerUserRemoteId: string | null;
   businessAccountRemoteId: string | null;
+  fallbackCurrencyCode: string;
+  fallbackCountryCode: string | null;
   getEmiPlansUseCase: GetEmiPlansUseCase;
   getPlanDetailByRemoteId: (remoteId: string) => Promise<EmiPlanDetailLookupResult>;
   onOpenCreate: () => void;
@@ -130,8 +132,10 @@ const buildBadgeLabel = (plan: PlanSnapshot): string => {
 const buildSummaryCards = (
   planMode: "personal" | "business",
   plans: readonly PlanSnapshot[],
+  fallbackCurrencyCode: string,
+  fallbackCountryCode: string | null,
 ): EmiSummaryCardState[] => {
-  const currencyCode = plans[0]?.currencyCode ?? "NPR";
+  const currencyCode = plans[0]?.currencyCode ?? fallbackCurrencyCode;
 
   if (planMode === "business") {
     const toCollect = plans.reduce((sum, plan) => {
@@ -151,25 +155,25 @@ const buildSummaryCards = (
       {
         id: "to-collect",
         label: "To Collect",
-        value: formatCurrency(toCollect, currencyCode),
+        value: formatCurrency(toCollect, currencyCode, fallbackCountryCode),
         tone: "collect",
       },
       {
         id: "to-pay",
         label: "To Pay",
-        value: formatCurrency(toPay, currencyCode),
+        value: formatCurrency(toPay, currencyCode, fallbackCountryCode),
         tone: "pay",
       },
       {
         id: "due-today",
         label: "Due Today",
-        value: formatCurrency(dueToday, currencyCode),
+        value: formatCurrency(dueToday, currencyCode, fallbackCountryCode),
         tone: "neutral",
       },
       {
         id: "overdue",
         label: "Overdue",
-        value: formatCurrency(overdue, currencyCode),
+        value: formatCurrency(overdue, currencyCode, fallbackCountryCode),
         tone: "overdue",
       },
     ];
@@ -190,19 +194,19 @@ const buildSummaryCards = (
     {
       id: "due-today",
       label: "Due Today",
-      value: formatCurrency(dueToday, currencyCode),
+      value: formatCurrency(dueToday, currencyCode, fallbackCountryCode),
       tone: "pay",
     },
     {
       id: "overdue",
       label: "Overdue",
-      value: formatCurrency(overdue, currencyCode),
+      value: formatCurrency(overdue, currencyCode, fallbackCountryCode),
       tone: "overdue",
     },
     {
       id: "remaining",
       label: "Remaining",
-      value: formatCurrency(remaining, currencyCode),
+      value: formatCurrency(remaining, currencyCode, fallbackCountryCode),
       tone: "neutral",
     },
   ];
@@ -234,6 +238,8 @@ export const useEmiListViewModel = ({
   planMode,
   ownerUserRemoteId,
   businessAccountRemoteId,
+  fallbackCurrencyCode,
+  fallbackCountryCode,
   getEmiPlansUseCase,
   getPlanDetailByRemoteId,
   onOpenCreate,
@@ -296,7 +302,21 @@ export const useEmiListViewModel = ({
     });
   }, [plans, searchQuery, selectedFilter]);
 
-  const summaryCards = useMemo(() => buildSummaryCards(planMode, plans), [planMode, plans]);
+  const summaryCards = useMemo(
+    () =>
+      buildSummaryCards(
+        planMode,
+        plans,
+        fallbackCurrencyCode,
+        fallbackCountryCode,
+      ),
+    [fallbackCountryCode, fallbackCurrencyCode, planMode, plans],
+  );
+
+  const zeroAmountLabel = useMemo(
+    () => formatCurrency(0, fallbackCurrencyCode, fallbackCountryCode),
+    [fallbackCountryCode, fallbackCurrencyCode],
+  );
 
   const planItems = useMemo<readonly EmiPlanListItemState[]>(() => {
     return filteredPlans.map((plan) => ({
@@ -339,6 +359,7 @@ export const useEmiListViewModel = ({
     searchQuery,
     selectedFilter,
     summaryCards,
+    zeroAmountLabel,
     planItems,
     emptyStateMessage,
     refresh: loadPlans,

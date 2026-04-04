@@ -45,6 +45,8 @@ export interface BillingViewModel {
   editorTitle: string;
   form: BillingDocumentFormState;
   activeTemplateType: BillingTemplateTypeValue;
+  currencyCode: string;
+  countryCode: string | null;
   canManage: boolean;
   onRefresh: () => Promise<void>;
   onTabChange: (value: BillingTabValue) => void;

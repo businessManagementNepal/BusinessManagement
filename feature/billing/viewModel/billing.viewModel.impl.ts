@@ -15,6 +15,7 @@ import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillin
 import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { SaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPhoto.useCase";
 import { buildBillingDraftHtml } from "@/feature/billing/ui/printBillingDocument.util";
+import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 
 const createEmptyLineItem = (): BillingLineItemFormState => ({
   remoteId: Crypto.randomUUID(),
@@ -80,6 +81,8 @@ const mapDocumentToForm = (document: BillingDocument): BillingDocumentFormState 
 
 type Params = {
   accountRemoteId: string | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
   canManage: boolean;
   getBillingOverviewUseCase: GetBillingOverviewUseCase;
   saveBillingDocumentUseCase: SaveBillingDocumentUseCase;
@@ -89,6 +92,8 @@ type Params = {
 
 export const useBillingViewModel = ({
   accountRemoteId,
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
   canManage,
   getBillingOverviewUseCase,
   saveBillingDocumentUseCase,
@@ -104,6 +109,14 @@ export const useBillingViewModel = ({
   const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [form, setForm] = useState<BillingDocumentFormState>(EMPTY_FORM);
+  const currencyCode = useMemo(
+    () =>
+      resolveCurrencyCode({
+        currencyCode: activeAccountCurrencyCode,
+        countryCode: activeAccountCountryCode,
+      }),
+    [activeAccountCountryCode, activeAccountCurrencyCode],
+  );
 
   const loadOverview = useCallback(async () => {
     if (!accountRemoteId) {
@@ -289,7 +302,14 @@ export const useBillingViewModel = ({
       setErrorMessage("Unable to open print preview. Please allow popups.");
       return;
     }
-    const html = buildBillingDraftHtml(form, draftTotals.subtotalAmount, draftTotals.taxAmount, draftTotals.totalAmount);
+    const html = buildBillingDraftHtml(
+      form,
+      draftTotals.subtotalAmount,
+      draftTotals.taxAmount,
+      draftTotals.totalAmount,
+      currencyCode,
+      activeAccountCountryCode,
+    );
     popup.document.open();
     popup.document.write(html);
     popup.document.close();
@@ -297,7 +317,14 @@ export const useBillingViewModel = ({
     setTimeout(() => {
       popup.print();
     }, 250);
-  }, [draftTotals.subtotalAmount, draftTotals.taxAmount, draftTotals.totalAmount, form]);
+  }, [
+    activeAccountCountryCode,
+    currencyCode,
+    draftTotals.subtotalAmount,
+    draftTotals.taxAmount,
+    draftTotals.totalAmount,
+    form,
+  ]);
 
   const onPrintPreview = useCallback(() => {
     openPrintableWindow();
@@ -367,6 +394,8 @@ export const useBillingViewModel = ({
     editorTitle,
     form,
     activeTemplateType,
+    currencyCode,
+    countryCode: activeAccountCountryCode,
     canManage,
     onRefresh: loadOverview,
     onTabChange: setActiveTab,
@@ -389,5 +418,5 @@ export const useBillingViewModel = ({
     onExportPdf,
     onUploadBillPhoto,
     draftTotals,
-  }), [activeTab, activeTemplateType, billPhotos, canManage, draftTotals, editorTitle, errorMessage, filteredDocuments, form, isEditorVisible, isLoading, isTemplateModalVisible, loadOverview, onAddLineItem, onCloseEditor, onDelete, onExportPdf, onFormChange, onLineItemChange, onOpenCreate, onOpenEdit, onPrintPreview, onRemoveLineItem, onSubmit, onUploadBillPhoto, summary]);
+  }), [activeTab, activeTemplateType, activeAccountCountryCode, billPhotos, canManage, currencyCode, draftTotals, editorTitle, errorMessage, filteredDocuments, form, isEditorVisible, isLoading, isTemplateModalVisible, loadOverview, onAddLineItem, onCloseEditor, onDelete, onExportPdf, onFormChange, onLineItemChange, onOpenCreate, onOpenEdit, onPrintPreview, onRemoveLineItem, onSubmit, onUploadBillPhoto, summary]);
 };

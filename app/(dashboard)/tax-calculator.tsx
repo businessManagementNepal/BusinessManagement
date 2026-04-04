@@ -17,6 +17,8 @@ export default function TaxCalculatorDashboardRoute() {
     activeUserRemoteId,
     activeAccountRemoteId,
     activeAccountType,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
   } = useDashboardRouteContext();
 
   const permissionAccess = useAccountPermissionAccess({
@@ -68,5 +70,10 @@ export default function TaxCalculatorDashboardRoute() {
     return null;
   }
 
-  return <GetTaxCalculatorSettingsScreenFactory />;
+  return (
+    <GetTaxCalculatorSettingsScreenFactory
+      activeAccountCurrencyCode={activeAccountCurrencyCode}
+      activeAccountCountryCode={activeAccountCountryCode}
+    />
+  );
 }

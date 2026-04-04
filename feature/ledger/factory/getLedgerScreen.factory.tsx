@@ -24,15 +24,20 @@ import { createLocalUserManagementDatasource } from "@/feature/userManagement/da
 import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
 import appDatabase from "@/shared/database/appDatabase";
 import React, { useCallback, useMemo, useState } from "react";
+import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 
 export type GetLedgerScreenFactoryProps = {
   activeUserRemoteId: string | null;
   activeBusinessAccountRemoteId: string | null;
+  activeBusinessAccountCurrencyCode: string | null;
+  activeBusinessAccountCountryCode: string | null;
 };
 
 export function GetLedgerScreenFactory({
   activeUserRemoteId,
   activeBusinessAccountRemoteId,
+  activeBusinessAccountCurrencyCode,
+  activeBusinessAccountCountryCode,
 }: GetLedgerScreenFactoryProps) {
   const [reloadSignal, setReloadSignal] = useState(0);
 
@@ -158,11 +163,24 @@ export function GetLedgerScreenFactory({
       ) ?? null,
     [accounts, activeBusinessAccountRemoteId],
   );
+  const resolvedBusinessCurrencyCode = useMemo(
+    () =>
+      resolveCurrencyCode({
+        currencyCode:
+          activeBusinessAccount?.currencyCode ?? activeBusinessAccountCurrencyCode,
+        countryCode: activeBusinessAccountCountryCode,
+      }),
+    [
+      activeBusinessAccount?.currencyCode,
+      activeBusinessAccountCountryCode,
+      activeBusinessAccountCurrencyCode,
+    ],
+  );
 
   const editorViewModel = useLedgerEditorViewModel({
     ownerUserRemoteId: activeUserRemoteId ?? "",
     activeBusinessAccountRemoteId,
-    activeBusinessCurrencyCode: activeBusinessAccount?.currencyCode ?? "NPR",
+    activeBusinessCurrencyCode: resolvedBusinessCurrencyCode,
     accounts,
     getLedgerEntryByRemoteIdUseCase,
     addLedgerEntryUseCase,
@@ -185,7 +203,8 @@ export function GetLedgerScreenFactory({
 
   const listViewModel = useLedgerListViewModel({
     businessAccountRemoteId: activeBusinessAccountRemoteId ?? "",
-    businessAccountCurrencyCode: activeBusinessAccount?.currencyCode ?? "NPR",
+    businessAccountCurrencyCode: resolvedBusinessCurrencyCode,
+    businessAccountCountryCode: activeBusinessAccountCountryCode,
     getLedgerEntriesUseCase,
     onOpenCreate: editorViewModel.openCreate,
     onOpenPartyDetail: partyDetailViewModel.openPartyDetail,

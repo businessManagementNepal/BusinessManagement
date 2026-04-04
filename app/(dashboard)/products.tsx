@@ -14,6 +14,8 @@ export default function ProductsDashboardRoute() {
     activeAccountType,
     activeUserRemoteId,
     activeAccountRemoteId,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
   } = useDashboardRouteContext();
 
   useEffect(() => {
@@ -44,6 +46,8 @@ export default function ProductsDashboardRoute() {
     <GetProductsScreenFactory
       activeAccountRemoteId={activeAccountRemoteId}
       activeUserRemoteId={activeUserRemoteId}
+      activeAccountCurrencyCode={activeAccountCurrencyCode}
+      activeAccountCountryCode={activeAccountCountryCode}
     />
   );
 }

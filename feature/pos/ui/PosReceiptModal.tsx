@@ -10,6 +10,8 @@ import { formatCurrency } from "./posScreen.shared";
 type PosReceiptModalProps = {
   visible: boolean;
   receipt: PosReceipt | null;
+  currencyCode: string;
+  countryCode: string | null;
   onClose: () => void;
   onPrint: () => void;
 };
@@ -17,6 +19,8 @@ type PosReceiptModalProps = {
 export function PosReceiptModal({
   visible,
   receipt,
+  currencyCode,
+  countryCode,
   onClose,
   onPrint,
 }: PosReceiptModalProps) {
@@ -40,50 +44,77 @@ export function PosReceiptModal({
                   <View style={styles.lineBody}>
                     <Text style={styles.lineTitle}>{line.productName}</Text>
                     <Text style={styles.lineMeta}>
-                      {formatCurrency(line.unitPrice)} x {line.quantity}
+                      {formatCurrency(line.unitPrice, currencyCode, countryCode)} x {line.quantity}
                     </Text>
                   </View>
-                  <Text style={styles.lineAmount}>{formatCurrency(line.lineSubtotal)}</Text>
+                  <Text style={styles.lineAmount}>
+                    {formatCurrency(line.lineSubtotal, currencyCode, countryCode)}
+                  </Text>
                 </View>
               ))}
 
               <View style={styles.totalsWrap}>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Gross</Text>
-                  <Text style={styles.totalValue}>{formatCurrency(receipt.totals.gross)}</Text>
+                  <Text style={styles.totalValue}>
+                    {formatCurrency(receipt.totals.gross, currencyCode, countryCode)}
+                  </Text>
                 </View>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Discount</Text>
-                  <Text style={styles.totalValue}>{formatCurrency(receipt.totals.discountAmount)}</Text>
+                  <Text style={styles.totalValue}>
+                    {formatCurrency(receipt.totals.discountAmount, currencyCode, countryCode)}
+                  </Text>
                 </View>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Surcharge</Text>
-                  <Text style={styles.totalValue}>{formatCurrency(receipt.totals.surchargeAmount)}</Text>
+                  <Text style={styles.totalValue}>
+                    {formatCurrency(receipt.totals.surchargeAmount, currencyCode, countryCode)}
+                  </Text>
                 </View>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Tax</Text>
-                  <Text style={styles.totalValue}>{formatCurrency(receipt.totals.taxAmount)}</Text>
+                  <Text style={styles.totalValue}>
+                    {formatCurrency(receipt.totals.taxAmount, currencyCode, countryCode)}
+                  </Text>
                 </View>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Paid</Text>
-                  <Text style={styles.totalValue}>{formatCurrency(receipt.paidAmount)}</Text>
+                  <Text style={styles.totalValue}>
+                    {formatCurrency(receipt.paidAmount, currencyCode, countryCode)}
+                  </Text>
                 </View>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Due</Text>
-                  <Text style={styles.totalValue}>{formatCurrency(receipt.dueAmount)}</Text>
+                  <Text style={styles.totalValue}>
+                    {formatCurrency(receipt.dueAmount, currencyCode, countryCode)}
+                  </Text>
                 </View>
               </View>
 
               <Text style={styles.grandTotalLabel}>Grand Total</Text>
-              <Text style={styles.grandTotalValue}>{formatCurrency(receipt.totals.grandTotal)}</Text>
+              <Text style={styles.grandTotalValue}>
+                {formatCurrency(receipt.totals.grandTotal, currencyCode, countryCode)}
+              </Text>
               {receipt.ledgerEffect.type === "due_balance_created" ? (
                 <Text style={styles.ledgerSuccessText}>
-                  Ledger due created for {formatCurrency(receipt.ledgerEffect.dueAmount)}.
+                  Ledger due created for{" "}
+                  {formatCurrency(
+                    receipt.ledgerEffect.dueAmount,
+                    currencyCode,
+                    countryCode,
+                  )}
+                  .
                 </Text>
               ) : receipt.ledgerEffect.type === "due_balance_create_failed" ? (
                 <Text style={styles.ledgerWarningText}>
                   Sale was completed but due posting failed. Add ledger entry manually for{" "}
-                  {formatCurrency(receipt.ledgerEffect.dueAmount)}.
+                  {formatCurrency(
+                    receipt.ledgerEffect.dueAmount,
+                    currencyCode,
+                    countryCode,
+                  )}
+                  .
                 </Text>
               ) : null}
             </ScrollView>

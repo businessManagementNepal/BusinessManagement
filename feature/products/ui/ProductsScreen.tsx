@@ -25,6 +25,7 @@ import {
   View,
 } from "react-native";
 import { ProductEditorModal } from "./components/ProductEditorModal";
+import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 
 type ProductsScreenProps = {
   viewModel: ProductsViewModel;
@@ -38,10 +39,6 @@ const PRODUCT_KIND_FILTER_OPTIONS: readonly {
   { label: "Items", value: ProductKind.Item },
   { label: "Services", value: ProductKind.Service },
 ];
-
-const formatPriceLabel = (price: number): string => {
-  return `NPR ${price.toLocaleString()}`;
-};
 
 const buildProductSubtitle = (product: Product): string => {
   const productTypeLabel = product.kind === ProductKind.Item ? "Item" : "Service";
@@ -187,9 +184,22 @@ export function ProductsScreen({ viewModel }: ProductsScreenProps) {
                 </View>
 
                 <View style={styles.priceWrap}>
-                  <Text style={styles.salePrice}>{formatPriceLabel(product.salePrice)}</Text>
+                  <Text style={styles.salePrice}>
+                    {formatCurrencyAmount({
+                      amount: product.salePrice,
+                      currencyCode: viewModel.currencyCode,
+                      countryCode: viewModel.countryCode,
+                    })}
+                  </Text>
                   {product.costPrice !== null ? (
-                    <Text style={styles.costPrice}>Cost: {formatPriceLabel(product.costPrice)}</Text>
+                    <Text style={styles.costPrice}>
+                      Cost:{" "}
+                      {formatCurrencyAmount({
+                        amount: product.costPrice,
+                        currencyCode: viewModel.currencyCode,
+                        countryCode: viewModel.countryCode,
+                      })}
+                    </Text>
                   ) : null}
                   {viewModel.canManage ? (
                     <Pressable

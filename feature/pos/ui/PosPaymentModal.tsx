@@ -17,6 +17,8 @@ import { formatCurrency } from "./posScreen.shared";
 type PosPaymentModalProps = {
   visible: boolean;
   totals: PosTotals;
+  currencyCode: string;
+  countryCode: string | null;
   paidAmount: string;
   splitCount: string;
   onPaidAmountChange: (value: string) => void;
@@ -29,6 +31,8 @@ type PosPaymentModalProps = {
 export function PosPaymentModal({
   visible,
   totals,
+  currencyCode,
+  countryCode,
   paidAmount,
   splitCount,
   onPaidAmountChange,
@@ -50,7 +54,9 @@ export function PosPaymentModal({
 
           <View style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>Grand Total</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(totals.grandTotal)}</Text>
+            <Text style={styles.summaryValue}>
+              {formatCurrency(totals.grandTotal, currencyCode, countryCode)}
+            </Text>
           </View>
 
           <View style={styles.fieldWrap}>

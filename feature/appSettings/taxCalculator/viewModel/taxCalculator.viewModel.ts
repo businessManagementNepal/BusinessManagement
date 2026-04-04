@@ -16,6 +16,7 @@ export interface TaxCalculatorViewModel {
   errorMessage: string | null;
   isCalculatorVisible: boolean;
   amountInput: string;
+  amountInputPlaceholder: string;
   selectedPresetCode: string;
   selectedMode: TaxCalculationModeValue;
   presetOptions: readonly TaxToolPresetOption[];

@@ -5,6 +5,7 @@ import {
   ProfileAccountOption,
   ProfileScreenData,
 } from "@/feature/profile/screen/types/profileScreen.types";
+import { DEFAULT_CURRENCY_CODE } from "@/shared/utils/currency/accountCurrency";
 
 export const createEmptyPersonalProfile = (): EditablePersonalProfile => ({
   fullName: "",
@@ -19,7 +20,7 @@ export const createDefaultBusinessProfileForm = (): EditableBusinessProfile => (
   businessPhone: "",
   businessEmail: "",
   registeredAddress: "",
-  currencyCode: "NPR",
+  currencyCode: DEFAULT_CURRENCY_CODE,
   country: "Nepal",
   city: "",
   stateOrDistrict: "",
@@ -52,7 +53,7 @@ export const mapAccountOptionToFallbackBusinessForm = (
       ? accountOption.businessType
       : "Retail Store",
   country: accountOption.countryCode ?? "Nepal",
-  currencyCode: accountOption.currencyCode ?? "NPR",
+  currencyCode: accountOption.currencyCode ?? DEFAULT_CURRENCY_CODE,
   city: accountOption.cityOrLocation ?? "",
 });
 

@@ -13,6 +13,7 @@ import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCa
 import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProductFormState, ProductsViewModel } from "./products.viewModel";
+import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 
 const EMPTY_FORM: ProductFormState = {
   remoteId: null,
@@ -54,6 +55,8 @@ const parseNumber = (value: string): number | null => {
 
 type Params = {
   accountRemoteId: string | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
   canManage: boolean;
   getProductsUseCase: GetProductsUseCase;
   saveProductUseCase: SaveProductUseCase;
@@ -62,6 +65,8 @@ type Params = {
 
 export const useProductsViewModel = ({
   accountRemoteId,
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
   canManage,
   getProductsUseCase,
   saveProductUseCase,
@@ -77,6 +82,14 @@ export const useProductsViewModel = ({
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
   const [form, setForm] = useState<ProductFormState>(EMPTY_FORM);
+  const currencyCode = useMemo(
+    () =>
+      resolveCurrencyCode({
+        currencyCode: activeAccountCurrencyCode,
+        countryCode: activeAccountCountryCode,
+      }),
+    [activeAccountCountryCode, activeAccountCurrencyCode],
+  );
 
   const loadProducts = useCallback(async () => {
     if (!accountRemoteId) {
@@ -235,6 +248,8 @@ export const useProductsViewModel = ({
       isLoading,
       errorMessage,
       canManage,
+      currencyCode,
+      countryCode: activeAccountCountryCode,
       searchQuery,
       selectedKind,
       summary,
@@ -258,9 +273,11 @@ export const useProductsViewModel = ({
     [
       editorMode,
       canManage,
+      currencyCode,
       errorMessage,
       filteredProducts,
       form,
+      activeAccountCountryCode,
       isEditorVisible,
       isLoading,
       loadProducts,

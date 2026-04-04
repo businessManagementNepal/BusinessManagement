@@ -17,6 +17,11 @@ import {
 import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ContactsViewModel, ContactFormState, ContactFilterValue } from "./contacts.viewModel";
+import {
+  formatCurrencyAmount,
+  resolveCurrencyCode,
+  resolveCurrencyPrefix,
+} from "@/shared/utils/currency/accountCurrency";
 
 const EMPTY_FORM: ContactFormState = {
   remoteId: null,
@@ -28,15 +33,6 @@ const EMPTY_FORM: ContactFormState = {
   taxId: "",
   openingBalance: "",
   notes: "",
-};
-
-const formatCurrency = (amount: number, currencyCode: string): string => {
-  const normalizedCurrencyCode = currencyCode.trim().toUpperCase() || "NPR";
-  const formattedAmount = new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: 0,
-  }).format(amount);
-
-  return `${normalizedCurrencyCode} ${formattedAmount}`;
 };
 
 const formatSignedOpeningBalance = (contact: Contact): string => {
@@ -103,6 +99,7 @@ type UseContactsViewModelParams = {
   accountType: AccountTypeValue | null;
   canManage: boolean;
   currencyCode?: string | null;
+  countryCode?: string | null;
   getContactsUseCase: GetContactsUseCase;
   saveContactUseCase: SaveContactUseCase;
 };
@@ -112,7 +109,8 @@ export const useContactsViewModel = ({
   accountRemoteId,
   accountType,
   canManage,
-  currencyCode = "NPR",
+  currencyCode,
+  countryCode,
   getContactsUseCase,
   saveContactUseCase,
 }: UseContactsViewModelParams): ContactsViewModel => {
@@ -136,6 +134,16 @@ export const useContactsViewModel = ({
       ? PERSONAL_CONTACT_TYPE_OPTIONS
       : BUSINESS_CONTACT_TYPE_OPTIONS;
   }, [accountType]);
+
+  const resolvedCurrencyCode = useMemo(
+    () => resolveCurrencyCode({ currencyCode, countryCode }),
+    [countryCode, currencyCode],
+  );
+
+  const currencyPrefix = useMemo(
+    () => resolveCurrencyPrefix({ currencyCode: resolvedCurrencyCode, countryCode }),
+    [countryCode, resolvedCurrencyCode],
+  );
 
   const loadContacts = useCallback(async (): Promise<void> => {
     if (!accountRemoteId) {
@@ -208,10 +216,18 @@ export const useContactsViewModel = ({
 
     return {
       totalCount: contacts.length,
-      receiveAmountLabel: formatCurrency(receiveTotal, currencyCode ?? "NPR"),
-      payAmountLabel: formatCurrency(payTotal, currencyCode ?? "NPR"),
+      receiveAmountLabel: formatCurrencyAmount({
+        amount: receiveTotal,
+        currencyCode: resolvedCurrencyCode,
+        countryCode,
+      }),
+      payAmountLabel: formatCurrencyAmount({
+        amount: payTotal,
+        currencyCode: resolvedCurrencyCode,
+        countryCode,
+      }),
     };
-  }, [contacts, currencyCode]);
+  }, [contacts, countryCode, resolvedCurrencyCode]);
 
   const onOpenCreate = useCallback(() => {
     if (!canManage) {
@@ -328,6 +344,8 @@ export const useContactsViewModel = ({
       errorMessage,
       contacts,
       filteredContacts,
+      currencyPrefix,
+      openingBalancePlaceholder: `Opening Balance (${currencyPrefix})`,
       selectedFilter,
       searchQuery,
       summary,
@@ -361,6 +379,7 @@ export const useContactsViewModel = ({
       filteredContacts,
       form,
       getContactAmountTone,
+      currencyPrefix,
       isEditorVisible,
       isLoading,
       loadContacts,

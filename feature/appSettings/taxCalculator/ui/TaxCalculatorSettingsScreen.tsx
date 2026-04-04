@@ -64,6 +64,7 @@ export function TaxCalculatorSettingsScreen({
       <TaxCalculatorModal
         visible={viewModel.isCalculatorVisible}
         amountInput={viewModel.amountInput}
+        amountInputPlaceholder={viewModel.amountInputPlaceholder}
         selectedMode={viewModel.selectedMode}
         selectedPresetCode={viewModel.selectedPresetCode}
         presetOptions={viewModel.presetOptions}

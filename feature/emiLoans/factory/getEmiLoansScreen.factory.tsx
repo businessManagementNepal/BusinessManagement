@@ -27,17 +27,22 @@ import { createLocalTransactionDatasource } from "@/feature/transactions/data/da
 import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
 import appDatabase from "@/shared/database/appDatabase";
 import React, { useCallback, useMemo, useState } from "react";
+import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 
 export type GetEmiLoansScreenFactoryProps = {
   activeAccountType: AccountTypeValue | null;
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
 };
 
 export function GetEmiLoansScreenFactory({
   activeAccountType,
   activeUserRemoteId,
   activeAccountRemoteId,
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
 }: GetEmiLoansScreenFactoryProps) {
   const [reloadSignal, setReloadSignal] = useState(0);
 
@@ -181,6 +186,18 @@ export function GetEmiLoansScreenFactory({
       null,
     [accounts, activeAccountRemoteId],
   );
+  const resolvedCurrencyCode = useMemo(
+    () =>
+      resolveCurrencyCode({
+        currencyCode: activeAccount?.currencyCode ?? activeAccountCurrencyCode,
+        countryCode: activeAccountCountryCode,
+      }),
+    [
+      activeAccount?.currencyCode,
+      activeAccountCountryCode,
+      activeAccountCurrencyCode,
+    ],
+  );
 
   const handleReload = useCallback(() => {
     setReloadSignal((currentSignal) => currentSignal + 1);
@@ -204,7 +221,7 @@ export function GetEmiLoansScreenFactory({
       activeAccountType === AccountType.Business ? activeAccountRemoteId : null,
     linkedAccountRemoteId: activeAccountRemoteId,
     linkedAccountDisplayName: activeAccount?.displayName ?? "Active account",
-    currencyCode: activeAccount?.currencyCode ?? "NPR",
+    currencyCode: resolvedCurrencyCode,
     addEmiPlanUseCase,
     onSaved: handleReload,
   });
@@ -214,6 +231,8 @@ export function GetEmiLoansScreenFactory({
     ownerUserRemoteId: activeUserRemoteId,
     businessAccountRemoteId:
       activeAccountType === AccountType.Business ? activeAccountRemoteId : null,
+    fallbackCurrencyCode: resolvedCurrencyCode,
+    fallbackCountryCode: activeAccountCountryCode,
     getEmiPlansUseCase,
     getPlanDetailByRemoteId: getEmiPlanByRemoteIdUseCase.execute,
     onOpenCreate: editorViewModel.openCreate,

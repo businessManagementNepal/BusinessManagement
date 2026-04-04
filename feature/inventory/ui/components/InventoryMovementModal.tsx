@@ -18,6 +18,7 @@ type InventoryMovementModalProps = {
   editorType: InventoryMovementTypeValue;
   title: string;
   form: InventoryMovementFormState;
+  currencyPrefix: string;
   productOptions: { label: string; value: string }[];
   adjustmentReasonOptions: readonly { label: string; value: InventoryAdjustmentReasonValue }[];
   onClose: () => void;
@@ -30,6 +31,7 @@ export function InventoryMovementModal({
   editorType,
   title,
   form,
+  currencyPrefix,
   productOptions,
   adjustmentReasonOptions,
   onClose,
@@ -71,7 +73,7 @@ export function InventoryMovementModal({
         />
 
         <LabeledTextInput
-          label="Unit Rate (NPR)"
+          label={`Unit Rate (${currencyPrefix})`}
           value={form.unitRate}
           placeholder="0"
           keyboardType="decimal-pad"

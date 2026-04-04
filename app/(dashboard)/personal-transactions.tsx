@@ -14,6 +14,8 @@ export default function PersonalTransactionsDashboardRoute() {
     activeAccountType,
     activeUserRemoteId,
     activeAccountRemoteId,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
   } = useDashboardRouteContext();
 
   useEffect(() => {
@@ -44,6 +46,8 @@ export default function PersonalTransactionsDashboardRoute() {
     <GetTransactionsScreenFactory
       activeUserRemoteId={activeUserRemoteId}
       activeAccountRemoteId={activeAccountRemoteId}
+      activeAccountCurrencyCode={activeAccountCurrencyCode}
+      activeAccountCountryCode={activeAccountCountryCode}
     />
   );
 }

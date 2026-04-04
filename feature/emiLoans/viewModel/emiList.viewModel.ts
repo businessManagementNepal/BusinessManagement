@@ -14,6 +14,7 @@ export interface EmiListViewModel {
   searchQuery: string;
   selectedFilter: EmiListFilterValue;
   summaryCards: readonly EmiSummaryCardState[];
+  zeroAmountLabel: string;
   planItems: readonly EmiPlanListItemState[];
   emptyStateMessage: string;
   refresh: () => Promise<void>;

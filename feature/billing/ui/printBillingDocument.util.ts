@@ -1,4 +1,5 @@
 import { BillingDocumentFormState } from "@/feature/billing/viewModel/billing.viewModel";
+import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 
 const parseNumber = (value: string): number => {
   const parsed = Number(value.trim());
@@ -10,6 +11,8 @@ export const buildBillingDraftHtml = (
   subtotalAmount: number,
   taxAmount: number,
   totalAmount: number,
+  currencyCode: string,
+  countryCode: string | null,
 ): string => {
   const issuedDate = form.issuedAt || new Date().toISOString().slice(0, 10);
   const title = form.documentType === "receipt" ? "RECEIPT" : "INVOICE";
@@ -22,8 +25,8 @@ export const buildBillingDraftHtml = (
         <tr>
           <td>${escapeHtml(item.itemName || "-")}</td>
           <td>${quantity}</td>
-          <td>NPR ${unitRate.toLocaleString()}</td>
-          <td>NPR ${lineTotal.toLocaleString()}</td>
+          <td>${formatCurrencyAmount({ amount: unitRate, currencyCode, countryCode })}</td>
+          <td>${formatCurrencyAmount({ amount: lineTotal, currencyCode, countryCode })}</td>
         </tr>`;
     })
     .join("");
@@ -70,9 +73,9 @@ export const buildBillingDraftHtml = (
     <tbody>${itemRows}</tbody>
   </table>
   <div class="totals">
-    <div><span>Subtotal</span><span>NPR ${subtotalAmount.toLocaleString()}</span></div>
-    <div><span>Tax (${parseNumber(form.taxRatePercent)}%)</span><span>NPR ${taxAmount.toLocaleString()}</span></div>
-    <div class="total"><span>Total</span><span>NPR ${totalAmount.toLocaleString()}</span></div>
+    <div><span>Subtotal</span><span>${formatCurrencyAmount({ amount: subtotalAmount, currencyCode, countryCode })}</span></div>
+    <div><span>Tax (${parseNumber(form.taxRatePercent)}%)</span><span>${formatCurrencyAmount({ amount: taxAmount, currencyCode, countryCode })}</span></div>
+    <div class="total"><span>Total</span><span>${formatCurrencyAmount({ amount: totalAmount, currencyCode, countryCode })}</span></div>
   </div>
   <div class="footer">${escapeHtml(form.notes || "Thank you for your business!")}</div>
 </body>
