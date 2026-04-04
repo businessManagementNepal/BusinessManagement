@@ -19,7 +19,13 @@ const mapDatasourceError = (error: Error): BillingError => {
   const normalized = error.message.trim();
   const lower = normalized.toLowerCase();
   if (lower.includes("not found")) return BillingDocumentNotFoundError;
-  if (lower.includes("required") || lower.includes("greater than zero") || lower.includes("negative")) {
+  if (
+    lower.includes("required") ||
+    lower.includes("greater than zero") ||
+    lower.includes("negative") ||
+    lower.includes("already exists") ||
+    lower.includes("unique constraint")
+  ) {
     return BillingValidationError(normalized);
   }
   if (lower.includes("database") || lower.includes("schema") || lower.includes("table") || lower.includes("adapter")) {

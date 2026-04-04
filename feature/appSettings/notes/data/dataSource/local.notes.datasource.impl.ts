@@ -20,15 +20,25 @@ const setUpdatedAt = (record: BusinessNoteModel, now: number) => {
   (record as unknown as { _raw: Record<string, number> })._raw.updated_at = now;
 };
 
+const getBusinessNotesByAccountRemoteId = async (
+  database: Database,
+  accountRemoteId: string,
+): Promise<BusinessNoteModel[]> => {
+  const collection = database.get<BusinessNoteModel>(BUSINESS_NOTES_TABLE);
+  return collection
+    .query(
+      Q.where("account_remote_id", accountRemoteId),
+      Q.sortBy("updated_at", Q.desc),
+      Q.sortBy("created_at", Q.desc),
+    )
+    .fetch();
+};
+
 const findBusinessNoteByAccountRemoteId = async (
   database: Database,
   accountRemoteId: string,
 ): Promise<BusinessNoteModel | null> => {
-  const collection = database.get<BusinessNoteModel>(BUSINESS_NOTES_TABLE);
-  const records = await collection
-    .query(Q.where("account_remote_id", accountRemoteId))
-    .fetch();
-
+  const records = await getBusinessNotesByAccountRemoteId(database, accountRemoteId);
   return records[0] ?? null;
 };
 
@@ -75,10 +85,12 @@ export const createLocalBusinessNotesDatasource = (
       }
 
       const normalizedNoteContent = normalizeNoteContent(noteContent);
-      const existing = await findBusinessNoteByAccountRemoteId(
+      const existingRecords = await getBusinessNotesByAccountRemoteId(
         database,
         normalizedAccountRemoteId,
       );
+      const existing = existingRecords[0] ?? null;
+      const duplicateRecords = existingRecords.slice(1);
 
       if (existing) {
         await database.write(async () => {
@@ -86,6 +98,10 @@ export const createLocalBusinessNotesDatasource = (
             record.noteContent = normalizedNoteContent;
             setUpdatedAt(record, Date.now());
           });
+
+          for (const duplicateRecord of duplicateRecords) {
+            await duplicateRecord.destroyPermanently();
+          }
         });
 
         return {

@@ -1,4 +1,5 @@
 import { tableSchema } from "@nozbe/watermelondb";
+import { BILLING_DOCUMENT_ACTIVE_NUMBER_UNIQUE_INDEX_SQL } from "./billingDocument.uniqueIndex";
 
 export const billingDocumentsTable = tableSchema({
   name: "billing_documents",
@@ -22,4 +23,5 @@ export const billingDocumentsTable = tableSchema({
     { name: "created_at", type: "number" },
     { name: "updated_at", type: "number" },
   ],
+  unsafeSql: (sql) => `${sql}\n${BILLING_DOCUMENT_ACTIVE_NUMBER_UNIQUE_INDEX_SQL}`,
 });

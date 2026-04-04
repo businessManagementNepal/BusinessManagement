@@ -63,6 +63,7 @@ const sortAccounts = (accounts: readonly MoneyAccount[]): MoneyAccount[] => {
 type UseMoneyAccountsViewModelParams = {
   activeUserRemoteId: string | null;
   scopeAccountRemoteId: string | null;
+  canManage: boolean;
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   saveMoneyAccountUseCase: SaveMoneyAccountUseCase;
 };
@@ -70,6 +71,7 @@ type UseMoneyAccountsViewModelParams = {
 export const useMoneyAccountsViewModel = ({
   activeUserRemoteId,
   scopeAccountRemoteId,
+  canManage,
   getMoneyAccountsUseCase,
   saveMoneyAccountUseCase,
 }: UseMoneyAccountsViewModelParams): MoneyAccountsViewModel => {
@@ -109,18 +111,28 @@ export const useMoneyAccountsViewModel = ({
   }, [loadMoneyAccounts]);
 
   const onOpenCreate = useCallback(() => {
+    if (!canManage) {
+      setErrorMessage("You do not have permission to manage money accounts.");
+      return;
+    }
+
     setEditorMode("create");
     setForm(EMPTY_FORM);
     setErrorMessage(null);
     setIsEditorVisible(true);
-  }, []);
+  }, [canManage]);
 
   const onOpenEdit = useCallback((account: MoneyAccount) => {
+    if (!canManage) {
+      setErrorMessage("You do not have permission to manage money accounts.");
+      return;
+    }
+
     setEditorMode("edit");
     setForm(mapMoneyAccountToForm(account));
     setErrorMessage(null);
     setIsEditorVisible(true);
-  }, []);
+  }, [canManage]);
 
   const onCloseEditor = useCallback(() => {
     setIsEditorVisible(false);
@@ -144,6 +156,11 @@ export const useMoneyAccountsViewModel = ({
   }, [accounts]);
 
   const onSubmit = useCallback(async () => {
+    if (!canManage) {
+      setErrorMessage("You do not have permission to manage money accounts.");
+      return;
+    }
+
     if (!activeUserRemoteId) {
       setErrorMessage("An active user session is required to save accounts.");
       return;
@@ -190,6 +207,7 @@ export const useMoneyAccountsViewModel = ({
   }, [
     accounts,
     activeUserRemoteId,
+    canManage,
     form,
     loadMoneyAccounts,
     saveMoneyAccountUseCase,
@@ -200,6 +218,7 @@ export const useMoneyAccountsViewModel = ({
     () => ({
       isLoading,
       errorMessage,
+      canManage,
       currencyLabel: DEFAULT_CURRENCY,
       totalBalanceLabel: formatCurrency(totalBalance, DEFAULT_CURRENCY),
       accounts,
@@ -215,6 +234,7 @@ export const useMoneyAccountsViewModel = ({
     }),
     [
       accounts,
+      canManage,
       editorMode,
       errorMessage,
       form,

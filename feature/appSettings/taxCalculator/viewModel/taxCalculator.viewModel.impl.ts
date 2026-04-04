@@ -56,7 +56,9 @@ export const useTaxCalculatorViewModel = ({
   calculateTaxBreakdownUseCase,
 }: Params): TaxCalculatorScreenViewModel => {
   const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
+  const [calculationErrorMessage, setCalculationErrorMessage] =
+    useState<string | null>(null);
   const [presets, setPresets] = useState<readonly TaxToolPreset[]>([]);
   const [selectedPresetCode, setSelectedPresetCode] = useState("");
   const [selectedMode, setSelectedMode] = useState<TaxCalculationModeValue>(
@@ -74,7 +76,8 @@ export const useTaxCalculatorViewModel = ({
     if (!result.success) {
       setPresets([]);
       setSelectedPresetCode("");
-      setErrorMessage(result.error.message);
+      setLoadErrorMessage(result.error.message);
+      setCalculationErrorMessage(null);
       setCalculationSummary(null);
       setIsLoading(false);
       return;
@@ -88,7 +91,8 @@ export const useTaxCalculatorViewModel = ({
 
       return result.value[2]?.code ?? result.value[0]?.code ?? "";
     });
-    setErrorMessage(null);
+    setLoadErrorMessage(null);
+    setCalculationErrorMessage(null);
     setIsLoading(false);
   }, [getTaxCalculatorPresetsUseCase]);
 
@@ -97,14 +101,20 @@ export const useTaxCalculatorViewModel = ({
   }, [loadPresets]);
 
   useEffect(() => {
+    if (loadErrorMessage) {
+      setCalculationSummary(null);
+      setCalculationErrorMessage(null);
+      return;
+    }
+
     const amount = parseAmountInput(amountInput);
 
     if (amount === null) {
       setCalculationSummary(null);
       if (amountInput.trim()) {
-        setErrorMessage("Enter a valid amount greater than zero.");
+        setCalculationErrorMessage("Enter a valid amount greater than zero.");
       } else {
-        setErrorMessage(null);
+        setCalculationErrorMessage(null);
       }
       return;
     }
@@ -112,7 +122,7 @@ export const useTaxCalculatorViewModel = ({
     if (!selectedPresetCode) {
       setCalculationSummary(null);
       if (!isLoading) {
-        setErrorMessage("Select a tax preset to continue.");
+        setCalculationErrorMessage("Select a tax preset to continue.");
       }
       return;
     }
@@ -132,12 +142,12 @@ export const useTaxCalculatorViewModel = ({
 
       if (!result.success) {
         setCalculationSummary(null);
-        setErrorMessage(result.error.message);
+        setCalculationErrorMessage(result.error.message);
         return;
       }
 
       setCalculationSummary(buildCalculationSummary(result.value));
-      setErrorMessage(null);
+      setCalculationErrorMessage(null);
     };
 
     void calculate();
@@ -149,6 +159,7 @@ export const useTaxCalculatorViewModel = ({
     amountInput,
     calculateTaxBreakdownUseCase,
     isLoading,
+    loadErrorMessage,
     selectedMode,
     selectedPresetCode,
   ]);
@@ -182,6 +193,8 @@ export const useTaxCalculatorViewModel = ({
     setSelectedMode(value);
   }, []);
 
+  const errorMessage = calculationErrorMessage ?? loadErrorMessage;
+
   return useMemo(
     () => ({
       isLoading,
@@ -205,9 +218,11 @@ export const useTaxCalculatorViewModel = ({
     [
       amountInput,
       calculationSummary,
+      calculationErrorMessage,
       errorMessage,
       isCalculatorVisible,
       isLoading,
+      loadErrorMessage,
       loadPresets,
       onAmountChange,
       onCloseCalculator,
@@ -220,4 +235,3 @@ export const useTaxCalculatorViewModel = ({
     ],
   );
 };
-

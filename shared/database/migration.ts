@@ -2,7 +2,14 @@ import {
   addColumns,
   createTable,
   schemaMigrations,
+  unsafeExecuteSql,
 } from "@nozbe/watermelondb/Schema/migrations";
+import {
+  BACKFILL_EMPTY_BILLING_DOCUMENT_NUMBER_SQL,
+  BILLING_DOCUMENT_ACTIVE_NUMBER_UNIQUE_INDEX_SQL,
+  DEDUPE_ACTIVE_BILLING_DOCUMENT_NUMBER_SQL,
+  NORMALIZE_BILLING_DOCUMENT_NUMBER_SQL,
+} from "@/feature/billing/data/dataSource/db/billingDocument.uniqueIndex";
 
 export const migrations = schemaMigrations({
   migrations: [
@@ -583,6 +590,15 @@ export const migrations = schemaMigrations({
             { name: "updated_at", type: "number" },
           ],
         }),
+      ],
+    },
+    {
+      toVersion: 25,
+      steps: [
+        unsafeExecuteSql(NORMALIZE_BILLING_DOCUMENT_NUMBER_SQL),
+        unsafeExecuteSql(BACKFILL_EMPTY_BILLING_DOCUMENT_NUMBER_SQL),
+        unsafeExecuteSql(DEDUPE_ACTIVE_BILLING_DOCUMENT_NUMBER_SQL),
+        unsafeExecuteSql(BILLING_DOCUMENT_ACTIVE_NUMBER_UNIQUE_INDEX_SQL),
       ],
     },
   ],

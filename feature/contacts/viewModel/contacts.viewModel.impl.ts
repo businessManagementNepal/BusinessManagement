@@ -101,6 +101,7 @@ type UseContactsViewModelParams = {
   ownerUserRemoteId: string | null;
   accountRemoteId: string | null;
   accountType: AccountTypeValue | null;
+  canManage: boolean;
   currencyCode?: string | null;
   getContactsUseCase: GetContactsUseCase;
   saveContactUseCase: SaveContactUseCase;
@@ -110,6 +111,7 @@ export const useContactsViewModel = ({
   ownerUserRemoteId,
   accountRemoteId,
   accountType,
+  canManage,
   currencyCode = "NPR",
   getContactsUseCase,
   saveContactUseCase,
@@ -212,6 +214,11 @@ export const useContactsViewModel = ({
   }, [contacts, currencyCode]);
 
   const onOpenCreate = useCallback(() => {
+    if (!canManage) {
+      setErrorMessage("You do not have permission to manage contacts.");
+      return;
+    }
+
     const defaultType = typeOptions[0]?.value ?? ContactType.Customer;
     setEditorMode("create");
     setForm({
@@ -220,14 +227,19 @@ export const useContactsViewModel = ({
     });
     setErrorMessage(null);
     setIsEditorVisible(true);
-  }, [typeOptions]);
+  }, [canManage, typeOptions]);
 
   const onOpenEdit = useCallback((contact: Contact) => {
+    if (!canManage) {
+      setErrorMessage("You do not have permission to manage contacts.");
+      return;
+    }
+
     setEditorMode("edit");
     setForm(mapContactToForm(contact));
     setErrorMessage(null);
     setIsEditorVisible(true);
-  }, []);
+  }, [canManage]);
 
   const onCloseEditor = useCallback(() => {
     setIsEditorVisible(false);
@@ -242,6 +254,11 @@ export const useContactsViewModel = ({
   }, []);
 
   const onSubmit = useCallback(async () => {
+    if (!canManage) {
+      setErrorMessage("You do not have permission to manage contacts.");
+      return;
+    }
+
     if (!ownerUserRemoteId || !accountRemoteId || !accountType) {
       setErrorMessage("An active account is required to manage contacts.");
       return;
@@ -283,6 +300,7 @@ export const useContactsViewModel = ({
   }, [
     accountRemoteId,
     accountType,
+    canManage,
     form,
     loadContacts,
     ownerUserRemoteId,
@@ -313,7 +331,9 @@ export const useContactsViewModel = ({
       selectedFilter,
       searchQuery,
       summary,
-      canManage: Boolean(ownerUserRemoteId && accountRemoteId && accountType),
+      canManage:
+        Boolean(ownerUserRemoteId && accountRemoteId && accountType) &&
+        canManage,
       isEditorVisible,
       editorMode,
       editorTitle: editorMode === "create" ? "New Contact" : "Edit Contact",
@@ -333,6 +353,7 @@ export const useContactsViewModel = ({
     [
       accountRemoteId,
       accountType,
+      canManage,
       contacts,
       editorMode,
       errorMessage,

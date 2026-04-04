@@ -4,6 +4,7 @@ import { businessNotesDbConfig } from "@/feature/appSettings/notes/data/dataSour
 import { accountDbConfig } from "@/feature/auth/accountSelection/data/dataSource/db/accountDbConfig";
 import { moneyAccountDbConfig } from "@/feature/accounts/data/dataSource/db/moneyAccountDbConfig";
 import { billingDbConfig } from "@/feature/billing/data/dataSource/db/billingDbConfig";
+import { BILLING_DOCUMENT_ACTIVE_NUMBER_UNIQUE_INDEX_NAME } from "@/feature/billing/data/dataSource/db/billingDocument.uniqueIndex";
 import { categoryDbConfig } from "@/feature/categories/data/dataSource/db/categoryDbConfig";
 import { contactDbConfig } from "@/feature/contacts/data/dataSource/db/contactDbConfig";
 import { emiDbConfig } from "@/feature/emiLoans/data/dataSource/db/emiDbConfig";
@@ -20,12 +21,13 @@ import {
     createDatabase,
 } from "@/shared/database/createDatabase";
 import { migrations } from "@/shared/database/migration";
-import { appSchema } from "@nozbe/watermelondb";
+import { appSchema, Q } from "@nozbe/watermelondb";
 
 const APP_SETTINGS_TABLE = "app_settings";
+const BILLING_DOCUMENTS_TABLE = "billing_documents";
 
 const schema = appSchema({
-  version: 24,
+  version: 25,
   tables: [
     ...authUserDbConfig.tables,
     ...authCredentialDbConfig.tables,
@@ -76,6 +78,43 @@ export const ensureDatabaseReady = async (): Promise<void> => {
     database.get<AppSettingsModel>(APP_SETTINGS_TABLE);
 
   await appSettingsCollection.query().fetchCount();
+
+  const uniqueIndexRows = await appSettingsCollection
+    .query(
+      Q.unsafeSqlQuery(
+        "SELECT name, sql FROM sqlite_master WHERE type = ? AND name = ?;",
+        ["index", BILLING_DOCUMENT_ACTIVE_NUMBER_UNIQUE_INDEX_NAME],
+      ),
+    )
+    .unsafeFetchRaw();
+
+  if (uniqueIndexRows.length === 0) {
+    throw new Error(
+      `Database integrity check failed: missing unique index ${BILLING_DOCUMENT_ACTIVE_NUMBER_UNIQUE_INDEX_NAME}.`,
+    );
+  }
+
+  const duplicateRows = await appSettingsCollection
+    .query(
+      Q.unsafeSqlQuery(
+        `
+          SELECT account_remote_id, document_number, COUNT(*) AS duplicate_count
+          FROM ${BILLING_DOCUMENTS_TABLE}
+          WHERE deleted_at IS NULL
+          GROUP BY account_remote_id, document_number COLLATE NOCASE
+          HAVING COUNT(*) > 1
+          LIMIT 1;
+        `,
+      ),
+    )
+    .unsafeFetchRaw();
+
+  if (duplicateRows.length > 0) {
+    throw new Error(
+      "Database integrity check failed: duplicate active billing document numbers detected.",
+    );
+  }
+
   assertDatabaseSetupHealthy();
 };
 

@@ -14,6 +14,7 @@ export type MoneyAccountFormState = {
 export interface MoneyAccountsViewModel {
   isLoading: boolean;
   errorMessage: string | null;
+  canManage: boolean;
   currencyLabel: string;
   totalBalanceLabel: string;
   accounts: readonly MoneyAccount[];

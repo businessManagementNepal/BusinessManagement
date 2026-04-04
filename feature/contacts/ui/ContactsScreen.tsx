@@ -13,7 +13,7 @@ import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
-import { ArrowLeft, Plus } from "lucide-react-native";
+import { Plus } from "lucide-react-native";
 import React from "react";
 import {
   ActivityIndicator,
@@ -32,12 +32,10 @@ const formatAmount = (amount: number): string => {
 
 type ContactsScreenProps = {
   viewModel: ContactsViewModel;
-  onBack: () => void;
 };
 
 export function ContactsScreen({
   viewModel,
-  onBack,
 }: ContactsScreenProps) {
   return (
     <>
@@ -57,13 +55,6 @@ export function ContactsScreen({
         contentContainerStyle={null}
         showDivider={false}
       >
-        <View style={styles.headerCard}>
-          <Pressable style={styles.backButton} onPress={onBack}>
-            <ArrowLeft size={18} color={colors.headerForeground} />
-          </Pressable>
-          <Text style={styles.headerTitle}>Contacts</Text>
-        </View>
-
         <View style={styles.summaryRow}>
           <StatCard
             icon={<Text style={styles.statIcon}>#</Text>}
@@ -119,6 +110,7 @@ export function ContactsScreen({
                   key={contact.remoteId}
                   style={[styles.row, !isLast ? styles.rowBorder : null]}
                   onPress={() => viewModel.onOpenEdit(contact)}
+                  disabled={!viewModel.canManage}
                 >
                   <View style={styles.avatarWrap}>
                     <Text style={styles.avatarText}>
@@ -170,33 +162,13 @@ export function ContactsScreen({
         onClose={viewModel.onCloseEditor}
         onChange={viewModel.onFormChange}
         onSubmit={viewModel.onSubmit}
+        disableSubmit={!viewModel.canManage}
       />
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  headerCard: {
-    backgroundColor: colors.header,
-    borderRadius: radius.xl,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  backButton: {
-    width: 28,
-    height: 28,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    color: colors.headerForeground,
-    fontSize: 20,
-    fontFamily: "InterBold",
-  },
   summaryRow: {
     flexDirection: "row",
     gap: spacing.sm,

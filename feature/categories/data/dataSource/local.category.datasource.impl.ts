@@ -58,6 +58,36 @@ const buildRemoteId = (
   return `system-${accountRemoteId}-${kind}-${slug}`;
 };
 
+const resolveCategoryRecencyScore = (category: CategoryModel): number => {
+  return category.updatedAt.getTime() || category.createdAt.getTime() || 0;
+};
+
+const dedupeCategoriesByRemoteId = (
+  categories: readonly CategoryModel[],
+): CategoryModel[] => {
+  const canonicalByRemoteId = new Map<string, CategoryModel>();
+
+  for (const category of categories) {
+    const current = canonicalByRemoteId.get(category.remoteId);
+    if (!current) {
+      canonicalByRemoteId.set(category.remoteId, category);
+      continue;
+    }
+
+    if (resolveCategoryRecencyScore(category) > resolveCategoryRecencyScore(current)) {
+      canonicalByRemoteId.set(category.remoteId, category);
+    }
+  }
+
+  return Array.from(canonicalByRemoteId.values()).sort((leftCategory, rightCategory) => {
+    const kindSort = leftCategory.kind.localeCompare(rightCategory.kind);
+    if (kindSort !== 0) {
+      return kindSort;
+    }
+    return leftCategory.name.localeCompare(rightCategory.name);
+  });
+};
+
 const getSystemCategorySeed = (
   accountRemoteId: string,
   ownerUserRemoteId: string,
@@ -195,8 +225,12 @@ const findByRemoteId = async (
   remoteId: string,
 ): Promise<CategoryModel | null> => {
   const collection = database.get<CategoryModel>(CATEGORIES_TABLE);
-  const matching = await collection.query(Q.where("remote_id", remoteId)).fetch();
-  return matching[0] ?? null;
+  const matching = await collection.query(
+    Q.where("remote_id", remoteId),
+    Q.where("deleted_at", Q.eq(null)),
+  ).fetch();
+  const deduped = dedupeCategoriesByRemoteId(matching);
+  return deduped[0] ?? null;
 };
 
 export const createLocalCategoryDatasource = (
@@ -315,7 +349,7 @@ export const createLocalCategoryDatasource = (
         )
         .fetch();
 
-      return { success: true, value: categories };
+      return { success: true, value: dedupeCategoriesByRemoteId(categories) };
     } catch (error) {
       return {
         success: false,

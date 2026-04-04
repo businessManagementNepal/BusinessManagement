@@ -10,11 +10,13 @@ import { MoneyAccountsScreen } from "@/feature/accounts/ui/MoneyAccountsScreen";
 type GetMoneyAccountsScreenFactoryProps = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
+  canManage: boolean;
 };
 
 export function GetMoneyAccountsScreenFactory({
   activeUserRemoteId,
   activeAccountRemoteId,
+  canManage,
 }: GetMoneyAccountsScreenFactoryProps) {
   const datasource = React.useMemo(
     () => createLocalMoneyAccountDatasource(appDatabase),
@@ -39,6 +41,7 @@ export function GetMoneyAccountsScreenFactory({
   const viewModel = useMoneyAccountsViewModel({
     activeUserRemoteId,
     scopeAccountRemoteId: activeAccountRemoteId,
+    canManage,
     getMoneyAccountsUseCase,
     saveMoneyAccountUseCase,
   });

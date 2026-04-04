@@ -4,9 +4,10 @@ import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDa
 import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 import { useAccountPermissionAccess } from "@/feature/userManagement/factory/useAccountPermissionAccess.factory";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
-import React, { useCallback, useEffect } from "react";
+import React, { useEffect } from "react";
 
 const CONTACTS_VIEW_PERMISSION_CODE = "contacts.view";
+const CONTACTS_MANAGE_PERMISSION_CODE = "contacts.manage";
 
 export default function ContactsDashboardRoute() {
   const navigation = useSmoothNavigation();
@@ -27,11 +28,13 @@ export default function ContactsDashboardRoute() {
   const canViewContacts = permissionAccess.hasPermission(
     CONTACTS_VIEW_PERMISSION_CODE,
   );
-
   const shouldEnforceBusinessPermission =
     activeAccountType === AccountType.Business;
   const hasContactsAccess = shouldEnforceBusinessPermission
     ? canViewContacts
+    : true;
+  const canManageContacts = shouldEnforceBusinessPermission
+    ? permissionAccess.hasPermission(CONTACTS_MANAGE_PERMISSION_CODE)
     : true;
 
   useEffect(() => {
@@ -57,10 +60,6 @@ export default function ContactsDashboardRoute() {
     shouldEnforceBusinessPermission,
   ]);
 
-  const handleBack = useCallback(() => {
-    navigation.replace("/(dashboard)/more");
-  }, [navigation]);
-
   if (
     isLoading ||
     !hasActiveSession ||
@@ -79,7 +78,7 @@ export default function ContactsDashboardRoute() {
       activeUserRemoteId={activeUserRemoteId}
       activeAccountRemoteId={activeAccountRemoteId}
       activeAccountType={activeAccountType}
-      onBack={handleBack}
+      canManage={canManageContacts}
     />
   );
 }

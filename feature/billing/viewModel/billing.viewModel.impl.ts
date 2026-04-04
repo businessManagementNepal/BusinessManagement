@@ -40,6 +40,23 @@ const parseNumber = (value: string): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const buildDocumentNumber = ({
+  documentType,
+  remoteId,
+  issuedAt,
+}: {
+  documentType: BillingDocument["documentType"];
+  remoteId: string;
+  issuedAt: number;
+}): string => {
+  const prefix =
+    documentType === BillingDocumentType.Receipt ? "RCPT" : "INV";
+  const year = new Date(issuedAt).getUTCFullYear();
+  const token = remoteId.replace(/-/g, "").slice(-8).toUpperCase();
+
+  return `${prefix}-${year}-${token}`;
+};
+
 const formatDateInput = (timestamp: number): string => new Date(timestamp).toISOString().slice(0, 10);
 
 const mapDocumentToForm = (document: BillingDocument): BillingDocumentFormState => ({
@@ -219,22 +236,29 @@ export const useBillingViewModel = ({
       return;
     }
 
-    const documentTypePrefix = form.documentType === BillingDocumentType.Receipt ? "RCPT" : "INV";
-    const documentTypeCount = documents.filter((item) => item.documentType === form.documentType).length + 1;
     const issuedAt = new Date(form.issuedAt || new Date().toISOString()).getTime();
+    const normalizedIssuedAt = Number.isFinite(issuedAt) ? issuedAt : Date.now();
+    const resolvedRemoteId = form.remoteId ?? Crypto.randomUUID();
+    const existingDocumentNumber = form.remoteId
+      ? documents.find((item) => item.remoteId === form.remoteId)?.documentNumber
+      : null;
     const result = await saveBillingDocumentUseCase.execute({
-      remoteId: form.remoteId ?? Crypto.randomUUID(),
+      remoteId: resolvedRemoteId,
       accountRemoteId,
-      documentNumber: form.remoteId
-        ? documents.find((item) => item.remoteId === form.remoteId)?.documentNumber ?? `${documentTypePrefix}-${String(documentTypeCount).padStart(3, "0")}`
-        : `${documentTypePrefix}-${String(documentTypeCount).padStart(3, "0")}`,
+      documentNumber:
+        existingDocumentNumber ??
+        buildDocumentNumber({
+          documentType: form.documentType,
+          remoteId: resolvedRemoteId,
+          issuedAt: normalizedIssuedAt,
+        }),
       documentType: form.documentType,
       templateType: form.templateType,
       customerName: form.customerName,
       status: form.status,
       taxRatePercent: parseNumber(form.taxRatePercent),
       notes: form.notes || null,
-      issuedAt: Number.isFinite(issuedAt) ? issuedAt : Date.now(),
+      issuedAt: normalizedIssuedAt,
       items: normalizedItems,
     });
     if (!result.success) {

@@ -1,7 +1,6 @@
 import React from "react";
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -13,7 +12,9 @@ import {
   MoneyAccount,
   MoneyAccountType,
 } from "@/feature/accounts/types/moneyAccount.types";
+import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card, CardPressable } from "@/shared/components/reusable/Cards/Card";
+import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { MoneyAccountEditorModal } from "./components/MoneyAccountEditorModal";
@@ -53,9 +54,21 @@ type MoneyAccountsScreenProps = {
 export function MoneyAccountsScreen({ viewModel }: MoneyAccountsScreenProps) {
   return (
     <DashboardTabScaffold
-      footer={null}
-      baseBottomPadding={110}
-      contentContainerStyle={null}
+      footer={
+        <BottomTabAwareFooter>
+          <AppButton
+            label="Add Account"
+            variant="primary"
+            size="lg"
+            style={styles.primaryActionButton}
+            leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
+            onPress={viewModel.onOpenCreate}
+            disabled={!viewModel.canManage}
+          />
+        </BottomTabAwareFooter>
+      }
+      baseBottomPadding={140}
+      contentContainerStyle={styles.content}
       showDivider={false}
     >
       <Card style={styles.totalBalanceCard}>
@@ -102,6 +115,7 @@ export function MoneyAccountsScreen({ viewModel }: MoneyAccountsScreenProps) {
                   !isLast ? styles.accountRowDivider : null,
                 ]}
                 onPress={() => viewModel.onOpenEdit(account)}
+                disabled={!viewModel.canManage}
               >
                 <View style={styles.iconWrap}>
                   {resolveAccountIcon(account)}
@@ -133,21 +147,18 @@ export function MoneyAccountsScreen({ viewModel }: MoneyAccountsScreenProps) {
         </Card>
       ) : null}
 
-      <Pressable
-        style={styles.addAccountButton}
-        onPress={viewModel.onOpenCreate}
-        accessibilityRole="button"
-      >
-        <Plus size={18} color={colors.primary} />
-        <Text style={styles.addAccountButtonText}>Add Account</Text>
-      </Pressable>
-
       <MoneyAccountEditorModal viewModel={viewModel} />
     </DashboardTabScaffold>
   );
 }
 
 const styles = StyleSheet.create({
+  content: {
+    gap: spacing.sm,
+  },
+  primaryActionButton: {
+    width: "100%",
+  },
   totalBalanceCard: {
     minHeight: 104,
     alignItems: "center",
@@ -239,23 +250,6 @@ const styles = StyleSheet.create({
     color: colors.primaryForeground,
     fontSize: 11,
     fontFamily: "InterBold",
-  },
-  addAccountButton: {
-    minHeight: 58,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderStyle: "dashed",
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: spacing.xs,
-    backgroundColor: "transparent",
-  },
-  addAccountButtonText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontFamily: "InterSemiBold",
   },
   errorText: {
     color: colors.destructive,

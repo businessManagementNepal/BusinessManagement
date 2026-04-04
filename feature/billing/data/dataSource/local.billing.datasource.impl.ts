@@ -35,8 +35,34 @@ const findDocumentByRemoteId = async (
   remoteId: string,
 ): Promise<BillingDocumentModel | null> => {
   const collection = database.get<BillingDocumentModel>(BILLING_DOCUMENTS_TABLE);
-  const matches = await collection.query(Q.where("remote_id", remoteId.trim())).fetch();
+  const matches = await collection.query(
+    Q.where("remote_id", remoteId.trim()),
+    Q.where("deleted_at", Q.eq(null)),
+    Q.sortBy("updated_at", Q.desc),
+    Q.sortBy("created_at", Q.desc),
+  ).fetch();
   return matches[0] ?? null;
+};
+
+const hasDocumentNumberConflict = async ({
+  database,
+  accountRemoteId,
+  documentNumber,
+  excludedRemoteId,
+}: {
+  database: Database;
+  accountRemoteId: string;
+  documentNumber: string;
+  excludedRemoteId: string | null;
+}): Promise<boolean> => {
+  const collection = database.get<BillingDocumentModel>(BILLING_DOCUMENTS_TABLE);
+  const matches = await collection.query(
+    Q.where("account_remote_id", accountRemoteId),
+    Q.where("document_number", documentNumber),
+    Q.where("deleted_at", Q.eq(null)),
+  ).fetch();
+
+  return matches.some((record) => record.remoteId !== excludedRemoteId);
 };
 
 const getItemsByDocumentRemoteId = async (
@@ -60,7 +86,9 @@ export const createLocalBillingDatasource = (database: Database): BillingDatasou
     try {
       const normalizedRemoteId = normalizeRequired(payload.remoteId);
       const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
-      const normalizedDocumentNumber = normalizeRequired(payload.documentNumber);
+      const normalizedDocumentNumber = normalizeRequired(
+        payload.documentNumber,
+      ).toUpperCase();
       const normalizedCustomerName = normalizeRequired(payload.customerName);
       const normalizedNotes = normalizeOptional(payload.notes);
 
@@ -83,10 +111,29 @@ export const createLocalBillingDatasource = (database: Database): BillingDatasou
       const taxAmount = Number(((subtotalAmount * payload.taxRatePercent) / 100).toFixed(2));
       const totalAmount = Number((subtotalAmount + taxAmount).toFixed(2));
       const existingDocument = await findDocumentByRemoteId(database, normalizedRemoteId);
+      const hasDuplicateDocumentNumber = await hasDocumentNumberConflict({
+        database,
+        accountRemoteId: normalizedAccountRemoteId,
+        documentNumber: normalizedDocumentNumber,
+        excludedRemoteId: existingDocument?.remoteId ?? null,
+      });
+      if (hasDuplicateDocumentNumber) {
+        throw new Error("Document number already exists for this account");
+      }
       let savedDocument: BillingDocumentModel | null = existingDocument;
 
       await database.write(async () => {
         const now = Date.now();
+        const hasDuplicateOnWrite = await hasDocumentNumberConflict({
+          database,
+          accountRemoteId: normalizedAccountRemoteId,
+          documentNumber: normalizedDocumentNumber,
+          excludedRemoteId: existingDocument?.remoteId ?? null,
+        });
+        if (hasDuplicateOnWrite) {
+          throw new Error("Document number already exists for this account");
+        }
+
         if (existingDocument) {
           await existingDocument.update((record) => {
             record.accountRemoteId = normalizedAccountRemoteId;

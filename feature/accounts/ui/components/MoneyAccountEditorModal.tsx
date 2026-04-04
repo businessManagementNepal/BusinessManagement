@@ -92,6 +92,7 @@ export function MoneyAccountEditorModal({
         variant="primary"
         size="lg"
         onPress={() => void viewModel.onSubmit()}
+        disabled={!viewModel.canManage}
       />
     </FormSheetModal>
   );

@@ -38,6 +38,8 @@ export type DashboardRouteContext = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   activeAccountType: AccountTypeValue | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
   activeAccountDisplayName: string;
   profileName: string;
   profileInitials: string;
@@ -56,6 +58,8 @@ const INITIAL_CONTEXT: DashboardRouteContext = {
   activeUserRemoteId: null,
   activeAccountRemoteId: null,
   activeAccountType: null,
+  activeAccountCurrencyCode: null,
+  activeAccountCountryCode: null,
   activeAccountDisplayName: "",
   profileName: "eLekha User",
   profileInitials: "EL",
@@ -147,6 +151,8 @@ export function AppRouteSessionProvider({
       const hasActiveSession = Boolean(activeUserRemoteId);
       let hasActiveAccount = Boolean(activeAccountRemoteId);
       let activeAccountType: AccountTypeValue | null = null;
+      let activeAccountCurrencyCode: string | null = null;
+      let activeAccountCountryCode: string | null = null;
       let activeAccountDisplayName = "";
       let sessionError: string | null = null;
 
@@ -185,6 +191,8 @@ export function AppRouteSessionProvider({
           if (activeAccount) {
             hasActiveAccount = true;
             activeAccountType = activeAccount.accountType;
+            activeAccountCurrencyCode = activeAccount.currencyCode;
+            activeAccountCountryCode = activeAccount.countryCode;
             activeAccountDisplayName = activeAccount.displayName;
 
             if (profileName === "eLekha User") {
@@ -214,6 +222,8 @@ export function AppRouteSessionProvider({
         activeUserRemoteId,
         activeAccountRemoteId,
         activeAccountType,
+        activeAccountCurrencyCode,
+        activeAccountCountryCode,
         activeAccountDisplayName,
         profileName,
         profileInitials,

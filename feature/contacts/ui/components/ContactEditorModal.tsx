@@ -29,6 +29,7 @@ type Props = {
   onClose: () => void;
   onChange: (field: keyof ContactFormState, value: string) => void;
   onSubmit: () => Promise<void>;
+  disableSubmit?: boolean;
 };
 
 export function ContactEditorModal({
@@ -39,6 +40,7 @@ export function ContactEditorModal({
   onClose,
   onChange,
   onSubmit,
+  disableSubmit = false,
 }: Props) {
   return (
     <Modal
@@ -127,6 +129,7 @@ export function ContactEditorModal({
               onPress={() => {
                 void onSubmit();
               }}
+              disabled={disableSubmit}
             />
           </ScrollView>
         </View>

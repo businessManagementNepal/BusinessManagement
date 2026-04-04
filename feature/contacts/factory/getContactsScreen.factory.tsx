@@ -24,14 +24,14 @@ type GetContactsScreenFactoryProps = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   activeAccountType: AccountTypeValue | null;
-  onBack: () => void;
+  canManage: boolean;
 };
 
 export function GetContactsScreenFactory({
   activeUserRemoteId,
   activeAccountRemoteId,
   activeAccountType,
-  onBack,
+  canManage,
 }: GetContactsScreenFactoryProps) {
   const [accounts, setAccounts] = useState<readonly Account[]>([]);
 
@@ -134,10 +134,11 @@ export function GetContactsScreenFactory({
     ownerUserRemoteId: activeUserRemoteId,
     accountRemoteId: activeAccountRemoteId,
     accountType: activeAccountType,
+    canManage,
     currencyCode: activeAccount?.currencyCode ?? "NPR",
     getContactsUseCase,
     saveContactUseCase,
   });
 
-  return <ContactsScreen viewModel={viewModel} onBack={onBack} />;
+  return <ContactsScreen viewModel={viewModel} />;
 }

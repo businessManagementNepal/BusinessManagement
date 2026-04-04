@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import {
   AlertCircle,
   ArrowDownLeft,
@@ -23,7 +23,6 @@ export function PersonalDashboardScreen({
   viewModel,
 }: PersonalDashboardScreenProps) {
   const primarySummaryCards = viewModel.summaryCards.slice(0, 2);
-  const netBalanceCard = viewModel.summaryCards[2];
 
   return (
     <ScreenContainer
@@ -49,20 +48,27 @@ export function PersonalDashboardScreen({
       <View style={styles.statRow}>
         <Card style={styles.statCard}>
           <ArrowDownLeft size={16} color={colors.success} />
-          <Text style={styles.statValue}>NPR 5,600</Text>
+          <Text style={styles.statValue}>{viewModel.todayInValue}</Text>
           <Text style={styles.statLabel}>Today In</Text>
         </Card>
         <Card style={styles.statCard}>
           <ArrowUpRight size={16} color={colors.destructive} />
-          <Text style={styles.statValue}>NPR 2,450</Text>
+          <Text style={styles.statValue}>{viewModel.todayOutValue}</Text>
           <Text style={styles.statLabel}>Today Out</Text>
         </Card>
         <Card style={styles.statCard}>
           <AlertCircle size={16} color={colors.warning} />
-          <Text style={styles.statValue}>{netBalanceCard?.value ?? "NPR 0"}</Text>
+          <Text style={styles.statValue}>{viewModel.netValue}</Text>
           <Text style={styles.statLabel}>Net</Text>
         </Card>
       </View>
+
+      {viewModel.isLoading ? (
+        <ActivityIndicator style={styles.infoBlock} color={colors.primary} />
+      ) : null}
+      {viewModel.errorMessage ? (
+        <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
+      ) : null}
 
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.quickActionRow}>
@@ -96,34 +102,42 @@ export function PersonalDashboardScreen({
 
       <Text style={styles.sectionTitle}>Recent Activity</Text>
       <Card style={styles.activityCard}>
-        {viewModel.recentItems.map((recentItem) => (
-          <View key={recentItem.id} style={styles.activityRow}>
-            <View style={styles.activityAvatar}>
-              <Text style={styles.activityAvatarText}>{recentItem.title[0]}</Text>
-            </View>
-
-            <View style={styles.activityBody}>
-              <Text style={styles.activityTitle}>{recentItem.title}</Text>
-              <Text style={styles.activitySubtitle}>{recentItem.subtitle}</Text>
-            </View>
-
-            <View style={styles.activityAmountWrap}>
-              <Text
-                style={[
-                  styles.activityAmount,
-                  recentItem.tone === "income"
-                    ? styles.activityAmountIncome
-                    : styles.activityAmountExpense,
-                ]}
-              >
-                {recentItem.amount}
-              </Text>
-              <Text style={styles.activityDirectionLabel}>
-                {recentItem.tone === "income" ? "Income" : "Expense"}
-              </Text>
-            </View>
+        {viewModel.recentItems.length === 0 ? (
+          <View style={styles.emptyStateRow}>
+            <Text style={styles.emptyStateText}>
+              No recent transactions available.
+            </Text>
           </View>
-        ))}
+        ) : (
+          viewModel.recentItems.map((recentItem) => (
+            <View key={recentItem.id} style={styles.activityRow}>
+              <View style={styles.activityAvatar}>
+                <Text style={styles.activityAvatarText}>{recentItem.title[0]}</Text>
+              </View>
+
+              <View style={styles.activityBody}>
+                <Text style={styles.activityTitle}>{recentItem.title}</Text>
+                <Text style={styles.activitySubtitle}>{recentItem.subtitle}</Text>
+              </View>
+
+              <View style={styles.activityAmountWrap}>
+                <Text
+                  style={[
+                    styles.activityAmount,
+                    recentItem.tone === "income"
+                      ? styles.activityAmountIncome
+                      : styles.activityAmountExpense,
+                  ]}
+                >
+                  {recentItem.amount}
+                </Text>
+                <Text style={styles.activityDirectionLabel}>
+                  {recentItem.tone === "income" ? "Income" : "Expense"}
+                </Text>
+              </View>
+            </View>
+          ))
+        )}
       </Card>
     </ScreenContainer>
   );
@@ -175,6 +189,15 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
     fontSize: 10,
   },
+  infoBlock: {
+    marginTop: spacing.sm,
+  },
+  errorText: {
+    marginTop: spacing.xs,
+    color: colors.destructive,
+    fontSize: 12,
+    fontFamily: "InterMedium",
+  },
   sectionTitle: {
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
@@ -213,6 +236,15 @@ const styles = StyleSheet.create({
   },
   activityCard: {
     padding: 0,
+  },
+  emptyStateRow: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  emptyStateText: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: "InterMedium",
   },
   activityRow: {
     flexDirection: "row",

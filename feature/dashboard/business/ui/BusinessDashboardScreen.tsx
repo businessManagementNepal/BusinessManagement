@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import {
   AlertCircle,
   ArrowLeftRight,
@@ -73,7 +73,7 @@ export function BusinessDashboardScreen({
             size={16}
             color={colors.success}
           />
-          <Text style={styles.statValue}>NPR 12,500</Text>
+          <Text style={styles.statValue}>{viewModel.todayInValue}</Text>
           <Text style={styles.statLabel}>Today In</Text>
         </Card>
         <Card style={styles.statCard}>
@@ -82,15 +82,22 @@ export function BusinessDashboardScreen({
             size={16}
             color={colors.destructive}
           />
-          <Text style={styles.statValue}>NPR 3,200</Text>
+          <Text style={styles.statValue}>{viewModel.todayOutValue}</Text>
           <Text style={styles.statLabel}>Today Out</Text>
         </Card>
         <Card style={styles.statCard}>
           <AlertCircle size={16} color={colors.warning} />
-          <Text style={styles.statValue}>7</Text>
+          <Text style={styles.statValue}>{viewModel.overdueCountLabel}</Text>
           <Text style={styles.statLabel}>Overdue</Text>
         </Card>
       </View>
+
+      {viewModel.isLoading ? (
+        <ActivityIndicator style={styles.infoBlock} color={colors.primary} />
+      ) : null}
+      {viewModel.errorMessage ? (
+        <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
+      ) : null}
 
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.quickActionRow}>
@@ -124,56 +131,62 @@ export function BusinessDashboardScreen({
 
       <Text style={styles.sectionTitle}>Due Today</Text>
       <Card style={styles.dueListCard}>
-        {viewModel.dueItems.map((dueItem) => (
-          <View key={dueItem.id} style={styles.dueRow}>
-            <View style={styles.dueAvatar}>
-              <Text style={styles.dueAvatarText}>{dueItem.name[0]}</Text>
-            </View>
+        {viewModel.dueItems.length === 0 ? (
+          <View style={styles.emptyStateRow}>
+            <Text style={styles.emptyStateText}>No due items for now.</Text>
+          </View>
+        ) : (
+          viewModel.dueItems.map((dueItem) => (
+            <View key={dueItem.id} style={styles.dueRow}>
+              <View style={styles.dueAvatar}>
+                <Text style={styles.dueAvatarText}>{dueItem.name[0]}</Text>
+              </View>
 
-            <View style={styles.dueBody}>
-              <Text style={styles.dueName}>{dueItem.name}</Text>
-              <Text style={styles.dueSubtitle}>{dueItem.subtitle}</Text>
-            </View>
+              <View style={styles.dueBody}>
+                <Text style={styles.dueName}>{dueItem.name}</Text>
+                <Text style={styles.dueSubtitle}>{dueItem.subtitle}</Text>
+              </View>
 
-            <View style={styles.dueAmountWrap}>
-              <Text
-                style={[
-                  styles.dueAmount,
-                  dueItem.direction === "receive"
-                    ? styles.dueAmountReceive
-                    : styles.dueAmountPay,
-                ]}
-              >
-                {dueItem.amount}
-              </Text>
-              <View style={styles.dueDirectionWrap}>
-                {dueItem.direction === "receive" ? (
-                  <DirectionArrowIcon
-                    variant="corner-receive"
-                    size={11}
-                    color={colors.success}
-                  />
-                ) : (
-                  <DirectionArrowIcon
-                    variant="corner-pay"
-                    size={11}
-                    color={colors.destructive}
-                  />
-                )}
+              <View style={styles.dueAmountWrap}>
                 <Text
                   style={[
-                    styles.dueDirectionLabel,
+                    styles.dueAmount,
                     dueItem.direction === "receive"
-                      ? styles.dueDirectionReceive
-                      : styles.dueDirectionPay,
+                      ? styles.dueAmountReceive
+                      : styles.dueAmountPay,
                   ]}
                 >
-                  {dueItem.direction === "receive" ? "To Receive" : "To Pay"}
+                  {dueItem.amount}
                 </Text>
+                <View style={styles.dueDirectionWrap}>
+                  {dueItem.direction === "receive" ? (
+                    <DirectionArrowIcon
+                      variant="corner-receive"
+                      size={11}
+                      color={colors.success}
+                    />
+                  ) : (
+                    <DirectionArrowIcon
+                      variant="corner-pay"
+                      size={11}
+                      color={colors.destructive}
+                    />
+                  )}
+                  <Text
+                    style={[
+                      styles.dueDirectionLabel,
+                      dueItem.direction === "receive"
+                        ? styles.dueDirectionReceive
+                        : styles.dueDirectionPay,
+                    ]}
+                  >
+                    {dueItem.direction === "receive" ? "To Receive" : "To Pay"}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
-        ))}
+          ))
+        )}
       </Card>
     </ScreenContainer>
   );
@@ -247,6 +260,15 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontFamily: "InterBold",
   },
+  infoBlock: {
+    marginTop: spacing.sm,
+  },
+  errorText: {
+    marginTop: spacing.xs,
+    color: colors.destructive,
+    fontSize: 12,
+    fontFamily: "InterMedium",
+  },
   quickActionRow: {
     flexDirection: "row",
     flexWrap: "nowrap",
@@ -278,6 +300,15 @@ const styles = StyleSheet.create({
   },
   dueListCard: {
     padding: 0,
+  },
+  emptyStateRow: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  emptyStateText: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: "InterMedium",
   },
   dueRow: {
     flexDirection: "row",

@@ -7,6 +7,7 @@ import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 import React, { useEffect } from "react";
 
 const MONEY_ACCOUNTS_VIEW_PERMISSION_CODE = "money_accounts.view";
+const MONEY_ACCOUNTS_MANAGE_PERMISSION_CODE = "money_accounts.manage";
 
 export default function MoneyAccountsDashboardRoute() {
   const navigation = useSmoothNavigation();
@@ -27,11 +28,13 @@ export default function MoneyAccountsDashboardRoute() {
   const canViewMoneyAccounts = permissionAccess.hasPermission(
     MONEY_ACCOUNTS_VIEW_PERMISSION_CODE,
   );
-
   const shouldEnforceBusinessPermission =
     activeAccountType === AccountType.Business;
   const hasMoneyAccountsAccess = shouldEnforceBusinessPermission
     ? canViewMoneyAccounts
+    : true;
+  const canManageMoneyAccounts = shouldEnforceBusinessPermission
+    ? permissionAccess.hasPermission(MONEY_ACCOUNTS_MANAGE_PERMISSION_CODE)
     : true;
 
   useEffect(() => {
@@ -74,6 +77,7 @@ export default function MoneyAccountsDashboardRoute() {
     <GetMoneyAccountsScreenFactory
       activeUserRemoteId={activeUserRemoteId}
       activeAccountRemoteId={activeAccountRemoteId}
+      canManage={canManageMoneyAccounts}
     />
   );
 }
