@@ -1,40 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Dimensions, StatusBar, StyleSheet, Text, View } from "react-native";
+import {
+  StatusBar,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import Svg, { Circle, Defs, Path, RadialGradient, Stop } from "react-native-svg";
-import { colors } from "@/shared/components/theme/colors";
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-
-const BG = "#1A3D2B";
-const WORDMARK_TEXT = "e-Lekha";
-const TAGLINE_TEXT = "Smart business. Clear accounts.";
-
-const TOTAL_MS = 3200;
-const T_TRAIL_END = 0.56;
-const T_LOGO_START = 0.5;
-const T_LOGO_END = 0.68;
-const T_WM_START = 0.66;
-const T_WM_END = 0.82;
-const T_TAG_START = 0.8;
-const T_TAG_END = 0.92;
-const T_FADE_OUT_START = 0.93;
-const TRAIL_WINDOW = 40;
-
-const DOT_GLOW_RADIUS = 11;
-const DOT_CORE_RADIUS = 3.2;
-
-const LOGO_RING_RADIUS = 54;
-const LOGO_DIAMETER = (LOGO_RING_RADIUS + 6) * 2;
-const LOGO_FILL = colors.accent;
-const LOGO_TEXT = colors.primary;
-
-const EX = -22;
-const EY = 0;
-const ER = 18;
-const LX = 14;
-const LY = 0;
-const LH = 36;
-const LFW = 22;
 
 type AnimatedSplashScreenProps = {
   onFinish: () => void;
@@ -45,46 +17,173 @@ type Point = {
   y: number;
 };
 
-type TrailSegment = {
-  d: string;
-  frac: number;
-};
-
 type Geometry = {
   cx: number;
   cy: number;
   ePts: Point[];
   lPts: Point[];
-  eTravelPts: Point[];
-  lTravelPts: Point[];
+  eTrav: Point[];
+  lTrav: Point[];
   eAll: Point[];
   lAll: Point[];
+  eTravLen: number;
+  lTravLen: number;
 };
+
+type TrailSegment = {
+  d: string;
+  frac: number;
+};
+
+const BG = "#2D6A4F";
+const TOTAL_MS = 4200;
+const TAGLINE_FADE_MS = 1000;
+const FINISH_MS = TOTAL_MS + TAGLINE_FADE_MS;
+
+const T_LETTER = 0.72;
+const T_CIRCLE_END = 0.84;
+const T_WM_START = 0.81;
+const T_WM_END = 0.96;
+const T_TAG = 0.97;
+const TRAIL_WINDOW = 52;
+
+const LOGO_RADIUS = 56;
+const LETTER_STROKE_WIDTH = 8.5;
+const DOT_GLOW_RADIUS = 6;
+const DOT_CORE_RADIUS = 1;
+const WORDMARK = "e-Lekha";
+const TAGLINE = "SMART BUSINESS. CLEAR ACCOUNTS.";
 
 const clamp01 = (value: number): number => Math.min(Math.max(value, 0), 1);
 
 const easeInOut = (t: number): number =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-const easeOut = (t: number): number => 1 - Math.pow(1 - t, 3);
+const easeOut3 = (t: number): number => 1 - Math.pow(1 - t, 3);
 
 const easeOutQ = (t: number): number => 1 - (1 - t) * (1 - t);
 
-const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+const lerp = (start: number, end: number, t: number): number =>
+  start + (end - start) * t;
 
-const sampleLine = (p0: Point, p1: Point, sampleCount: number): Point[] => {
+const buildE = (cx: number, cy: number): Point[] => {
+  const ex = cx - 19;
+  const ey = cy + 3;
+  const rw = 17;
+  const rh = 16;
   const points: Point[] = [];
-  const safeCount = Math.max(2, sampleCount);
 
-  for (let index = 0; index <= safeCount; index += 1) {
-    const t = index / safeCount;
+  for (let index = 0; index <= 30; index += 1) {
+    const t = index / 30;
+    points.push({ x: ex - rw + 2 * rw * t, y: ey });
+  }
+
+  const steps = 120;
+  const arcSpan = 2 * Math.PI - 0.65;
+  for (let index = 1; index <= steps; index += 1) {
+    const t = index / steps;
+    const angle = arcSpan * t;
     points.push({
-      x: lerp(p0.x, p1.x, t),
-      y: lerp(p0.y, p1.y, t),
+      x: ex + rw * Math.cos(angle),
+      y: ey - rh * Math.sin(angle),
     });
   }
 
   return points;
+};
+
+const buildL = (cx: number, cy: number): Point[] => {
+  const lx = cx + 8;
+  const lTop = cy - 22;
+  const lBottom = cy + 22;
+  const lRight = lx + 26;
+  const points: Point[] = [];
+
+  for (let index = 0; index <= 40; index += 1) {
+    const t = index / 40;
+    points.push({ x: lx, y: lerp(lTop, lBottom, t) });
+  }
+
+  for (let index = 1; index <= 24; index += 1) {
+    const t = index / 24;
+    points.push({ x: lerp(lx, lRight, t), y: lBottom });
+  }
+
+  return points;
+};
+
+const buildTravel = (
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+  fromLeft: boolean,
+  steps: number,
+  height: number,
+): Point[] => {
+  const points: Point[] = [];
+
+  for (let index = 0; index <= steps; index += 1) {
+    const t = index / steps;
+    const eased = easeOut3(t);
+    const x = lerp(startX, endX, eased);
+    const waveAmplitude = height * 0.13 * (1 - Math.pow(t, 1.6));
+    const wavePhase = fromLeft ? 0 : Math.PI;
+    const wave = Math.sin(t * Math.PI * 2.4 + wavePhase) * waveAmplitude;
+
+    points.push({
+      x,
+      y: lerp(startY, endY, eased) + wave,
+    });
+  }
+
+  return points;
+};
+
+const buildGeometry = (width: number, height: number): Geometry => {
+  const cx = width / 2;
+  const cy = height / 2 - 82;
+
+  const ePts = buildE(cx, cy);
+  const lPts = buildL(cx, cy);
+
+  const lStart = lPts[0];
+  const eTrav = buildTravel(
+    -20,
+    cy - height * 0.06,
+    lStart.x,
+    lStart.y,
+    true,
+    90,
+    height,
+  );
+
+  const eStart = ePts[0];
+  const lTrav = buildTravel(
+    width + 20,
+    cy + height * 0.06,
+    eStart.x,
+    eStart.y,
+    false,
+    90,
+    height,
+  );
+
+  const eAll = [...eTrav, ...lPts];
+  const lAll = [...lTrav, ...ePts];
+
+  return {
+    cx,
+    cy,
+    ePts,
+    lPts,
+    eTrav,
+    lTrav,
+    eAll,
+    lAll,
+    eTravLen: eTrav.length,
+    lTravLen: lTrav.length,
+  };
 };
 
 const buildTrailSegments = (
@@ -92,107 +191,52 @@ const buildTrailSegments = (
   fromIndex: number,
   toIndex: number,
 ): TrailSegment[] => {
-  const segmentCount = toIndex - fromIndex;
-  if (segmentCount < 2) {
+  if (toIndex - fromIndex < 2) {
     return [];
   }
 
   const segments: TrailSegment[] = [];
+  const span = toIndex - fromIndex;
 
-  for (let index = 1; index <= segmentCount; index += 1) {
-    const p0 = points[fromIndex + index - 1];
-    const p1 = points[fromIndex + index];
-    if (!p0 || !p1) {
+  for (let index = fromIndex + 1; index <= toIndex; index += 1) {
+    const previousPoint = points[index - 1];
+    const currentPoint = points[index];
+    if (!previousPoint || !currentPoint) {
       continue;
     }
 
     segments.push({
-      d: `M${p0.x.toFixed(2)} ${p0.y.toFixed(2)} L${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`,
-      frac: index / segmentCount,
+      d: `M${previousPoint.x.toFixed(2)} ${previousPoint.y.toFixed(2)} L${currentPoint.x.toFixed(2)} ${currentPoint.y.toFixed(2)}`,
+      frac: (index - fromIndex) / span,
     });
   }
 
   return segments;
 };
 
-const buildGeometry = (width: number, height: number): Geometry => {
-  const cx = width / 2;
-  const cy = height / 2 - 82;
-
-  const ex = cx + EX;
-  const ey = cy + EY;
-
-  const ePts: Point[] = [];
-  const arcSteps = 80;
-  const startAngle = 0.32;
-  const endAngle = startAngle + 2 * Math.PI * 0.92;
-
-  for (let index = 0; index <= arcSteps; index += 1) {
-    const angle = startAngle + (endAngle - startAngle) * (index / arcSteps);
-    ePts.push({
-      x: ex + ER * Math.cos(angle),
-      y: ey - ER * Math.sin(angle),
-    });
+const buildStrokePath = (points: Point[], maxCount: number): string => {
+  const count = Math.max(0, Math.min(points.length, maxCount));
+  if (count < 2) {
+    return "";
   }
 
-  const barSteps = 24;
-  for (let index = 0; index <= barSteps; index += 1) {
-    const t = index / barSteps;
-    ePts.push({
-      x: ex - ER + 2 * ER * t,
-      y: ey,
-    });
+  const firstPoint = points[0];
+  let d = `M${firstPoint.x.toFixed(2)} ${firstPoint.y.toFixed(2)}`;
+
+  for (let index = 1; index < count; index += 1) {
+    const point = points[index];
+    if (!point) {
+      continue;
+    }
+    d += ` L${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
   }
 
-  const lx = cx + LX;
-  const ly = cy + LY;
-  const lTop = { x: lx, y: ly - LH / 2 };
-  const lBottom = { x: lx, y: ly + LH / 2 };
-  const lFoot = { x: lx + LFW, y: ly + LH / 2 };
-  const lPts = [...sampleLine(lTop, lBottom, 40), ...sampleLine(lBottom, lFoot, 24)];
-
-  const lStart = lPts[0];
-  const eStart = ePts[0];
-
-  const eTravelPts: Point[] = [];
-  const snakeStepsA = 90;
-  for (let index = 0; index <= snakeStepsA; index += 1) {
-    const t = index / snakeStepsA;
-    const et = easeOut(t);
-    const wave = Math.sin(t * Math.PI * 2.2) * height * 0.08 * (1 - Math.pow(t, 2));
-    eTravelPts.push({
-      x: lerp(-20, lStart.x, et),
-      y: lerp(cy - height * 0.05, lStart.y, et) + wave,
-    });
-  }
-
-  const lTravelPts: Point[] = [];
-  const snakeStepsB = 90;
-  for (let index = 0; index <= snakeStepsB; index += 1) {
-    const t = index / snakeStepsB;
-    const et = easeOut(t);
-    const wave =
-      Math.sin(t * Math.PI * 2.2 + Math.PI) * height * 0.08 * (1 - Math.pow(t, 2));
-    lTravelPts.push({
-      x: lerp(width + 20, eStart.x, et),
-      y: lerp(cy + height * 0.05, eStart.y, et) + wave,
-    });
-  }
-
-  return {
-    cx,
-    cy,
-    ePts,
-    lPts,
-    eTravelPts,
-    lTravelPts,
-    eAll: [...eTravelPts, ...ePts],
-    lAll: [...lTravelPts, ...lPts],
-  };
+  return d;
 };
 
 export function AnimatedSplashScreen({ onFinish }: AnimatedSplashScreenProps) {
-  const geometry = useMemo(() => buildGeometry(SCREEN_WIDTH, SCREEN_HEIGHT), []);
+  const { width, height } = useWindowDimensions();
+  const geometry = useMemo(() => buildGeometry(width, height), [height, width]);
 
   const [elapsedMs, setElapsedMs] = useState(0);
   const animationFrameRef = useRef<number | null>(null);
@@ -206,9 +250,9 @@ export function AnimatedSplashScreen({ onFinish }: AnimatedSplashScreenProps) {
       }
 
       const elapsed = timestamp - startedAtRef.current;
-      setElapsedMs(Math.min(elapsed, TOTAL_MS + 240));
+      setElapsedMs(Math.min(elapsed, FINISH_MS + 220));
 
-      if (elapsed < TOTAL_MS + 240) {
+      if (elapsed < FINISH_MS + 220) {
         animationFrameRef.current = requestAnimationFrame(frame);
       }
     };
@@ -222,143 +266,227 @@ export function AnimatedSplashScreen({ onFinish }: AnimatedSplashScreenProps) {
       animationFrameRef.current = null;
       startedAtRef.current = null;
     };
-  }, []);
+  }, [height, width]);
 
   useEffect(() => {
-    if (hasFinishedRef.current || elapsedMs < TOTAL_MS + 200) {
+    if (hasFinishedRef.current || elapsedMs < FINISH_MS + 120) {
       return;
     }
+
     hasFinishedRef.current = true;
     onFinish();
   }, [elapsedMs, onFinish]);
 
   const globalProgress = clamp01(elapsedMs / TOTAL_MS);
-  const drawPhase = Math.min(globalProgress / T_TRAIL_END, 1);
+  const phase = Math.min(globalProgress / T_LETTER, 1);
+  const letterProgress = easeInOut(phase);
 
-  const eIdx = Math.floor(easeInOut(drawPhase) * (geometry.eAll.length - 1));
-  const lIdx = Math.floor(easeInOut(drawPhase) * (geometry.lAll.length - 1));
-
-  const eTrailSegments = useMemo(
-    () => buildTrailSegments(geometry.eAll, Math.max(0, eIdx - TRAIL_WINDOW), eIdx),
-    [eIdx, geometry.eAll],
+  const eIndex = Math.min(
+    Math.floor(letterProgress * (geometry.eAll.length - 1)),
+    geometry.eAll.length - 1,
   );
-  const lTrailSegments = useMemo(
-    () => buildTrailSegments(geometry.lAll, Math.max(0, lIdx - TRAIL_WINDOW), lIdx),
-    [geometry.lAll, lIdx],
+  const lIndex = Math.min(
+    Math.floor(letterProgress * (geometry.lAll.length - 1)),
+    geometry.lAll.length - 1,
   );
 
-  const eDot = geometry.eAll[Math.max(0, Math.min(eIdx, geometry.eAll.length - 1))];
-  const lDot = geometry.lAll[Math.max(0, Math.min(lIdx, geometry.lAll.length - 1))];
+  const eTrail = useMemo(
+    () =>
+      buildTrailSegments(
+        geometry.eAll,
+        Math.max(0, eIndex - TRAIL_WINDOW),
+        eIndex,
+      ),
+    [eIndex, geometry.eAll],
+  );
+  const lTrail = useMemo(
+    () =>
+      buildTrailSegments(
+        geometry.lAll,
+        Math.max(0, lIndex - TRAIL_WINDOW),
+        lIndex,
+      ),
+    [geometry.lAll, lIndex],
+  );
 
-  const trailVisibility =
-    globalProgress <= T_LOGO_START
-      ? 1
-      : 1 - clamp01((globalProgress - T_LOGO_START) / (T_LOGO_END - T_LOGO_START));
+  const eDot = geometry.eAll[Math.max(0, Math.min(eIndex, geometry.eAll.length - 1))];
+  const lDot = geometry.lAll[Math.max(0, Math.min(lIndex, geometry.lAll.length - 1))];
 
-  const dotVisibility = trailVisibility * (drawPhase < 0.97 ? 1 : clamp01(1 - (drawPhase - 0.97) / 0.03));
+  const dotOpacity = phase < 0.96 ? 1 : clamp01(1 - (phase - 0.96) / 0.04);
 
-  const logoReveal =
-    globalProgress < T_LOGO_START
-      ? 0
-      : easeOut(
-          clamp01((globalProgress - T_LOGO_START) / (T_LOGO_END - T_LOGO_START)),
-        );
+  const lLiveCount =
+    eIndex > geometry.eTravLen
+      ? Math.min(eIndex - geometry.eTravLen, geometry.lPts.length)
+      : 0;
+  const eLiveCount =
+    lIndex > geometry.lTravLen
+      ? Math.min(lIndex - geometry.lTravLen, geometry.ePts.length)
+      : 0;
+
+  const lLivePath = useMemo(
+    () => buildStrokePath(geometry.lPts, lLiveCount),
+    [geometry.lPts, lLiveCount],
+  );
+  const eLivePath = useMemo(
+    () => buildStrokePath(geometry.ePts, eLiveCount),
+    [eLiveCount, geometry.ePts],
+  );
+
+  const lFinalPath = useMemo(
+    () => buildStrokePath(geometry.lPts, geometry.lPts.length),
+    [geometry.lPts],
+  );
+  const eFinalPath = useMemo(
+    () => buildStrokePath(geometry.ePts, geometry.ePts.length),
+    [geometry.ePts],
+  );
+
+  const finalLetterOpacity =
+    globalProgress >= T_LETTER ? clamp01((globalProgress - T_LETTER) / 0.05) : 0;
+
+  const circleOpacity =
+    globalProgress >= T_LETTER
+      ? easeOut3(clamp01((globalProgress - T_LETTER) / (T_CIRCLE_END - T_LETTER))) *
+        0.6
+      : 0;
 
   const wordmarkProgress =
-    globalProgress < T_WM_START
-      ? 0
-      : easeOutQ(clamp01((globalProgress - T_WM_START) / (T_WM_END - T_WM_START)));
+    globalProgress >= T_WM_START
+      ? easeOutQ(clamp01((globalProgress - T_WM_START) / (T_WM_END - T_WM_START)))
+      : 0;
 
-  const taglineProgress =
-    globalProgress < T_TAG_START
+  const wordmarkReveal = wordmarkProgress * (WORDMARK.length + 1);
+  const taglineStartMs = TOTAL_MS * T_TAG;
+  const taglineOpacity =
+    elapsedMs < taglineStartMs
       ? 0
-      : easeOutQ(clamp01((globalProgress - T_TAG_START) / (T_TAG_END - T_TAG_START)));
-
-  const overlayOpacity =
-    globalProgress <= T_FADE_OUT_START
-      ? 1
-      : clamp01(1 - (globalProgress - T_FADE_OUT_START) / (1 - T_FADE_OUT_START));
+      : clamp01((elapsedMs - taglineStartMs) / TAGLINE_FADE_MS);
 
   return (
-    <View style={[styles.container, { opacity: overlayOpacity }]}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={BG} />
 
       <Svg
-        width={SCREEN_WIDTH}
-        height={SCREEN_HEIGHT}
+        width={width}
+        height={height}
         style={StyleSheet.absoluteFillObject}
         pointerEvents="none"
       >
         <Defs>
           <RadialGradient id="dotGlow" cx="50%" cy="50%" r="50%">
-            <Stop offset="0%" stopColor="rgba(210,255,225,0.65)" />
-            <Stop offset="35%" stopColor="rgba(70,200,120,0.24)" />
-            <Stop offset="100%" stopColor="rgba(26,61,43,0)" />
-          </RadialGradient>
-
-          <RadialGradient id="logoAura" cx="50%" cy="50%" r="50%">
-            <Stop offset="0%" stopColor="rgba(231,242,236,0.30)" />
-            <Stop offset="70%" stopColor="rgba(231,242,236,0.08)" />
-            <Stop offset="100%" stopColor="rgba(231,242,236,0)" />
+            <Stop offset="0%" stopColor="rgba(220,255,235,1)" />
+            <Stop offset="30%" stopColor="rgba(80,210,130,0.55)" />
+            <Stop offset="100%" stopColor="rgba(45,106,79,0)" />
           </RadialGradient>
         </Defs>
 
-        {eTrailSegments.map((segment, index) => (
+        {eTrail.map((segment, index) => (
           <Path
-            key={`e-dark-${index}`}
+            key={`e-trail-dark-${index}`}
             d={segment.d}
-            stroke={`rgba(60,190,100,${(segment.frac * 0.45 * trailVisibility).toFixed(3)})`}
-            strokeWidth={8}
+            stroke={`rgba(50,180,95,${(segment.frac * 0.9).toFixed(3)})`}
+            strokeWidth={11}
+            strokeLinecap="round"
+            fill="none"
+          />
+        ))}
+        {eTrail.map((segment, index) => (
+          <Path
+            key={`e-trail-core-${index}`}
+            d={segment.d}
+            stroke={`rgba(200,255,220,${(segment.frac * 0.4).toFixed(3)})`}
+            strokeWidth={3.5}
             strokeLinecap="round"
             fill="none"
           />
         ))}
 
-        {eTrailSegments.map((segment, index) => (
+        {lTrail.map((segment, index) => (
           <Path
-            key={`e-core-${index}`}
+            key={`l-trail-dark-${index}`}
             d={segment.d}
-            stroke={`rgba(180,255,210,${(segment.frac * 0.25 * trailVisibility).toFixed(3)})`}
-            strokeWidth={2.2}
+            stroke={`rgba(50,180,95,${(segment.frac * 0.9).toFixed(3)})`}
+            strokeWidth={11}
+            strokeLinecap="round"
+            fill="none"
+          />
+        ))}
+        {lTrail.map((segment, index) => (
+          <Path
+            key={`l-trail-core-${index}`}
+            d={segment.d}
+            stroke={`rgba(200,255,220,${(segment.frac * 0.4).toFixed(3)})`}
+            strokeWidth={3.5}
             strokeLinecap="round"
             fill="none"
           />
         ))}
 
-        {lTrailSegments.map((segment, index) => (
+        {lLivePath ? (
           <Path
-            key={`l-dark-${index}`}
-            d={segment.d}
-            stroke={`rgba(60,190,100,${(segment.frac * 0.45 * trailVisibility).toFixed(3)})`}
-            strokeWidth={8}
+            d={lLivePath}
+            stroke="rgba(255,255,255,1)"
+            strokeWidth={LETTER_STROKE_WIDTH}
             strokeLinecap="round"
+            strokeLinejoin="round"
             fill="none"
           />
-        ))}
+        ) : null}
+        {eLivePath ? (
+          <Path
+            d={eLivePath}
+            stroke="rgba(255,255,255,1)"
+            strokeWidth={LETTER_STROKE_WIDTH}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        ) : null}
 
-        {lTrailSegments.map((segment, index) => (
+        {finalLetterOpacity > 0 ? (
           <Path
-            key={`l-core-${index}`}
-            d={segment.d}
-            stroke={`rgba(180,255,210,${(segment.frac * 0.25 * trailVisibility).toFixed(3)})`}
-            strokeWidth={2.2}
+            d={lFinalPath}
+            stroke={`rgba(255,255,255,${finalLetterOpacity.toFixed(3)})`}
+            strokeWidth={LETTER_STROKE_WIDTH}
             strokeLinecap="round"
+            strokeLinejoin="round"
             fill="none"
           />
-        ))}
+        ) : null}
+        {finalLetterOpacity > 0 ? (
+          <Path
+            d={eFinalPath}
+            stroke={`rgba(255,255,255,${finalLetterOpacity.toFixed(3)})`}
+            strokeWidth={LETTER_STROKE_WIDTH}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        ) : null}
+
+        {circleOpacity > 0 ? (
+          <Circle
+            cx={geometry.cx}
+            cy={geometry.cy}
+            r={LOGO_RADIUS + 5}
+            stroke={`rgba(255,255,255,${(circleOpacity * 0.22).toFixed(3)})`}
+            strokeWidth={3}
+            fill="none"
+          />
+        ) : null}
 
         <Circle
           cx={eDot.x}
           cy={eDot.y}
           r={DOT_GLOW_RADIUS}
           fill="url(#dotGlow)"
-          opacity={dotVisibility * 0.62}
+          opacity={dotOpacity}
         />
         <Circle
           cx={eDot.x}
           cy={eDot.y}
           r={DOT_CORE_RADIUS}
-          fill={`rgba(230,255,240,${(dotVisibility * 0.85).toFixed(3)})`}
+          fill={`rgba(235,255,245,${dotOpacity.toFixed(3)})`}
         />
 
         <Circle
@@ -366,84 +494,38 @@ export function AnimatedSplashScreen({ onFinish }: AnimatedSplashScreenProps) {
           cy={lDot.y}
           r={DOT_GLOW_RADIUS}
           fill="url(#dotGlow)"
-          opacity={dotVisibility * 0.62}
+          opacity={dotOpacity}
         />
         <Circle
           cx={lDot.x}
           cy={lDot.y}
           r={DOT_CORE_RADIUS}
-          fill={`rgba(230,255,240,${(dotVisibility * 0.85).toFixed(3)})`}
+          fill={`rgba(235,255,245,${dotOpacity.toFixed(3)})`}
         />
-
-        {logoReveal > 0 ? (
-          <Circle
-            cx={geometry.cx}
-            cy={geometry.cy}
-            r={LOGO_RING_RADIUS + 28}
-            fill="url(#logoAura)"
-            opacity={logoReveal}
-          />
-        ) : null}
-
-        {logoReveal > 0 ? (
-          <Circle
-            cx={geometry.cx}
-            cy={geometry.cy}
-            r={LOGO_RING_RADIUS + 6}
-            fill={LOGO_FILL}
-            opacity={logoReveal}
-          />
-        ) : null}
-
-        {logoReveal > 0 ? (
-          <Circle
-            cx={geometry.cx}
-            cy={geometry.cy}
-            r={LOGO_RING_RADIUS + 6}
-            stroke={`rgba(255,255,255,${(0.2 * logoReveal).toFixed(3)})`}
-            strokeWidth={2}
-            fill="none"
-          />
-        ) : null}
       </Svg>
 
-      <View
-        pointerEvents="none"
-        style={[
-          styles.logoWrap,
-          {
-            top: geometry.cy - LOGO_DIAMETER / 2,
-            left: geometry.cx - LOGO_DIAMETER / 2,
-            opacity: logoReveal,
-            transform: [{ scale: 0.92 + 0.08 * logoReveal }],
-          },
-        ]}
-      >
-        <Text style={styles.logoText}>eL</Text>
-      </View>
-
-      <View
-        pointerEvents="none"
-        style={[
-          styles.belowWrap,
-          {
-            top: geometry.cy + LOGO_RING_RADIUS + 52,
-            opacity: wordmarkProgress,
-            transform: [{ translateY: (1 - wordmarkProgress) * 8 }],
-          },
-        ]}
-      >
-        <Text style={styles.wordmark}>{WORDMARK_TEXT}</Text>
-        <Text
-          style={[
-            styles.tagline,
-            {
-              opacity: taglineProgress,
-              transform: [{ translateY: (1 - taglineProgress) * 6 }],
-            },
-          ]}
-        >
-          {TAGLINE_TEXT}
+      <View style={[styles.below, { top: height / 2 + 168 }]}>
+        <View style={styles.wordmarkRow}>
+          {WORDMARK.split("").map((character, index) => {
+            const charProgress = clamp01(wordmarkReveal - index);
+            return (
+              <Text
+                key={`wordmark-char-${index}`}
+                style={[
+                  styles.wordmarkChar,
+                  {
+                    opacity: easeOutQ(charProgress),
+                    marginRight: index === WORDMARK.length - 1 ? 0 : 4,
+                  },
+                ]}
+              >
+                {character}
+              </Text>
+            );
+          })}
+        </View>
+        <Text style={[styles.tagline, { opacity: taglineOpacity }]}>
+          {TAGLINE}
         </Text>
       </View>
     </View>
@@ -453,44 +535,34 @@ export function AnimatedSplashScreen({ onFinish }: AnimatedSplashScreenProps) {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 1000,
-    elevation: 1000,
     backgroundColor: BG,
   },
-  logoWrap: {
+  below: {
     position: "absolute",
-    width: LOGO_DIAMETER,
-    height: LOGO_DIAMETER,
+    left: 0,
+    right: 0,
+    zIndex: 3,
     alignItems: "center",
-    justifyContent: "center",
   },
-  logoText: {
-    color: LOGO_TEXT,
-    fontSize: 50,
-    lineHeight: 54,
-    fontFamily: "InterSemiBold",
+  wordmarkRow: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  wordmarkChar: {
+    color: "rgba(255,255,255,0.95)",
+    fontSize: 30,
+    lineHeight: 36,
+    fontFamily: "InterRegular",
     includeFontPadding: false,
-    textAlign: "center",
     textAlignVertical: "center",
   },
-  belowWrap: {
-    position: "absolute",
-    width: "100%",
-    alignItems: "center",
-    gap: 10,
-  },
-  wordmark: {
-    color: "rgba(244,255,248,0.97)",
-    fontSize: 36,
-    lineHeight: 40,
-    fontFamily: "InterMedium",
-    letterSpacing: 1.2,
-  },
   tagline: {
-    color: "rgba(218,242,228,0.80)",
-    fontSize: 12,
-    lineHeight: 16,
+    marginTop: 14,
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 3,
     fontFamily: "InterRegular",
-    letterSpacing: 0.6,
   },
 });
