@@ -24,6 +24,7 @@ type FormSheetModalProps = {
   subtitle?: string;
   onClose: () => void;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   closeAccessibilityLabel?: string;
   contentContainerStyle?: StyleProp<ViewStyle>;
   sheetStyle?: StyleProp<ViewStyle>;
@@ -38,6 +39,7 @@ export function FormSheetModal({
   subtitle,
   onClose,
   children,
+  footer,
   closeAccessibilityLabel = "Close form",
   contentContainerStyle,
   sheetStyle,
@@ -67,9 +69,12 @@ export function FormSheetModal({
         />
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
-          style={isDialogPresentation ? styles.dialogKeyboardWrap : null}
+          style={[
+            isDialogPresentation ? styles.dialogKeyboardWrap : null,
+            styles.keyboardWrap,
+          ]}
         >
           <View
             style={[
@@ -96,17 +101,34 @@ export function FormSheetModal({
               </AppIconButton>
             </View>
 
-            {scrollEnabled ? (
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={[styles.content, contentContainerStyle]}
-              >
-                {children}
-              </ScrollView>
-            ) : (
-              <View style={[styles.content, contentContainerStyle]}>{children}</View>
-            )}
+            <View style={styles.body}>
+              {scrollEnabled ? (
+                <ScrollView
+                  style={styles.scroll}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+                  contentContainerStyle={[
+                    styles.content,
+                    footer ? styles.contentWithFooter : null,
+                    contentContainerStyle,
+                  ]}
+                >
+                  {children}
+                </ScrollView>
+              ) : (
+                <View
+                  style={[
+                    styles.content,
+                    footer ? styles.contentWithFooter : null,
+                    contentContainerStyle,
+                  ]}
+                >
+                  {children}
+                </View>
+              )}
+            </View>
+            {footer ? <View style={styles.footer}>{footer}</View> : null}
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -134,6 +156,9 @@ const styles = StyleSheet.create({
   },
   dialogKeyboardWrap: {
     width: "100%",
+  },
+  keyboardWrap: {
+    maxHeight: "100%",
   },
   sheet: {
     backgroundColor: colors.card,
@@ -185,8 +210,23 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontFamily: "InterMedium",
   },
+  body: {
+    flexShrink: 1,
+  },
+  scroll: {
+    flexShrink: 1,
+  },
   content: {
     gap: spacing.sm,
     paddingBottom: spacing.md,
+  },
+  contentWithFooter: {
+    paddingBottom: spacing.sm,
+  },
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing.sm,
+    backgroundColor: colors.card,
   },
 });

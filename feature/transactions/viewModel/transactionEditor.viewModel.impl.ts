@@ -23,7 +23,7 @@ const DEFAULT_EDITOR_STATE: TransactionEditorState = {
   type: TransactionType.Income,
   direction: TransactionDirection.In,
   title: "",
-  amount: "",
+  amount: "0",
   accountRemoteId: "",
   categoryLabel: "",
   note: "",

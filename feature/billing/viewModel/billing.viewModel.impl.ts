@@ -21,7 +21,7 @@ const createEmptyLineItem = (): BillingLineItemFormState => ({
   remoteId: Crypto.randomUUID(),
   itemName: "",
   quantity: "1",
-  unitRate: "",
+  unitRate: "0",
 });
 
 const EMPTY_FORM: BillingDocumentFormState = {

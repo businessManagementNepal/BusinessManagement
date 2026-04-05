@@ -22,6 +22,7 @@ import { PosProductSelectionModal } from "./PosProductSelectionModal";
 import { PosAdjustAmountModal } from "./PosAdjustAmountModal";
 import { PosPaymentModal } from "./PosPaymentModal";
 import { PosReceiptModal } from "./PosReceiptModal";
+import { PosQuickProductModal } from "./PosQuickProductModal";
 
 type PosScreenProps = {
   viewModel: PosScreenViewModel;
@@ -415,6 +416,21 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         onSelectProduct={(productId) => {
           void viewModel.onSelectProduct(productId);
         }}
+        onCreateProduct={viewModel.onOpenCreateProductModal}
+      />
+
+      <PosQuickProductModal
+        visible={viewModel.activeModal === "create-product"}
+        name={viewModel.quickProductNameInput}
+        salePrice={viewModel.quickProductPriceInput}
+        categoryName={viewModel.quickProductCategoryInput}
+        onNameChange={viewModel.onQuickProductNameInputChange}
+        onSalePriceChange={viewModel.onQuickProductPriceInputChange}
+        onCategoryNameChange={viewModel.onQuickProductCategoryInputChange}
+        onCreate={() => {
+          void viewModel.onCreateProductFromPos();
+        }}
+        onClose={viewModel.onCloseCreateProductModal}
       />
 
       <PosAdjustAmountModal

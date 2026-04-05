@@ -24,6 +24,7 @@ type PosProductSelectionModalProps = {
   onSearchChange: (value: string) => void;
   onClose: () => void;
   onSelectProduct: (productId: string) => void;
+  onCreateProduct: () => void;
 };
 
 export function PosProductSelectionModal({
@@ -35,6 +36,7 @@ export function PosProductSelectionModal({
   onSearchChange,
   onClose,
   onSelectProduct,
+  onCreateProduct,
 }: PosProductSelectionModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -58,7 +60,7 @@ export function PosProductSelectionModal({
             />
           </View>
 
-          <Pressable style={styles.createButton}>
+          <Pressable style={styles.createButton} onPress={onCreateProduct}>
             <Text style={styles.createButtonText}>+ Create New Product</Text>
           </Pressable>
 

@@ -49,7 +49,7 @@ const EMPTY_EDITOR_STATE: BudgetEditorState = {
   remoteId: null,
   budgetMonth: getCurrentBudgetMonth(),
   categoryRemoteId: "",
-  plannedAmount: "",
+  plannedAmount: "0",
   note: "",
   errorMessage: null,
   isSaving: false,

@@ -11,6 +11,7 @@ import {
 export type PosModalType =
   | "none"
   | "product-selection"
+  | "create-product"
   | "discount"
   | "surcharge"
   | "payment"
@@ -32,6 +33,9 @@ export type PosScreenState = {
   surchargeInput: string;
   paymentInput: string;
   paymentSplitCountInput: string;
+  quickProductNameInput: string;
+  quickProductPriceInput: string;
+  quickProductCategoryInput: string;
   receipt: PosReceipt | null;
   infoMessage: string | null;
   errorMessage: string | null;
@@ -54,6 +58,9 @@ export type PosScreenViewModel = {
   surchargeInput: string;
   paymentInput: string;
   paymentSplitCountInput: string;
+  quickProductNameInput: string;
+  quickProductPriceInput: string;
+  quickProductCategoryInput: string;
   receipt: PosReceipt | null;
   infoMessage: string | null;
   errorMessage: string | null;
@@ -64,6 +71,12 @@ export type PosScreenViewModel = {
   onRemoveSlotProduct: (slotId: string) => Promise<void>;
   onProductSearchChange: (value: string) => Promise<void>;
   onSelectProduct: (productId: string) => Promise<void>;
+  onOpenCreateProductModal: () => void;
+  onCloseCreateProductModal: () => void;
+  onQuickProductNameInputChange: (value: string) => void;
+  onQuickProductPriceInputChange: (value: string) => void;
+  onQuickProductCategoryInputChange: (value: string) => void;
+  onCreateProductFromPos: () => Promise<void>;
   onCloseModal: () => void;
   onIncreaseQuantity: (lineId: string) => Promise<void>;
   onDecreaseQuantity: (lineId: string) => Promise<void>;

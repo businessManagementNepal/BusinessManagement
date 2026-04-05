@@ -4,7 +4,6 @@ import {
   Contact,
   ContactBalanceDirection,
   ContactType,
-  ContactTypeValue,
   PERSONAL_CONTACT_FILTER_OPTIONS,
   PERSONAL_CONTACT_TYPE_OPTIONS,
 } from "@/feature/contacts/types/contact.types";
@@ -31,7 +30,7 @@ const EMPTY_FORM: ContactFormState = {
   emailAddress: "",
   address: "",
   taxId: "",
-  openingBalance: "",
+  openingBalance: "0",
   notes: "",
 };
 
@@ -310,9 +309,21 @@ export const useContactsViewModel = ({
       return;
     }
 
+    setContacts((currentContacts) => {
+      const existingIndex = currentContacts.findIndex(
+        (contact) => contact.remoteId === result.value.remoteId,
+      );
+      if (existingIndex === -1) {
+        return [result.value, ...currentContacts];
+      }
+      return currentContacts.map((contact, index) =>
+        index === existingIndex ? result.value : contact,
+      );
+    });
+    setErrorMessage(null);
     setIsEditorVisible(false);
     setForm(EMPTY_FORM);
-    await loadContacts();
+    void loadContacts();
   }, [
     accountRemoteId,
     accountType,

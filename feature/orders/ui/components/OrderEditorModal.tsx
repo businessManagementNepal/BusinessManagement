@@ -8,6 +8,7 @@ import {
   DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
@@ -56,6 +57,24 @@ export function OrderEditorModal({
       subtitle="Manage business orders with products, customer, and status"
       onClose={onClose}
       contentContainerStyle={styles.content}
+      footer={
+        <FormModalActionFooter>
+          <AppButton
+            label="Cancel"
+            variant="secondary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={onClose}
+          />
+          <AppButton
+            label={mode === "create" ? "Create Order" : "Save Changes"}
+            size="lg"
+            style={styles.actionButton}
+            onPress={() => void onSubmit()}
+            disabled={!canManage}
+          />
+        </FormModalActionFooter>
+      }
     >
       <LabeledTextInput
         label="Order Number"
@@ -167,22 +186,6 @@ export function OrderEditorModal({
         multiline
       />
 
-      <View style={styles.actionRow}>
-        <AppButton
-          label="Cancel"
-          variant="secondary"
-          size="lg"
-          style={styles.actionButton}
-          onPress={onClose}
-        />
-        <AppButton
-          label={mode === "create" ? "Create Order" : "Save Changes"}
-          size="lg"
-          style={styles.actionButton}
-          onPress={() => void onSubmit()}
-          disabled={!canManage}
-        />
-      </View>
     </FormSheetModal>
   );
 }
@@ -255,11 +258,6 @@ const styles = StyleSheet.create({
     color: colors.destructive,
     fontSize: 12,
     fontFamily: "InterBold",
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    paddingTop: spacing.xs,
   },
   actionButton: {
     flex: 1,

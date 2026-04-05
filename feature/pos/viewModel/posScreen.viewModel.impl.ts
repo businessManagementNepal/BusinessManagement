@@ -16,6 +16,9 @@ import {
   formatCurrencyAmount,
   resolveCurrencyCode,
 } from "@/shared/utils/currency/accountCurrency";
+import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
+import { ProductKind, ProductStatus } from "@/feature/products/types/product.types";
+import * as Crypto from "expo-crypto";
 
 const EMPTY_TOTALS: PosTotals = {
   itemCount: 0,
@@ -42,6 +45,9 @@ const INITIAL_STATE: PosScreenState = {
   surchargeInput: "",
   paymentInput: "",
   paymentSplitCountInput: "2",
+  quickProductNameInput: "",
+  quickProductPriceInput: "0",
+  quickProductCategoryInput: "",
   receipt: null,
   infoMessage: null,
   errorMessage: null,
@@ -110,6 +116,7 @@ export type UsePosScreenViewModelParams = {
   clearCartUseCase: ClearCartUseCase;
   completePosCheckoutUseCase: CompletePosCheckoutUseCase;
   printReceiptUseCase: PrintReceiptUseCase;
+  saveProductUseCase: SaveProductUseCase;
 };
 
 export function usePosScreenViewModel(
@@ -131,6 +138,7 @@ export function usePosScreenViewModel(
     clearCartUseCase,
     completePosCheckoutUseCase,
     printReceiptUseCase,
+    saveProductUseCase,
   } = params;
 
   const [state, setState] = useState<PosScreenState>(INITIAL_STATE);
@@ -316,6 +324,9 @@ export function usePosScreenViewModel(
         activeSlotId: null,
         selectedSlotId: activeSlotId,
         productSearchTerm: "",
+        quickProductNameInput: "",
+        quickProductPriceInput: "0",
+        quickProductCategoryInput: "",
       };
     });
 
@@ -333,9 +344,132 @@ export function usePosScreenViewModel(
       activeModal: "none",
       activeSlotId: null,
       productSearchTerm: currentState.activeModal === "product-selection" ? "" : currentState.productSearchTerm,
+      quickProductNameInput: "",
+      quickProductPriceInput: "0",
+      quickProductCategoryInput: "",
       errorMessage: null,
     }));
   }, []);
+
+  const onOpenCreateProductModal = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      activeModal: "create-product",
+      quickProductNameInput: "",
+      quickProductPriceInput: "0",
+      quickProductCategoryInput: "",
+      errorMessage: null,
+      infoMessage: null,
+    }));
+  }, []);
+
+  const onCloseCreateProductModal = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      activeModal: "product-selection",
+      quickProductNameInput: "",
+      quickProductPriceInput: "0",
+      quickProductCategoryInput: "",
+      errorMessage: null,
+    }));
+  }, []);
+
+  const onQuickProductNameInputChange = useCallback((value: string) => {
+    setState((currentState) => ({
+      ...currentState,
+      quickProductNameInput: value,
+      errorMessage: null,
+    }));
+  }, []);
+
+  const onQuickProductPriceInputChange = useCallback((value: string) => {
+    setState((currentState) => ({
+      ...currentState,
+      quickProductPriceInput: value,
+      errorMessage: null,
+    }));
+  }, []);
+
+  const onQuickProductCategoryInputChange = useCallback((value: string) => {
+    setState((currentState) => ({
+      ...currentState,
+      quickProductCategoryInput: value,
+      errorMessage: null,
+    }));
+  }, []);
+
+  const onCreateProductFromPos = useCallback(async () => {
+    if (!activeBusinessAccountRemoteId) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: "Active business account is required to create product.",
+      }));
+      return;
+    }
+
+    const normalizedName = state.quickProductNameInput.trim();
+    if (!normalizedName) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: "Product name is required.",
+      }));
+      return;
+    }
+
+    const parsedPrice = Number(state.quickProductPriceInput.trim());
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: "Enter a valid sale price (0 or higher).",
+      }));
+      return;
+    }
+
+    const result = await saveProductUseCase.execute({
+      remoteId: Crypto.randomUUID(),
+      accountRemoteId: activeBusinessAccountRemoteId,
+      name: normalizedName,
+      kind: ProductKind.Item,
+      categoryName: state.quickProductCategoryInput.trim() || null,
+      salePrice: parsedPrice,
+      costPrice: null,
+      stockQuantity: 0,
+      unitLabel: "pcs",
+      skuOrBarcode: null,
+      taxRateLabel: "0%",
+      description: null,
+      imageUrl: null,
+      status: ProductStatus.Active,
+    });
+
+    if (!result.success) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: result.error.message,
+      }));
+      return;
+    }
+
+    const products = await searchPosProductsUseCase.execute("");
+    setState((currentState) => ({
+      ...currentState,
+      activeModal: "product-selection",
+      filteredProducts: products,
+      productSearchTerm: "",
+      quickProductNameInput: "",
+      quickProductPriceInput: "0",
+      quickProductCategoryInput: "",
+      infoMessage: `Product "${normalizedName}" created. You can assign it now.`,
+      errorMessage: null,
+    }));
+  }, [
+    activeBusinessAccountRemoteId,
+    saveProductUseCase,
+    searchPosProductsUseCase,
+    state.quickProductCategoryInput,
+    state.quickProductNameInput,
+    state.quickProductPriceInput,
+  ]);
 
   const onIncreaseQuantity = useCallback(async (lineId: string) => {
     const line = state.cartLines.find((item) => item.lineId === lineId);
@@ -508,6 +642,9 @@ export function usePosScreenViewModel(
       filteredProducts: products,
       infoMessage: null,
       errorMessage: null,
+      quickProductNameInput: "",
+      quickProductPriceInput: "0",
+      quickProductCategoryInput: "",
     }));
   }, [clearCartUseCase, searchPosProductsUseCase]);
 
@@ -540,6 +677,9 @@ export function usePosScreenViewModel(
       paymentInput: "",
       receipt: result.value,
       filteredProducts: products,
+      quickProductNameInput: "",
+      quickProductPriceInput: "0",
+      quickProductCategoryInput: "",
       infoMessage:
         result.value.ledgerEffect.type === "due_balance_created"
           ? `Sale completed. ${formatCurrencyAmount({
@@ -608,6 +748,9 @@ export function usePosScreenViewModel(
       surchargeInput: state.surchargeInput,
       paymentInput: state.paymentInput,
       paymentSplitCountInput: state.paymentSplitCountInput,
+      quickProductNameInput: state.quickProductNameInput,
+      quickProductPriceInput: state.quickProductPriceInput,
+      quickProductCategoryInput: state.quickProductCategoryInput,
       receipt: state.receipt,
       infoMessage: state.infoMessage,
       errorMessage: state.errorMessage,
@@ -621,6 +764,12 @@ export function usePosScreenViewModel(
       onRemoveSlotProduct,
       onProductSearchChange,
       onSelectProduct,
+      onOpenCreateProductModal,
+      onCloseCreateProductModal,
+      onQuickProductNameInputChange,
+      onQuickProductPriceInputChange,
+      onQuickProductCategoryInputChange,
+      onCreateProductFromPos,
       onCloseModal,
       onIncreaseQuantity,
       onDecreaseQuantity,
@@ -650,6 +799,7 @@ export function usePosScreenViewModel(
       onApplySurcharge,
       onClearCart,
       onCloseModal,
+      onCreateProductFromPos,
       onCompletePayment,
       onDecreaseQuantity,
       onDiscountInputChange,
@@ -664,6 +814,11 @@ export function usePosScreenViewModel(
       onPaymentSplitCountInputChange,
       onPrintReceipt,
       onProductSearchChange,
+      onOpenCreateProductModal,
+      onCloseCreateProductModal,
+      onQuickProductNameInputChange,
+      onQuickProductPriceInputChange,
+      onQuickProductCategoryInputChange,
       onRemoveCartLine,
       onRemoveSlotProduct,
       onSelectProduct,
@@ -679,6 +834,9 @@ export function usePosScreenViewModel(
       state.paymentInput,
       state.paymentSplitCountInput,
       state.productSearchTerm,
+      state.quickProductCategoryInput,
+      state.quickProductNameInput,
+      state.quickProductPriceInput,
       state.products,
       state.receipt,
       state.slots,

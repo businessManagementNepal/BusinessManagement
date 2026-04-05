@@ -179,9 +179,21 @@ export const useCategoriesViewModel = ({
       return;
     }
 
+    setCategories((currentCategories) => {
+      const existingIndex = currentCategories.findIndex(
+        (category) => category.remoteId === result.value.remoteId,
+      );
+      if (existingIndex === -1) {
+        return [result.value, ...currentCategories];
+      }
+      return currentCategories.map((category, index) =>
+        index === existingIndex ? result.value : category,
+      );
+    });
+    setErrorMessage(null);
     setIsEditorVisible(false);
     setForm(EMPTY_FORM);
-    await loadCategories();
+    void loadCategories();
   }, [accountRemoteId, accountType, canManage, form, loadCategories, ownerUserRemoteId, saveCategoryUseCase]);
 
   useEffect(() => {

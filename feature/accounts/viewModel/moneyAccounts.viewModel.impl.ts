@@ -19,7 +19,7 @@ const EMPTY_FORM: MoneyAccountFormState = {
   remoteId: null,
   name: "",
   type: MoneyAccountType.Cash,
-  balance: "",
+  balance: "0",
   description: "",
 };
 
@@ -212,9 +212,25 @@ export const useMoneyAccountsViewModel = ({
       return;
     }
 
+    setAccounts((currentAccounts) =>
+      sortAccounts(
+        (() => {
+          const existingIndex = currentAccounts.findIndex(
+            (account) => account.remoteId === result.value.remoteId,
+          );
+          if (existingIndex === -1) {
+            return [result.value, ...currentAccounts];
+          }
+          return currentAccounts.map((account, index) =>
+            index === existingIndex ? result.value : account,
+          );
+        })(),
+      ),
+    );
+    setErrorMessage(null);
     setIsEditorVisible(false);
     setForm(EMPTY_FORM);
-    await loadMoneyAccounts();
+    void loadMoneyAccounts();
   }, [
     accounts,
     activeUserRemoteId,

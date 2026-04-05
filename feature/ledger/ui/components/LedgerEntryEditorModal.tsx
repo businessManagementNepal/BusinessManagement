@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { ChipSelectorField } from "@/shared/components/reusable/Form/ChipSelectorField";
+import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import {
@@ -47,6 +48,26 @@ export function LedgerEntryEditorModal({
       closeAccessibilityLabel="Close ledger entry editor"
       contentContainerStyle={styles.content}
       presentation="dialog"
+      footer={
+        <FormModalActionFooter>
+          <AppButton
+            label="Cancel"
+            variant="secondary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={viewModel.close}
+            disabled={state.isSaving}
+          />
+          <AppButton
+            label={state.isSaving ? "Saving..." : "Save"}
+            variant="primary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={() => void viewModel.submit()}
+            disabled={state.isSaving}
+          />
+        </FormModalActionFooter>
+      }
     >
       <ChipSelectorField
         label="Entry Type"
@@ -156,24 +177,6 @@ export function LedgerEntryEditorModal({
         <Text style={styles.errorText}>{state.errorMessage}</Text>
       ) : null}
 
-      <View style={styles.actionRow}>
-        <AppButton
-          label="Cancel"
-          variant="secondary"
-          size="lg"
-          style={styles.actionButton}
-          onPress={viewModel.close}
-          disabled={state.isSaving}
-        />
-        <AppButton
-          label={state.isSaving ? "Saving..." : "Save"}
-          variant="primary"
-          size="lg"
-          style={styles.actionButton}
-          onPress={() => void viewModel.submit()}
-          disabled={state.isSaving}
-        />
-      </View>
     </FormSheetModal>
   );
 }
@@ -210,11 +213,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontFamily: "InterSemiBold",
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.xs,
   },
   actionButton: {
     flex: 1,

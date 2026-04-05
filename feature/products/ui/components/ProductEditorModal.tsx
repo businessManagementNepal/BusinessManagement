@@ -2,6 +2,7 @@ import { ProductKind } from "@/feature/products/types/product.types";
 import { ProductFormState } from "@/feature/products/viewModel/products.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
+import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
@@ -33,6 +34,13 @@ export function ProductEditorModal({
   onSubmit,
 }: ProductEditorModalProps) {
   const title = mode === "create" ? "New Product" : "Edit Product";
+  const categoryDropdownOptions = [
+    { label: "No category", value: "" },
+    ...categoryOptions.map((categoryName) => ({
+      label: categoryName,
+      value: categoryName,
+    })),
+  ];
 
   return (
     <FormSheetModal
@@ -43,6 +51,25 @@ export function ProductEditorModal({
       closeAccessibilityLabel="Close product editor"
       presentation="dialog"
       contentContainerStyle={styles.content}
+      footer={
+        <FormModalActionFooter>
+          <AppButton
+            label="Cancel"
+            variant="secondary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={onClose}
+          />
+          <AppButton
+            label={mode === "create" ? "Save Product" : "Update Product"}
+            size="lg"
+            style={styles.actionButton}
+            onPress={() => {
+              void onSubmit();
+            }}
+          />
+        </FormModalActionFooter>
+      }
     >
       <LabeledTextInput
         label="Image URL"
@@ -80,12 +107,9 @@ export function ProductEditorModal({
         <Text style={styles.inputLabel}>Category</Text>
         <Dropdown
           value={form.categoryName}
-          options={categoryOptions.map((categoryName) => ({
-            label: categoryName,
-            value: categoryName,
-          }))}
+          options={categoryDropdownOptions}
           onChange={(value) => onChange("categoryName", value)}
-          placeholder="Select category"
+          placeholder="No category"
           modalTitle="Select category"
           showLeadingIcon={false}
           triggerStyle={styles.dropdownTrigger}
@@ -174,13 +198,6 @@ export function ProductEditorModal({
         numberOfLines={4}
       />
 
-      <AppButton
-        label={mode === "create" ? "Save Product" : "Update Product"}
-        size="lg"
-        onPress={() => {
-          void onSubmit();
-        }}
-      />
     </FormSheetModal>
   );
 }
@@ -217,6 +234,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   flexOne: {
+    flex: 1,
+  },
+  actionButton: {
     flex: 1,
   },
 });

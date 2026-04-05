@@ -20,9 +20,9 @@ const EMPTY_FORM: ProductFormState = {
   name: "",
   kind: ProductKind.Item,
   categoryName: "",
-  salePrice: "",
-  costPrice: "",
-  stockQuantity: "",
+  salePrice: "0",
+  costPrice: "0",
+  stockQuantity: "0",
   unitLabel: "pcs",
   skuOrBarcode: "",
   taxRateLabel: "0%",
@@ -222,9 +222,21 @@ export const useProductsViewModel = ({
       setErrorMessage(result.error.message);
       return;
     }
+    setProducts((currentProducts) => {
+      const existingIndex = currentProducts.findIndex(
+        (item) => item.remoteId === result.value.remoteId,
+      );
+      if (existingIndex === -1) {
+        return [result.value, ...currentProducts];
+      }
+      return currentProducts.map((item, index) =>
+        index === existingIndex ? result.value : item,
+      );
+    });
+    setErrorMessage(null);
     setIsEditorVisible(false);
     setForm(EMPTY_FORM);
-    await loadProducts();
+    void loadProducts();
   }, [accountRemoteId, canManage, form, loadProducts, saveProductUseCase]);
 
   const onDelete = useCallback(
@@ -238,7 +250,11 @@ export const useProductsViewModel = ({
         setErrorMessage(result.error.message);
         return;
       }
-      await loadProducts();
+      setProducts((currentProducts) =>
+        currentProducts.filter((item) => item.remoteId !== product.remoteId),
+      );
+      setErrorMessage(null);
+      void loadProducts();
     },
     [canManage, deleteProductUseCase, loadProducts],
   );

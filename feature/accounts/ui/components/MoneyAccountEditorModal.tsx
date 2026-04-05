@@ -4,6 +4,7 @@ import {
   Dropdown,
   DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
+import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
@@ -38,6 +39,25 @@ export function MoneyAccountEditorModal({
       onClose={viewModel.onCloseEditor}
       closeAccessibilityLabel="Close account editor"
       contentContainerStyle={styles.content}
+      footer={
+        <FormModalActionFooter>
+          <AppButton
+            label="Cancel"
+            variant="secondary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={viewModel.onCloseEditor}
+          />
+          <AppButton
+            label="Save Account"
+            variant="primary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={() => void viewModel.onSubmit()}
+            disabled={!viewModel.canManage}
+          />
+        </FormModalActionFooter>
+      }
     >
       <LabeledTextInput
         label="Account Name *"
@@ -70,7 +90,7 @@ export function MoneyAccountEditorModal({
         label={`Balance (${viewModel.currencyLabel})`}
         value={viewModel.form.balance}
         onChangeText={(value) => viewModel.onFormChange("balance", value)}
-        placeholder="Balance"
+        placeholder="0"
         keyboardType="decimal-pad"
       />
 
@@ -87,13 +107,6 @@ export function MoneyAccountEditorModal({
         <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
       ) : null}
 
-      <AppButton
-        label="Save Account"
-        variant="primary"
-        size="lg"
-        onPress={() => void viewModel.onSubmit()}
-        disabled={!viewModel.canManage}
-      />
     </FormSheetModal>
   );
 }
@@ -118,5 +131,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontFamily: "InterSemiBold",
+  },
+  actionButton: {
+    flex: 1,
   },
 });
