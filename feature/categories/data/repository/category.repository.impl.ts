@@ -56,4 +56,11 @@ export const createCategoryRepository = (
     }
     return { success: true, value: mapCategoryModelToDomain(result.value) };
   },
+  async archiveCategoryByRemoteId(remoteId: string) {
+    const result = await datasource.archiveCategoryByRemoteId(remoteId);
+    if (!result.success) {
+      return { success: false, error: mapDatasourceError(result.error) };
+    }
+    return result;
+  },
 });

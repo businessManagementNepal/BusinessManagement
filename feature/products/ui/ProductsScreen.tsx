@@ -225,6 +225,8 @@ export function ProductsScreen({ viewModel }: ProductsScreenProps) {
         taxRateOptions={viewModel.taxRateOptions}
         onClose={viewModel.onCloseEditor}
         onChange={viewModel.onFormChange}
+        onPickImage={viewModel.onPickImage}
+        onClearImage={viewModel.onClearImage}
         onSubmit={viewModel.onSubmit}
       />
     </>

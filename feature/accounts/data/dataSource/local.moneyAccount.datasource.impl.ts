@@ -9,16 +9,19 @@ import { MoneyAccountModel } from "./db/moneyAccount.model";
 
 const MONEY_ACCOUNTS_TABLE = "money_accounts";
 
-const setCreatedAndUpdatedAt = (record: MoneyAccountModel, now: number) => {
+const setCreatedAndUpdatedAt = (
+  record: MoneyAccountModel,
+  now: number,
+): void => {
   (record as unknown as { _raw: Record<string, number> })._raw.created_at = now;
   (record as unknown as { _raw: Record<string, number> })._raw.updated_at = now;
 };
 
-const setUpdatedAt = (record: MoneyAccountModel, now: number) => {
+const setUpdatedAt = (record: MoneyAccountModel, now: number): void => {
   (record as unknown as { _raw: Record<string, number> })._raw.updated_at = now;
 };
 
-const updateSyncStatusOnMutation = (record: MoneyAccountModel) => {
+const updateSyncStatusOnMutation = (record: MoneyAccountModel): void => {
   if (!record.recordSyncStatus) {
     record.recordSyncStatus = MoneyAccountSyncStatus.PendingUpdate;
     return;
@@ -134,6 +137,62 @@ export const createLocalMoneyAccountDatasource = (
       return {
         success: true,
         value: createdRecord,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async archiveMoneyAccountByRemoteId(remoteId: string): Promise<Result<boolean>> {
+    try {
+      const normalizedRemoteId = remoteId.trim();
+      if (!normalizedRemoteId) {
+        throw new Error("Money account remote id is required");
+      }
+
+      const collection = database.get<MoneyAccountModel>(MONEY_ACCOUNTS_TABLE);
+      const records = await collection
+        .query(Q.where("remote_id", normalizedRemoteId))
+        .fetch();
+      const existingRecord = records[0] ?? null;
+
+      if (!existingRecord || existingRecord.deletedAt !== null || !existingRecord.isActive) {
+        throw new Error("Money account not found");
+      }
+      if (existingRecord.isPrimary) {
+        throw new Error("Primary account cannot be deleted");
+      }
+
+      const scopeRecords = await collection
+        .query(Q.where("scope_account_remote_id", existingRecord.scopeAccountRemoteId))
+        .fetch();
+
+      const remainingActiveCount = scopeRecords.filter(
+        (record) =>
+          record.remoteId !== existingRecord.remoteId &&
+          record.deletedAt === null &&
+          record.isActive,
+      ).length;
+
+      if (remainingActiveCount === 0) {
+        throw new Error("At least one active money account is required");
+      }
+
+      await database.write(async () => {
+        await existingRecord.update((record) => {
+          record.isActive = false;
+          record.deletedAt = Date.now();
+          record.recordSyncStatus = MoneyAccountSyncStatus.PendingDelete;
+          setUpdatedAt(record, Date.now());
+        });
+      });
+
+      return {
+        success: true,
+        value: true,
       };
     } catch (error) {
       return {

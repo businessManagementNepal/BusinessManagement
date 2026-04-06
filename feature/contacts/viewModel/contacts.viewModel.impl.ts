@@ -9,6 +9,7 @@ import {
 } from "@/feature/contacts/types/contact.types";
 import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import { SaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase";
+import { ArchiveContactUseCase } from "@/feature/contacts/useCase/archiveContact.useCase";
 import {
   AccountType,
   AccountTypeValue,
@@ -97,10 +98,11 @@ type UseContactsViewModelParams = {
   accountRemoteId: string | null;
   accountType: AccountTypeValue | null;
   canManage: boolean;
-  currencyCode?: string | null;
-  countryCode?: string | null;
+  currencyCode: string | null;
+  countryCode: string | null;
   getContactsUseCase: GetContactsUseCase;
   saveContactUseCase: SaveContactUseCase;
+  archiveContactUseCase: ArchiveContactUseCase;
 };
 
 export const useContactsViewModel = ({
@@ -112,6 +114,7 @@ export const useContactsViewModel = ({
   countryCode,
   getContactsUseCase,
   saveContactUseCase,
+  archiveContactUseCase,
 }: UseContactsViewModelParams): ContactsViewModel => {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -121,6 +124,9 @@ export const useContactsViewModel = ({
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
   const [form, setForm] = useState<ContactFormState>(EMPTY_FORM);
+  const [pendingDeleteRemoteId, setPendingDeleteRemoteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null);
 
   const filterOptions = useMemo(() => {
     return accountType === AccountType.Personal
@@ -241,6 +247,7 @@ export const useContactsViewModel = ({
       contactType: defaultType,
     });
     setErrorMessage(null);
+    setDeleteErrorMessage(null);
     setIsEditorVisible(true);
   }, [canManage, typeOptions]);
 
@@ -253,12 +260,14 @@ export const useContactsViewModel = ({
     setEditorMode("edit");
     setForm(mapContactToForm(contact));
     setErrorMessage(null);
+    setDeleteErrorMessage(null);
     setIsEditorVisible(true);
   }, [canManage]);
 
   const onCloseEditor = useCallback(() => {
     setIsEditorVisible(false);
     setForm(EMPTY_FORM);
+    setDeleteErrorMessage(null);
   }, []);
 
   const onFormChange = useCallback((field: keyof ContactFormState, value: string) => {
@@ -334,6 +343,66 @@ export const useContactsViewModel = ({
     saveContactUseCase,
   ]);
 
+  const onRequestDeleteFromEditor = useCallback((): void => {
+    if (!canManage) {
+      setErrorMessage("You do not have permission to manage contacts.");
+      return;
+    }
+    if (editorMode !== "edit" || !form.remoteId) {
+      return;
+    }
+
+    const targetContact = contacts.find((contact) => contact.remoteId === form.remoteId);
+    if (!targetContact) {
+      setErrorMessage("Contact not found.");
+      return;
+    }
+
+    setPendingDeleteRemoteId(targetContact.remoteId);
+    setDeleteErrorMessage(null);
+  }, [canManage, contacts, editorMode, form.remoteId]);
+
+  const onCloseDeleteModal = useCallback((): void => {
+    if (isDeleting) {
+      return;
+    }
+    setPendingDeleteRemoteId(null);
+    setDeleteErrorMessage(null);
+  }, [isDeleting]);
+
+  const onConfirmDelete = useCallback(async (): Promise<void> => {
+    if (!canManage) {
+      setDeleteErrorMessage("You do not have permission to manage contacts.");
+      return;
+    }
+    if (!pendingDeleteRemoteId) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteErrorMessage(null);
+
+    const archiveContactResult = await archiveContactUseCase.execute(
+      pendingDeleteRemoteId,
+    );
+    setIsDeleting(false);
+
+    if (!archiveContactResult.success) {
+      setDeleteErrorMessage(archiveContactResult.error.message);
+      return;
+    }
+
+    setContacts((currentContacts) =>
+      currentContacts.filter((contact) => contact.remoteId !== pendingDeleteRemoteId),
+    );
+    setPendingDeleteRemoteId(null);
+    setDeleteErrorMessage(null);
+    setErrorMessage(null);
+    setIsEditorVisible(false);
+    setForm(EMPTY_FORM);
+    void loadContacts();
+  }, [archiveContactUseCase, canManage, loadContacts, pendingDeleteRemoteId]);
+
   useEffect(() => {
     const allowedFilterValues = new Set(filterOptions.map((item) => item.value));
     if (!allowedFilterValues.has(selectedFilter)) {
@@ -348,6 +417,17 @@ export const useContactsViewModel = ({
 
     return contact.openingBalanceDirection;
   }, []);
+
+  const pendingDeleteContactName = useMemo(() => {
+    if (!pendingDeleteRemoteId) {
+      return null;
+    }
+
+    const pendingContact = contacts.find(
+      (contact) => contact.remoteId === pendingDeleteRemoteId,
+    );
+    return pendingContact?.fullName ?? null;
+  }, [contacts, pendingDeleteRemoteId]);
 
   return useMemo<ContactsViewModel>(
     () => ({
@@ -367,6 +447,10 @@ export const useContactsViewModel = ({
       editorMode,
       editorTitle: editorMode === "create" ? "New Contact" : "Edit Contact",
       form,
+      isDeleteModalVisible: Boolean(pendingDeleteRemoteId),
+      pendingDeleteContactName,
+      deleteErrorMessage,
+      isDeleting,
       filterOptions,
       typeOptions,
       onRefresh: loadContacts,
@@ -377,6 +461,9 @@ export const useContactsViewModel = ({
       onCloseEditor,
       onFormChange,
       onSubmit,
+      onRequestDeleteFromEditor,
+      onCloseDeleteModal,
+      onConfirmDelete,
       getContactAmountTone,
     }),
     [
@@ -391,15 +478,22 @@ export const useContactsViewModel = ({
       form,
       getContactAmountTone,
       currencyPrefix,
+      deleteErrorMessage,
+      isDeleting,
       isEditorVisible,
       isLoading,
       loadContacts,
+      onCloseDeleteModal,
       onCloseEditor,
+      onConfirmDelete,
       onFormChange,
       onOpenCreate,
       onOpenEdit,
+      onRequestDeleteFromEditor,
       onSubmit,
       ownerUserRemoteId,
+      pendingDeleteContactName,
+      pendingDeleteRemoteId,
       searchQuery,
       selectedFilter,
       summary,

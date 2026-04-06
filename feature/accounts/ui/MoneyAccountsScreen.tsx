@@ -14,6 +14,7 @@ import {
 } from "@/feature/accounts/types/moneyAccount.types";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card, CardPressable } from "@/shared/components/reusable/Cards/Card";
+import { ConfirmDeleteModal } from "@/shared/components/reusable/Modals/ConfirmDeleteModal";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
@@ -32,7 +33,7 @@ const resolveAccountTypeLabel = (account: MoneyAccount): string => {
   }
 };
 
-const resolveAccountIcon = (account: MoneyAccount) => {
+const resolveAccountIcon = (account: MoneyAccount): React.ReactElement => {
   switch (account.type) {
     case MoneyAccountType.Bank:
       return <Landmark size={20} color={colors.primary} />;
@@ -48,7 +49,9 @@ type MoneyAccountsScreenProps = {
   viewModel: MoneyAccountsViewModel;
 };
 
-export function MoneyAccountsScreen({ viewModel }: MoneyAccountsScreenProps) {
+export function MoneyAccountsScreen({
+  viewModel,
+}: MoneyAccountsScreenProps): React.ReactElement {
   return (
     <DashboardTabScaffold
       footer={
@@ -146,6 +149,22 @@ export function MoneyAccountsScreen({ viewModel }: MoneyAccountsScreenProps) {
       ) : null}
 
       <MoneyAccountEditorModal viewModel={viewModel} />
+
+      <ConfirmDeleteModal
+        visible={viewModel.isDeleteModalVisible}
+        title="Delete money account?"
+        message={
+          viewModel.pendingDeleteAccountName
+            ? `Delete ${viewModel.pendingDeleteAccountName}? Existing transactions remain but this account will be archived.`
+            : "Delete this money account? Existing transactions remain but this account will be archived."
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isDeleting={viewModel.isDeleting}
+        errorMessage={viewModel.deleteErrorMessage}
+        onCancel={viewModel.onCloseDeleteModal}
+        onConfirm={() => void viewModel.onConfirmDelete()}
+      />
     </DashboardTabScaffold>
   );
 }

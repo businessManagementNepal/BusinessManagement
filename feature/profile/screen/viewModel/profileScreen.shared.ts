@@ -11,6 +11,7 @@ export const createEmptyPersonalProfile = (): EditablePersonalProfile => ({
   fullName: "",
   phone: "",
   email: "",
+  profileImageUrl: "",
 });
 
 export const createDefaultBusinessProfileForm = (): EditableBusinessProfile => ({

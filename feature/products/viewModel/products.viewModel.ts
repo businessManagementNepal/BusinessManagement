@@ -46,6 +46,8 @@ export interface ProductsViewModel {
   onOpenEdit: (product: Product) => void;
   onCloseEditor: () => void;
   onFormChange: (field: keyof ProductFormState, value: string) => void;
+  onPickImage: () => Promise<void>;
+  onClearImage: () => void;
   onSubmit: () => Promise<void>;
   onDelete: (product: Product) => Promise<void>;
 }

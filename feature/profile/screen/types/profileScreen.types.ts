@@ -19,6 +19,7 @@ export type EditablePersonalProfile = {
   fullName: string;
   phone: string;
   email: string;
+  profileImageUrl: string;
 };
 
 export type EditableBusinessProfile = {

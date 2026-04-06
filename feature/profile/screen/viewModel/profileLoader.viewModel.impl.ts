@@ -90,6 +90,7 @@ export const useProfileLoaderViewModel = (
             fullName: userResult.value.fullName,
             phone: userResult.value.phone ?? "",
             email: userResult.value.email ?? "",
+            profileImageUrl: userResult.value.profileImageUrl ?? "",
           }
         : createEmptyPersonalProfile();
 

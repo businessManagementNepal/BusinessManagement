@@ -6,6 +6,7 @@ export interface MoneyAccountDatasource {
   saveMoneyAccount(
     payload: SaveMoneyAccountPayload,
   ): Promise<Result<MoneyAccountModel>>;
+  archiveMoneyAccountByRemoteId(remoteId: string): Promise<Result<boolean>>;
   getMoneyAccountsByScopeAccountRemoteId(
     scopeAccountRemoteId: string,
   ): Promise<Result<MoneyAccountModel[]>>;

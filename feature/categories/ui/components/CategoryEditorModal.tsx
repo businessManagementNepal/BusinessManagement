@@ -22,9 +22,13 @@ type Props = {
   title: string;
   form: CategoryFormState;
   allowedKinds: readonly CategoryKindValue[];
+  isEditMode: boolean;
+  isDeleting: boolean;
+  canDelete: boolean;
   onClose: () => void;
   onChange: (field: keyof CategoryFormState, value: string) => void;
   onSubmit: () => Promise<void>;
+  onDelete: () => void;
 };
 
 export function CategoryEditorModal({
@@ -32,10 +36,14 @@ export function CategoryEditorModal({
   title,
   form,
   allowedKinds,
+  isEditMode,
+  isDeleting,
+  canDelete,
   onClose,
   onChange,
   onSubmit,
-}: Props) {
+  onDelete,
+}: Props): React.ReactElement {
   return (
     <FormSheetModal
       visible={visible}
@@ -47,6 +55,17 @@ export function CategoryEditorModal({
       presentation="dialog"
       footer={
         <FormModalActionFooter>
+          {isEditMode ? (
+            <AppButton
+              label={isDeleting ? "Deleting..." : "Delete"}
+              variant="secondary"
+              size="lg"
+              style={[styles.actionButton, styles.deleteActionButton]}
+              labelStyle={styles.deleteActionLabel}
+              onPress={onDelete}
+              disabled={!canDelete || isDeleting}
+            />
+          ) : null}
           <AppButton
             label="Cancel"
             variant="secondary"
@@ -115,5 +134,12 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+  },
+  deleteActionButton: {
+    borderColor: colors.destructive,
+    backgroundColor: "#FDECEC",
+  },
+  deleteActionLabel: {
+    color: colors.destructive,
   },
 });

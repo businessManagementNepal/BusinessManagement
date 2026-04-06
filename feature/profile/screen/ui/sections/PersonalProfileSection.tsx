@@ -1,11 +1,20 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Mail, PencilLine, Phone, Save, UserRound, X } from "lucide-react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Camera,
+  Mail,
+  PencilLine,
+  Phone,
+  Save,
+  UserRound,
+  X,
+} from "lucide-react-native";
 import { EditablePersonalProfile } from "@/feature/profile/screen/types/profileScreen.types";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { ProfileField } from "./ProfileField";
 import { colors } from "@/shared/components/theme/colors";
-import { spacing } from "@/shared/components/theme/spacing";
+import { radius, spacing } from "@/shared/components/theme/spacing";
+import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
 
 type PersonalProfileSectionProps = {
   personalProfileForm: EditablePersonalProfile;
@@ -29,6 +38,34 @@ export function PersonalProfileSection({
   onUpdatePersonalProfileField,
   onSavePersonalProfile,
 }: PersonalProfileSectionProps) {
+  const [isPickingImage, setIsPickingImage] = React.useState(false);
+  const profileImageUrl = personalProfileForm.profileImageUrl.trim();
+
+  const onPickProfileImage = React.useCallback(async () => {
+    if (!isPersonalEditing || isPickingImage) {
+      return;
+    }
+
+    setIsPickingImage(true);
+    try {
+      const pickedImage = await pickImageFromLibrary();
+      if (!pickedImage) {
+        return;
+      }
+
+      onUpdatePersonalProfileField(
+        "profileImageUrl",
+        pickedImage.dataUrl ?? pickedImage.uri,
+      );
+    } finally {
+      setIsPickingImage(false);
+    }
+  }, [isPersonalEditing, isPickingImage, onUpdatePersonalProfileField]);
+
+  const onClearProfileImage = React.useCallback(() => {
+    onUpdatePersonalProfileField("profileImageUrl", "");
+  }, [onUpdatePersonalProfileField]);
+
   return (
     <View style={styles.sectionWrap}>
       <View style={styles.sectionHeader}>
@@ -67,6 +104,49 @@ export function PersonalProfileSection({
 
       <Text style={styles.sectionTitle}>Personal Information</Text>
       <Card style={styles.sectionCard}>
+        <View style={styles.profileImageRow}>
+          <View style={styles.profileImagePreview}>
+            {profileImageUrl.length > 0 ? (
+              <Image
+                source={{ uri: profileImageUrl }}
+                style={styles.profileImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <UserRound size={24} color={colors.mutedForeground} />
+            )}
+          </View>
+
+          <View style={styles.profileImageActions}>
+            <Pressable
+              onPress={() => {
+                void onPickProfileImage();
+              }}
+              style={[
+                styles.profileImageButton,
+                !isPersonalEditing ? styles.profileImageButtonDisabled : null,
+              ]}
+              accessibilityRole="button"
+              disabled={!isPersonalEditing || isPickingImage}
+            >
+              <Camera size={14} color={colors.primary} />
+              <Text style={styles.profileImageButtonLabel}>
+                {isPickingImage ? "Selecting..." : "Choose photo"}
+              </Text>
+            </Pressable>
+
+            {isPersonalEditing && profileImageUrl.length > 0 ? (
+              <Pressable
+                onPress={onClearProfileImage}
+                style={styles.clearImageButton}
+                accessibilityRole="button"
+              >
+                <Text style={styles.clearImageButtonLabel}>Remove</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+
         <ProfileField
           label="Full Name"
           value={personalProfileForm.fullName}
@@ -179,6 +259,62 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     padding: 0,
+  },
+  profileImageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  profileImagePreview: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.pill,
+    backgroundColor: colors.secondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  profileImage: {
+    width: "100%",
+    height: "100%",
+  },
+  profileImageActions: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  profileImageButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+  },
+  profileImageButtonDisabled: {
+    opacity: 0.55,
+  },
+  profileImageButtonLabel: {
+    color: colors.primary,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
+  },
+  clearImageButton: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 4,
+  },
+  clearImageButtonLabel: {
+    color: colors.destructive,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
   },
   pendingText: {
     color: colors.mutedForeground,

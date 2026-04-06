@@ -24,7 +24,10 @@ type Props = {
   onChange: (field: keyof ContactFormState, value: string) => void;
   onSubmit: () => Promise<void>;
   openingBalancePlaceholder: string;
-  disableSubmit?: boolean;
+  disableSubmit: boolean;
+  canDelete: boolean;
+  isDeleting: boolean;
+  onDelete: (() => void) | null;
 };
 
 export function ContactEditorModal({
@@ -36,8 +39,11 @@ export function ContactEditorModal({
   onChange,
   onSubmit,
   openingBalancePlaceholder,
-  disableSubmit = false,
-}: Props) {
+  disableSubmit,
+  canDelete,
+  isDeleting,
+  onDelete,
+}: Props): React.ReactElement {
   return (
     <FormSheetModal
       visible={visible}
@@ -49,6 +55,17 @@ export function ContactEditorModal({
       contentContainerStyle={styles.formWrap}
       footer={
         <FormModalActionFooter>
+          {onDelete && canDelete ? (
+            <AppButton
+              label={isDeleting ? "Deleting..." : "Delete"}
+              variant="secondary"
+              size="lg"
+              style={[styles.actionButton, styles.deleteActionButton]}
+              labelStyle={styles.deleteActionLabel}
+              onPress={onDelete}
+              disabled={!canDelete || isDeleting}
+            />
+          ) : null}
           <AppButton
             label="Cancel"
             variant="secondary"
@@ -151,5 +168,12 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+  },
+  deleteActionButton: {
+    borderColor: colors.destructive,
+    backgroundColor: "#FDECEC",
+  },
+  deleteActionLabel: {
+    color: colors.destructive,
   },
 });

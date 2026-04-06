@@ -13,11 +13,14 @@ import { Card } from "@/shared/components/reusable/Cards/Card";
 import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { Pill } from "@/shared/components/reusable/List/Pill";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
+import { ConfirmDeleteModal } from "@/shared/components/reusable/Modals/ConfirmDeleteModal";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { CategoryEditorModal } from "./components/CategoryEditorModal";
 
-const getCategoryTint = (kind: string) => {
+const getCategoryTint = (
+  kind: string,
+): { backgroundColor: string; iconColor: string } => {
   switch (kind) {
     case CategoryKind.Income:
     case CategoryKind.Business:
@@ -34,7 +37,11 @@ const toCategoryKindLabel = (kind: CategoryKindValue): string => {
   return kind.charAt(0).toUpperCase() + kind.slice(1);
 };
 
-export function CategoriesScreen({ viewModel }: { viewModel: CategoriesViewModel }) {
+export function CategoriesScreen({
+  viewModel,
+}: {
+  viewModel: CategoriesViewModel;
+}): React.ReactElement {
   const hasBusinessKinds =
     viewModel.categories.some((category) => category.kind === CategoryKind.Business) ||
     viewModel.categories.some((category) => category.kind === CategoryKind.Product);
@@ -125,9 +132,29 @@ export function CategoriesScreen({ viewModel }: { viewModel: CategoriesViewModel
         title={viewModel.editorTitle}
         form={viewModel.form}
         allowedKinds={allowedKinds}
+        isEditMode={viewModel.editorMode === "edit"}
+        isDeleting={viewModel.isDeleting}
+        canDelete={viewModel.canCreate && viewModel.editorMode === "edit"}
         onClose={viewModel.onCloseEditor}
         onChange={viewModel.onFormChange}
         onSubmit={viewModel.onSubmit}
+        onDelete={viewModel.onRequestDeleteFromEditor}
+      />
+
+      <ConfirmDeleteModal
+        visible={viewModel.isDeleteModalVisible}
+        title="Delete category?"
+        message={
+          viewModel.pendingDeleteCategoryName
+            ? `Delete ${viewModel.pendingDeleteCategoryName}? This action cannot be undone.`
+            : "Delete this category? This action cannot be undone."
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isDeleting={viewModel.isDeleting}
+        errorMessage={viewModel.deleteErrorMessage}
+        onCancel={viewModel.onCloseDeleteModal}
+        onConfirm={() => void viewModel.onConfirmDelete()}
       />
     </>
   );

@@ -13,4 +13,5 @@ export interface CategoryDatasource {
     accountRemoteId: string,
   ): Promise<Result<CategoryModel[]>>;
   saveCategory(payload: SaveCategoryPayload): Promise<Result<CategoryModel>>;
+  archiveCategoryByRemoteId(remoteId: string): Promise<Result<boolean>>;
 }

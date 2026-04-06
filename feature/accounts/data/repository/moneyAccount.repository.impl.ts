@@ -29,6 +29,19 @@ export const createMoneyAccountRepository = (
     };
   },
 
+  async archiveMoneyAccountByRemoteId(remoteId: string) {
+    const result = await localDatasource.archiveMoneyAccountByRemoteId(remoteId);
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: mapMoneyAccountError(result.error),
+      };
+    }
+
+    return result;
+  },
+
   async getMoneyAccountsByScopeAccountRemoteId(
     scopeAccountRemoteId: string,
   ): Promise<MoneyAccountsResult> {

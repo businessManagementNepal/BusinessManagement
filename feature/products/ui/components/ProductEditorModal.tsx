@@ -7,8 +7,9 @@ import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { Box, Camera } from "lucide-react-native";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 type ProductEditorModalProps = {
   visible: boolean;
@@ -19,6 +20,8 @@ type ProductEditorModalProps = {
   taxRateOptions: readonly string[];
   onClose: () => void;
   onChange: (field: keyof ProductFormState, value: string) => void;
+  onPickImage: () => Promise<void>;
+  onClearImage: () => void;
   onSubmit: () => Promise<void>;
 };
 
@@ -31,9 +34,13 @@ export function ProductEditorModal({
   taxRateOptions,
   onClose,
   onChange,
+  onPickImage,
+  onClearImage,
   onSubmit,
 }: ProductEditorModalProps) {
+  const [isPickingImage, setIsPickingImage] = React.useState(false);
   const title = mode === "create" ? "New Product" : "Edit Product";
+  const productImageUrl = form.imageUrl.trim();
   const categoryDropdownOptions = [
     { label: "No category", value: "" },
     ...categoryOptions.map((categoryName) => ({
@@ -41,6 +48,19 @@ export function ProductEditorModal({
       value: categoryName,
     })),
   ];
+
+  const handlePickImage = React.useCallback(async () => {
+    if (isPickingImage) {
+      return;
+    }
+
+    setIsPickingImage(true);
+    try {
+      await onPickImage();
+    } finally {
+      setIsPickingImage(false);
+    }
+  }, [isPickingImage, onPickImage]);
 
   return (
     <FormSheetModal
@@ -71,12 +91,52 @@ export function ProductEditorModal({
         </FormModalActionFooter>
       }
     >
-      <LabeledTextInput
-        label="Image URL"
-        value={form.imageUrl}
-        placeholder="Product photo URL (optional)"
-        onChangeText={(value) => onChange("imageUrl", value)}
-      />
+      <View style={styles.fieldWrap}>
+        <Text style={styles.inputLabel}>Product Image</Text>
+        <Pressable
+          onPress={() => {
+            void handlePickImage();
+          }}
+          style={styles.imagePreview}
+          accessibilityRole="button"
+        >
+          {productImageUrl.length > 0 ? (
+            <Image
+              source={{ uri: productImageUrl }}
+              style={styles.imagePreviewImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Box size={20} color={colors.mutedForeground} />
+              <Text style={styles.imagePlaceholderText}>No image selected</Text>
+            </View>
+          )}
+        </Pressable>
+        <View style={styles.imageActions}>
+          <AppButton
+            label={isPickingImage ? "Selecting..." : "Choose from gallery"}
+            variant="secondary"
+            size="sm"
+            leadingIcon={<Camera size={14} color={colors.primary} />}
+            onPress={() => {
+              void handlePickImage();
+            }}
+            disabled={isPickingImage}
+            style={styles.imageActionButton}
+          />
+          {productImageUrl.length > 0 ? (
+            <AppButton
+              label="Remove"
+              variant="secondary"
+              size="sm"
+              onPress={onClearImage}
+              style={styles.imageActionButton}
+              labelStyle={styles.removeImageLabel}
+            />
+          ) : null}
+        </View>
+      </View>
 
       <LabeledTextInput
         label="Product Name"
@@ -238,5 +298,42 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+  },
+  imagePreview: {
+    width: "100%",
+    height: 142,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    backgroundColor: colors.background,
+    overflow: "hidden",
+  },
+  imagePreviewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  imagePlaceholder: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+  },
+  imagePlaceholderText: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: "InterMedium",
+  },
+  imageActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    flexWrap: "wrap",
+  },
+  imageActionButton: {
+    minWidth: 126,
+  },
+  removeImageLabel: {
+    color: colors.destructive,
   },
 });

@@ -79,7 +79,7 @@ export const useProfilePersonalEditorViewModel = (
         email: personalProfileForm.email.trim() || null,
         phone: personalProfileForm.phone.trim() || null,
         authProvider: data.loadedAuthUser.authProvider,
-        profileImageUrl: data.loadedAuthUser.profileImageUrl,
+        profileImageUrl: personalProfileForm.profileImageUrl.trim() || null,
         preferredLanguage: data.loadedAuthUser.preferredLanguage,
         isEmailVerified: data.loadedAuthUser.isEmailVerified,
         isPhoneVerified: data.loadedAuthUser.isPhoneVerified,
@@ -94,6 +94,7 @@ export const useProfilePersonalEditorViewModel = (
         fullName: saveResult.value.fullName,
         phone: saveResult.value.phone ?? "",
         email: saveResult.value.email ?? "",
+        profileImageUrl: saveResult.value.profileImageUrl ?? "",
       };
 
       setPersonalProfileForm(normalizedProfile);

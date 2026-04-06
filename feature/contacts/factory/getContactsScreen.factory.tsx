@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import { SaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase";
+import { ArchiveContactUseCase } from "@/feature/contacts/useCase/archiveContact.useCase";
 import { useContactsViewModel } from "@/feature/contacts/viewModel/contacts.viewModel.impl";
 import { ContactsScreen } from "@/feature/contacts/ui/ContactsScreen";
 import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
 import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
 import { createGetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase.impl";
 import { createSaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase.impl";
+import { createArchiveContactUseCase } from "@/feature/contacts/useCase/archiveContact.useCase.impl";
 import {
   Account,
   AccountTypeValue,
@@ -36,7 +38,7 @@ export function GetContactsScreenFactory({
   activeAccountCurrencyCode,
   activeAccountCountryCode,
   canManage,
-}: GetContactsScreenFactoryProps) {
+}: GetContactsScreenFactoryProps): React.ReactElement {
   const [accounts, setAccounts] = useState<readonly Account[]>([]);
 
   const accountDatasource = useMemo(
@@ -93,6 +95,10 @@ export function GetContactsScreenFactory({
     () => createSaveContactUseCase(contactRepository),
     [contactRepository],
   );
+  const archiveContactUseCase: ArchiveContactUseCase = useMemo(
+    () => createArchiveContactUseCase(contactRepository),
+    [contactRepository],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -143,6 +149,7 @@ export function GetContactsScreenFactory({
     countryCode: activeAccount?.countryCode ?? activeAccountCountryCode,
     getContactsUseCase,
     saveContactUseCase,
+    archiveContactUseCase,
   });
 
   return <ContactsScreen viewModel={viewModel} />;

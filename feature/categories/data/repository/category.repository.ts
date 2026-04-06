@@ -14,4 +14,5 @@ export interface CategoryRepository {
   }): Promise<CategoryOperationResult>;
   getCategoriesByAccountRemoteId(accountRemoteId: string): Promise<CategoriesResult>;
   saveCategory(payload: SaveCategoryPayload): Promise<CategoryResult>;
+  archiveCategoryByRemoteId(remoteId: string): Promise<CategoryOperationResult>;
 }

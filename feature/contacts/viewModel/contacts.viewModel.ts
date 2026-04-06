@@ -45,6 +45,10 @@ export interface ContactsViewModel {
   editorMode: "create" | "edit";
   editorTitle: string;
   form: ContactFormState;
+  isDeleteModalVisible: boolean;
+  pendingDeleteContactName: string | null;
+  deleteErrorMessage: string | null;
+  isDeleting: boolean;
   filterOptions:
     | typeof BUSINESS_CONTACT_FILTER_OPTIONS
     | typeof PERSONAL_CONTACT_FILTER_OPTIONS;
@@ -59,6 +63,9 @@ export interface ContactsViewModel {
   onCloseEditor: () => void;
   onFormChange: (field: keyof ContactFormState, value: string) => void;
   onSubmit: () => Promise<void>;
+  onRequestDeleteFromEditor: () => void;
+  onCloseDeleteModal: () => void;
+  onConfirmDelete: () => Promise<void>;
   getContactAmountTone: (
     contact: Contact,
   ) => ContactBalanceDirectionValue | null;

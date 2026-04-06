@@ -18,6 +18,10 @@ export interface CategoriesViewModel {
   editorMode: "create" | "edit";
   editorTitle: string;
   form: CategoryFormState;
+  isDeleteModalVisible: boolean;
+  pendingDeleteCategoryName: string | null;
+  deleteErrorMessage: string | null;
+  isDeleting: boolean;
   onRefresh: () => Promise<void>;
   onFilterChange: (value: "all" | CategoryKindValue) => void;
   onOpenCreate: () => void;
@@ -25,4 +29,7 @@ export interface CategoriesViewModel {
   onCloseEditor: () => void;
   onFormChange: (field: keyof CategoryFormState, value: string) => void;
   onSubmit: () => Promise<void>;
+  onRequestDeleteFromEditor: () => void;
+  onCloseDeleteModal: () => void;
+  onConfirmDelete: () => Promise<void>;
 }

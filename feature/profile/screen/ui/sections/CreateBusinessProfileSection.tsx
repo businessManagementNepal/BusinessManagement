@@ -1,6 +1,17 @@
 import React, { useMemo } from "react";
-import { ChevronDown, Plus, Store, CalendarDays, MapPin, Phone, Mail, Building2, Shield } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ChevronDown,
+  Plus,
+  Store,
+  CalendarDays,
+  MapPin,
+  Phone,
+  Mail,
+  Building2,
+  Shield,
+  Camera,
+} from "lucide-react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { Dropdown, DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
@@ -8,6 +19,7 @@ import { EditableBusinessProfile } from "@/feature/profile/screen/types/profileS
 import { ProfileField } from "./ProfileField";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
 
 type CreateBusinessProfileSectionProps = {
   createBusinessProfileForm: EditableBusinessProfile;
@@ -31,10 +43,12 @@ export function CreateBusinessProfileSection({
   onUpdateCreateBusinessProfileField,
   onCreateBusinessProfile,
 }: CreateBusinessProfileSectionProps) {
+  const [isPickingLogo, setIsPickingLogo] = React.useState(false);
   const establishedYear = useMemo(
     () => String(new Date().getFullYear()),
     [],
   );
+  const businessLogoUrl = createBusinessProfileForm.businessLogoUrl.trim();
 
   const businessTypeDropdownOptions = useMemo<DropdownOption[]>(
     () =>
@@ -44,6 +58,35 @@ export function CreateBusinessProfileSection({
       })),
     [businessTypeOptions],
   );
+
+  const onPickBusinessLogo = React.useCallback(async () => {
+    if (isCreatingBusinessProfile || isPickingLogo) {
+      return;
+    }
+
+    setIsPickingLogo(true);
+    try {
+      const pickedImage = await pickImageFromLibrary();
+      if (!pickedImage) {
+        return;
+      }
+
+      onUpdateCreateBusinessProfileField(
+        "businessLogoUrl",
+        pickedImage.dataUrl ?? pickedImage.uri,
+      );
+    } finally {
+      setIsPickingLogo(false);
+    }
+  }, [
+    isCreatingBusinessProfile,
+    isPickingLogo,
+    onUpdateCreateBusinessProfileField,
+  ]);
+
+  const onClearBusinessLogo = React.useCallback(() => {
+    onUpdateCreateBusinessProfileField("businessLogoUrl", "");
+  }, [onUpdateCreateBusinessProfileField]);
 
   return (
     <View style={styles.sectionWrap}>
@@ -73,6 +116,47 @@ export function CreateBusinessProfileSection({
         {isCreateBusinessExpanded ? (
           <View style={styles.expandedWrap}>
             <Card style={styles.formCard}>
+              <View style={styles.logoRow}>
+                <View style={styles.logoPreview}>
+                  {businessLogoUrl.length > 0 ? (
+                    <Image
+                      source={{ uri: businessLogoUrl }}
+                      style={styles.logoImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Building2 size={22} color={colors.mutedForeground} />
+                  )}
+                </View>
+
+                <View style={styles.logoActions}>
+                  <Pressable
+                    onPress={() => {
+                      void onPickBusinessLogo();
+                    }}
+                    style={styles.logoButton}
+                    accessibilityRole="button"
+                    disabled={isCreatingBusinessProfile || isPickingLogo}
+                  >
+                    <Camera size={14} color={colors.primary} />
+                    <Text style={styles.logoButtonText}>
+                      {isPickingLogo ? "Selecting..." : "Choose logo"}
+                    </Text>
+                  </Pressable>
+
+                  {businessLogoUrl.length > 0 ? (
+                    <Pressable
+                      onPress={onClearBusinessLogo}
+                      style={styles.logoClearButton}
+                      accessibilityRole="button"
+                      disabled={isCreatingBusinessProfile}
+                    >
+                      <Text style={styles.logoClearText}>Remove</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
+
               <ProfileField
                 label="Business Name"
                 value={createBusinessProfileForm.legalBusinessName}
@@ -294,6 +378,59 @@ const styles = StyleSheet.create({
   },
   formCard: {
     padding: 0,
+  },
+  logoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  logoPreview: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.md,
+    backgroundColor: colors.secondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  logoImage: {
+    width: "100%",
+    height: "100%",
+  },
+  logoActions: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  logoButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+  },
+  logoButtonText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
+  },
+  logoClearButton: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 4,
+  },
+  logoClearText: {
+    color: colors.destructive,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
   },
   businessTypeRow: {
     flexDirection: "row",

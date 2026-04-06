@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   Building2,
+  Camera,
   CalendarDays,
   ChevronDown,
   Mail,
@@ -19,6 +20,7 @@ import { EditableBusinessProfile } from "@/feature/profile/screen/types/profileS
 import { ProfileField } from "./ProfileField";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
 
 type BusinessProfileSectionProps = {
   activeBusinessProfileForm: EditableBusinessProfile;
@@ -51,6 +53,8 @@ export function BusinessProfileSection({
   onSaveBusinessProfile,
 }: BusinessProfileSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isPickingLogo, setIsPickingLogo] = useState(false);
+  const businessLogoUrl = activeBusinessProfileForm.businessLogoUrl.trim();
 
   const businessTypeDropdownOptions = useMemo<DropdownOption[]>(() => {
     const mappedOptions = businessTypeOptions.map((option) => ({
@@ -72,6 +76,30 @@ export function BusinessProfileSection({
 
     return mappedOptions;
   }, [activeBusinessProfileForm.businessType, businessTypeOptions]);
+
+  const onPickBusinessLogo = React.useCallback(async () => {
+    if (!isBusinessEditing || isPickingLogo) {
+      return;
+    }
+
+    setIsPickingLogo(true);
+    try {
+      const pickedImage = await pickImageFromLibrary();
+      if (!pickedImage) {
+        return;
+      }
+      onUpdateBusinessProfileField(
+        "businessLogoUrl",
+        pickedImage.dataUrl ?? pickedImage.uri,
+      );
+    } finally {
+      setIsPickingLogo(false);
+    }
+  }, [isBusinessEditing, isPickingLogo, onUpdateBusinessProfileField]);
+
+  const onClearBusinessLogo = React.useCallback(() => {
+    onUpdateBusinessProfileField("businessLogoUrl", "");
+  }, [onUpdateBusinessProfileField]);
 
   return (
     <View style={styles.sectionWrap}>
@@ -115,6 +143,49 @@ export function BusinessProfileSection({
       </View>
 
       <Card style={styles.sectionCard}>
+        <View style={styles.logoRow}>
+          <View style={styles.logoPreview}>
+            {businessLogoUrl.length > 0 ? (
+              <Image
+                source={{ uri: businessLogoUrl }}
+                style={styles.logoImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Building2 size={22} color={colors.mutedForeground} />
+            )}
+          </View>
+
+          <View style={styles.logoActions}>
+            <Pressable
+              onPress={() => {
+                void onPickBusinessLogo();
+              }}
+              style={[
+                styles.logoButton,
+                !isBusinessEditing ? styles.logoButtonDisabled : null,
+              ]}
+              accessibilityRole="button"
+              disabled={!isBusinessEditing || isPickingLogo}
+            >
+              <Camera size={14} color={colors.primary} />
+              <Text style={styles.logoButtonText}>
+                {isPickingLogo ? "Selecting..." : "Choose logo"}
+              </Text>
+            </Pressable>
+
+            {isBusinessEditing && businessLogoUrl.length > 0 ? (
+              <Pressable
+                onPress={onClearBusinessLogo}
+                style={styles.logoClearButton}
+                accessibilityRole="button"
+              >
+                <Text style={styles.logoClearText}>Remove</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+
         <ProfileField
           label="Business Name"
           value={activeBusinessProfileForm.legalBusinessName}
@@ -352,6 +423,62 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     padding: 0,
+  },
+  logoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  logoPreview: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.md,
+    backgroundColor: colors.secondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  logoImage: {
+    width: "100%",
+    height: "100%",
+  },
+  logoActions: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  logoButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+  },
+  logoButtonDisabled: {
+    opacity: 0.55,
+  },
+  logoButtonText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
+  },
+  logoClearButton: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 4,
+  },
+  logoClearText: {
+    color: colors.destructive,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
   },
   seeMoreButton: {
     alignSelf: "flex-start",

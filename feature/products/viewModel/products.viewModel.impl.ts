@@ -14,6 +14,7 @@ import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProductFormState, ProductsViewModel } from "./products.viewModel";
 import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
+import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
 
 const EMPTY_FORM: ProductFormState = {
   remoteId: null,
@@ -185,6 +186,29 @@ export const useProductsViewModel = ({
     [],
   );
 
+  const onPickImage = useCallback(async () => {
+    if (!canManage) {
+      setErrorMessage("You do not have permission to manage products.");
+      return;
+    }
+
+    const pickedImage = await pickImageFromLibrary();
+    if (!pickedImage) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      imageUrl: pickedImage.dataUrl ?? pickedImage.uri,
+    }));
+    setErrorMessage(null);
+  }, [canManage]);
+
+  const onClearImage = useCallback(() => {
+    setForm((current) => ({ ...current, imageUrl: "" }));
+    setErrorMessage(null);
+  }, []);
+
   const onSubmit = useCallback(async () => {
     if (!canManage) {
       setErrorMessage("You do not have permission to manage products.");
@@ -283,6 +307,8 @@ export const useProductsViewModel = ({
       onOpenEdit,
       onCloseEditor,
       onFormChange,
+      onPickImage,
+      onClearImage,
       onSubmit,
       onDelete,
     }),
@@ -300,6 +326,8 @@ export const useProductsViewModel = ({
       onCloseEditor,
       onDelete,
       onFormChange,
+      onPickImage,
+      onClearImage,
       onOpenCreate,
       onOpenEdit,
       onSubmit,

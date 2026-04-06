@@ -431,4 +431,36 @@ export const createLocalCategoryDatasource = (
       };
     }
   },
+
+  async archiveCategoryByRemoteId(remoteId: string) {
+    try {
+      const normalizedRemoteId = normalizeRequired(remoteId);
+      if (!normalizedRemoteId) {
+        throw new Error("Category remote id is required");
+      }
+
+      const existingCategory = await findByRemoteId(database, normalizedRemoteId);
+      if (!existingCategory) {
+        throw new Error("Category not found");
+      }
+      if (existingCategory.isSystem) {
+        throw new Error("System categories cannot be deleted");
+      }
+
+      await database.write(async () => {
+        await existingCategory.update((record) => {
+          record.deletedAt = Date.now();
+          record.recordSyncStatus = RecordSyncStatus.PendingDelete;
+          setUpdatedAt(record, Date.now());
+        });
+      });
+
+      return { success: true, value: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
 });

@@ -4,6 +4,7 @@ import { createCategoryRepository } from "@/feature/categories/data/repository/c
 import { CategoriesScreen } from "@/feature/categories/ui/CategoriesScreen";
 import { createGetCategoriesUseCase } from "@/feature/categories/useCase/getCategories.useCase.impl";
 import { createSaveCategoryUseCase } from "@/feature/categories/useCase/saveCategory.useCase.impl";
+import { createArchiveCategoryUseCase } from "@/feature/categories/useCase/archiveCategory.useCase.impl";
 import { useCategoriesViewModel } from "@/feature/categories/viewModel/categories.viewModel.impl";
 import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import appDatabase from "@/shared/database/appDatabase";
@@ -20,7 +21,7 @@ export function GetCategoriesScreenFactory({
   activeAccountRemoteId,
   activeAccountType,
   canManage,
-}: Props) {
+}: Props): React.ReactElement {
   const datasource = React.useMemo(
     () => createLocalCategoryDatasource(appDatabase),
     [],
@@ -37,6 +38,10 @@ export function GetCategoriesScreenFactory({
     () => createSaveCategoryUseCase(repository),
     [repository],
   );
+  const archiveCategoryUseCase = React.useMemo(
+    () => createArchiveCategoryUseCase(repository),
+    [repository],
+  );
 
   const viewModel = useCategoriesViewModel({
     ownerUserRemoteId: activeUserRemoteId,
@@ -45,6 +50,7 @@ export function GetCategoriesScreenFactory({
     canManage,
     getCategoriesUseCase,
     saveCategoryUseCase,
+    archiveCategoryUseCase,
   });
 
   return <CategoriesScreen viewModel={viewModel} />;

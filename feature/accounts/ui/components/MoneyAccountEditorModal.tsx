@@ -21,7 +21,7 @@ type MoneyAccountEditorModalProps = {
 
 export function MoneyAccountEditorModal({
   viewModel,
-}: MoneyAccountEditorModalProps) {
+}: MoneyAccountEditorModalProps): React.ReactElement {
   const accountTypeOptions: DropdownOption[] = MONEY_ACCOUNT_TYPE_OPTIONS.map(
     (option) => ({
       label: option.label,
@@ -41,6 +41,17 @@ export function MoneyAccountEditorModal({
       contentContainerStyle={styles.content}
       footer={
         <FormModalActionFooter>
+          {viewModel.editorMode === "edit" ? (
+            <AppButton
+              label={viewModel.isDeleting ? "Deleting..." : "Delete"}
+              variant="secondary"
+              size="lg"
+              style={[styles.actionButton, styles.deleteActionButton]}
+              labelStyle={styles.deleteActionLabel}
+              onPress={viewModel.onRequestDeleteCurrent}
+              disabled={!viewModel.canDeleteCurrent || viewModel.isDeleting}
+            />
+          ) : null}
           <AppButton
             label="Cancel"
             variant="secondary"
@@ -134,5 +145,12 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+  },
+  deleteActionButton: {
+    borderColor: colors.destructive,
+    backgroundColor: "#FDECEC",
+  },
+  deleteActionLabel: {
+    color: colors.destructive,
   },
 });

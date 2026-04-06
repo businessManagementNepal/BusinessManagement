@@ -16,6 +16,7 @@ import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBi
 import { SaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPhoto.useCase";
 import { buildBillingDraftHtml } from "@/feature/billing/ui/printBillingDocument.util";
 import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
+import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
 
 const createEmptyLineItem = (): BillingLineItemFormState => ({
   remoteId: Crypto.randomUUID(),
@@ -343,42 +344,74 @@ export const useBillingViewModel = ({
       setErrorMessage("A business account is required to manage billing.");
       return;
     }
-    if (Platform.OS !== "web") {
-      setErrorMessage("Bill photo upload is available on web in this build.");
+
+    const savePhoto = async ({
+      fileName,
+      mimeType,
+      imageDataUrl,
+    }: {
+      fileName: string;
+      mimeType: string | null;
+      imageDataUrl: string;
+    }): Promise<void> => {
+      const saveResult = await saveBillPhotoUseCase.execute({
+        remoteId: Crypto.randomUUID(),
+        accountRemoteId,
+        documentRemoteId: null,
+        fileName,
+        mimeType,
+        imageDataUrl,
+        uploadedAt: Date.now(),
+      });
+      if (!saveResult.success) {
+        setErrorMessage(saveResult.error.message);
+        return;
+      }
+      await loadOverview();
+    };
+
+    if (Platform.OS === "web") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async () => {
+          const result = reader.result;
+          if (typeof result !== "string") {
+            setErrorMessage("Unable to read the selected image.");
+            return;
+          }
+          await savePhoto({
+            fileName: file.name,
+            mimeType: file.type || null,
+            imageDataUrl: result,
+          });
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
       return;
     }
 
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const result = reader.result;
-        if (typeof result !== "string") {
-          setErrorMessage("Unable to read the selected image.");
-          return;
-        }
-        const saveResult = await saveBillPhotoUseCase.execute({
-          remoteId: Crypto.randomUUID(),
-          accountRemoteId,
-          documentRemoteId: null,
-          fileName: file.name,
-          mimeType: file.type || null,
-          imageDataUrl: result,
-          uploadedAt: Date.now(),
-        });
-        if (!saveResult.success) {
-          setErrorMessage(saveResult.error.message);
-          return;
-        }
-        await loadOverview();
-      };
-      reader.readAsDataURL(file);
-    };
-    input.click();
+    const pickedImage = await pickImageFromLibrary();
+    if (!pickedImage) {
+      return;
+    }
+
+    const imageDataUrl = pickedImage.dataUrl;
+    if (!imageDataUrl) {
+      setErrorMessage("Unable to read the selected image.");
+      return;
+    }
+
+    await savePhoto({
+      fileName: pickedImage.fileName,
+      mimeType: pickedImage.mimeType,
+      imageDataUrl,
+    });
   }, [accountRemoteId, canManage, loadOverview, saveBillPhotoUseCase]);
 
   return useMemo(() => ({

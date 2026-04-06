@@ -6,7 +6,7 @@ import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Building2, UserRound } from "lucide-react-native";
 import React from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 import { resolveActiveAccountType } from "./profileScreen.util";
 import { AccountSwitchSection } from "./sections/AccountSwitchSection";
 import { BusinessProfileSection } from "./sections/BusinessProfileSection";
@@ -27,6 +27,7 @@ export function ProfileScreen({ viewModel }: ProfileScreenProps) {
     ) === AccountType.Business;
 
   const profileEmail = viewModel.personalProfileForm.email.trim();
+  const profileImageUri = viewModel.personalProfileForm.profileImageUrl.trim();
 
   return (
     <ScreenContainer
@@ -60,7 +61,15 @@ export function ProfileScreen({ viewModel }: ProfileScreenProps) {
       {!viewModel.isLoading ? (
         <View style={styles.heroWrap}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarLabel}>{viewModel.initials || "EL"}</Text>
+            {profileImageUri.length > 0 ? (
+              <Image
+                source={{ uri: profileImageUri }}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={styles.avatarLabel}>{viewModel.initials || "EL"}</Text>
+            )}
           </View>
           <Text style={styles.heroName}>{viewModel.profileName}</Text>
           {profileEmail.length > 0 ? (
@@ -192,6 +201,11 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 16,
     fontFamily: "InterBold",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: radius.pill,
   },
   heroName: {
     marginTop: spacing.xs,

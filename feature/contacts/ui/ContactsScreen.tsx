@@ -10,6 +10,7 @@ import { Card } from "@/shared/components/reusable/Cards/Card";
 import { StatCard } from "@/shared/components/reusable/Cards/StatCard";
 import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow";
+import { ConfirmDeleteModal } from "@/shared/components/reusable/Modals/ConfirmDeleteModal";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
@@ -36,7 +37,7 @@ type ContactsScreenProps = {
 
 export function ContactsScreen({
   viewModel,
-}: ContactsScreenProps) {
+}: ContactsScreenProps): React.ReactElement {
   return (
     <>
       <DashboardTabScaffold
@@ -164,6 +165,25 @@ export function ContactsScreen({
         onSubmit={viewModel.onSubmit}
         openingBalancePlaceholder={viewModel.openingBalancePlaceholder}
         disableSubmit={!viewModel.canManage}
+        canDelete={viewModel.canManage && viewModel.editorMode === "edit"}
+        isDeleting={viewModel.isDeleting}
+        onDelete={viewModel.onRequestDeleteFromEditor}
+      />
+
+      <ConfirmDeleteModal
+        visible={viewModel.isDeleteModalVisible}
+        title="Delete contact?"
+        message={
+          viewModel.pendingDeleteContactName
+            ? `Delete ${viewModel.pendingDeleteContactName}? This action cannot be undone.`
+            : "Delete this contact? This action cannot be undone."
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isDeleting={viewModel.isDeleting}
+        errorMessage={viewModel.deleteErrorMessage}
+        onCancel={viewModel.onCloseDeleteModal}
+        onConfirm={() => void viewModel.onConfirmDelete()}
       />
     </>
   );

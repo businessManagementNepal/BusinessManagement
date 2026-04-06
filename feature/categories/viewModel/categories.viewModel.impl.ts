@@ -7,6 +7,7 @@ import {
 } from "@/feature/categories/types/category.types";
 import { GetCategoriesUseCase } from "@/feature/categories/useCase/getCategories.useCase";
 import { SaveCategoryUseCase } from "@/feature/categories/useCase/saveCategory.useCase";
+import { ArchiveCategoryUseCase } from "@/feature/categories/useCase/archiveCategory.useCase";
 import { AccountType, AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -33,6 +34,7 @@ type Params = {
   canManage: boolean;
   getCategoriesUseCase: GetCategoriesUseCase;
   saveCategoryUseCase: SaveCategoryUseCase;
+  archiveCategoryUseCase: ArchiveCategoryUseCase;
 };
 
 export const useCategoriesViewModel = ({
@@ -42,6 +44,7 @@ export const useCategoriesViewModel = ({
   canManage,
   getCategoriesUseCase,
   saveCategoryUseCase,
+  archiveCategoryUseCase,
 }: Params): CategoriesViewModel => {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -50,6 +53,9 @@ export const useCategoriesViewModel = ({
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
   const [form, setForm] = useState<CategoryFormState>(EMPTY_FORM);
+  const [pendingDeleteRemoteId, setPendingDeleteRemoteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null);
 
   const allowedKinds = useMemo<readonly CategoryKindValue[]>(() => {
     if (accountType === AccountType.Business) {
@@ -122,6 +128,7 @@ export const useCategoriesViewModel = ({
     setEditorMode("create");
     setForm({ ...EMPTY_FORM, kind: allowedKinds[0] ?? CategoryKind.Income });
     setErrorMessage(null);
+    setDeleteErrorMessage(null);
     setIsEditorVisible(true);
   }, [allowedKinds, canManage]);
 
@@ -139,12 +146,14 @@ export const useCategoriesViewModel = ({
     setEditorMode("edit");
     setForm(mapCategoryToForm(category));
     setErrorMessage(null);
+    setDeleteErrorMessage(null);
     setIsEditorVisible(true);
   }, [canManage]);
 
   const onCloseEditor = useCallback(() => {
     setIsEditorVisible(false);
     setForm(EMPTY_FORM);
+    setDeleteErrorMessage(null);
   }, []);
 
   const onFormChange = useCallback((field: keyof CategoryFormState, value: string) => {
@@ -196,11 +205,91 @@ export const useCategoriesViewModel = ({
     void loadCategories();
   }, [accountRemoteId, accountType, canManage, form, loadCategories, ownerUserRemoteId, saveCategoryUseCase]);
 
+  const onRequestDeleteFromEditor = useCallback((): void => {
+    if (!canManage) {
+      setErrorMessage("You do not have permission to manage categories.");
+      return;
+    }
+
+    if (editorMode !== "edit" || !form.remoteId) {
+      return;
+    }
+
+    const targetCategory = categories.find((category) => category.remoteId === form.remoteId);
+    if (!targetCategory) {
+      setErrorMessage("Category not found.");
+      return;
+    }
+    if (targetCategory.isSystem) {
+      setErrorMessage("System categories are locked to preserve report stability.");
+      return;
+    }
+
+    setPendingDeleteRemoteId(targetCategory.remoteId);
+    setDeleteErrorMessage(null);
+  }, [canManage, categories, editorMode, form.remoteId]);
+
+  const onCloseDeleteModal = useCallback((): void => {
+    if (isDeleting) {
+      return;
+    }
+    setPendingDeleteRemoteId(null);
+    setDeleteErrorMessage(null);
+  }, [isDeleting]);
+
+  const onConfirmDelete = useCallback(async (): Promise<void> => {
+    if (!canManage) {
+      setDeleteErrorMessage("You do not have permission to manage categories.");
+      return;
+    }
+    if (!pendingDeleteRemoteId) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteErrorMessage(null);
+
+    const archiveCategoryResult = await archiveCategoryUseCase.execute(
+      pendingDeleteRemoteId,
+    );
+    setIsDeleting(false);
+
+    if (!archiveCategoryResult.success) {
+      setDeleteErrorMessage(archiveCategoryResult.error.message);
+      return;
+    }
+
+    setCategories((currentCategories) =>
+      currentCategories.filter((category) => category.remoteId !== pendingDeleteRemoteId),
+    );
+    setPendingDeleteRemoteId(null);
+    setDeleteErrorMessage(null);
+    setErrorMessage(null);
+    setIsEditorVisible(false);
+    setForm(EMPTY_FORM);
+    void loadCategories();
+  }, [
+    archiveCategoryUseCase,
+    canManage,
+    loadCategories,
+    pendingDeleteRemoteId,
+  ]);
+
   useEffect(() => {
     if (selectedKind !== "all" && !allowedKinds.includes(selectedKind)) {
       setSelectedKind("all");
     }
   }, [allowedKinds, selectedKind]);
+
+  const pendingDeleteCategoryName = useMemo(() => {
+    if (!pendingDeleteRemoteId) {
+      return null;
+    }
+    const targetCategory = categories.find(
+      (category) => category.remoteId === pendingDeleteRemoteId,
+    );
+    return targetCategory?.name ?? null;
+  }, [categories, pendingDeleteRemoteId]);
 
   return useMemo<CategoriesViewModel>(
     () => ({
@@ -214,6 +303,10 @@ export const useCategoriesViewModel = ({
       editorMode,
       editorTitle: editorMode === "create" ? "New Category" : "Edit Category",
       form,
+      isDeleteModalVisible: Boolean(pendingDeleteRemoteId),
+      pendingDeleteCategoryName,
+      deleteErrorMessage,
+      isDeleting,
       onRefresh: loadCategories,
       onFilterChange: setSelectedKind,
       onOpenCreate,
@@ -221,8 +314,37 @@ export const useCategoriesViewModel = ({
       onCloseEditor,
       onFormChange,
       onSubmit,
+      onRequestDeleteFromEditor,
+      onCloseDeleteModal,
+      onConfirmDelete,
     }),
-    [accountRemoteId, accountType, canManage, categories, editorMode, errorMessage, filteredCategories, form, isEditorVisible, isLoading, loadCategories, onCloseEditor, onFormChange, onOpenCreate, onOpenEdit, onSubmit, ownerUserRemoteId, selectedKind],
+    [
+      accountRemoteId,
+      accountType,
+      canManage,
+      categories,
+      deleteErrorMessage,
+      editorMode,
+      errorMessage,
+      filteredCategories,
+      form,
+      isDeleting,
+      isEditorVisible,
+      isLoading,
+      loadCategories,
+      onCloseDeleteModal,
+      onCloseEditor,
+      onConfirmDelete,
+      onFormChange,
+      onOpenCreate,
+      onOpenEdit,
+      onRequestDeleteFromEditor,
+      onSubmit,
+      ownerUserRemoteId,
+      pendingDeleteCategoryName,
+      pendingDeleteRemoteId,
+      selectedKind,
+    ],
   );
 };
 

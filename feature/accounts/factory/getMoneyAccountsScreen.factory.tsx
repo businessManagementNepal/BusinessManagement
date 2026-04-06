@@ -4,6 +4,7 @@ import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataS
 import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { createSaveMoneyAccountUseCase } from "@/feature/accounts/useCase/saveMoneyAccount.useCase.impl";
+import { createArchiveMoneyAccountUseCase } from "@/feature/accounts/useCase/archiveMoneyAccount.useCase.impl";
 import { useMoneyAccountsViewModel } from "@/feature/accounts/viewModel/moneyAccounts.viewModel.impl";
 import { MoneyAccountsScreen } from "@/feature/accounts/ui/MoneyAccountsScreen";
 
@@ -21,7 +22,7 @@ export function GetMoneyAccountsScreenFactory({
   activeAccountCurrencyCode,
   activeAccountCountryCode,
   canManage,
-}: GetMoneyAccountsScreenFactoryProps) {
+}: GetMoneyAccountsScreenFactoryProps): React.ReactElement {
   const datasource = React.useMemo(
     () => createLocalMoneyAccountDatasource(appDatabase),
     [],
@@ -41,6 +42,10 @@ export function GetMoneyAccountsScreenFactory({
     () => createSaveMoneyAccountUseCase(repository),
     [repository],
   );
+  const archiveMoneyAccountUseCase = React.useMemo(
+    () => createArchiveMoneyAccountUseCase(repository),
+    [repository],
+  );
 
   const viewModel = useMoneyAccountsViewModel({
     activeUserRemoteId,
@@ -50,6 +55,7 @@ export function GetMoneyAccountsScreenFactory({
     canManage,
     getMoneyAccountsUseCase,
     saveMoneyAccountUseCase,
+    archiveMoneyAccountUseCase,
   });
 
   return <MoneyAccountsScreen viewModel={viewModel} />;

@@ -23,10 +23,18 @@ export interface MoneyAccountsViewModel {
   isEditorVisible: boolean;
   editorMode: "create" | "edit";
   form: MoneyAccountFormState;
+  canDeleteCurrent: boolean;
+  isDeleteModalVisible: boolean;
+  pendingDeleteAccountName: string | null;
+  deleteErrorMessage: string | null;
+  isDeleting: boolean;
   onRefresh: () => Promise<void>;
   onOpenCreate: () => void;
   onOpenEdit: (account: MoneyAccount) => void;
   onCloseEditor: () => void;
   onFormChange: (field: keyof MoneyAccountFormState, value: string) => void;
   onSubmit: () => Promise<void>;
+  onRequestDeleteCurrent: () => void;
+  onCloseDeleteModal: () => void;
+  onConfirmDelete: () => Promise<void>;
 }
