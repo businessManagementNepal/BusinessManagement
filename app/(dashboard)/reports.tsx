@@ -18,6 +18,8 @@ export default function ReportsDashboardRoute() {
     activeUserRemoteId,
     activeAccountRemoteId,
     activeAccountType,
+    activeAccountCurrencyCode,
+    activeAccountCountryCode,
   } = useDashboardRouteContext();
 
   const permissionAccess = useAccountPermissionAccess({
@@ -70,6 +72,8 @@ export default function ReportsDashboardRoute() {
       accountType={activeAccountType ?? AccountType.Personal}
       ownerUserRemoteId={activeUserRemoteId}
       accountRemoteId={activeAccountRemoteId}
+      activeAccountCurrencyCode={activeAccountCurrencyCode}
+      activeAccountCountryCode={activeAccountCountryCode}
     />
   );
 }
