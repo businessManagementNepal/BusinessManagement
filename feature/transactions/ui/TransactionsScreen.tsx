@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
-    paddingBottom: 92,
+    paddingBottom: 95,
   },
   actionRow: {
     flexDirection: "row",
