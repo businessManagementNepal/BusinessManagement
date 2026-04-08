@@ -17,13 +17,15 @@ import { authUserDbConfig } from "@/feature/session/data/dataSource/db/authUserD
 import { userManagementDbConfig } from "@/feature/userManagement/data/dataSource/db/userManagementDbConfig";
 import { transactionDbConfig } from "@/feature/transactions/data/dataSource/db/transactionDbConfig";
 import {
-    assertDatabaseSetupHealthy,
-    createDatabase,
+  assertDatabaseSetupHealthy,
+  createDatabase,
 } from "@/shared/database/createDatabase";
 import { migrations } from "@/shared/database/migration";
 import { appSchema, Q } from "@nozbe/watermelondb";
 import { orderDbConfig } from "@/feature/orders/data/dataSource/db/orderDbConfig";
 import { budgetPlanDbConfig } from "@/feature/budget/data/dataSource/db/budgetPlanDbConfig";
+import { appRatingDbConfig } from "@/feature/appSettings/settings/data/dataSource/db/appRatingDbConfig";
+import { bugReportDbConfig } from "@/feature/appSettings/settings/data/dataSource/db/bugReportDbConfig";
 
 const APP_SETTINGS_TABLE = "app_settings";
 const BILLING_DOCUMENTS_TABLE = "billing_documents";
@@ -49,6 +51,8 @@ const schema = appSchema({
     ...categoryDbConfig.tables,
     ...orderDbConfig.tables,
     ...budgetPlanDbConfig.tables,
+    ...appRatingDbConfig.tables,
+    ...bugReportDbConfig.tables,
   ],
 });
 
@@ -73,6 +77,8 @@ export const database = createDatabase({
     ...categoryDbConfig.models,
     ...orderDbConfig.models,
     ...budgetPlanDbConfig.models,
+    ...appRatingDbConfig.models,
+    ...bugReportDbConfig.models,
   ],
   migrations,
 });

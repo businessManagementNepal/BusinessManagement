@@ -8,6 +8,8 @@ export class AppSettingsModel extends Model {
   @field("onboarding_completed") onboardingCompleted!: boolean;
   @field("active_user_remote_id") activeUserRemoteId!: string | null;
   @field("active_account_remote_id") activeAccountRemoteId!: string | null;
+  @field("biometric_login_enabled") biometricLoginEnabled!: boolean;
+  @field("two_factor_auth_enabled") twoFactorAuthEnabled!: boolean;
 
   @readonly
   @date("created_at")

@@ -7,6 +7,8 @@ export const appSettingsTable = tableSchema({
     { name: "onboarding_completed", type: "boolean" },
     { name: "active_user_remote_id", type: "string", isOptional: true, isIndexed: true },
     { name: "active_account_remote_id", type: "string", isOptional: true, isIndexed: true },
+    { name: "biometric_login_enabled", type: "boolean", isOptional: true },
+    { name: "two_factor_auth_enabled", type: "boolean", isOptional: true },
     { name: "created_at", type: "number" },
     { name: "updated_at", type: "number" },
   ],

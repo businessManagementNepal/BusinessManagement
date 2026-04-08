@@ -13,6 +13,11 @@ export type AppSessionState = {
   onboardingCompleted: boolean;
 };
 
+export type SecurityPreferenceState = {
+  biometricLoginEnabled: boolean;
+  twoFactorAuthEnabled: boolean;
+};
+
 const setCreatedAndUpdatedAt = (record: AppSettingsModel, now: number) => {
   (record as unknown as { _raw: Record<string, number> })._raw.created_at = now;
   (record as unknown as { _raw: Record<string, number> })._raw.updated_at = now;
@@ -50,6 +55,8 @@ const copySettingsValues = (
   target.onboardingCompleted = source.onboardingCompleted;
   target.activeUserRemoteId = source.activeUserRemoteId;
   target.activeAccountRemoteId = source.activeAccountRemoteId;
+  target.biometricLoginEnabled = Boolean(source.biometricLoginEnabled);
+  target.twoFactorAuthEnabled = Boolean(source.twoFactorAuthEnabled);
 };
 
 const createSingletonRecord = async (
@@ -72,6 +79,8 @@ const createSingletonRecord = async (
         record.onboardingCompleted = false;
         record.activeUserRemoteId = null;
         record.activeAccountRemoteId = null;
+        record.biometricLoginEnabled = false;
+        record.twoFactorAuthEnabled = false;
       }
 
       setCreatedAndUpdatedAt(record, now);
@@ -145,6 +154,17 @@ export const getAppSessionState = async (
   };
 };
 
+export const getSecurityPreferenceState = async (
+  database: Database,
+): Promise<SecurityPreferenceState> => {
+  const settings = await ensureAppSettingsRecord(database);
+
+  return {
+    biometricLoginEnabled: Boolean(settings.biometricLoginEnabled),
+    twoFactorAuthEnabled: Boolean(settings.twoFactorAuthEnabled),
+  };
+};
+
 export const getSelectedLanguage = async (
   database: Database,
 ): Promise<string> => {
@@ -173,6 +193,42 @@ export const setSelectedLanguage = async (
   await database.write(async () => {
     await settings.update((record) => {
       record.selectedLanguage = normalizedSelectedLanguage;
+      setUpdatedAt(record, Date.now());
+    });
+  });
+};
+
+export const setBiometricLoginEnabled = async (
+  database: Database,
+  enabled: boolean,
+): Promise<void> => {
+  const settings = await ensureAppSettingsRecord(database);
+
+  if (Boolean(settings.biometricLoginEnabled) === enabled) {
+    return;
+  }
+
+  await database.write(async () => {
+    await settings.update((record) => {
+      record.biometricLoginEnabled = enabled;
+      setUpdatedAt(record, Date.now());
+    });
+  });
+};
+
+export const setTwoFactorAuthEnabled = async (
+  database: Database,
+  enabled: boolean,
+): Promise<void> => {
+  const settings = await ensureAppSettingsRecord(database);
+
+  if (Boolean(settings.twoFactorAuthEnabled) === enabled) {
+    return;
+  }
+
+  await database.write(async () => {
+    await settings.update((record) => {
+      record.twoFactorAuthEnabled = enabled;
       setUpdatedAt(record, Date.now());
     });
   });

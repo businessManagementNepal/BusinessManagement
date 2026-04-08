@@ -1,0 +1,5 @@
+import { SettingsOperationResult } from "@/feature/appSettings/settings/types/settings.types";
+
+export interface UpdateTwoFactorAuthPreferenceUseCase {
+  execute(enabled: boolean): Promise<SettingsOperationResult>;
+}
