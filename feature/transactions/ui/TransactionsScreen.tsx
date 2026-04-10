@@ -11,7 +11,6 @@ import {
   ArrowDownLeft,
   ArrowLeftRight,
   ArrowUpRight,
-  Filter,
   Pencil,
   Trash2,
 } from "lucide-react-native";
@@ -28,15 +27,18 @@ import { TransactionEditorViewModel } from "@/feature/transactions/viewModel/tra
 import { TransactionDeleteViewModel } from "@/feature/transactions/viewModel/transactionDelete.viewModel";
 import { TransactionDeleteModal } from "./components/TransactionDeleteModal";
 import { TransactionEditorModal } from "./components/TransactionEditorModal";
+import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
+import { Pill } from "@/shared/components/reusable/List/Pill";
 
 type TransactionsScreenProps = {
   listViewModel: TransactionsListViewModel;
   editorViewModel: TransactionEditorViewModel;
   deleteViewModel: TransactionDeleteViewModel;
+  canManage: boolean;
 };
 
 const FILTER_OPTIONS = [
-  { label: "All", value: TransactionListFilter.All },
+  { label: "All Types", value: TransactionListFilter.All },
   { label: "Income", value: TransactionListFilter.Income },
   { label: "Expense", value: TransactionListFilter.Expense },
   { label: "Transfer", value: TransactionListFilter.Transfer },
@@ -46,6 +48,7 @@ export function TransactionsScreen({
   listViewModel,
   editorViewModel,
   deleteViewModel,
+  canManage,
 }: TransactionsScreenProps) {
   return (
     <>
@@ -55,52 +58,67 @@ export function TransactionsScreen({
         contentContainerStyle={styles.content}
         baseBottomPadding={170}
         footer={
-          <View style={styles.footer}>
-            <View style={styles.actionRow}>
-              <AppButton
-                label="Income"
-                variant="primary"
-                size="lg"
-                style={styles.actionButton}
-                leadingIcon={<ArrowDownLeft size={18} color={colors.primaryForeground} />}
-                onPress={() => listViewModel.onOpenCreate(TransactionType.Income)}
-              />
-              <AppButton
-                label="Expense"
-                variant="primary"
-                size="lg"
-                style={[styles.actionButton, styles.expenseButton]}
-                leadingIcon={<ArrowUpRight size={18} color={colors.primaryForeground} />}
-                onPress={() => listViewModel.onOpenCreate(TransactionType.Expense)}
-              />
-              <AppButton
-                label="Transfer"
-                variant="primary"
-                size="lg"
-                style={styles.actionButton}
-                leadingIcon={<ArrowLeftRight size={18} color={colors.primaryForeground} />}
-                onPress={() => listViewModel.onOpenCreate(TransactionType.Transfer)}
-              />
+          canManage ? (
+            <View style={styles.footer}>
+              <View style={styles.actionRow}>
+                <AppButton
+                  label="Income"
+                  variant="primary"
+                  size="lg"
+                  style={styles.actionButton}
+                  leadingIcon={
+                    <ArrowDownLeft size={18} color={colors.primaryForeground} />
+                  }
+                  onPress={() => listViewModel.onOpenCreate(TransactionType.Income)}
+                />
+                <AppButton
+                  label="Expense"
+                  variant="primary"
+                  size="lg"
+                  style={[styles.actionButton, styles.expenseButton]}
+                  leadingIcon={
+                    <ArrowUpRight size={18} color={colors.primaryForeground} />
+                  }
+                  onPress={() => listViewModel.onOpenCreate(TransactionType.Expense)}
+                />
+                <AppButton
+                  label="Transfer"
+                  variant="primary"
+                  size="lg"
+                  style={styles.actionButton}
+                  leadingIcon={
+                    <ArrowLeftRight size={18} color={colors.primaryForeground} />
+                  }
+                  onPress={() => listViewModel.onOpenCreate(TransactionType.Transfer)}
+                />
+              </View>
             </View>
-          </View>
+          ) : null
         }
       >
         <View style={styles.summaryRow}>
           {listViewModel.summaryCards.map((summaryCard) => {
             const isIncome = summaryCard.tone === "income";
+            const isExpense = summaryCard.tone === "expense";
 
             return (
               <Card key={summaryCard.id} style={styles.summaryCard}>
                 <View
                   style={[
                     styles.summaryIconWrap,
-                    isIncome ? styles.incomeIconWrap : styles.expenseIconWrap,
+                    isIncome
+                      ? styles.incomeIconWrap
+                      : isExpense
+                        ? styles.expenseIconWrap
+                        : styles.neutralIconWrap,
                   ]}
                 >
                   {isIncome ? (
                     <ArrowDownLeft size={18} color={colors.success} />
-                  ) : (
+                  ) : isExpense ? (
                     <ArrowUpRight size={18} color={colors.destructive} />
+                  ) : (
+                    <ArrowLeftRight size={18} color={colors.primary} />
                   )}
                 </View>
 
@@ -109,7 +127,11 @@ export function TransactionsScreen({
                   <Text
                     style={[
                       styles.summaryValue,
-                      isIncome ? styles.incomeValue : styles.expenseValue,
+                      isIncome
+                        ? styles.incomeValue
+                        : isExpense
+                          ? styles.expenseValue
+                          : styles.neutralValue,
                     ]}
                   >
                     {summaryCard.value}
@@ -125,17 +147,14 @@ export function TransactionsScreen({
             <TextInput
               value={listViewModel.searchQuery}
               onChangeText={listViewModel.onChangeSearchQuery}
-              placeholder="Search transactions..."
+              placeholder="Search party, note, source..."
               placeholderTextColor={colors.mutedForeground}
               style={styles.searchInput}
             />
           </View>
-
-          <View style={styles.filterButtonWrap}>
-            <Filter size={18} color={colors.mutedForeground} />
-          </View>
         </View>
 
+        <Text style={styles.filterLabel}>Type</Text>
         <FilterChipGroup
           options={FILTER_OPTIONS}
           selectedValue={listViewModel.selectedFilter}
@@ -147,6 +166,59 @@ export function TransactionsScreen({
           chipTextStyle={styles.filterChipText}
           selectedChipTextStyle={styles.filterChipTextSelected}
         />
+
+        <Text style={styles.filterLabel}>Source</Text>
+        <FilterChipGroup
+          options={listViewModel.sourceFilterOptions}
+          selectedValue={listViewModel.selectedSourceFilter}
+          onSelect={listViewModel.onChangeSourceFilter}
+          scrollStyle={styles.filterScroll}
+          contentContainerStyle={styles.filterRow}
+          chipStyle={styles.filterChip}
+          selectedChipStyle={styles.filterChipSelected}
+          chipTextStyle={styles.filterChipText}
+          selectedChipTextStyle={styles.filterChipTextSelected}
+        />
+
+        <Text style={styles.filterLabel}>Date</Text>
+        <FilterChipGroup
+          options={listViewModel.dateFilterOptions}
+          selectedValue={listViewModel.selectedDateFilter}
+          onSelect={listViewModel.onChangeDateFilter}
+          scrollStyle={styles.filterScroll}
+          contentContainerStyle={styles.filterRow}
+          chipStyle={styles.filterChip}
+          selectedChipStyle={styles.filterChipSelected}
+          chipTextStyle={styles.filterChipText}
+          selectedChipTextStyle={styles.filterChipTextSelected}
+        />
+
+        <Text style={styles.filterLabel}>Posting</Text>
+        <FilterChipGroup
+          options={listViewModel.postingFilterOptions}
+          selectedValue={listViewModel.selectedPostingFilter}
+          onSelect={listViewModel.onChangePostingFilter}
+          scrollStyle={styles.filterScroll}
+          contentContainerStyle={styles.filterRow}
+          chipStyle={styles.filterChip}
+          selectedChipStyle={styles.filterChipSelected}
+          chipTextStyle={styles.filterChipText}
+          selectedChipTextStyle={styles.filterChipTextSelected}
+        />
+
+        {listViewModel.moneyAccountFilterOptions.length > 1 ? (
+          <>
+            <Text style={styles.filterLabel}>Money Account</Text>
+            <Dropdown
+              value={listViewModel.selectedMoneyAccountFilter}
+              options={listViewModel.moneyAccountFilterOptions}
+              onChange={listViewModel.onChangeMoneyAccountFilter}
+              showLeadingIcon={false}
+              modalTitle="Filter by money account"
+              placeholder="All money accounts"
+            />
+          </>
+        ) : null}
 
         {listViewModel.errorMessage ? (
           <Card style={styles.messageCard}>
@@ -186,7 +258,12 @@ export function TransactionsScreen({
                 >
                   <Pressable
                     style={styles.transactionMainPressable}
-                    onPress={() => listViewModel.onOpenEdit(transactionItem.remoteId)}
+                    onPress={
+                      canManage
+                        ? () => listViewModel.onOpenEdit(transactionItem.remoteId)
+                        : undefined
+                    }
+                    disabled={!canManage}
                   >
                     <View
                       style={[
@@ -201,7 +278,23 @@ export function TransactionsScreen({
 
                     <View style={styles.transactionBody}>
                       <Text style={styles.transactionTitle}>{transactionItem.title}</Text>
-                      <Text style={styles.transactionSubtitle}>{transactionItem.subtitle}</Text>
+                      {transactionItem.partyLabel ? (
+                        <Text style={styles.partyLabel}>
+                          Party: {transactionItem.partyLabel}
+                        </Text>
+                      ) : null}
+                      <Text style={styles.transactionSubtitle}>
+                        {transactionItem.subtitle}
+                      </Text>
+                      <View style={styles.metaRow}>
+                        {transactionItem.metaChips.map((chip) => (
+                          <Pill
+                            key={`${transactionItem.remoteId}-${chip.label}`}
+                            label={chip.label}
+                            tone={chip.tone}
+                          />
+                        ))}
+                      </View>
                     </View>
 
                     <Text
@@ -216,20 +309,24 @@ export function TransactionsScreen({
                     </Text>
                   </Pressable>
 
-                  <View style={styles.transactionActions}>
-                    <Pressable
-                      style={styles.rowActionButton}
-                      onPress={() => listViewModel.onOpenEdit(transactionItem.remoteId)}
-                    >
-                      <Pencil size={16} color={colors.mutedForeground} />
-                    </Pressable>
-                    <Pressable
-                      style={styles.rowActionButton}
-                      onPress={() => deleteViewModel.openDelete(transactionItem.remoteId)}
-                    >
-                      <Trash2 size={16} color={colors.destructive} />
-                    </Pressable>
-                  </View>
+                  {canManage ? (
+                    <View style={styles.transactionActions}>
+                      <Pressable
+                        style={styles.rowActionButton}
+                        onPress={() => listViewModel.onOpenEdit(transactionItem.remoteId)}
+                      >
+                        <Pencil size={16} color={colors.mutedForeground} />
+                      </Pressable>
+                      <Pressable
+                        style={styles.rowActionButton}
+                        onPress={() =>
+                          deleteViewModel.openDelete(transactionItem.remoteId)
+                        }
+                      >
+                        <Trash2 size={16} color={colors.destructive} />
+                      </Pressable>
+                    </View>
+                  ) : null}
                 </View>
               );
             })}
@@ -271,6 +368,9 @@ const styles = StyleSheet.create({
   expenseIconWrap: {
     backgroundColor: "#FBE4E4",
   },
+  neutralIconWrap: {
+    backgroundColor: colors.accent,
+  },
   summaryTextWrap: {
     flex: 1,
   },
@@ -280,7 +380,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   summaryValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: "InterBold",
   },
   incomeValue: {
@@ -288,6 +388,9 @@ const styles = StyleSheet.create({
   },
   expenseValue: {
     color: colors.destructive,
+  },
+  neutralValue: {
+    color: colors.primary,
   },
   searchRow: {
     flexDirection: "row",
@@ -308,15 +411,13 @@ const styles = StyleSheet.create({
     color: colors.cardForeground,
     fontSize: 14,
   },
-  filterButtonWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    alignItems: "center",
-    justifyContent: "center",
+  filterLabel: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: "InterBold",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginTop: 2,
   },
   filterScroll: {
     flexGrow: 0,
@@ -391,16 +492,26 @@ const styles = StyleSheet.create({
   },
   transactionBody: {
     flex: 1,
+    gap: 4,
   },
   transactionTitle: {
     color: colors.cardForeground,
     fontSize: 15,
     fontFamily: "InterBold",
   },
+  partyLabel: {
+    color: colors.primary,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
+  },
   transactionSubtitle: {
     color: colors.mutedForeground,
     fontSize: 12,
-    marginTop: 4,
+  },
+  metaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
   },
   transactionAmount: {
     fontSize: 16,

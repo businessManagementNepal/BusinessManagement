@@ -288,6 +288,7 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
         countryCode={viewModel.countryCode}
         taxLabel={viewModel.taxLabel}
         taxRateOptions={viewModel.taxRateOptions}
+        availableSettlementAccounts={viewModel.availableSettlementAccounts}
         draftTotals={viewModel.draftTotals}
       />
     </DashboardTabScaffold>

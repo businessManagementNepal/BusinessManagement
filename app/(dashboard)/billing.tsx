@@ -19,6 +19,7 @@ export default function BillingDashboardRoute() {
     activeUserRemoteId,
     activeAccountRemoteId,
     activeAccountType,
+    activeAccountDisplayName,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
     activeAccountDefaultTaxRatePercent,
@@ -77,8 +78,10 @@ export default function BillingDashboardRoute() {
 
   return (
     <GetBillingScreenFactory
+      activeUserRemoteId={activeUserRemoteId}
       database={appDatabase}
       activeAccountRemoteId={activeAccountRemoteId}
+      activeAccountDisplayName={activeAccountDisplayName}
       activeAccountCurrencyCode={activeAccountCurrencyCode}
       activeAccountCountryCode={activeAccountCountryCode}
       activeAccountDefaultTaxRatePercent={activeAccountDefaultTaxRatePercent}

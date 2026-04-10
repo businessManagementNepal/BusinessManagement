@@ -30,6 +30,7 @@ export type GetTransactionsScreenFactoryProps = {
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
   accountTypeScope?: AccountTypeValue;
+  canManage?: boolean;
 };
 
 export function GetTransactionsScreenFactory({
@@ -38,6 +39,7 @@ export function GetTransactionsScreenFactory({
   activeAccountCurrencyCode,
   activeAccountCountryCode,
   accountTypeScope = AccountType.Personal,
+  canManage = true,
 }: GetTransactionsScreenFactoryProps) {
   const [reloadSignal, setReloadSignal] = useState(0);
 
@@ -188,6 +190,7 @@ export function GetTransactionsScreenFactory({
       listViewModel={listViewModel}
       editorViewModel={editorViewModel}
       deleteViewModel={deleteViewModel}
+      canManage={canManage}
     />
   );
 }

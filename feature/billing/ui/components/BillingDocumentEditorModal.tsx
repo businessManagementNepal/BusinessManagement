@@ -13,10 +13,10 @@ import {
   BillingLineItemFormState,
 } from "@/feature/billing/viewModel/billing.viewModel";
 import {
-  BILLING_STATUS_OPTIONS,
   BILLING_TEMPLATE_OPTIONS,
 } from "@/feature/billing/types/billing.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
+import { BillingSettlementAccountOption } from "@/feature/billing/viewModel/billing.viewModel";
 
 export function BillingDocumentEditorModal({
   visible,
@@ -35,6 +35,7 @@ export function BillingDocumentEditorModal({
   countryCode,
   taxLabel,
   taxRateOptions,
+  availableSettlementAccounts,
   draftTotals,
 }: {
   visible: boolean;
@@ -60,9 +61,18 @@ export function BillingDocumentEditorModal({
   countryCode: string | null;
   taxLabel: string;
   taxRateOptions: readonly string[];
+  availableSettlementAccounts: readonly BillingSettlementAccountOption[];
   draftTotals: { subtotalAmount: number; taxAmount: number; totalAmount: number };
 }) {
+  const parseNumber = (value: string): number => {
+    const parsed = Number(value.trim());
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
   const lineItems = Array.isArray(form.items) ? form.items : [];
+  const paidNowAmount = Number(parseNumber(form.paidNowAmount).toFixed(2));
+  const pendingAmount = Number(
+    Math.max(draftTotals.totalAmount - paidNowAmount, 0).toFixed(2),
+  );
 
   return (
     <FormSheetModal
@@ -119,19 +129,6 @@ export function BillingDocumentEditorModal({
         onChange={(value) => onChange("templateType", value)}
         showLeadingIcon={false}
         modalTitle="Select template"
-        disabled={!canManage}
-      />
-
-      <Text style={styles.label}>Status</Text>
-      <Dropdown
-        value={form.status}
-        options={BILLING_STATUS_OPTIONS.map((option) => ({
-          label: option.label,
-          value: option.value,
-        }))}
-        onChange={(value) => onChange("status", value)}
-        showLeadingIcon={false}
-        modalTitle="Select status"
         disabled={!canManage}
       />
 
@@ -206,6 +203,33 @@ export function BillingDocumentEditorModal({
         editable={canManage}
       />
 
+      <Text style={styles.label}>Paid Now</Text>
+      <AppTextInput
+        value={form.paidNowAmount}
+        onChangeText={(value) => onChange("paidNowAmount", value)}
+        placeholder="0"
+        keyboardType="decimal-pad"
+        editable={canManage}
+      />
+
+      {paidNowAmount > 0 ? (
+        <>
+          <Text style={styles.label}>Money Account</Text>
+          <Dropdown
+            value={form.settlementAccountRemoteId}
+            options={availableSettlementAccounts.map((account) => ({
+              label: account.label,
+              value: account.remoteId,
+            }))}
+            onChange={(value) => onChange("settlementAccountRemoteId", value)}
+            showLeadingIcon={false}
+            modalTitle="Select money account"
+            placeholder="Select money account"
+            disabled={!canManage}
+          />
+        </>
+      ) : null}
+
       <Text style={styles.label}>Due Date</Text>
       <AppTextInput
         value={form.dueAt}
@@ -255,6 +279,26 @@ export function BillingDocumentEditorModal({
           <Text style={styles.totalHeadingValue}>
             {formatCurrencyAmount({
               amount: draftTotals.totalAmount,
+              currencyCode,
+              countryCode,
+            })}
+          </Text>
+        </View>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Paid</Text>
+          <Text style={styles.totalValue}>
+            {formatCurrencyAmount({
+              amount: paidNowAmount,
+              currencyCode,
+              countryCode,
+            })}
+          </Text>
+        </View>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Pending</Text>
+          <Text style={styles.totalValue}>
+            {formatCurrencyAmount({
+              amount: pendingAmount,
               currencyCode,
               countryCode,
             })}

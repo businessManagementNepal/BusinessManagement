@@ -26,7 +26,14 @@ export type BillingDocumentFormState = {
   notes: string;
   issuedAt: string;
   dueAt: string;
+  paidNowAmount: string;
+  settlementAccountRemoteId: string;
   items: BillingLineItemFormState[];
+};
+
+export type BillingSettlementAccountOption = {
+  remoteId: string;
+  label: string;
 };
 
 export interface BillingViewModel {
@@ -50,6 +57,7 @@ export interface BillingViewModel {
   countryCode: string | null;
   taxLabel: string;
   taxRateOptions: readonly string[];
+  availableSettlementAccounts: readonly BillingSettlementAccountOption[];
   canManage: boolean;
   onRefresh: () => Promise<void>;
   onTabChange: (value: BillingTabValue) => void;
