@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 import * as Crypto from "expo-crypto";
 import {
-  BILLING_TEMPLATE_OPTIONS,
   BillingDocument,
   BillPhoto,
   BillingDocumentStatus,
@@ -15,6 +14,10 @@ import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillin
 import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { SaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPhoto.useCase";
 import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { ContactType } from "@/feature/contacts/types/contact.types";
+import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
+import { SaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase";
 import { buildBillingDraftHtml } from "@/feature/billing/ui/printBillingDocument.util";
 import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
 import { exportDocument } from "@/shared/utils/document/exportDocument";
@@ -44,7 +47,6 @@ const createEmptyForm = (defaultTaxRatePercent: string): BillingDocumentFormStat
   remoteId: null,
   documentType: BillingDocumentType.Invoice,
   customerName: "",
-  templateType: BillingTemplateType.StandardInvoice,
   status: BillingDocumentStatus.Pending,
   taxRatePercent: defaultTaxRatePercent,
   notes: "",
@@ -63,9 +65,55 @@ const createAllocationRemoteId = (): string => {
   return `alloc-billing-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 };
 
+const createContactRemoteId = (): string => {
+  return `con-billing-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 const parseNumber = (value: string): number => {
   const parsed = Number(value.trim());
   return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeContactName = (value: string): string => value.trim().toLowerCase();
+
+const hasContactMatchByNameAndType = ({
+  contacts,
+  partyName,
+  contactType,
+}: {
+  contacts: readonly {
+    fullName: string;
+    contactType: (typeof ContactType)[keyof typeof ContactType];
+  }[];
+  partyName: string;
+  contactType: (typeof ContactType)[keyof typeof ContactType];
+}): boolean => {
+  const normalizedPartyName = normalizeContactName(partyName);
+  return contacts.some(
+    (contact) =>
+      normalizeContactName(contact.fullName) === normalizedPartyName &&
+      contact.contactType === contactType,
+  );
+};
+
+const resolveContactTypeForDocumentType = (
+  documentType: BillingDocument["documentType"],
+): (typeof ContactType)[keyof typeof ContactType] => {
+  if (documentType === BillingDocumentType.Invoice) {
+    return ContactType.Customer;
+  }
+
+  return ContactType.Supplier;
+};
+
+const resolveTemplateTypeForDocumentType = (
+  documentType: BillingDocument["documentType"],
+): BillingDocument["templateType"] => {
+  if (documentType === BillingDocumentType.Receipt) {
+    return BillingTemplateType.PosReceipt;
+  }
+
+  return BillingTemplateType.StandardInvoice;
 };
 
 const mapMoneyAccountToOption = (moneyAccount: MoneyAccount): {
@@ -117,7 +165,6 @@ const mapDocumentToForm = (document: BillingDocument): BillingDocumentFormState 
   remoteId: document.remoteId,
   documentType: document.documentType,
   customerName: document.customerName,
-  templateType: document.templateType,
   status: document.status,
   taxRatePercent: String(document.taxRatePercent),
   notes: document.notes ?? "",
@@ -149,6 +196,8 @@ type Params = {
   saveBillingDocumentAllocationsUseCase: SaveBillingDocumentAllocationsUseCase;
   deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
   saveBillPhotoUseCase: SaveBillPhotoUseCase;
+  getContactsUseCase: GetContactsUseCase;
+  saveContactUseCase: SaveContactUseCase;
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   postBusinessTransactionUseCase: PostBusinessTransactionUseCase;
   deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
@@ -168,6 +217,8 @@ export const useBillingViewModel = ({
   saveBillingDocumentAllocationsUseCase,
   deleteBillingDocumentUseCase,
   saveBillPhotoUseCase,
+  getContactsUseCase,
+  saveContactUseCase,
   getMoneyAccountsUseCase,
   postBusinessTransactionUseCase,
   deleteBusinessTransactionUseCase,
@@ -204,7 +255,6 @@ export const useBillingViewModel = ({
   const [billPhotos, setBillPhotos] = useState<BillPhoto[]>([]);
   const [summary, setSummary] = useState({ totalDocuments: 0, pendingAmount: 0, overdueAmount: 0 });
   const [activeTab, setActiveTab] = useState<BillingTabValue>("invoices");
-  const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [availableSettlementAccounts, setAvailableSettlementAccounts] = useState<
     readonly { remoteId: string; label: string }[]
@@ -308,15 +358,12 @@ export const useBillingViewModel = ({
     return form.remoteId ? `Edit ${prefix}` : `Create ${prefix}`;
   }, [form.documentType, form.remoteId]);
 
-  const activeTemplateType = form.templateType;
-
   const onOpenCreate = useCallback(() => {
     const nextDocumentType = activeTab === "receipts" ? BillingDocumentType.Receipt : BillingDocumentType.Invoice;
     const baseForm = createEmptyForm(defaultTaxRatePercent);
     setForm({
       ...baseForm,
       documentType: nextDocumentType,
-      templateType: nextDocumentType === BillingDocumentType.Receipt ? BillingTemplateType.PosReceipt : BillingTemplateType.StandardInvoice,
       items: [createEmptyLineItem()],
       issuedAt: new Date().toISOString().slice(0, 10),
       dueAt: "",
@@ -441,7 +488,7 @@ export const useBillingViewModel = ({
           issuedAt: normalizedIssuedAt,
         }),
       documentType: form.documentType,
-      templateType: form.templateType,
+      templateType: resolveTemplateTypeForDocumentType(form.documentType),
       customerName: form.customerName,
       status:
         form.status === BillingDocumentStatus.Draft
@@ -456,6 +503,53 @@ export const useBillingViewModel = ({
     if (!result.success) {
       setErrorMessage(result.error.message);
       return;
+    }
+
+    let contactSyncWarningMessage: string | null = null;
+    const normalizedContactName = form.customerName.trim();
+    const expectedContactType = resolveContactTypeForDocumentType(form.documentType);
+    const normalizedOwnerUserRemoteId = ownerUserRemoteId?.trim() ?? "";
+
+    if (!normalizedOwnerUserRemoteId) {
+      contactSyncWarningMessage =
+        "Bill saved, but contact auto-create was skipped because user context is missing.";
+    } else {
+      const contactsResult = await getContactsUseCase.execute({
+        accountRemoteId,
+      });
+
+      if (!contactsResult.success) {
+        contactSyncWarningMessage = `Bill saved, but contact sync failed: ${contactsResult.error.message}`;
+      } else {
+        const hasMatchingContact = hasContactMatchByNameAndType({
+          contacts: contactsResult.value,
+          partyName: normalizedContactName,
+          contactType: expectedContactType,
+        });
+
+        if (!hasMatchingContact) {
+          const saveContactResult = await saveContactUseCase.execute({
+            remoteId: createContactRemoteId(),
+            ownerUserRemoteId: normalizedOwnerUserRemoteId,
+            accountRemoteId,
+            accountType: AccountType.Business,
+            contactType: expectedContactType,
+            fullName: normalizedContactName,
+            phoneNumber: null,
+            emailAddress: null,
+            address: null,
+            taxId: null,
+            openingBalanceAmount: 0,
+            openingBalanceDirection: null,
+            notes: form.notes.trim() || null,
+            isArchived: false,
+          });
+
+          if (!saveContactResult.success) {
+            contactSyncWarningMessage = `Bill saved, but contact auto-create failed: ${saveContactResult.error.message}`;
+          }
+        }
+      }
     }
 
     if (paidNowAmount > 0) {
@@ -541,6 +635,7 @@ export const useBillingViewModel = ({
     setIsEditorVisible(false);
     setForm(createEmptyForm(defaultTaxRatePercent));
     await loadOverview();
+    setErrorMessage(contactSyncWarningMessage);
   }, [
     accountDisplayNameSnapshot,
     accountRemoteId,
@@ -551,9 +646,11 @@ export const useBillingViewModel = ({
     documents,
     draftTotals.totalAmount,
     form,
+    getContactsUseCase,
     loadOverview,
     ownerUserRemoteId,
     postBusinessTransactionUseCase,
+    saveContactUseCase,
     saveBillingDocumentAllocationsUseCase,
     saveBillingDocumentUseCase,
     currencyCode,
@@ -568,7 +665,7 @@ export const useBillingViewModel = ({
     await loadOverview();
   }, [deleteBillingDocumentUseCase, loadOverview]);
 
-  const exportDraftDocument = useCallback(async (action: "print" | "share" | "save") => {
+  const onPrintPreview = useCallback(async () => {
     const html = buildBillingDraftHtml(
       form,
       draftTotals.subtotalAmount,
@@ -580,7 +677,7 @@ export const useBillingViewModel = ({
     const titlePrefix = form.documentType === BillingDocumentType.Receipt ? "receipt" : "invoice";
     const result = await exportDocument({
       html,
-      action,
+      action: "print",
       fileName: `${titlePrefix}_${form.customerName || "document"}_${form.issuedAt || Date.now()}`,
       title: `eLekha ${titlePrefix}`,
     });
@@ -597,14 +694,6 @@ export const useBillingViewModel = ({
     form,
     regionalFinancePolicy.countryCode,
   ]);
-
-  const onPrintPreview = useCallback(() => {
-    void exportDraftDocument("print");
-  }, [exportDraftDocument]);
-
-  const onExportPdf = useCallback(() => {
-    void exportDraftDocument("save");
-  }, [exportDraftDocument]);
 
   const onUploadBillPhoto = useCallback(async () => {
     if (!canManage) {
@@ -692,12 +781,9 @@ export const useBillingViewModel = ({
     summary,
     documents: filteredDocuments,
     billPhotos,
-    templateOptions: BILLING_TEMPLATE_OPTIONS,
-    isTemplateModalVisible,
     isEditorVisible,
     editorTitle,
     form,
-    activeTemplateType,
     currencyCode,
     countryCode: regionalFinancePolicy.countryCode,
     taxLabel: regionalFinancePolicy.taxLabel,
@@ -706,12 +792,6 @@ export const useBillingViewModel = ({
     canManage,
     onRefresh: loadOverview,
     onTabChange: setActiveTab,
-    onOpenTemplateModal: () => setIsTemplateModalVisible(true),
-    onCloseTemplateModal: () => setIsTemplateModalVisible(false),
-    onSelectTemplate: (value) => {
-      setForm((current) => ({ ...current, templateType: value }));
-      setIsTemplateModalVisible(false);
-    },
     onOpenCreate,
     onOpenEdit,
     onCloseEditor,
@@ -722,12 +802,10 @@ export const useBillingViewModel = ({
     onSubmit,
     onDelete,
     onPrintPreview,
-    onExportPdf,
     onUploadBillPhoto,
     draftTotals,
   }), [
     activeTab,
-    activeTemplateType,
     billPhotos,
     canManage,
     currencyCode,
@@ -738,12 +816,10 @@ export const useBillingViewModel = ({
     form,
     isEditorVisible,
     isLoading,
-    isTemplateModalVisible,
     loadOverview,
     onAddLineItem,
     onCloseEditor,
     onDelete,
-    onExportPdf,
     onFormChange,
     onLineItemChange,
     onOpenCreate,

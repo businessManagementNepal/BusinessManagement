@@ -3,8 +3,6 @@ import {
   BillingDocument,
   BillingDocumentStatusValue,
   BillingDocumentTypeValue,
-  BillingTemplateOption,
-  BillingTemplateTypeValue,
 } from "@/feature/billing/types/billing.types";
 
 export type BillingTabValue = "invoices" | "receipts" | "billPhotos";
@@ -20,7 +18,6 @@ export type BillingDocumentFormState = {
   remoteId: string | null;
   documentType: BillingDocumentTypeValue;
   customerName: string;
-  templateType: BillingTemplateTypeValue;
   status: BillingDocumentStatusValue;
   taxRatePercent: string;
   notes: string;
@@ -47,12 +44,9 @@ export interface BillingViewModel {
   };
   documents: readonly BillingDocument[];
   billPhotos: readonly BillPhoto[];
-  templateOptions: readonly BillingTemplateOption[];
-  isTemplateModalVisible: boolean;
   isEditorVisible: boolean;
   editorTitle: string;
   form: BillingDocumentFormState;
-  activeTemplateType: BillingTemplateTypeValue;
   currencyCode: string;
   countryCode: string | null;
   taxLabel: string;
@@ -61,9 +55,6 @@ export interface BillingViewModel {
   canManage: boolean;
   onRefresh: () => Promise<void>;
   onTabChange: (value: BillingTabValue) => void;
-  onOpenTemplateModal: () => void;
-  onCloseTemplateModal: () => void;
-  onSelectTemplate: (value: BillingTemplateTypeValue) => void;
   onOpenCreate: () => void;
   onOpenEdit: (document: BillingDocument) => void;
   onCloseEditor: () => void;
@@ -74,7 +65,6 @@ export interface BillingViewModel {
   onSubmit: () => Promise<void>;
   onDelete: (document: BillingDocument) => Promise<void>;
   onPrintPreview: () => void;
-  onExportPdf: () => void;
   onUploadBillPhoto: () => Promise<void>;
   draftTotals: {
     subtotalAmount: number;

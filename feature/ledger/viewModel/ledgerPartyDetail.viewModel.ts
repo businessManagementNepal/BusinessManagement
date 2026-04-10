@@ -11,6 +11,5 @@ export interface LedgerPartyDetailViewModel {
   onOpenDelete: (remoteId: string) => void;
   onQuickCollect: () => void;
   onQuickPaymentOut: () => void;
-  onSaveStatement: () => Promise<void>;
   onShareStatement: () => Promise<void>;
 }

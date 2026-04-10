@@ -12,12 +12,10 @@ import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
   Camera,
-  FileDown,
   FileText,
   ImageIcon,
   Plus,
   Receipt,
-  StickyNote,
 } from "lucide-react-native";
 import React from "react";
 import {
@@ -30,7 +28,6 @@ import {
   View,
 } from "react-native";
 import { BillingDocumentEditorModal } from "./components/BillingDocumentEditorModal";
-import { BillingTemplatesModal } from "./components/BillingTemplatesModal";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 
 const formatDate = (value: number): string => {
@@ -168,14 +165,6 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
               onPress={viewModel.onOpenCreate}
               disabled={!viewModel.canManage}
             />
-            <AppButton
-              label="Templates"
-              variant="secondary"
-              size="lg"
-              style={styles.templateButton}
-              leadingIcon={<StickyNote size={18} color={colors.primary} />}
-              onPress={viewModel.onOpenTemplateModal}
-            />
           </View>
 
           <Text style={styles.sectionTitle}>
@@ -263,14 +252,6 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
         </>
       )}
 
-      <BillingTemplatesModal
-        visible={viewModel.isTemplateModalVisible}
-        activeTemplateType={viewModel.activeTemplateType}
-        templateOptions={viewModel.templateOptions}
-        onClose={viewModel.onCloseTemplateModal}
-        onSelect={viewModel.onSelectTemplate}
-      />
-
       <BillingDocumentEditorModal
         visible={viewModel.isEditorVisible}
         title={viewModel.editorTitle}
@@ -283,7 +264,6 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
         onRemoveLineItem={viewModel.onRemoveLineItem}
         onSubmit={viewModel.onSubmit}
         onPrintPreview={viewModel.onPrintPreview}
-        onExportPdf={viewModel.onExportPdf}
         currencyCode={viewModel.currencyCode}
         countryCode={viewModel.countryCode}
         taxLabel={viewModel.taxLabel}
@@ -314,7 +294,6 @@ const styles = StyleSheet.create({
   tabButtonTextActive: { color: colors.primaryForeground },
   actionRow: { flexDirection: "row", gap: spacing.sm },
   flexButton: { flex: 1 },
-  templateButton: { width: 148 },
   sectionTitle: {
     color: colors.cardForeground,
     fontFamily: "InterBold",

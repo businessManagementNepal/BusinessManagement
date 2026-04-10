@@ -170,6 +170,26 @@ const entryTypeOptions: readonly LedgerEntryTypeOptionState[] = [
 
 const normalizePartyName = (value: string): string => value.trim().toLowerCase();
 
+const hasPartyContactMatchByNameAndType = ({
+  contacts,
+  partyName,
+  contactType,
+}: {
+  contacts: readonly {
+    fullName: string;
+    contactType: (typeof ContactType)[keyof typeof ContactType];
+  }[];
+  partyName: string;
+  contactType: (typeof ContactType)[keyof typeof ContactType];
+}): boolean => {
+  const normalizedPartyName = normalizePartyName(partyName);
+  return contacts.some(
+    (contact) =>
+      normalizePartyName(contact.fullName) === normalizedPartyName &&
+      contact.contactType === contactType,
+  );
+};
+
 const resolveContactTypeForEntryType = (
   entryType: LedgerEntryTypeValue,
 ): (typeof ContactType)[keyof typeof ContactType] => {
@@ -940,16 +960,19 @@ export const useLedgerEditorViewModel = ({
       return;
     }
 
-    const existingPartyContact = contactsResult.value.find(
-      (contact) => normalizePartyName(contact.fullName) === normalizePartyName(normalizedPartyName),
-    );
-    if (!existingPartyContact) {
+    const expectedContactType = resolveContactTypeForEntryType(state.entryType);
+    const hasMatchingPartyContact = hasPartyContactMatchByNameAndType({
+      contacts: contactsResult.value,
+      partyName: normalizedPartyName,
+      contactType: expectedContactType,
+    });
+    if (!hasMatchingPartyContact) {
       const saveContactResult = await saveContactUseCase.execute({
         remoteId: createContactRemoteId(),
         ownerUserRemoteId,
         accountRemoteId: businessAccountRemoteId,
         accountType: AccountType.Business,
-        contactType: resolveContactTypeForEntryType(state.entryType),
+        contactType: expectedContactType,
         fullName: normalizedPartyName,
         phoneNumber: null,
         emailAddress: null,

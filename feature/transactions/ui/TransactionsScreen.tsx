@@ -27,8 +27,6 @@ import { TransactionEditorViewModel } from "@/feature/transactions/viewModel/tra
 import { TransactionDeleteViewModel } from "@/feature/transactions/viewModel/transactionDelete.viewModel";
 import { TransactionDeleteModal } from "./components/TransactionDeleteModal";
 import { TransactionEditorModal } from "./components/TransactionEditorModal";
-import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
-import { Pill } from "@/shared/components/reusable/List/Pill";
 
 type TransactionsScreenProps = {
   listViewModel: TransactionsListViewModel;
@@ -100,9 +98,13 @@ export function TransactionsScreen({
           {listViewModel.summaryCards.map((summaryCard) => {
             const isIncome = summaryCard.tone === "income";
             const isExpense = summaryCard.tone === "expense";
+            const isNet = summaryCard.tone === "neutral";
 
             return (
-              <Card key={summaryCard.id} style={styles.summaryCard}>
+              <Card
+                key={summaryCard.id}
+                style={[styles.summaryCard, isNet ? styles.summaryCardWide : null]}
+              >
                 <View
                   style={[
                     styles.summaryIconWrap,
@@ -114,17 +116,20 @@ export function TransactionsScreen({
                   ]}
                 >
                   {isIncome ? (
-                    <ArrowDownLeft size={18} color={colors.success} />
+                    <ArrowDownLeft size={16} color={colors.success} />
                   ) : isExpense ? (
-                    <ArrowUpRight size={18} color={colors.destructive} />
+                    <ArrowUpRight size={16} color={colors.destructive} />
                   ) : (
-                    <ArrowLeftRight size={18} color={colors.primary} />
+                    <ArrowLeftRight size={16} color={colors.primary} />
                   )}
                 </View>
 
                 <View style={styles.summaryTextWrap}>
                   <Text style={styles.summaryLabel}>{summaryCard.label}</Text>
                   <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={true}
+                    minimumFontScale={0.85}
                     style={[
                       styles.summaryValue,
                       isIncome
@@ -167,59 +172,6 @@ export function TransactionsScreen({
           selectedChipTextStyle={styles.filterChipTextSelected}
         />
 
-        <Text style={styles.filterLabel}>Source</Text>
-        <FilterChipGroup
-          options={listViewModel.sourceFilterOptions}
-          selectedValue={listViewModel.selectedSourceFilter}
-          onSelect={listViewModel.onChangeSourceFilter}
-          scrollStyle={styles.filterScroll}
-          contentContainerStyle={styles.filterRow}
-          chipStyle={styles.filterChip}
-          selectedChipStyle={styles.filterChipSelected}
-          chipTextStyle={styles.filterChipText}
-          selectedChipTextStyle={styles.filterChipTextSelected}
-        />
-
-        <Text style={styles.filterLabel}>Date</Text>
-        <FilterChipGroup
-          options={listViewModel.dateFilterOptions}
-          selectedValue={listViewModel.selectedDateFilter}
-          onSelect={listViewModel.onChangeDateFilter}
-          scrollStyle={styles.filterScroll}
-          contentContainerStyle={styles.filterRow}
-          chipStyle={styles.filterChip}
-          selectedChipStyle={styles.filterChipSelected}
-          chipTextStyle={styles.filterChipText}
-          selectedChipTextStyle={styles.filterChipTextSelected}
-        />
-
-        <Text style={styles.filterLabel}>Posting</Text>
-        <FilterChipGroup
-          options={listViewModel.postingFilterOptions}
-          selectedValue={listViewModel.selectedPostingFilter}
-          onSelect={listViewModel.onChangePostingFilter}
-          scrollStyle={styles.filterScroll}
-          contentContainerStyle={styles.filterRow}
-          chipStyle={styles.filterChip}
-          selectedChipStyle={styles.filterChipSelected}
-          chipTextStyle={styles.filterChipText}
-          selectedChipTextStyle={styles.filterChipTextSelected}
-        />
-
-        {listViewModel.moneyAccountFilterOptions.length > 1 ? (
-          <>
-            <Text style={styles.filterLabel}>Money Account</Text>
-            <Dropdown
-              value={listViewModel.selectedMoneyAccountFilter}
-              options={listViewModel.moneyAccountFilterOptions}
-              onChange={listViewModel.onChangeMoneyAccountFilter}
-              showLeadingIcon={false}
-              modalTitle="Filter by money account"
-              placeholder="All money accounts"
-            />
-          </>
-        ) : null}
-
         {listViewModel.errorMessage ? (
           <Card style={styles.messageCard}>
             <Text style={styles.errorText}>{listViewModel.errorMessage}</Text>
@@ -239,11 +191,11 @@ export function TransactionsScreen({
             {listViewModel.transactionItems.map((transactionItem, index) => {
               const icon =
                 transactionItem.transactionType === TransactionType.Transfer ? (
-                  <ArrowLeftRight size={20} color={colors.primary} />
+                  <ArrowLeftRight size={16} color={colors.primary} />
                 ) : transactionItem.tone === "income" ? (
-                  <ArrowDownLeft size={20} color={colors.success} />
+                  <ArrowDownLeft size={16} color={colors.success} />
                 ) : (
-                  <ArrowUpRight size={20} color={colors.destructive} />
+                  <ArrowUpRight size={16} color={colors.destructive} />
                 );
 
               return (
@@ -286,15 +238,6 @@ export function TransactionsScreen({
                       <Text style={styles.transactionSubtitle}>
                         {transactionItem.subtitle}
                       </Text>
-                      <View style={styles.metaRow}>
-                        {transactionItem.metaChips.map((chip) => (
-                          <Pill
-                            key={`${transactionItem.remoteId}-${chip.label}`}
-                            label={chip.label}
-                            tone={chip.tone}
-                          />
-                        ))}
-                      </View>
                     </View>
 
                     <Text
@@ -308,6 +251,39 @@ export function TransactionsScreen({
                       {transactionItem.amountLabel}
                     </Text>
                   </Pressable>
+
+                  <View style={styles.metaRow}>
+                    {transactionItem.metaChips.map((chip) => (
+                      <View
+                        key={`${transactionItem.remoteId}-${chip.label}`}
+                        style={[
+                          styles.metaChip,
+                          chip.tone === "success"
+                            ? styles.metaChipSuccess
+                            : chip.tone === "danger"
+                              ? styles.metaChipDanger
+                              : chip.tone === "warning"
+                                ? styles.metaChipWarning
+                                : styles.metaChipNeutral,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.metaChipText,
+                            chip.tone === "success"
+                              ? styles.metaChipTextSuccess
+                              : chip.tone === "danger"
+                                ? styles.metaChipTextDanger
+                                : chip.tone === "warning"
+                                  ? styles.metaChipTextWarning
+                                  : styles.metaChipTextNeutral,
+                          ]}
+                        >
+                          {chip.label}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
 
                   {canManage ? (
                     <View style={styles.transactionActions}>
@@ -346,18 +322,23 @@ const styles = StyleSheet.create({
   },
   summaryRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
   summaryCard: {
-    flex: 1,
+    width: "48.2%",
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    minHeight: 74,
+  },
+  summaryCardWide: {
+    width: "100%",
   },
   summaryIconWrap: {
-    width: 42,
-    height: 42,
+    width: 34,
+    height: 34,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
@@ -376,11 +357,11 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     color: colors.mutedForeground,
-    fontSize: 12,
-    marginBottom: 4,
+    fontSize: 11,
+    marginBottom: 3,
   },
   summaryValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: "InterBold",
   },
   incomeValue: {
@@ -413,7 +394,7 @@ const styles = StyleSheet.create({
   },
   filterLabel: {
     color: colors.mutedForeground,
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "InterBold",
     textTransform: "uppercase",
     letterSpacing: 0.6,
@@ -440,7 +421,7 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     color: colors.cardForeground,
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "InterBold",
   },
   filterChipTextSelected: {
@@ -472,8 +453,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
   },
   transactionRowLast: {
     borderBottomWidth: 0,
@@ -484,38 +465,75 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   transactionIconWrap: {
-    width: 42,
-    height: 42,
+    width: 36,
+    height: 36,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
   },
   transactionBody: {
     flex: 1,
-    gap: 4,
+    gap: 2,
   },
   transactionTitle: {
     color: colors.cardForeground,
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "InterBold",
   },
   partyLabel: {
     color: colors.primary,
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "InterSemiBold",
   },
   transactionSubtitle: {
     color: colors.mutedForeground,
-    fontSize: 12,
+    fontSize: 11,
   },
   metaRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.xs,
+    gap: 6,
+    marginLeft: 46,
+    marginTop: 2,
+  },
+  metaChip: {
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  metaChipNeutral: {
+    backgroundColor: colors.muted,
+  },
+  metaChipSuccess: {
+    backgroundColor: "#E4F4EA",
+  },
+  metaChipWarning: {
+    backgroundColor: "#FFF2D7",
+  },
+  metaChipDanger: {
+    backgroundColor: "#FBE4E4",
+  },
+  metaChipText: {
+    fontSize: 10,
+    fontFamily: "InterSemiBold",
+  },
+  metaChipTextNeutral: {
+    color: colors.cardForeground,
+  },
+  metaChipTextSuccess: {
+    color: colors.success,
+  },
+  metaChipTextWarning: {
+    color: colors.warning,
+  },
+  metaChipTextDanger: {
+    color: colors.destructive,
   },
   transactionAmount: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: "InterBold",
+    minWidth: 90,
+    textAlign: "right",
   },
   transactionActions: {
     flexDirection: "row",
@@ -523,8 +541,8 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   rowActionButton: {
-    width: 34,
-    height: 34,
+    width: 32,
+    height: 32,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,

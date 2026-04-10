@@ -1,6 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { CalendarDays, FileDown, Plus, Printer, Trash2 } from "lucide-react-native";
+import { CalendarDays, Plus, Printer, Trash2 } from "lucide-react-native";
 import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
 import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
@@ -12,9 +12,6 @@ import {
   BillingDocumentFormState,
   BillingLineItemFormState,
 } from "@/feature/billing/viewModel/billing.viewModel";
-import {
-  BILLING_TEMPLATE_OPTIONS,
-} from "@/feature/billing/types/billing.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import { BillingSettlementAccountOption } from "@/feature/billing/viewModel/billing.viewModel";
 
@@ -30,7 +27,6 @@ export function BillingDocumentEditorModal({
   onRemoveLineItem,
   onSubmit,
   onPrintPreview,
-  onExportPdf,
   currencyCode,
   countryCode,
   taxLabel,
@@ -56,7 +52,6 @@ export function BillingDocumentEditorModal({
   onRemoveLineItem: (remoteId: string) => void;
   onSubmit: () => Promise<void>;
   onPrintPreview: () => void;
-  onExportPdf: () => void;
   currencyCode: string;
   countryCode: string | null;
   taxLabel: string;
@@ -100,14 +95,6 @@ export function BillingDocumentEditorModal({
             leadingIcon={<Printer size={16} color={colors.primary} />}
             onPress={onPrintPreview}
           />
-          <AppButton
-            label="PDF"
-            size="lg"
-            variant="secondary"
-            style={styles.utilityActionButton}
-            leadingIcon={<FileDown size={16} color={colors.primary} />}
-            onPress={onExportPdf}
-          />
         </FormModalActionFooter>
       }
     >
@@ -117,19 +104,6 @@ export function BillingDocumentEditorModal({
         onChangeText={(value) => onChange("customerName", value)}
         placeholder="Enter customer name"
         editable={canManage}
-      />
-
-      <Text style={styles.label}>Template</Text>
-      <Dropdown
-        value={form.templateType}
-        options={BILLING_TEMPLATE_OPTIONS.map((option) => ({
-          label: option.label,
-          value: option.value,
-        }))}
-        onChange={(value) => onChange("templateType", value)}
-        showLeadingIcon={false}
-        modalTitle="Select template"
-        disabled={!canManage}
       />
 
       <Text style={styles.label}>Items</Text>

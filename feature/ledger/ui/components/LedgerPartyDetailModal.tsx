@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Download, Pencil, Share2, Trash2, X } from "lucide-react-native";
+import { Pencil, Share2, Trash2, X } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { colors } from "@/shared/components/theme/colors";
@@ -116,14 +116,6 @@ export function LedgerPartyDetailModal({
               </View>
 
               <View style={styles.statementActionRow}>
-                <AppButton
-                  label="Save PDF"
-                  variant="secondary"
-                  size="sm"
-                  style={styles.statementActionButton}
-                  leadingIcon={<Download size={14} color={colors.foreground} />}
-                  onPress={() => void viewModel.onSaveStatement()}
-                />
                 <AppButton
                   label="Share Statement"
                   variant="secondary"

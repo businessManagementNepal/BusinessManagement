@@ -116,24 +116,6 @@ export const useLedgerPartyDetailViewModel = ({
     });
   }, [state]);
 
-  const handleSaveStatement = useCallback(async () => {
-    const html = getStatementHtml();
-    if (!html || !state) {
-      return;
-    }
-    const result = await exportDocument({
-      html,
-      fileName: `ledger_statement_${state.partyName}`,
-      title: `${state.partyName} Statement`,
-      action: "save",
-    });
-    if (!result.success) {
-      setErrorMessage(result.error);
-      return;
-    }
-    setErrorMessage(null);
-  }, [getStatementHtml, state]);
-
   const handleShareStatement = useCallback(async () => {
     const html = getStatementHtml();
     if (!html || !state) {
@@ -164,14 +146,12 @@ export const useLedgerPartyDetailViewModel = ({
       onOpenDelete,
       onQuickCollect: handleQuickCollect,
       onQuickPaymentOut: handleQuickPaymentOut,
-      onSaveStatement: handleSaveStatement,
       onShareStatement: handleShareStatement,
     }),
     [
       errorMessage,
       handleQuickCollect,
       handleQuickPaymentOut,
-      handleSaveStatement,
       handleShareStatement,
       isLoading,
       onOpenDelete,

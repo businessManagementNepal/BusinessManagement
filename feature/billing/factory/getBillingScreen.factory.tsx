@@ -3,6 +3,10 @@ import { Database } from "@nozbe/watermelondb";
 import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
 import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
+import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
+import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
+import { createGetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase.impl";
+import { createSaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase.impl";
 import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
 import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
 import { createGetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase.impl";
@@ -87,6 +91,23 @@ export function GetBillingScreenFactory({
     [moneyAccountRepository],
   );
 
+  const contactDatasource = React.useMemo(
+    () => createLocalContactDatasource(database),
+    [database],
+  );
+  const contactRepository = React.useMemo(
+    () => createContactRepository(contactDatasource),
+    [contactDatasource],
+  );
+  const getContactsUseCase = React.useMemo(
+    () => createGetContactsUseCase(contactRepository),
+    [contactRepository],
+  );
+  const saveContactUseCase = React.useMemo(
+    () => createSaveContactUseCase(contactRepository),
+    [contactRepository],
+  );
+
   const postBusinessTransactionUseCase = React.useMemo(
     () => createPostBusinessTransactionUseCase(database),
     [database],
@@ -110,6 +131,8 @@ export function GetBillingScreenFactory({
     saveBillingDocumentAllocationsUseCase,
     deleteBillingDocumentUseCase,
     saveBillPhotoUseCase,
+    getContactsUseCase,
+    saveContactUseCase,
     getMoneyAccountsUseCase,
     postBusinessTransactionUseCase,
     deleteBusinessTransactionUseCase,
