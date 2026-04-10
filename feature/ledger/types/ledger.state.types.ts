@@ -97,6 +97,7 @@ export type LedgerEditorFormState = {
   reminderAt: string;
   attachmentUri: string;
   settledAgainstEntryRemoteId: string;
+  linkedDocumentRemoteId: string | null;
   linkedTransactionRemoteId: string | null;
   showMoreDetails: boolean;
   fieldErrors: LedgerEditorFieldErrors;

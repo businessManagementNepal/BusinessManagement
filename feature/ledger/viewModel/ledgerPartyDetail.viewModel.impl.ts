@@ -1,12 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
-import { Platform } from "react-native";
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
 import { GetLedgerEntriesByPartyUseCase } from "@/feature/ledger/useCase/getLedgerEntriesByParty.useCase";
 import { LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
 import { LedgerPartyDetailViewModel } from "./ledgerPartyDetail.viewModel";
 import { buildLedgerPartyBalances, buildLedgerPartyDetailState } from "./ledger.shared";
 import { buildLedgerStatementHtml } from "@/feature/ledger/ui/printLedgerStatement.util";
+import { exportDocument } from "@/shared/utils/document/exportDocument";
 
 type UseLedgerPartyDetailViewModelParams = {
   businessAccountRemoteId: string;
@@ -99,9 +97,9 @@ export const useLedgerPartyDetailViewModel = ({
     );
   }, [onOpenCreateForParty, state]);
 
-  const handleShareStatement = useCallback(async () => {
+  const getStatementHtml = useCallback(() => {
     if (!state) {
-      return;
+      return null;
     }
 
     const generatedAtLabel = new Date().toLocaleString("en-GB", {
@@ -112,48 +110,47 @@ export const useLedgerPartyDetailViewModel = ({
       minute: "2-digit",
     });
 
-    const html = buildLedgerStatementHtml({
+    return buildLedgerStatementHtml({
       state,
       generatedAtLabel,
     });
-
-    try {
-      if (Platform.OS === "web") {
-        const popup = window.open("", "_blank", "width=900,height=700");
-        if (!popup) {
-          setErrorMessage("Unable to open statement preview. Please allow popups.");
-          return;
-        }
-        popup.document.open();
-        popup.document.write(html);
-        popup.document.close();
-        popup.focus();
-        setTimeout(() => popup.print(), 250);
-        return;
-      }
-
-      const result = await Print.printToFileAsync({
-        html,
-        base64: false,
-      });
-
-      if (!(await Sharing.isAvailableAsync())) {
-        setErrorMessage("Sharing is not available on this device.");
-        return;
-      }
-
-      await Sharing.shareAsync(result.uri, {
-        mimeType: "application/pdf",
-        UTI: "com.adobe.pdf",
-        dialogTitle: `${state.partyName} Statement`,
-      });
-      setErrorMessage(null);
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Unable to generate statement PDF.",
-      );
-    }
   }, [state]);
+
+  const handleSaveStatement = useCallback(async () => {
+    const html = getStatementHtml();
+    if (!html || !state) {
+      return;
+    }
+    const result = await exportDocument({
+      html,
+      fileName: `ledger_statement_${state.partyName}`,
+      title: `${state.partyName} Statement`,
+      action: "save",
+    });
+    if (!result.success) {
+      setErrorMessage(result.error);
+      return;
+    }
+    setErrorMessage(null);
+  }, [getStatementHtml, state]);
+
+  const handleShareStatement = useCallback(async () => {
+    const html = getStatementHtml();
+    if (!html || !state) {
+      return;
+    }
+    const result = await exportDocument({
+      html,
+      fileName: `ledger_statement_${state.partyName}`,
+      title: `${state.partyName} Statement`,
+      action: "share",
+    });
+    if (!result.success) {
+      setErrorMessage(result.error);
+      return;
+    }
+    setErrorMessage(null);
+  }, [getStatementHtml, state]);
 
   return useMemo(
     () => ({
@@ -167,12 +164,14 @@ export const useLedgerPartyDetailViewModel = ({
       onOpenDelete,
       onQuickCollect: handleQuickCollect,
       onQuickPaymentOut: handleQuickPaymentOut,
+      onSaveStatement: handleSaveStatement,
       onShareStatement: handleShareStatement,
     }),
     [
       errorMessage,
       handleQuickCollect,
       handleQuickPaymentOut,
+      handleSaveStatement,
       handleShareStatement,
       isLoading,
       onOpenDelete,

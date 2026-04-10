@@ -12,12 +12,18 @@ import { createGetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase
 import { createPrintReceiptUseCase } from "../useCase/printReceipt.useCase.impl";
 import { createRemoveProductFromSlotUseCase } from "../useCase/removeProductFromSlot.useCase.impl";
 import { createSearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase.impl";
+import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
+import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
+import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
+import { createSaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase.impl";
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
 import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
 import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
 import { createLocalProductDatasource } from "@/feature/products/data/dataSource/local.product.datasource.impl";
 import { createProductRepository } from "@/feature/products/data/repository/product.repository.impl";
 import { createSaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase.impl";
+import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
+import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { PosScreen } from "../ui/PosScreen";
 import { usePosScreenViewModel } from "../viewModel/posScreen.viewModel.impl";
 import appDatabase from "@/shared/database/appDatabase";
@@ -83,6 +89,22 @@ export function GetPosScreenFactory({
     () => createCompletePaymentUseCase(repository),
     [repository],
   );
+  const billingDatasource = React.useMemo(
+    () => createLocalBillingDatasource(appDatabase),
+    [],
+  );
+  const billingRepository = React.useMemo(
+    () => createBillingRepository(billingDatasource),
+    [billingDatasource],
+  );
+  const saveBillingDocumentUseCase = React.useMemo(
+    () => createSaveBillingDocumentUseCase(billingRepository),
+    [billingRepository],
+  );
+  const saveBillingDocumentAllocationsUseCase = React.useMemo(
+    () => createSaveBillingDocumentAllocationsUseCase(billingRepository),
+    [billingRepository],
+  );
   const ledgerDatasource = React.useMemo(
     () => createLocalLedgerDatasource(appDatabase),
     [],
@@ -95,13 +117,26 @@ export function GetPosScreenFactory({
     () => createAddLedgerEntryUseCase(ledgerRepository),
     [ledgerRepository],
   );
+  const postBusinessTransactionUseCase = React.useMemo(
+    () => createPostBusinessTransactionUseCase(appDatabase),
+    [],
+  );
   const completePosCheckoutUseCase = React.useMemo(
     () =>
       createCompletePosCheckoutUseCase({
         completePaymentUseCase,
         addLedgerEntryUseCase,
+        saveBillingDocumentUseCase,
+        saveBillingDocumentAllocationsUseCase,
+        postBusinessTransactionUseCase,
       }),
-    [addLedgerEntryUseCase, completePaymentUseCase],
+    [
+      addLedgerEntryUseCase,
+      completePaymentUseCase,
+      postBusinessTransactionUseCase,
+      saveBillingDocumentAllocationsUseCase,
+      saveBillingDocumentUseCase,
+    ],
   );
   const printReceiptUseCase = React.useMemo(
     () => createPrintReceiptUseCase(repository),
@@ -143,4 +178,3 @@ export function GetPosScreenFactory({
 
   return <PosScreen viewModel={viewModel} />;
 }
-import { TaxModeValue } from "@/shared/types/regionalFinance.types";

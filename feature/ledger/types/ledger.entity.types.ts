@@ -63,6 +63,7 @@ export type LedgerEntry = {
   reminderAt: number | null;
   attachmentUri: string | null;
   settledAgainstEntryRemoteId: string | null;
+  linkedDocumentRemoteId: string | null;
   linkedTransactionRemoteId: string | null;
   settlementAccountRemoteId: string | null;
   settlementAccountDisplayNameSnapshot: string | null;
@@ -89,6 +90,7 @@ export type SaveLedgerEntryPayload = {
   reminderAt: number | null;
   attachmentUri: string | null;
   settledAgainstEntryRemoteId: string | null;
+  linkedDocumentRemoteId?: string | null;
   linkedTransactionRemoteId: string | null;
   settlementAccountRemoteId: string | null;
   settlementAccountDisplayNameSnapshot: string | null;

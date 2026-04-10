@@ -25,6 +25,7 @@ export type BillingDocumentFormState = {
   taxRatePercent: string;
   notes: string;
   issuedAt: string;
+  dueAt: string;
   items: BillingLineItemFormState[];
 };
 

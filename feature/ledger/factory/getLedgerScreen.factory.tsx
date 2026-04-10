@@ -3,6 +3,12 @@ import { createMoneyAccountRepository } from "@/feature/accounts/data/repository
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
+import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
+import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
+import { createDeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase.impl";
+import { createDeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase } from "@/feature/billing/useCase/deleteBillingDocumentAllocationsBySettlementEntryRemoteId.useCase.impl";
+import { createReplaceBillingDocumentAllocationsForSettlementEntryUseCase } from "@/feature/billing/useCase/replaceBillingDocumentAllocationsForSettlementEntry.useCase.impl";
+import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
 import {
   Account,
   AccountType,
@@ -158,6 +164,37 @@ export function GetLedgerScreenFactory({
     () => createDeleteBusinessTransactionUseCase(appDatabase),
     [],
   );
+  const billingDatasource = useMemo(
+    () => createLocalBillingDatasource(appDatabase),
+    [],
+  );
+  const billingRepository = useMemo(
+    () => createBillingRepository(billingDatasource),
+    [billingDatasource],
+  );
+  const saveBillingDocumentUseCase = useMemo(
+    () => createSaveBillingDocumentUseCase(billingRepository),
+    [billingRepository],
+  );
+  const replaceBillingDocumentAllocationsForSettlementEntryUseCase = useMemo(
+    () =>
+      createReplaceBillingDocumentAllocationsForSettlementEntryUseCase(
+        billingRepository,
+      ),
+    [billingRepository],
+  );
+  const deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase =
+    useMemo(
+      () =>
+        createDeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase(
+          billingRepository,
+        ),
+      [billingRepository],
+    );
+  const deleteBillingDocumentUseCase = useMemo(
+    () => createDeleteBillingDocumentUseCase(billingRepository),
+    [billingRepository],
+  );
 
   const [accounts, setAccounts] = React.useState<readonly Account[]>([]);
 
@@ -265,13 +302,20 @@ export function GetLedgerScreenFactory({
     getMoneyAccountsUseCase,
     postBusinessTransactionUseCase,
     deleteBusinessTransactionUseCase,
+    saveBillingDocumentUseCase,
+    replaceBillingDocumentAllocationsForSettlementEntryUseCase,
+    deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
     onSaved: handleLedgerMutation,
   });
 
-  const deleteViewModel = useLedgerDeleteViewModel(
+  const deleteViewModel = useLedgerDeleteViewModel({
     deleteLedgerEntryUseCase,
-    handleLedgerMutation,
-  );
+    getLedgerEntryByRemoteIdUseCase,
+    deleteBusinessTransactionUseCase,
+    deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+    deleteBillingDocumentUseCase,
+    onDeleted: handleLedgerMutation,
+  });
 
   const partyDetailViewModel = useLedgerPartyDetailViewModel({
     businessAccountRemoteId: activeBusinessAccountRemoteId ?? "",

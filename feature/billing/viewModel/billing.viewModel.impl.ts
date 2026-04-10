@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 import * as Crypto from "expo-crypto";
 import {
   BILLING_TEMPLATE_OPTIONS,
@@ -16,6 +16,7 @@ import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBi
 import { SaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPhoto.useCase";
 import { buildBillingDraftHtml } from "@/feature/billing/ui/printBillingDocument.util";
 import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
+import { exportDocument } from "@/shared/utils/document/exportDocument";
 import {
   resolveRegionalFinancePolicy,
 } from "@/shared/utils/finance/regionalFinancePolicy";
@@ -37,6 +38,7 @@ const createEmptyForm = (defaultTaxRatePercent: string): BillingDocumentFormStat
   taxRatePercent: defaultTaxRatePercent,
   notes: "",
   issuedAt: new Date().toISOString().slice(0, 10),
+  dueAt: "",
   items: [createEmptyLineItem()],
 });
 
@@ -62,7 +64,16 @@ const buildDocumentNumber = ({
   return `${prefix}-${year}-${token}`;
 };
 
-const formatDateInput = (timestamp: number): string => new Date(timestamp).toISOString().slice(0, 10);
+const formatDateInput = (timestamp: number | null): string => {
+  if (timestamp === null) {
+    return "";
+  }
+  const value = new Date(timestamp);
+  if (Number.isNaN(value.getTime())) {
+    return "";
+  }
+  return value.toISOString().slice(0, 10);
+};
 
 const mapDocumentToForm = (document: BillingDocument): BillingDocumentFormState => ({
   remoteId: document.remoteId,
@@ -73,6 +84,7 @@ const mapDocumentToForm = (document: BillingDocument): BillingDocumentFormState 
   taxRatePercent: String(document.taxRatePercent),
   notes: document.notes ?? "",
   issuedAt: formatDateInput(document.issuedAt),
+  dueAt: formatDateInput(document.dueAt),
   items: document.items.length > 0
     ? document.items.map((item) => ({
         remoteId: item.remoteId,
@@ -215,6 +227,7 @@ export const useBillingViewModel = ({
       templateType: nextDocumentType === BillingDocumentType.Receipt ? BillingTemplateType.PosReceipt : BillingTemplateType.StandardInvoice,
       items: [createEmptyLineItem()],
       issuedAt: new Date().toISOString().slice(0, 10),
+      dueAt: "",
     });
     setErrorMessage(null);
     setIsEditorVisible(true);
@@ -287,6 +300,13 @@ export const useBillingViewModel = ({
 
     const issuedAt = new Date(form.issuedAt || new Date().toISOString()).getTime();
     const normalizedIssuedAt = Number.isFinite(issuedAt) ? issuedAt : Date.now();
+    const dueAt = form.dueAt.trim().length > 0
+      ? new Date(form.dueAt).getTime()
+      : null;
+    if (form.dueAt.trim().length > 0 && !Number.isFinite(dueAt)) {
+      setErrorMessage("Enter a valid due date in YYYY-MM-DD format.");
+      return;
+    }
     const resolvedRemoteId = form.remoteId ?? Crypto.randomUUID();
     const existingDocumentNumber = form.remoteId
       ? documents.find((item) => item.remoteId === form.remoteId)?.documentNumber
@@ -304,10 +324,14 @@ export const useBillingViewModel = ({
       documentType: form.documentType,
       templateType: form.templateType,
       customerName: form.customerName,
-      status: form.status,
+      status:
+        form.status === BillingDocumentStatus.Draft
+          ? BillingDocumentStatus.Draft
+          : BillingDocumentStatus.Pending,
       taxRatePercent: parseNumber(form.taxRatePercent),
       notes: form.notes || null,
       issuedAt: normalizedIssuedAt,
+      dueAt,
       items: normalizedItems,
     });
     if (!result.success) {
@@ -336,16 +360,7 @@ export const useBillingViewModel = ({
     await loadOverview();
   }, [deleteBillingDocumentUseCase, loadOverview]);
 
-  const openPrintableWindow = useCallback(() => {
-    if (Platform.OS !== "web") {
-      Alert.alert("Print", "Print preview is available on web in this build.");
-      return;
-    }
-    const popup = window.open("", "_blank", "width=900,height=700");
-    if (!popup) {
-      setErrorMessage("Unable to open print preview. Please allow popups.");
-      return;
-    }
+  const exportDraftDocument = useCallback(async (action: "print" | "share" | "save") => {
     const html = buildBillingDraftHtml(
       form,
       draftTotals.subtotalAmount,
@@ -354,13 +369,18 @@ export const useBillingViewModel = ({
       currencyCode,
       regionalFinancePolicy.countryCode,
     );
-    popup.document.open();
-    popup.document.write(html);
-    popup.document.close();
-    popup.focus();
-    setTimeout(() => {
-      popup.print();
-    }, 250);
+    const titlePrefix = form.documentType === BillingDocumentType.Receipt ? "receipt" : "invoice";
+    const result = await exportDocument({
+      html,
+      action,
+      fileName: `${titlePrefix}_${form.customerName || "document"}_${form.issuedAt || Date.now()}`,
+      title: `eLekha ${titlePrefix}`,
+    });
+    if (!result.success) {
+      setErrorMessage(result.error);
+      return;
+    }
+    setErrorMessage(null);
   }, [
     currencyCode,
     draftTotals.subtotalAmount,
@@ -371,12 +391,12 @@ export const useBillingViewModel = ({
   ]);
 
   const onPrintPreview = useCallback(() => {
-    openPrintableWindow();
-  }, [openPrintableWindow]);
+    void exportDraftDocument("print");
+  }, [exportDraftDocument]);
 
   const onExportPdf = useCallback(() => {
-    openPrintableWindow();
-  }, [openPrintableWindow]);
+    void exportDraftDocument("save");
+  }, [exportDraftDocument]);
 
   const onUploadBillPhoto = useCallback(async () => {
     if (!canManage) {

@@ -206,6 +206,15 @@ export function BillingDocumentEditorModal({
         editable={canManage}
       />
 
+      <Text style={styles.label}>Due Date</Text>
+      <AppTextInput
+        value={form.dueAt}
+        onChangeText={(value) => onChange("dueAt", value)}
+        placeholder="YYYY-MM-DD"
+        leftIcon={<CalendarDays size={16} color={colors.mutedForeground} />}
+        editable={canManage}
+      />
+
       <Text style={styles.label}>Notes</Text>
       <AppTextInput
         value={form.notes}

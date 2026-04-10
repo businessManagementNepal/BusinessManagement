@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
+import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
+import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase";
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
 import { CompletePaymentUseCase } from "@/feature/pos/useCase/completePayment.useCase";
 import { createCompletePosCheckoutUseCase } from "@/feature/pos/useCase/completePosCheckout.useCase.impl";
 import { PosReceipt } from "@/feature/pos/types/pos.entity.types";
+import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 
 const createReceipt = (dueAmount: number): PosReceipt => ({
   receiptNumber: "RCPT-12345678",
@@ -24,6 +27,38 @@ const createReceipt = (dueAmount: number): PosReceipt => ({
     accountRemoteId: "business-1",
   },
 });
+
+const createCoreSyncUseCases = (): {
+  saveBillingDocumentUseCase: SaveBillingDocumentUseCase;
+  saveBillingDocumentAllocationsUseCase: SaveBillingDocumentAllocationsUseCase;
+  postBusinessTransactionUseCase: PostBusinessTransactionUseCase;
+} => {
+  const saveBillingDocumentUseCase: SaveBillingDocumentUseCase = {
+    execute: vi.fn(async (_payload) => ({
+      success: true as const,
+      value: {} as never,
+    })),
+  };
+  const saveBillingDocumentAllocationsUseCase: SaveBillingDocumentAllocationsUseCase =
+    {
+      execute: vi.fn(async (_payloads) => ({
+        success: true as const,
+        value: true,
+      })),
+    };
+  const postBusinessTransactionUseCase: PostBusinessTransactionUseCase = {
+    execute: vi.fn(async (_payload) => ({
+      success: true as const,
+      value: {} as never,
+    })),
+  };
+
+  return {
+    saveBillingDocumentUseCase,
+    saveBillingDocumentAllocationsUseCase,
+    postBusinessTransactionUseCase,
+  };
+};
 
 describe("completePosCheckout.useCase", () => {
   it("does not post ledger when checkout is fully paid", async () => {
@@ -48,10 +83,12 @@ describe("completePosCheckout.useCase", () => {
     const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
       execute: addLedgerEntryExecuteSpy,
     };
+    const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
       completePaymentUseCase,
       addLedgerEntryUseCase,
+      ...coreSyncUseCases,
     });
 
     const result = await useCase.execute({
@@ -89,10 +126,12 @@ describe("completePosCheckout.useCase", () => {
     const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
       execute: addLedgerEntryExecuteSpy,
     };
+    const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
       completePaymentUseCase,
       addLedgerEntryUseCase,
+      ...coreSyncUseCases,
     });
 
     const result = await useCase.execute({
@@ -132,10 +171,12 @@ describe("completePosCheckout.useCase", () => {
     const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
       execute: addLedgerEntryExecuteSpy,
     };
+    const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
       completePaymentUseCase,
       addLedgerEntryUseCase,
+      ...coreSyncUseCases,
     });
 
     const result = await useCase.execute({

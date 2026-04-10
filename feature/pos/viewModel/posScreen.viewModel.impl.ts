@@ -733,6 +733,8 @@ export function usePosScreenViewModel(
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })} due could not be posted automatically. Add it from Ledger.`
+            : result.value.ledgerEffect.type === "posting_sync_failed"
+              ? "Sale completed, but accounting sync failed. Please review Ledger/Billing."
             : "Sale completed successfully.",
       errorMessage: null,
     }));

@@ -41,6 +41,8 @@ const getTone = (status: string): "success" | "warning" | "danger" | "neutral" =
   switch (status) {
     case BillingDocumentStatus.Paid:
       return "success";
+    case BillingDocumentStatus.PartiallyPaid:
+      return "warning";
     case BillingDocumentStatus.Pending:
       return "warning";
     case BillingDocumentStatus.Overdue:
@@ -215,13 +217,18 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
                     </View>
                     <Text style={styles.documentSubtitle}>
                       {document.customerName} - {formatDate(document.issuedAt)}
+                      {document.dueAt ? ` | Due ${formatDate(document.dueAt)}` : ""}
+                      {document.isOverdue ? " | Overdue" : ""}
                     </Text>
                   </View>
 
                   <View style={styles.amountWrap}>
                     <Text style={styles.amountText}>
                       {formatCurrencyAmount({
-                        amount: document.totalAmount,
+                        amount:
+                          document.outstandingAmount > 0
+                            ? document.outstandingAmount
+                            : document.totalAmount,
                         currencyCode: viewModel.currencyCode,
                         countryCode: viewModel.countryCode,
                       })}

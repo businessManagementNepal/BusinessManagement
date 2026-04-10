@@ -1,11 +1,28 @@
 import { useCallback, useMemo, useState } from "react";
 import { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase";
+import { GetLedgerEntryByRemoteIdUseCase } from "@/feature/ledger/useCase/getLedgerEntryByRemoteId.useCase";
+import { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
+import { DeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase } from "@/feature/billing/useCase/deleteBillingDocumentAllocationsBySettlementEntryRemoteId.useCase";
+import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { LedgerDeleteViewModel } from "./ledgerDelete.viewModel";
 
-export const useLedgerDeleteViewModel = (
-  deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase,
-  onDeleted: () => void,
-): LedgerDeleteViewModel => {
+type UseLedgerDeleteViewModelParams = {
+  deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase;
+  getLedgerEntryByRemoteIdUseCase: GetLedgerEntryByRemoteIdUseCase;
+  deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
+  deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase: DeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase;
+  deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
+  onDeleted: () => void;
+};
+
+export const useLedgerDeleteViewModel = ({
+  deleteLedgerEntryUseCase,
+  getLedgerEntryByRemoteIdUseCase,
+  deleteBusinessTransactionUseCase,
+  deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+  deleteBillingDocumentUseCase,
+  onDeleted,
+}: UseLedgerDeleteViewModelParams): LedgerDeleteViewModel => {
   const [pendingDeleteRemoteId, setPendingDeleteRemoteId] = useState<string | null>(
     null,
   );
@@ -29,6 +46,16 @@ export const useLedgerDeleteViewModel = (
     }
 
     setIsDeleting(true);
+    const entryResult = await getLedgerEntryByRemoteIdUseCase.execute(
+      pendingDeleteRemoteId,
+    );
+
+    if (!entryResult.success) {
+      setIsDeleting(false);
+      setErrorMessage(entryResult.error.message);
+      return;
+    }
+
     const result = await deleteLedgerEntryUseCase.execute(pendingDeleteRemoteId);
 
     if (!result.success) {
@@ -36,10 +63,36 @@ export const useLedgerDeleteViewModel = (
       setErrorMessage(result.error.message);
       return;
     }
+    const cleanupEntry = entryResult.value;
+
+    if (cleanupEntry.linkedTransactionRemoteId) {
+      await deleteBusinessTransactionUseCase.execute(
+        cleanupEntry.linkedTransactionRemoteId,
+      );
+    }
+
+    await deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase.execute(
+      cleanupEntry.remoteId,
+    );
+
+    if (cleanupEntry.linkedDocumentRemoteId) {
+      await deleteBillingDocumentUseCase.execute(
+        cleanupEntry.linkedDocumentRemoteId,
+      );
+    }
 
     closeDelete();
     onDeleted();
-  }, [closeDelete, deleteLedgerEntryUseCase, onDeleted, pendingDeleteRemoteId]);
+  }, [
+    closeDelete,
+    deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+    deleteBillingDocumentUseCase,
+    deleteBusinessTransactionUseCase,
+    deleteLedgerEntryUseCase,
+    getLedgerEntryByRemoteIdUseCase,
+    onDeleted,
+    pendingDeleteRemoteId,
+  ]);
 
   return useMemo(
     () => ({

@@ -40,7 +40,8 @@ export type PosLedgerEffect = {
     | "none"
     | "due_balance_pending"
     | "due_balance_created"
-    | "due_balance_create_failed";
+    | "due_balance_create_failed"
+    | "posting_sync_failed";
   dueAmount: number;
   accountRemoteId: string | null;
 };
