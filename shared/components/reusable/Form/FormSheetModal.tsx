@@ -48,6 +48,12 @@ export function FormSheetModal({
   backdropStyle,
 }: FormSheetModalProps) {
   const isDialogPresentation = presentation === "dialog";
+  const keyboardBehavior: "height" | "padding" | "position" | undefined =
+    Platform.OS === "ios"
+      ? "padding"
+      : Platform.OS === "android"
+        ? "position"
+        : undefined;
 
   return (
     <Modal
@@ -69,8 +75,9 @@ export function FormSheetModal({
         />
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={keyboardBehavior}
           keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
+          enabled={true}
           style={[
             isDialogPresentation ? styles.dialogKeyboardWrap : null,
             styles.keyboardWrap,

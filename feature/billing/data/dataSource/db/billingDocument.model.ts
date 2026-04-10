@@ -22,6 +22,11 @@ export class BillingDocumentModel extends Model {
   @field("tax_amount") taxAmount!: number;
   @field("total_amount") totalAmount!: number;
   @field("issued_at") issuedAt!: number;
+  @field("due_at") dueAt!: number | null;
+  @field("source_module") sourceModule!: string | null;
+  @field("source_remote_id") sourceRemoteId!: string | null;
+  @field("linked_ledger_entry_remote_id")
+  linkedLedgerEntryRemoteId!: string | null;
   @field("sync_status") recordSyncStatus!: string;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

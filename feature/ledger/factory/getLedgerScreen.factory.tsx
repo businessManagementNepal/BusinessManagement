@@ -1,3 +1,6 @@
+import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
+import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
+import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
 import {
@@ -5,6 +8,10 @@ import {
   AccountType,
 } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
+import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
+import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
+import { createGetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase.impl";
+import { createSaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase.impl";
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
 import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
 import { LedgerScreen } from "@/feature/ledger/ui/LedgerScreen";
@@ -18,13 +25,12 @@ import { useLedgerDeleteViewModel } from "@/feature/ledger/viewModel/ledgerDelet
 import { useLedgerEditorViewModel } from "@/feature/ledger/viewModel/ledgerEditor.viewModel.impl";
 import { useLedgerListViewModel } from "@/feature/ledger/viewModel/ledgerList.viewModel.impl";
 import { useLedgerPartyDetailViewModel } from "@/feature/ledger/viewModel/ledgerPartyDetail.viewModel.impl";
+import { LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
+import { syncLedgerReminderNotifications } from "@/feature/ledger/reminder/ledgerReminder.scheduler";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
-import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
-import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
-import { createAddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase.impl";
-import { createDeleteTransactionUseCase } from "@/feature/transactions/useCase/deleteTransaction.useCase.impl";
-import { createUpdateTransactionUseCase } from "@/feature/transactions/useCase/updateTransaction.useCase.impl";
+import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
+import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
 import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
 import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
 import appDatabase from "@/shared/database/appDatabase";
@@ -116,25 +122,41 @@ export function GetLedgerScreenFactory({
     () => createGetLedgerEntriesByPartyUseCase(ledgerRepository),
     [ledgerRepository],
   );
-  const transactionDatasource = useMemo(
-    () => createLocalTransactionDatasource(appDatabase),
+  const contactDatasource = useMemo(
+    () => createLocalContactDatasource(appDatabase),
     [],
   );
-  const transactionRepository = useMemo(
-    () => createTransactionRepository(transactionDatasource),
-    [transactionDatasource],
+  const contactRepository = useMemo(
+    () => createContactRepository(contactDatasource),
+    [contactDatasource],
   );
-  const addTransactionUseCase = useMemo(
-    () => createAddTransactionUseCase(transactionRepository),
-    [transactionRepository],
+  const getContactsUseCase = useMemo(
+    () => createGetContactsUseCase(contactRepository),
+    [contactRepository],
   );
-  const updateTransactionUseCase = useMemo(
-    () => createUpdateTransactionUseCase(transactionRepository),
-    [transactionRepository],
+  const saveContactUseCase = useMemo(
+    () => createSaveContactUseCase(contactRepository),
+    [contactRepository],
   );
-  const deleteTransactionUseCase = useMemo(
-    () => createDeleteTransactionUseCase(transactionRepository),
-    [transactionRepository],
+  const moneyAccountDatasource = useMemo(
+    () => createLocalMoneyAccountDatasource(appDatabase),
+    [],
+  );
+  const moneyAccountRepository = useMemo(
+    () => createMoneyAccountRepository(moneyAccountDatasource),
+    [moneyAccountDatasource],
+  );
+  const getMoneyAccountsUseCase = useMemo(
+    () => createGetMoneyAccountsUseCase(moneyAccountRepository),
+    [moneyAccountRepository],
+  );
+  const postBusinessTransactionUseCase = useMemo(
+    () => createPostBusinessTransactionUseCase(appDatabase),
+    [],
+  );
+  const deleteBusinessTransactionUseCase = useMemo(
+    () => createDeleteBusinessTransactionUseCase(appDatabase),
+    [],
   );
 
   const [accounts, setAccounts] = React.useState<readonly Account[]>([]);
@@ -181,6 +203,32 @@ export function GetLedgerScreenFactory({
   const handleReload = useCallback(() => {
     setReloadSignal((currentSignal) => currentSignal + 1);
   }, []);
+
+  const syncLedgerReminders = useCallback(async () => {
+    const businessAccountRemoteId = activeBusinessAccountRemoteId ?? "";
+    if (!businessAccountRemoteId) {
+      return;
+    }
+
+    const entriesResult = await getLedgerEntriesUseCase.execute({
+      businessAccountRemoteId,
+    });
+
+    if (!entriesResult.success) {
+      return;
+    }
+
+    await syncLedgerReminderNotifications(entriesResult.value);
+  }, [activeBusinessAccountRemoteId, getLedgerEntriesUseCase]);
+
+  const handleLedgerMutation = useCallback(() => {
+    handleReload();
+    void syncLedgerReminders();
+  }, [handleReload, syncLedgerReminders]);
+
+  React.useEffect(() => {
+    void syncLedgerReminders();
+  }, [syncLedgerReminders]);
   const activeBusinessAccount = useMemo(
     () =>
       accounts.find(
@@ -212,15 +260,17 @@ export function GetLedgerScreenFactory({
     getLedgerEntryByRemoteIdUseCase,
     addLedgerEntryUseCase,
     updateLedgerEntryUseCase,
-    addTransactionUseCase,
-    updateTransactionUseCase,
-    deleteTransactionUseCase,
-    onSaved: handleReload,
+    getContactsUseCase,
+    saveContactUseCase,
+    getMoneyAccountsUseCase,
+    postBusinessTransactionUseCase,
+    deleteBusinessTransactionUseCase,
+    onSaved: handleLedgerMutation,
   });
 
   const deleteViewModel = useLedgerDeleteViewModel(
     deleteLedgerEntryUseCase,
-    handleReload,
+    handleLedgerMutation,
   );
 
   const partyDetailViewModel = useLedgerPartyDetailViewModel({
@@ -237,6 +287,8 @@ export function GetLedgerScreenFactory({
     businessAccountCountryCode: activeBusinessAccountCountryCode,
     getLedgerEntriesUseCase,
     onOpenCreate: editorViewModel.openCreate,
+    onQuickCollectForParty: (partyName: string) =>
+      editorViewModel.openCreateForParty(partyName, LedgerEntryType.Collection),
     onOpenPartyDetail: partyDetailViewModel.openPartyDetail,
     reloadSignal,
   });

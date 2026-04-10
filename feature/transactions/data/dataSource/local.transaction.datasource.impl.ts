@@ -2,6 +2,7 @@ import { Result } from "@/shared/types/result.types";
 import { Database, Q } from "@nozbe/watermelondb";
 import {
   SaveTransactionPayload,
+  TransactionPostingStatus,
   TransactionSyncStatus,
 } from "@/feature/transactions/types/transaction.entity.types";
 import { TransactionDatasource } from "./transaction.datasource";
@@ -59,6 +60,18 @@ export const createLocalTransactionDatasource = (
             record.categoryLabel = payload.categoryLabel;
             record.note = payload.note;
             record.happenedAt = payload.happenedAt;
+            record.settlementMoneyAccountRemoteId =
+              payload.settlementMoneyAccountRemoteId ?? null;
+            record.settlementMoneyAccountDisplayNameSnapshot =
+              payload.settlementMoneyAccountDisplayNameSnapshot ?? null;
+            record.sourceModule = payload.sourceModule ?? null;
+            record.sourceRemoteId = payload.sourceRemoteId ?? null;
+            record.sourceAction = payload.sourceAction ?? null;
+            record.idempotencyKey = payload.idempotencyKey ?? null;
+            record.postingStatus =
+              payload.postingStatus ??
+              record.postingStatus ??
+              TransactionPostingStatus.Posted;
             record.deletedAt = null;
             updateSyncStatusOnMutation(record);
             setUpdatedAt(record, Date.now());
@@ -86,6 +99,16 @@ export const createLocalTransactionDatasource = (
           record.categoryLabel = payload.categoryLabel;
           record.note = payload.note;
           record.happenedAt = payload.happenedAt;
+          record.settlementMoneyAccountRemoteId =
+            payload.settlementMoneyAccountRemoteId ?? null;
+          record.settlementMoneyAccountDisplayNameSnapshot =
+            payload.settlementMoneyAccountDisplayNameSnapshot ?? null;
+          record.sourceModule = payload.sourceModule ?? null;
+          record.sourceRemoteId = payload.sourceRemoteId ?? null;
+          record.sourceAction = payload.sourceAction ?? null;
+          record.idempotencyKey = payload.idempotencyKey ?? null;
+          record.postingStatus =
+            payload.postingStatus ?? TransactionPostingStatus.Posted;
           record.recordSyncStatus = TransactionSyncStatus.PendingCreate;
           record.lastSyncedAt = null;
           record.deletedAt = null;

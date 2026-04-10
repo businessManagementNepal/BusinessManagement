@@ -22,5 +22,6 @@ export const MORE_DASHBOARD_MENU_PERMISSION_CODE: Record<
   budget: "budget.view",
   userManagement: "user_management.view",
   settings: "profile.view",
+  notifications: "profile.view",
   logout: "profile.view",
 };

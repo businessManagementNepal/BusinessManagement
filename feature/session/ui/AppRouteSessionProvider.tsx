@@ -2,12 +2,22 @@ import { getAppSessionState } from "@/feature/appSettings/data/appSettings.store
 import { AppSettingsModel } from "@/feature/appSettings/data/dataSource/db/appSettings.model";
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
-import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import {
+  AccountType,
+  AccountTypeValue,
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { buildInitials } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createGetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase.impl";
+import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
+import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
+import { createGetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase.impl";
+import {
+  clearLedgerReminderNotifications,
+  syncLedgerReminderNotifications,
+} from "@/feature/ledger/reminder/ledgerReminder.scheduler";
 import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
 import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
@@ -118,6 +128,21 @@ export function AppRouteSessionProvider({
   const getAuthUserByRemoteIdUseCase = useMemo(
     () => createGetAuthUserByRemoteIdUseCase(authUserRepository),
     [authUserRepository],
+  );
+
+  const ledgerDatasource = useMemo(
+    () => createLocalLedgerDatasource(database),
+    [database],
+  );
+
+  const ledgerRepository = useMemo(
+    () => createLedgerRepository(ledgerDatasource),
+    [ledgerDatasource],
+  );
+
+  const getLedgerEntriesUseCase = useMemo(
+    () => createGetLedgerEntriesUseCase(ledgerRepository),
+    [ledgerRepository],
   );
 
   const userManagementDatasource = useMemo(
@@ -306,6 +331,42 @@ export function AppRouteSessionProvider({
       subscription.unsubscribe();
     };
   }, [database, resolveContext]);
+
+  useEffect(() => {
+    const activeBusinessAccountRemoteId =
+      context.activeAccountType === AccountType.Business
+        ? context.activeAccountRemoteId
+        : null;
+
+    if (!activeBusinessAccountRemoteId) {
+      void clearLedgerReminderNotifications();
+      return;
+    }
+
+    let cancelled = false;
+
+    const syncReminders = async () => {
+      const entriesResult = await getLedgerEntriesUseCase.execute({
+        businessAccountRemoteId: activeBusinessAccountRemoteId,
+      });
+
+      if (!entriesResult.success || cancelled) {
+        return;
+      }
+
+      await syncLedgerReminderNotifications(entriesResult.value);
+    };
+
+    void syncReminders();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    context.activeAccountRemoteId,
+    context.activeAccountType,
+    getLedgerEntriesUseCase,
+  ]);
 
   const value = useMemo<AppRouteSessionValue>(
     () => ({

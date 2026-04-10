@@ -40,12 +40,12 @@ const buildSubtitle = (transaction: Transaction): string => {
     const directionLabel =
       transaction.direction === TransactionDirection.In ? "Money In" : "Money Out";
 
-    return `${dateLabel} • ${directionLabel} • ${transaction.accountDisplayNameSnapshot}`;
+    return `${dateLabel} - ${directionLabel} - ${transaction.accountDisplayNameSnapshot}`;
   }
 
   const accountLabel = transaction.accountDisplayNameSnapshot || "Account";
 
-  return `${dateLabel} • ${typeLabel} • ${accountLabel}`;
+  return `${dateLabel} - ${typeLabel} - ${accountLabel}`;
 };
 
 const buildAmountLabel = (
@@ -276,3 +276,4 @@ export const useTransactionsListViewModel = ({
     ],
   );
 };
+

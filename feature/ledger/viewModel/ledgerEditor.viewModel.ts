@@ -1,18 +1,19 @@
 import {
   LedgerEntryTypeValue,
-  LedgerPaymentModeValue,
 } from "@/feature/ledger/types/ledger.entity.types";
 import {
+  LedgerAccountOptionState,
   LedgerEditorFormState,
   LedgerEntryTypeOptionState,
-  LedgerPaymentModeOptionState,
+  LedgerSettlementLinkOptionState,
 } from "@/feature/ledger/types/ledger.state.types";
 
 export interface LedgerEditorViewModel {
   state: LedgerEditorFormState;
   partySuggestions: readonly string[];
   availableEntryTypes: readonly LedgerEntryTypeOptionState[];
-  availablePaymentModes: readonly LedgerPaymentModeOptionState[];
+  availableSettlementAccounts: readonly LedgerAccountOptionState[];
+  settlementLinkOptions: readonly LedgerSettlementLinkOptionState[];
   openCreate: (entryType: LedgerEntryTypeValue) => void;
   openCreateForParty: (
     partyName: string,
@@ -26,7 +27,8 @@ export interface LedgerEditorViewModel {
   onChangeAmount: (value: string) => void;
   onChangeHappenedAt: (value: string) => void;
   onChangeDueAt: (value: string) => void;
-  onChangePaymentMode: (value: LedgerPaymentModeValue | "") => void;
+  onChangeSettlementAccountRemoteId: (value: string) => void;
+  onChangeSettledAgainstEntryRemoteId: (value: string) => void;
   onChangeReferenceNumber: (value: string) => void;
   onChangeNote: (value: string) => void;
   onChangeReminderAt: (value: string) => void;

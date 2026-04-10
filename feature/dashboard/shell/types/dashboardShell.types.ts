@@ -19,6 +19,8 @@ export type DashboardRouteKey =
   | "tax-calculator"
   | "notes"
   | "emi-loans"
+  | "transactions"
+  | "notifications"
   | "more"
   | "settings"
   | "user-management"
@@ -44,6 +46,7 @@ export interface DashboardShellViewModel {
   activeTab: DashboardTabValue;
   profileInitials: string;
   onProfilePress: () => void;
+  onBellPress: () => void;
   onHeaderBack: () => void;
   onTabPress: (tab: DashboardTabValue) => void;
 }

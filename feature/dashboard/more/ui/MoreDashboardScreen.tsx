@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   ArrowLeftRight,
+  Bell,
   BookOpen,
   Boxes,
   Box,
@@ -112,6 +113,8 @@ const getItemIcon = (itemId: MoreDashboardMenuItemId) => {
       return <ShieldCheck size={18} color={colors.primary} />;
     case "settings":
       return <Settings2 size={18} color={colors.primary} />;
+    case "notifications":
+      return <Bell size={18} color={colors.primary} />;
     case "logout":
       return <LogOut size={18} color={colors.destructive} />;
     default:

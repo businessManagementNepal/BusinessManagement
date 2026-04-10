@@ -3,6 +3,7 @@ import { createAccountRepository } from "@/feature/auth/accountSelection/data/re
 import {
   Account,
   AccountType,
+  AccountTypeValue,
 } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
@@ -28,6 +29,7 @@ export type GetTransactionsScreenFactoryProps = {
   activeAccountRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  accountTypeScope?: AccountTypeValue;
 };
 
 export function GetTransactionsScreenFactory({
@@ -35,6 +37,7 @@ export function GetTransactionsScreenFactory({
   activeAccountRemoteId,
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  accountTypeScope = AccountType.Personal,
 }: GetTransactionsScreenFactoryProps) {
   const [reloadSignal, setReloadSignal] = useState(0);
 
@@ -134,7 +137,7 @@ export function GetTransactionsScreenFactory({
 
       setAccounts(
         result.value.filter(
-          (account) => account.accountType === AccountType.Personal,
+          (account) => account.accountType === accountTypeScope,
         ),
       );
     };
@@ -144,7 +147,11 @@ export function GetTransactionsScreenFactory({
     return () => {
       isMounted = false;
     };
-  }, [activeUserRemoteId, getAccessibleAccountsByUserRemoteIdUseCase]);
+  }, [
+    accountTypeScope,
+    activeUserRemoteId,
+    getAccessibleAccountsByUserRemoteIdUseCase,
+  ]);
 
   const handleReload = useCallback(() => {
     setReloadSignal((currentSignal) => currentSignal + 1);

@@ -1,7 +1,6 @@
 import {
   LedgerBalanceDirectionValue,
   LedgerEntryTypeValue,
-  LedgerPaymentModeValue,
 } from "./ledger.entity.types";
 
 export const LedgerListFilter = {
@@ -20,6 +19,23 @@ export type LedgerSummaryCardState = {
   label: string;
   value: string;
   tone: "receive" | "pay" | "neutral";
+};
+
+export type LedgerAgingBucketState = {
+  id: "current" | "1_30" | "31_60" | "61_90" | "90_plus";
+  label: string;
+  amountLabel: string;
+  countLabel: string;
+  tone: "neutral" | "warning" | "destructive";
+};
+
+export type LedgerCollectionQueueItemState = {
+  id: string;
+  partyId: string;
+  partyName: string;
+  amountLabel: string;
+  metaLabel: string;
+  priority: "normal" | "high" | "critical";
 };
 
 export type LedgerPartyListItemState = {
@@ -58,7 +74,8 @@ export type LedgerEditorFieldName =
   | "amount"
   | "happenedAt"
   | "dueAt"
-  | "paymentMode"
+  | "settlementAccountRemoteId"
+  | "settledAgainstEntryRemoteId"
   | "reminderAt";
 
 export type LedgerEditorFieldErrors = Partial<
@@ -74,11 +91,12 @@ export type LedgerEditorFormState = {
   amount: string;
   happenedAt: string;
   dueAt: string;
-  paymentMode: LedgerPaymentModeValue | "";
+  settlementAccountRemoteId: string;
   referenceNumber: string;
   note: string;
   reminderAt: string;
   attachmentUri: string;
+  settledAgainstEntryRemoteId: string;
   linkedTransactionRemoteId: string | null;
   showMoreDetails: boolean;
   fieldErrors: LedgerEditorFieldErrors;
@@ -97,7 +115,7 @@ export type LedgerEntryTypeOptionState = {
   label: string;
 };
 
-export type LedgerPaymentModeOptionState = {
-  value: LedgerPaymentModeValue;
+export type LedgerSettlementLinkOptionState = {
+  value: string;
   label: string;
 };

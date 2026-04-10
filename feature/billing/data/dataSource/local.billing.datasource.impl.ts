@@ -1,15 +1,25 @@
 import { Database, Q } from "@nozbe/watermelondb";
 import { RecordSyncStatus } from "@/feature/session/types/authSession.types";
 import { Result } from "@/shared/types/result.types";
-import { BillingDatasource, BillingDocumentRecord } from "./billing.datasource";
+import {
+  BillingDatasource,
+  BillingDocumentAllocationRecord,
+  BillingDocumentRecord,
+} from "./billing.datasource";
 import { BillingDocumentModel } from "./db/billingDocument.model";
 import { BillingDocumentItemModel } from "./db/billingDocumentItem.model";
 import { BillPhotoModel } from "./db/billPhoto.model";
-import { SaveBillPhotoPayload, SaveBillingDocumentPayload } from "@/feature/billing/types/billing.types";
+import { BillingDocumentAllocationModel } from "./db/billingDocumentAllocation.model";
+import {
+  SaveBillPhotoPayload,
+  SaveBillingDocumentAllocationPayload,
+  SaveBillingDocumentPayload,
+} from "@/feature/billing/types/billing.types";
 
 const BILLING_DOCUMENTS_TABLE = "billing_documents";
 const BILLING_DOCUMENT_ITEMS_TABLE = "billing_document_items";
 const BILL_PHOTOS_TABLE = "bill_photos";
+const BILLING_DOCUMENT_ALLOCATIONS_TABLE = "billing_document_allocations";
 
 const normalizeRequired = (value: string): string => value.trim();
 const normalizeOptional = (value: string | null): string | null => {
@@ -77,6 +87,40 @@ const getItemsByDocumentRemoteId = async (
   ).fetch();
 };
 
+const getAllocationsByAccountRemoteId = async (
+  database: Database,
+  accountRemoteId: string,
+): Promise<BillingDocumentAllocationModel[]> => {
+  const collection = database.get<BillingDocumentAllocationModel>(
+    BILLING_DOCUMENT_ALLOCATIONS_TABLE,
+  );
+  return collection
+    .query(
+      Q.where("account_remote_id", accountRemoteId),
+      Q.where("deleted_at", Q.eq(null)),
+      Q.sortBy("settled_at", Q.desc),
+    )
+    .fetch();
+};
+
+const getAllocationsBySettlementLedgerEntryRemoteId = async (
+  database: Database,
+  settlementLedgerEntryRemoteId: string,
+): Promise<BillingDocumentAllocationModel[]> => {
+  const collection = database.get<BillingDocumentAllocationModel>(
+    BILLING_DOCUMENT_ALLOCATIONS_TABLE,
+  );
+  return collection
+    .query(
+      Q.where(
+        "settlement_ledger_entry_remote_id",
+        settlementLedgerEntryRemoteId,
+      ),
+      Q.where("deleted_at", Q.eq(null)),
+    )
+    .fetch();
+};
+
 const lineTotal = (quantity: number, unitRate: number): number => {
   return Number((quantity * unitRate).toFixed(2));
 };
@@ -91,6 +135,15 @@ export const createLocalBillingDatasource = (database: Database): BillingDatasou
       ).toUpperCase();
       const normalizedCustomerName = normalizeRequired(payload.customerName);
       const normalizedNotes = normalizeOptional(payload.notes);
+      const normalizedSourceModule = normalizeOptional(payload.sourceModule ?? null);
+      const normalizedSourceRemoteId = normalizeOptional(
+        payload.sourceRemoteId ?? null,
+      );
+      const normalizedLinkedLedgerEntryRemoteId = normalizeOptional(
+        payload.linkedLedgerEntryRemoteId ?? null,
+      );
+      const normalizedDueAt =
+        payload.dueAt === undefined ? null : payload.dueAt;
 
       if (!normalizedRemoteId) throw new Error("Billing document remote id is required");
       if (!normalizedAccountRemoteId) throw new Error("Account remote id is required");
@@ -148,6 +201,20 @@ export const createLocalBillingDatasource = (database: Database): BillingDatasou
             record.taxAmount = taxAmount;
             record.totalAmount = totalAmount;
             record.issuedAt = payload.issuedAt;
+            record.dueAt =
+              payload.dueAt === undefined ? record.dueAt : normalizedDueAt;
+            record.sourceModule =
+              payload.sourceModule === undefined
+                ? record.sourceModule
+                : normalizedSourceModule;
+            record.sourceRemoteId =
+              payload.sourceRemoteId === undefined
+                ? record.sourceRemoteId
+                : normalizedSourceRemoteId;
+            record.linkedLedgerEntryRemoteId =
+              payload.linkedLedgerEntryRemoteId === undefined
+                ? record.linkedLedgerEntryRemoteId
+                : normalizedLinkedLedgerEntryRemoteId;
             touchSync(record);
             markUpdated(record as unknown as { _raw: Record<string, number> }, now);
           });
@@ -167,6 +234,10 @@ export const createLocalBillingDatasource = (database: Database): BillingDatasou
             record.taxAmount = taxAmount;
             record.totalAmount = totalAmount;
             record.issuedAt = payload.issuedAt;
+            record.dueAt = normalizedDueAt;
+            record.sourceModule = normalizedSourceModule;
+            record.sourceRemoteId = normalizedSourceRemoteId;
+            record.linkedLedgerEntryRemoteId = normalizedLinkedLedgerEntryRemoteId;
             record.recordSyncStatus = RecordSyncStatus.PendingCreate;
             record.lastSyncedAt = null;
             record.deletedAt = null;
@@ -308,6 +379,224 @@ export const createLocalBillingDatasource = (database: Database): BillingDatasou
       return { success: true, value: photos };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error : new Error("Unknown error") };
+    }
+  },
+
+  async saveBillingDocumentAllocations(
+    payloads: readonly SaveBillingDocumentAllocationPayload[],
+  ): Promise<Result<boolean>> {
+    try {
+      const allocationCollection = database.get<BillingDocumentAllocationModel>(
+        BILLING_DOCUMENT_ALLOCATIONS_TABLE,
+      );
+      await database.write(async () => {
+        const now = Date.now();
+        for (const payload of payloads) {
+          const normalizedRemoteId = normalizeRequired(payload.remoteId);
+          const normalizedAccountRemoteId = normalizeRequired(
+            payload.accountRemoteId,
+          );
+          const normalizedDocumentRemoteId = normalizeRequired(
+            payload.documentRemoteId,
+          );
+          const normalizedLedgerEntryRemoteId = normalizeOptional(
+            payload.settlementLedgerEntryRemoteId ?? null,
+          );
+          const normalizedTransactionRemoteId = normalizeOptional(
+            payload.settlementTransactionRemoteId ?? null,
+          );
+          const normalizedNote = normalizeOptional(payload.note ?? null);
+          if (!normalizedRemoteId) {
+            throw new Error("Allocation remote id is required");
+          }
+          if (!normalizedAccountRemoteId) {
+            throw new Error("Allocation account is required");
+          }
+          if (!normalizedDocumentRemoteId) {
+            throw new Error("Allocation document is required");
+          }
+          if (!(payload.amount > 0)) {
+            throw new Error("Allocation amount must be greater than zero");
+          }
+          await allocationCollection.create((record) => {
+            record.remoteId = normalizedRemoteId;
+            record.accountRemoteId = normalizedAccountRemoteId;
+            record.documentRemoteId = normalizedDocumentRemoteId;
+            record.settlementLedgerEntryRemoteId = normalizedLedgerEntryRemoteId;
+            record.settlementTransactionRemoteId = normalizedTransactionRemoteId;
+            record.amount = Number(payload.amount.toFixed(2));
+            record.settledAt = payload.settledAt;
+            record.note = normalizedNote;
+            record.deletedAt = null;
+            markCreatedAndUpdated(
+              record as unknown as { _raw: Record<string, number> },
+              now,
+            );
+          });
+        }
+      });
+      return { success: true, value: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async replaceBillingDocumentAllocationsForSettlementEntry(params: {
+    accountRemoteId: string;
+    settlementLedgerEntryRemoteId: string;
+    settlementTransactionRemoteId: string | null;
+    settledAt: number;
+    note: string | null;
+    allocations: readonly {
+      documentRemoteId: string;
+      amount: number;
+    }[];
+  }): Promise<Result<boolean>> {
+    try {
+      const normalizedAccountRemoteId = normalizeRequired(params.accountRemoteId);
+      const normalizedSettlementLedgerEntryRemoteId = normalizeRequired(
+        params.settlementLedgerEntryRemoteId,
+      );
+      if (!normalizedAccountRemoteId) {
+        throw new Error("Account remote id is required");
+      }
+      if (!normalizedSettlementLedgerEntryRemoteId) {
+        throw new Error("Settlement ledger entry id is required");
+      }
+
+      const allocationCollection = database.get<BillingDocumentAllocationModel>(
+        BILLING_DOCUMENT_ALLOCATIONS_TABLE,
+      );
+      const existing = await getAllocationsBySettlementLedgerEntryRemoteId(
+        database,
+        normalizedSettlementLedgerEntryRemoteId,
+      );
+
+      await database.write(async () => {
+        const now = Date.now();
+        for (const allocation of existing) {
+          await allocation.update((record) => {
+            record.deletedAt = now;
+            markUpdated(
+              record as unknown as { _raw: Record<string, number> },
+              now,
+            );
+          });
+        }
+
+        for (const allocation of params.allocations) {
+          const normalizedDocumentRemoteId = normalizeRequired(
+            allocation.documentRemoteId,
+          );
+          if (!normalizedDocumentRemoteId) {
+            continue;
+          }
+          if (!(allocation.amount > 0)) {
+            continue;
+          }
+          await allocationCollection.create((record) => {
+            record.remoteId = `${normalizedSettlementLedgerEntryRemoteId}-${normalizedDocumentRemoteId}-${Date.now()}-${Math.random()
+              .toString(36)
+              .slice(2, 8)}`;
+            record.accountRemoteId = normalizedAccountRemoteId;
+            record.documentRemoteId = normalizedDocumentRemoteId;
+            record.settlementLedgerEntryRemoteId =
+              normalizedSettlementLedgerEntryRemoteId;
+            record.settlementTransactionRemoteId = normalizeOptional(
+              params.settlementTransactionRemoteId,
+            );
+            record.amount = Number(allocation.amount.toFixed(2));
+            record.settledAt = params.settledAt;
+            record.note = normalizeOptional(params.note);
+            record.deletedAt = null;
+            markCreatedAndUpdated(
+              record as unknown as { _raw: Record<string, number> },
+              now,
+            );
+          });
+        }
+      });
+
+      return { success: true, value: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async deleteBillingDocumentAllocationsBySettlementEntryRemoteId(
+    settlementLedgerEntryRemoteId: string,
+  ): Promise<Result<boolean>> {
+    try {
+      const normalizedSettlementLedgerEntryRemoteId = normalizeRequired(
+        settlementLedgerEntryRemoteId,
+      );
+      if (!normalizedSettlementLedgerEntryRemoteId) {
+        throw new Error("Settlement ledger entry id is required");
+      }
+      const existing = await getAllocationsBySettlementLedgerEntryRemoteId(
+        database,
+        normalizedSettlementLedgerEntryRemoteId,
+      );
+      await database.write(async () => {
+        const now = Date.now();
+        for (const allocation of existing) {
+          await allocation.update((record) => {
+            record.deletedAt = now;
+            markUpdated(
+              record as unknown as { _raw: Record<string, number> },
+              now,
+            );
+          });
+        }
+      });
+      return { success: true, value: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async getBillingDocumentAllocationsByAccountRemoteId(
+    accountRemoteId: string,
+  ): Promise<Result<BillingDocumentAllocationRecord[]>> {
+    try {
+      const normalizedAccountRemoteId = normalizeRequired(accountRemoteId);
+      if (!normalizedAccountRemoteId) {
+        throw new Error("Account remote id is required");
+      }
+      const allocations = await getAllocationsByAccountRemoteId(
+        database,
+        normalizedAccountRemoteId,
+      );
+      return {
+        success: true,
+        value: allocations.map((allocation) => ({
+          remoteId: allocation.remoteId,
+          accountRemoteId: allocation.accountRemoteId,
+          documentRemoteId: allocation.documentRemoteId,
+          settlementLedgerEntryRemoteId: allocation.settlementLedgerEntryRemoteId,
+          settlementTransactionRemoteId:
+            allocation.settlementTransactionRemoteId,
+          amount: allocation.amount,
+          settledAt: allocation.settledAt,
+          note: allocation.note,
+          createdAt: allocation.createdAt.getTime(),
+          updatedAt: allocation.updatedAt.getTime(),
+        })),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
     }
   },
 });

@@ -29,16 +29,24 @@ export function LedgerEntryEditorModal({
 }: LedgerEntryEditorModalProps) {
   const { state } = viewModel;
 
-  const paymentModeOptions: DropdownOption[] = viewModel.availablePaymentModes.map((mode) => ({
-    label: mode.label,
-    value: mode.value,
-  }));
+  const settlementAccountOptions: DropdownOption[] =
+    viewModel.availableSettlementAccounts.map((account) => ({
+      label: account.label,
+      value: account.remoteId,
+    }));
+  const settlementLinkOptions: DropdownOption[] = [
+    { label: "Not linked (auto allocate)", value: "" },
+    ...viewModel.settlementLinkOptions.map((option) => ({
+      label: option.label,
+      value: option.value,
+    })),
+  ];
 
   const title = state.mode === "create" ? "New Ledger Entry" : "Edit Ledger Entry";
   const partyLabel = getLedgerPartyLabel(state.entryType);
   const actionLabel = getLedgerEntryTypeLabel(state.entryType);
   const shouldShowDueDate = requiresDueDate(state.entryType);
-  const shouldShowPaymentMode = requiresPaymentMode(state.entryType);
+  const shouldShowSettlementAccount = requiresPaymentMode(state.entryType);
   const shouldShowPartySuggestions = viewModel.partySuggestions.length > 0;
 
   return (
@@ -132,27 +140,24 @@ export function LedgerEntryEditorModal({
         />
       ) : null}
 
-      {shouldShowPaymentMode ? (
+      {shouldShowSettlementAccount ? (
         <View style={styles.fieldWrap}>
-          <Text style={styles.inputLabel}>Payment Mode</Text>
+          <Text style={styles.inputLabel}>Money Account</Text>
           <Dropdown
-            value={state.paymentMode}
-            options={paymentModeOptions}
-            onChange={(value) => {
-              const selectedMode = viewModel.availablePaymentModes.find(
-                (option) => option.value === value,
-              );
-              viewModel.onChangePaymentMode(selectedMode?.value ?? "");
-            }}
-            placeholder="Select payment mode"
-            modalTitle="Choose payment mode"
+            value={state.settlementAccountRemoteId}
+            options={settlementAccountOptions}
+            onChange={viewModel.onChangeSettlementAccountRemoteId}
+            placeholder="Select money account"
+            modalTitle="Choose money account"
             showLeadingIcon={false}
             triggerStyle={styles.dropdownTrigger}
             triggerTextStyle={styles.dropdownTriggerText}
             disabled={state.isSaving}
           />
-          {state.fieldErrors.paymentMode ? (
-            <Text style={styles.fieldErrorText}>{state.fieldErrors.paymentMode}</Text>
+          {state.fieldErrors.settlementAccountRemoteId ? (
+            <Text style={styles.fieldErrorText}>
+              {state.fieldErrors.settlementAccountRemoteId}
+            </Text>
           ) : null}
         </View>
       ) : null}
@@ -180,6 +185,28 @@ export function LedgerEntryEditorModal({
 
       {state.showMoreDetails ? (
         <View style={styles.moreDetailsContent}>
+          {shouldShowSettlementAccount ? (
+            <View style={styles.fieldWrap}>
+              <Text style={styles.inputLabel}>Against Bill / Due (Optional)</Text>
+              <Dropdown
+                value={state.settledAgainstEntryRemoteId}
+                options={settlementLinkOptions}
+                onChange={viewModel.onChangeSettledAgainstEntryRemoteId}
+                placeholder="Select bill/due to link"
+                modalTitle="Choose bill/due"
+                showLeadingIcon={false}
+                triggerStyle={styles.dropdownTrigger}
+                triggerTextStyle={styles.dropdownTriggerText}
+                disabled={state.isSaving}
+              />
+              {state.fieldErrors.settledAgainstEntryRemoteId ? (
+                <Text style={styles.fieldErrorText}>
+                  {state.fieldErrors.settledAgainstEntryRemoteId}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+
           <LabeledTextInput
             label="Bill No / Ref No"
             value={state.referenceNumber}

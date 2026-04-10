@@ -1,5 +1,8 @@
 import { TransactionModel } from "../../dataSource/db/transaction.model";
-import { Transaction } from "@/feature/transactions/types/transaction.entity.types";
+import {
+  Transaction,
+  TransactionPostingStatus,
+} from "@/feature/transactions/types/transaction.entity.types";
 
 export const mapTransactionModelToDomain = async (
   model: TransactionModel,
@@ -16,6 +19,14 @@ export const mapTransactionModelToDomain = async (
   categoryLabel: model.categoryLabel,
   note: model.note,
   happenedAt: model.happenedAt,
+  settlementMoneyAccountRemoteId: model.settlementMoneyAccountRemoteId,
+  settlementMoneyAccountDisplayNameSnapshot:
+    model.settlementMoneyAccountDisplayNameSnapshot,
+  sourceModule: model.sourceModule,
+  sourceRemoteId: model.sourceRemoteId,
+  sourceAction: model.sourceAction,
+  idempotencyKey: model.idempotencyKey,
+  postingStatus: model.postingStatus ?? TransactionPostingStatus.Posted,
   createdAt: model.createdAt.getTime(),
   updatedAt: model.updatedAt.getTime(),
 });

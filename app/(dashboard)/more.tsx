@@ -85,6 +85,10 @@ export default function MoreDashboardRoute() {
     navigation.push("/(dashboard)/notes");
   }, [navigation]);
 
+  const handleOpenNotifications = useCallback(() => {
+    navigation.push("/(dashboard)/notifications");
+  }, [navigation]);
+
   const handleLogout = useCallback(async () => {
     try {
       await clearActiveUserSession(appDatabase);
@@ -97,8 +101,13 @@ export default function MoreDashboardRoute() {
   }, [navigation]);
 
   const handleOpenTransactions = useCallback(() => {
+    if (activeAccountType === AccountType.Business) {
+      navigation.push("/(dashboard)/transactions");
+      return;
+    }
+
     navigation.replace("/(dashboard)/personal-transactions");
-  }, [navigation]);
+  }, [activeAccountType, navigation]);
 
   const handleOpenBudget = useCallback(() => {
     navigation.replace("/(dashboard)/personal-budget");
@@ -114,7 +123,12 @@ export default function MoreDashboardRoute() {
         return true;
       }
 
-      if (itemId === "profile" || itemId === "settings" || itemId === "logout") {
+      if (
+        itemId === "profile" ||
+        itemId === "settings" ||
+        itemId === "notifications" ||
+        itemId === "logout"
+      ) {
         return true;
       }
 
@@ -155,6 +169,7 @@ export default function MoreDashboardRoute() {
       onOpenTransactions={handleOpenTransactions}
       onOpenBudget={handleOpenBudget}
       onOpenUserManagement={handleOpenUserManagement}
+      onOpenNotifications={handleOpenNotifications}
       onLogout={handleLogout}
       hasMenuAccess={hasMenuAccess}
     />

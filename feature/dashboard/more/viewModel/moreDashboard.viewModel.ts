@@ -29,6 +29,7 @@ export type UseMoreDashboardViewModelParams = {
   onOpenBudget: () => void;
   onOpenUserManagement: () => void;
   onOpenSettings: () => void;
+  onOpenNotifications: () => void;
   onLogout: () => Promise<void>;
   hasMenuAccess: MoreDashboardMenuAccessPredicate;
 };

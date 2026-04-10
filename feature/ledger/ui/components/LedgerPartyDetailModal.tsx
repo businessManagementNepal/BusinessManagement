@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Pencil, Trash2, X } from "lucide-react-native";
+import { Pencil, Share2, Trash2, X } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { colors } from "@/shared/components/theme/colors";
@@ -114,6 +114,14 @@ export function LedgerPartyDetailModal({
                   onPress={viewModel.onQuickPaymentOut}
                 />
               </View>
+
+              <AppButton
+                label="Share Statement"
+                variant="secondary"
+                size="sm"
+                leadingIcon={<Share2 size={14} color={colors.foreground} />}
+                onPress={() => void viewModel.onShareStatement()}
+              />
 
               <Text style={styles.sectionTitle}>Entries</Text>
 

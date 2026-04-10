@@ -17,6 +17,7 @@ export type MoreDashboardMenuItemId =
   | "budget"
   | "userManagement"
   | "settings"
+  | "notifications"
   | "logout";
 
 export type MoreDashboardMenuItem = {

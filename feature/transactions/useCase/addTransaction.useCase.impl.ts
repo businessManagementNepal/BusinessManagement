@@ -3,7 +3,9 @@ import {
   TransactionDirection,
   SaveTransactionPayload,
   TransactionResult,
+  TransactionSourceModule,
   TransactionType,
+  TransactionPostingStatus,
 } from "@/feature/transactions/types/transaction.entity.types";
 import { TransactionValidationError } from "@/feature/transactions/types/transaction.error.types";
 import { AddTransactionUseCase } from "./addTransaction.useCase";
@@ -19,6 +21,15 @@ const normalizePayload = (
   title: payload.title.trim(),
   categoryLabel: payload.categoryLabel?.trim() || null,
   note: payload.note?.trim() || null,
+  settlementMoneyAccountRemoteId:
+    payload.settlementMoneyAccountRemoteId?.trim() || null,
+  settlementMoneyAccountDisplayNameSnapshot:
+    payload.settlementMoneyAccountDisplayNameSnapshot?.trim() || null,
+  sourceModule: payload.sourceModule ?? TransactionSourceModule.Manual,
+  sourceRemoteId: payload.sourceRemoteId?.trim() || null,
+  sourceAction: payload.sourceAction?.trim() || null,
+  idempotencyKey: payload.idempotencyKey?.trim() || null,
+  postingStatus: payload.postingStatus ?? TransactionPostingStatus.Posted,
 });
 
 const validatePayload = (payload: SaveTransactionPayload): string | null => {
@@ -50,15 +61,26 @@ const validatePayload = (payload: SaveTransactionPayload): string | null => {
     return "Please enter a valid date.";
   }
 
-  if (payload.transactionType === TransactionType.Income && payload.direction !== TransactionDirection.In) {
+  if (
+    payload.transactionType === TransactionType.Income &&
+    payload.direction !== TransactionDirection.In
+  ) {
     return "Income must move money in.";
   }
 
-  if (payload.transactionType === TransactionType.Expense && payload.direction !== TransactionDirection.Out) {
+  if (
+    payload.transactionType === TransactionType.Expense &&
+    payload.direction !== TransactionDirection.Out
+  ) {
     return "Expense must move money out.";
   }
 
-  if (payload.transactionType === TransactionType.Refund && ![TransactionDirection.In, TransactionDirection.Out].includes(payload.direction)) {
+  if (
+    payload.transactionType === TransactionType.Refund &&
+    ![TransactionDirection.In, TransactionDirection.Out].includes(
+      payload.direction,
+    )
+  ) {
     return "Refund direction is invalid.";
   }
 

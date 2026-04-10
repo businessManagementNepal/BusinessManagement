@@ -90,6 +90,7 @@ export const createCompletePosCheckoutUseCase = ({
       referenceNumber: receipt.receiptNumber,
       reminderAt: null,
       attachmentUri: null,
+      settledAgainstEntryRemoteId: null,
       linkedTransactionRemoteId: null,
       settlementAccountRemoteId: params.activeSettlementAccountRemoteId,
       settlementAccountDisplayNameSnapshot: null,

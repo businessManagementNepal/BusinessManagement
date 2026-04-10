@@ -755,5 +755,99 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 32,
+      steps: [
+        addColumns({
+          table: "transactions",
+          columns: [
+            {
+              name: "settlement_money_account_remote_id",
+              type: "string",
+              isOptional: true,
+            },
+            {
+              name: "settlement_money_account_display_name_snapshot",
+              type: "string",
+              isOptional: true,
+            },
+            { name: "source_module", type: "string", isOptional: true },
+            { name: "source_remote_id", type: "string", isOptional: true },
+            { name: "source_action", type: "string", isOptional: true },
+            { name: "idempotency_key", type: "string", isOptional: true },
+            { name: "posting_status", type: "string", isOptional: true },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 33,
+      steps: [
+        addColumns({
+          table: "ledger_entries",
+          columns: [
+            {
+              name: "settled_against_entry_remote_id",
+              type: "string",
+              isOptional: true,
+            },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 34,
+      steps: [
+        addColumns({
+          table: "billing_documents",
+          columns: [
+            { name: "due_at", type: "number", isOptional: true },
+            { name: "source_module", type: "string", isOptional: true },
+            { name: "source_remote_id", type: "string", isOptional: true },
+            {
+              name: "linked_ledger_entry_remote_id",
+              type: "string",
+              isOptional: true,
+            },
+          ],
+        }),
+        createTable({
+          name: "billing_document_allocations",
+          columns: [
+            { name: "remote_id", type: "string", isIndexed: true },
+            { name: "account_remote_id", type: "string", isIndexed: true },
+            { name: "document_remote_id", type: "string", isIndexed: true },
+            {
+              name: "settlement_ledger_entry_remote_id",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
+            {
+              name: "settlement_transaction_remote_id",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
+            { name: "amount", type: "number" },
+            { name: "settled_at", type: "number", isIndexed: true },
+            { name: "note", type: "string", isOptional: true },
+            { name: "deleted_at", type: "number", isOptional: true },
+            { name: "created_at", type: "number" },
+            { name: "updated_at", type: "number" },
+          ],
+        }),
+        addColumns({
+          table: "ledger_entries",
+          columns: [
+            {
+              name: "linked_document_remote_id",
+              type: "string",
+              isOptional: true,
+            },
+          ],
+        }),
+      ],
+    },
   ],
 });

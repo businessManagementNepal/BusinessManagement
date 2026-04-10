@@ -71,6 +71,11 @@ const businessSections: readonly MoreDashboardSection[] = [
         subtitle: "Payables and receivables overview",
       },
       {
+        id: "transactions",
+        title: "Transactions",
+        subtitle: "All money movement across this business",
+      },
+      {
         id: "moneyAccounts",
         title: "Money Accounts",
         subtitle: "Cash, bank, and wallet balances",
@@ -116,6 +121,11 @@ const businessSections: readonly MoreDashboardSection[] = [
         id: "settings",
         title: "Settings",
         subtitle: "Currency, tax, and app preferences",
+      },
+      {
+        id: "notifications",
+        title: "Notifications",
+        subtitle: "Reminder alerts and updates",
       },
       {
         id: "logout",
@@ -195,6 +205,11 @@ const personalSections: readonly MoreDashboardSection[] = [
         subtitle: "Currency, tax, and app preferences",
       },
       {
+        id: "notifications",
+        title: "Notifications",
+        subtitle: "Reminder alerts and updates",
+      },
+      {
         id: "logout",
         title: "Logout",
         subtitle: "Sign out from this device",
@@ -226,6 +241,7 @@ export const useMoreDashboardViewModel = (
     onOpenBudget,
     onOpenUserManagement,
     onOpenSettings,
+    onOpenNotifications,
     onLogout,
     hasMenuAccess,
   } = params;
@@ -287,6 +303,9 @@ export const useMoreDashboardViewModel = (
         case "settings":
           onOpenSettings();
           return;
+        case "notifications":
+          onOpenNotifications();
+          return;
         case "logout":
           void onLogout();
           return;
@@ -313,6 +332,7 @@ export const useMoreDashboardViewModel = (
       onOpenTransactions,
       onOpenUserManagement,
       onOpenSettings,
+      onOpenNotifications,
       onLogout,
     ],
   );

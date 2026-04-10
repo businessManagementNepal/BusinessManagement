@@ -1,9 +1,12 @@
 import {
   BillingDatabaseError,
+  BillingDocument,
   BillingDocumentNotFoundError,
+  BillingDocumentStatus,
   BillingError,
   BillingOverview,
   BillingUnknownError,
+  SaveBillingDocumentAllocationPayload,
   BillingValidationError,
   SaveBillPhotoPayload,
   SaveBillingDocumentPayload,
@@ -11,6 +14,7 @@ import {
 import { BillingDatasource } from "@/feature/billing/data/dataSource/billing.datasource";
 import { BillingRepository } from "./billing.repository";
 import {
+  mapBillingAllocationRecordToDomain,
   mapBillPhotoModelToDomain,
   mapBillingDocumentModelToDomain,
 } from "./mapper/billing.mapper";
@@ -34,17 +38,105 @@ const mapDatasourceError = (error: Error): BillingError => {
   return { ...BillingUnknownError, message: normalized || BillingUnknownError.message };
 };
 
+const getStartOfDayTimestamp = (): number => {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+};
+
+const deriveDocumentStatus = ({
+  document,
+  paidAmount,
+  outstandingAmount,
+}: {
+  document: BillingDocument;
+  paidAmount: number;
+  outstandingAmount: number;
+}): BillingDocument["status"] => {
+  if (document.status === BillingDocumentStatus.Draft) {
+    return BillingDocumentStatus.Draft;
+  }
+
+  if (outstandingAmount <= 0.0001) {
+    return BillingDocumentStatus.Paid;
+  }
+
+  if (paidAmount > 0.0001) {
+    return BillingDocumentStatus.PartiallyPaid;
+  }
+
+  const todayStart = getStartOfDayTimestamp();
+  if (document.dueAt !== null && document.dueAt < todayStart) {
+    return BillingDocumentStatus.Overdue;
+  }
+
+  return BillingDocumentStatus.Pending;
+};
+
+const deriveDocuments = ({
+  documents,
+  allocations,
+}: {
+  documents: readonly BillingDocument[];
+  allocations: readonly {
+    documentRemoteId: string;
+    amount: number;
+  }[];
+}): BillingDocument[] => {
+  const paidAmountByDocumentRemoteId = new Map<string, number>();
+  for (const allocation of allocations) {
+    paidAmountByDocumentRemoteId.set(
+      allocation.documentRemoteId,
+      (paidAmountByDocumentRemoteId.get(allocation.documentRemoteId) ?? 0) +
+        allocation.amount,
+    );
+  }
+
+  const todayStart = getStartOfDayTimestamp();
+
+  return documents.map((document) => {
+    const paidAmount = Number(
+      (
+        paidAmountByDocumentRemoteId.get(document.remoteId) ?? 0
+      ).toFixed(2),
+    );
+    const outstandingAmount = Number(
+      Math.max(document.totalAmount - paidAmount, 0).toFixed(2),
+    );
+    const isOverdue =
+      outstandingAmount > 0 &&
+      document.dueAt !== null &&
+      document.dueAt < todayStart;
+    return {
+      ...document,
+      paidAmount,
+      outstandingAmount,
+      isOverdue,
+      status: deriveDocumentStatus({
+        document,
+        paidAmount,
+        outstandingAmount,
+      }),
+    };
+  });
+};
+
 const buildSummary = (documents: BillingOverview["documents"]) => {
   const pendingAmount = documents
-    .filter((item) => item.status === "pending")
-    .reduce((sum, item) => sum + item.totalAmount, 0);
+    .filter(
+      (item) =>
+        item.status !== BillingDocumentStatus.Draft &&
+        !item.isOverdue &&
+        item.outstandingAmount > 0,
+    )
+    .reduce((sum, item) => sum + item.outstandingAmount, 0);
   const overdueAmount = documents
-    .filter((item) => item.status === "overdue")
-    .reduce((sum, item) => sum + item.totalAmount, 0);
+    .filter((item) => item.isOverdue)
+    .reduce((sum, item) => sum + item.outstandingAmount, 0);
   return {
     totalDocuments: documents.length,
-    pendingAmount,
-    overdueAmount,
+    pendingAmount: Number(pendingAmount.toFixed(2)),
+    overdueAmount: Number(overdueAmount.toFixed(2)),
   };
 };
 
@@ -54,18 +146,33 @@ export const createBillingRepository = (datasource: BillingDatasource): BillingR
     if (!documentsResult.success) {
       return { success: false, error: mapDatasourceError(documentsResult.error) };
     }
+    const allocationsResult =
+      await datasource.getBillingDocumentAllocationsByAccountRemoteId(
+        accountRemoteId,
+      );
+    if (!allocationsResult.success) {
+      return { success: false, error: mapDatasourceError(allocationsResult.error) };
+    }
     const billPhotosResult = await datasource.getBillPhotosByAccountRemoteId(accountRemoteId);
     if (!billPhotosResult.success) {
       return { success: false, error: mapDatasourceError(billPhotosResult.error) };
     }
-    const documents = documentsResult.value.map((record) =>
+    const baseDocuments = documentsResult.value.map((record) =>
       mapBillingDocumentModelToDomain(record.document, record.items),
     );
+    const allocations = allocationsResult.value.map(
+      mapBillingAllocationRecordToDomain,
+    );
+    const documents = deriveDocuments({
+      documents: baseDocuments,
+      allocations,
+    });
     const billPhotos = billPhotosResult.value.map(mapBillPhotoModelToDomain);
     return {
       success: true,
       value: {
         documents,
+        allocations,
         billPhotos,
         summary: buildSummary(documents),
       },
@@ -88,5 +195,30 @@ export const createBillingRepository = (datasource: BillingDatasource): BillingR
     const result = await datasource.saveBillPhoto(payload);
     if (!result.success) return { success: false, error: mapDatasourceError(result.error) };
     return { success: true, value: true };
+  },
+  async saveBillingDocumentAllocations(
+    payloads: readonly SaveBillingDocumentAllocationPayload[],
+  ) {
+    const result = await datasource.saveBillingDocumentAllocations(payloads);
+    if (!result.success) return { success: false, error: mapDatasourceError(result.error) };
+    return result;
+  },
+  async replaceBillingDocumentAllocationsForSettlementEntry(params) {
+    const result =
+      await datasource.replaceBillingDocumentAllocationsForSettlementEntry(
+        params,
+      );
+    if (!result.success) return { success: false, error: mapDatasourceError(result.error) };
+    return result;
+  },
+  async deleteBillingDocumentAllocationsBySettlementEntryRemoteId(
+    settlementLedgerEntryRemoteId: string,
+  ) {
+    const result =
+      await datasource.deleteBillingDocumentAllocationsBySettlementEntryRemoteId(
+        settlementLedgerEntryRemoteId,
+      );
+    if (!result.success) return { success: false, error: mapDatasourceError(result.error) };
+    return result;
   },
 });

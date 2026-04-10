@@ -27,6 +27,10 @@ export class LedgerEntryModel extends Model {
   @field("reference_number") referenceNumber!: string | null;
   @field("reminder_at") reminderAt!: number | null;
   @field("attachment_uri") attachmentUri!: string | null;
+  @field("settled_against_entry_remote_id")
+  settledAgainstEntryRemoteId!: string | null;
+  @field("linked_document_remote_id")
+  linkedDocumentRemoteId!: string | null;
   @field("linked_transaction_remote_id")
   linkedTransactionRemoteId!: string | null;
   @field("settlement_account_remote_id") settlementAccountRemoteId!: string | null;

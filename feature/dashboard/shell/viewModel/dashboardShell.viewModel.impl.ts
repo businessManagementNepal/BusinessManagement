@@ -50,6 +50,7 @@ const DASHBOARD_ROUTE_PERMISSION_CODE: Partial<
   "tax-calculator": "tax_calculator.view",
   notes: "notes.view",
   "emi-loans": "emi.view",
+  transactions: "transactions.view",
   "personal-transactions": "transactions.view",
   "personal-budget": "budget.view",
 };
@@ -65,6 +66,7 @@ const MORE_SECTION_ROUTES = new Set<Exclude<DashboardRouteKey, null>>([
   "billing",
   "tax-calculator",
   "notes",
+  "transactions",
 ]);
 
 export const useDashboardShellViewModel = (): DashboardShellViewModel => {
@@ -97,6 +99,10 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
 
   const onProfilePress = useCallback(() => {
     navigation.push("/(dashboard)/profile");
+  }, [navigation]);
+
+  const onBellPress = useCallback(() => {
+    navigation.push("/(dashboard)/notifications");
   }, [navigation]);
 
   const onHeaderBack = useCallback(() => {
@@ -224,6 +230,7 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
       activeTab,
       profileInitials,
       onProfilePress,
+      onBellPress,
       onHeaderBack,
       onTabPress,
     }),
@@ -231,6 +238,7 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
       activeTab,
       headerConfig,
       isLoading,
+      onBellPress,
       onHeaderBack,
       onProfilePress,
       onTabPress,

@@ -33,6 +33,7 @@ export function DashboardShellLayout({
         subtitle={viewModel.headerConfig.subtitle ?? undefined}
         showBack={viewModel.headerConfig.showBack}
         onBack={viewModel.onHeaderBack}
+        onBellPress={viewModel.onBellPress}
         rightLabel={viewModel.profileInitials}
         showBell={viewModel.headerConfig.showBell}
         showProfile={viewModel.headerConfig.showProfile}

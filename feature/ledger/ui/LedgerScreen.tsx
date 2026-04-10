@@ -7,9 +7,11 @@ import {
   View,
 } from "react-native";
 import {
+  AlertTriangle,
   ArrowDownCircle,
   ArrowUpCircle,
   CalendarClock,
+  Clock3,
   Plus,
   RotateCcw,
   User,
@@ -141,6 +143,81 @@ export function LedgerScreen({
           })}
         </View>
 
+        {listViewModel.hasOverdueAging ? (
+          <>
+            <InlineSectionHeader title="Receivable Aging" />
+            <View style={styles.agingGrid}>
+              {listViewModel.agingBuckets.map((bucket) => (
+                <View
+                  key={bucket.id}
+                  style={[
+                    styles.agingCard,
+                    bucket.tone === "destructive"
+                      ? styles.agingCardCritical
+                      : bucket.tone === "warning"
+                        ? styles.agingCardWarning
+                        : null,
+                  ]}
+                >
+                  <Text style={styles.agingLabel}>{bucket.label}</Text>
+                  <Text style={styles.agingAmount}>{bucket.amountLabel}</Text>
+                  <Text style={styles.agingCount}>{bucket.countLabel}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        ) : null}
+
+        <InlineSectionHeader title="Collection Queue" />
+        {listViewModel.collectionQueue.length === 0 ? (
+          <View style={styles.queueEmptyState}>
+            <Clock3 size={16} color={colors.mutedForeground} />
+            <Text style={styles.queueEmptyText}>No overdue collection action right now.</Text>
+          </View>
+        ) : (
+          <View style={styles.collectionQueueContainer}>
+            {listViewModel.collectionQueue.map((queueItem, index) => (
+              <View
+                key={queueItem.id}
+                style={[
+                  styles.collectionQueueRow,
+                  index < listViewModel.collectionQueue.length - 1
+                    ? styles.partyRowDivider
+                    : null,
+                ]}
+              >
+                <Pressable
+                  style={styles.collectionQueueInfo}
+                  onPress={() =>
+                    void listViewModel.onOpenPartyDetail(
+                      queueItem.partyId,
+                      queueItem.partyName,
+                    )
+                  }
+                >
+                  <View style={styles.queueTitleRow}>
+                    <Text style={styles.collectionQueuePartyName}>
+                      {queueItem.partyName}
+                    </Text>
+                    {queueItem.priority === "critical" ? (
+                      <AlertTriangle size={14} color={colors.destructive} />
+                    ) : null}
+                  </View>
+                  <Text style={styles.collectionQueueMeta}>{queueItem.metaLabel}</Text>
+                  <Text style={styles.collectionQueueAmount}>{queueItem.amountLabel}</Text>
+                </Pressable>
+
+                <AppButton
+                  label="Collect"
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => listViewModel.onQuickCollectFromQueue(queueItem.partyName)}
+                />
+              </View>
+            ))}
+          </View>
+        )}
+
         <SearchInputRow
           value={listViewModel.searchQuery}
           onChangeText={listViewModel.onChangeSearchQuery}
@@ -249,6 +326,98 @@ const styles = StyleSheet.create({
   miniStatGrid: {
     flexDirection: "row",
     gap: spacing.sm,
+  },
+  agingGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  agingCard: {
+    width: "31%",
+    minHeight: 82,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    gap: 4,
+  },
+  agingCardWarning: {
+    borderColor: colors.warning,
+    backgroundColor: "rgba(245, 158, 11, 0.07)",
+  },
+  agingCardCritical: {
+    borderColor: colors.destructive,
+    backgroundColor: "rgba(228, 71, 71, 0.08)",
+  },
+  agingLabel: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+    fontFamily: "InterSemiBold",
+  },
+  agingAmount: {
+    color: colors.cardForeground,
+    fontSize: 13,
+    fontFamily: "InterBold",
+  },
+  agingCount: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+    fontFamily: "InterMedium",
+  },
+  collectionQueueContainer: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
+  },
+  collectionQueueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  collectionQueueInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  queueTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  collectionQueuePartyName: {
+    color: colors.cardForeground,
+    fontSize: 13,
+    fontFamily: "InterBold",
+  },
+  collectionQueueMeta: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+  },
+  collectionQueueAmount: {
+    color: colors.destructive,
+    fontSize: 13,
+    fontFamily: "InterBold",
+  },
+  queueEmptyState: {
+    minHeight: 56,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.secondary,
+    paddingHorizontal: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  queueEmptyText: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: "InterMedium",
   },
   searchInput: {
     color: colors.cardForeground,

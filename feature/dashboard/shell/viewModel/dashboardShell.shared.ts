@@ -22,6 +22,7 @@ const BUSINESS_ONLY_ROUTES = new Set<DashboardRouteKey>([
   "billing",
   "tax-calculator",
   "user-management",
+  "transactions",
 ]);
 
 const PERSONAL_ONLY_ROUTES = new Set<DashboardRouteKey>([
@@ -57,6 +58,8 @@ export const resolveDashboardRouteKey = (
     case "tax-calculator":
     case "notes":
     case "emi-loans":
+    case "transactions":
+    case "notifications":
     case "more":
     case "settings":
     case "user-management":
@@ -197,6 +200,22 @@ export const resolveDashboardHeaderConfig = (params: {
         showProfile: false,
         showBack: false,
       };
+    case "transactions":
+      return {
+        title: "Transactions",
+        subtitle: null,
+        showBell: false,
+        showProfile: false,
+        showBack: true,
+      };
+    case "notifications":
+      return {
+        title: "Notifications",
+        subtitle: null,
+        showBell: false,
+        showProfile: false,
+        showBack: true,
+      };
     case "more":
       return {
         title: "More",
@@ -264,6 +283,8 @@ export const resolveDashboardActiveTab = (
     case "billing":
     case "tax-calculator":
     case "notes":
+    case "transactions":
+    case "notifications":
     case "settings":
       return DashboardTab.More;
     case "personal-transactions":

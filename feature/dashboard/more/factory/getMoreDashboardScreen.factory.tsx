@@ -23,6 +23,7 @@ type GetMoreDashboardScreenFactoryProps = {
   onOpenBudget: () => void;
   onOpenUserManagement: () => void;
   onOpenSettings: () => void;
+  onOpenNotifications: () => void;
   onLogout: () => Promise<void>;
   hasMenuAccess: MoreDashboardMenuAccessPredicate;
 };
@@ -47,6 +48,7 @@ export function GetMoreDashboardScreenFactory({
   onOpenBudget,
   onOpenUserManagement,
   onOpenSettings,
+  onOpenNotifications,
   onLogout,
   hasMenuAccess,
 }: GetMoreDashboardScreenFactoryProps) {
@@ -70,6 +72,7 @@ export function GetMoreDashboardScreenFactory({
     onOpenBudget,
     onOpenUserManagement,
     onOpenSettings,
+    onOpenNotifications,
     onLogout,
     hasMenuAccess,
   });

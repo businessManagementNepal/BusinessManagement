@@ -1,7 +1,12 @@
 import { BillingDocumentModel } from "@/feature/billing/data/dataSource/db/billingDocument.model";
 import { BillingDocumentItemModel } from "@/feature/billing/data/dataSource/db/billingDocumentItem.model";
 import { BillPhotoModel } from "@/feature/billing/data/dataSource/db/billPhoto.model";
-import { BillPhoto, BillingDocument, BillingLineItem } from "@/feature/billing/types/billing.types";
+import {
+  BillPhoto,
+  BillingDocument,
+  BillingDocumentAllocation,
+  BillingLineItem,
+} from "@/feature/billing/types/billing.types";
 
 export const mapBillingItemModelToDomain = (
   model: BillingDocumentItemModel,
@@ -30,10 +35,41 @@ export const mapBillingDocumentModelToDomain = (
   subtotalAmount: document.subtotalAmount,
   taxAmount: document.taxAmount,
   totalAmount: document.totalAmount,
+  paidAmount: 0,
+  outstandingAmount: document.totalAmount,
+  isOverdue: false,
   issuedAt: document.issuedAt,
+  dueAt: document.dueAt,
+  sourceModule: document.sourceModule,
+  sourceRemoteId: document.sourceRemoteId,
+  linkedLedgerEntryRemoteId: document.linkedLedgerEntryRemoteId,
   items: items.map(mapBillingItemModelToDomain),
   createdAt: document.createdAt.getTime(),
   updatedAt: document.updatedAt.getTime(),
+});
+
+export const mapBillingAllocationRecordToDomain = (record: {
+  remoteId: string;
+  accountRemoteId: string;
+  documentRemoteId: string;
+  settlementLedgerEntryRemoteId: string | null;
+  settlementTransactionRemoteId: string | null;
+  amount: number;
+  settledAt: number;
+  note: string | null;
+  createdAt: number;
+  updatedAt: number;
+}): BillingDocumentAllocation => ({
+  remoteId: record.remoteId,
+  accountRemoteId: record.accountRemoteId,
+  documentRemoteId: record.documentRemoteId,
+  settlementLedgerEntryRemoteId: record.settlementLedgerEntryRemoteId,
+  settlementTransactionRemoteId: record.settlementTransactionRemoteId,
+  amount: record.amount,
+  settledAt: record.settledAt,
+  note: record.note,
+  createdAt: record.createdAt,
+  updatedAt: record.updatedAt,
 });
 
 export const mapBillPhotoModelToDomain = (model: BillPhotoModel): BillPhoto => ({

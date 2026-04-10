@@ -3,6 +3,7 @@ import { BillingDocumentModel } from "./db/billingDocument.model";
 import { BillingDocumentItemModel } from "./db/billingDocumentItem.model";
 import { BillPhotoModel } from "./db/billPhoto.model";
 import {
+  SaveBillingDocumentAllocationPayload,
   SaveBillPhotoPayload,
   SaveBillingDocumentPayload,
 } from "@/feature/billing/types/billing.types";
@@ -10,6 +11,19 @@ import {
 export type BillingDocumentRecord = {
   document: BillingDocumentModel;
   items: BillingDocumentItemModel[];
+};
+
+export type BillingDocumentAllocationRecord = {
+  remoteId: string;
+  accountRemoteId: string;
+  documentRemoteId: string;
+  settlementLedgerEntryRemoteId: string | null;
+  settlementTransactionRemoteId: string | null;
+  amount: number;
+  settledAt: number;
+  note: string | null;
+  createdAt: number;
+  updatedAt: number;
 };
 
 export interface BillingDatasource {
@@ -22,4 +36,24 @@ export interface BillingDatasource {
   deleteBillingDocumentByRemoteId(remoteId: string): Promise<Result<boolean>>;
   saveBillPhoto(payload: SaveBillPhotoPayload): Promise<Result<BillPhotoModel>>;
   getBillPhotosByAccountRemoteId(accountRemoteId: string): Promise<Result<BillPhotoModel[]>>;
+  saveBillingDocumentAllocations(
+    payloads: readonly SaveBillingDocumentAllocationPayload[],
+  ): Promise<Result<boolean>>;
+  replaceBillingDocumentAllocationsForSettlementEntry(params: {
+    accountRemoteId: string;
+    settlementLedgerEntryRemoteId: string;
+    settlementTransactionRemoteId: string | null;
+    settledAt: number;
+    note: string | null;
+    allocations: readonly {
+      documentRemoteId: string;
+      amount: number;
+    }[];
+  }): Promise<Result<boolean>>;
+  deleteBillingDocumentAllocationsBySettlementEntryRemoteId(
+    settlementLedgerEntryRemoteId: string,
+  ): Promise<Result<boolean>>;
+  getBillingDocumentAllocationsByAccountRemoteId(
+    accountRemoteId: string,
+  ): Promise<Result<BillingDocumentAllocationRecord[]>>;
 }

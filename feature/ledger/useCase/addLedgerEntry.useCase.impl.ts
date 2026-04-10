@@ -56,7 +56,7 @@ export const createAddLedgerEntryUseCase = (
     const requiresDueDate =
       payload.entryType === LedgerEntryType.Sale ||
       payload.entryType === LedgerEntryType.Purchase;
-    const requiresPaymentMode =
+    const requiresSettlementAccount =
       payload.entryType === LedgerEntryType.Collection ||
       payload.entryType === LedgerEntryType.PaymentOut;
 
@@ -67,10 +67,10 @@ export const createAddLedgerEntryUseCase = (
       };
     }
 
-    if (requiresPaymentMode && !payload.paymentMode) {
+    if (requiresSettlementAccount && !payload.settlementAccountRemoteId) {
       return {
         success: false,
-        error: LedgerValidationError("Payment mode is required for payment entries."),
+        error: LedgerValidationError("Settlement account is required for payment entries."),
       };
     }
 

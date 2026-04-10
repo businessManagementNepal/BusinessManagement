@@ -18,6 +18,26 @@ export const TransactionDirection = {
 export type TransactionDirectionValue =
   (typeof TransactionDirection)[keyof typeof TransactionDirection];
 
+export const TransactionSourceModule = {
+  Manual: "manual",
+  Ledger: "ledger",
+  Billing: "billing",
+  Pos: "pos",
+  Emi: "emi",
+  Orders: "orders",
+} as const;
+
+export type TransactionSourceModuleValue =
+  (typeof TransactionSourceModule)[keyof typeof TransactionSourceModule];
+
+export const TransactionPostingStatus = {
+  Posted: "posted",
+  Voided: "voided",
+} as const;
+
+export type TransactionPostingStatusValue =
+  (typeof TransactionPostingStatus)[keyof typeof TransactionPostingStatus];
+
 export const TransactionSyncStatus = {
   PendingCreate: "pending_create",
   PendingUpdate: "pending_update",
@@ -42,6 +62,13 @@ export type Transaction = {
   categoryLabel: string | null;
   note: string | null;
   happenedAt: number;
+  settlementMoneyAccountRemoteId: string | null;
+  settlementMoneyAccountDisplayNameSnapshot: string | null;
+  sourceModule: TransactionSourceModuleValue | null;
+  sourceRemoteId: string | null;
+  sourceAction: string | null;
+  idempotencyKey: string | null;
+  postingStatus: TransactionPostingStatusValue;
   createdAt: number;
   updatedAt: number;
 };
@@ -59,6 +86,13 @@ export type SaveTransactionPayload = {
   categoryLabel: string | null;
   note: string | null;
   happenedAt: number;
+  settlementMoneyAccountRemoteId?: string | null;
+  settlementMoneyAccountDisplayNameSnapshot?: string | null;
+  sourceModule?: TransactionSourceModuleValue | null;
+  sourceRemoteId?: string | null;
+  sourceAction?: string | null;
+  idempotencyKey?: string | null;
+  postingStatus?: TransactionPostingStatusValue;
 };
 
 export type TransactionsResult = Result<

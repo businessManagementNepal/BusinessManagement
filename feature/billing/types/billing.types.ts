@@ -18,6 +18,7 @@ export type BillingTemplateTypeValue =
 export const BillingDocumentStatus = {
   Draft: "draft",
   Paid: "paid",
+  PartiallyPaid: "partially_paid",
   Pending: "pending",
   Overdue: "overdue",
 } as const;
@@ -46,8 +47,28 @@ export type BillingDocument = {
   subtotalAmount: number;
   taxAmount: number;
   totalAmount: number;
+  paidAmount: number;
+  outstandingAmount: number;
+  isOverdue: boolean;
   issuedAt: number;
+  dueAt: number | null;
+  sourceModule: string | null;
+  sourceRemoteId: string | null;
+  linkedLedgerEntryRemoteId: string | null;
   items: BillingLineItem[];
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type BillingDocumentAllocation = {
+  remoteId: string;
+  accountRemoteId: string;
+  documentRemoteId: string;
+  settlementLedgerEntryRemoteId: string | null;
+  settlementTransactionRemoteId: string | null;
+  amount: number;
+  settledAt: number;
+  note: string | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -83,7 +104,22 @@ export type SaveBillingDocumentPayload = {
   taxRatePercent: number;
   notes: string | null;
   issuedAt: number;
+  dueAt?: number | null;
+  sourceModule?: string | null;
+  sourceRemoteId?: string | null;
+  linkedLedgerEntryRemoteId?: string | null;
   items: SaveBillingLineItemPayload[];
+};
+
+export type SaveBillingDocumentAllocationPayload = {
+  remoteId: string;
+  accountRemoteId: string;
+  documentRemoteId: string;
+  settlementLedgerEntryRemoteId?: string | null;
+  settlementTransactionRemoteId?: string | null;
+  amount: number;
+  settledAt: number;
+  note?: string | null;
 };
 
 export type SaveBillPhotoPayload = {
@@ -104,6 +140,7 @@ export type BillingSummary = {
 
 export type BillingOverview = {
   documents: BillingDocument[];
+  allocations: BillingDocumentAllocation[];
   billPhotos: BillPhoto[];
   summary: BillingSummary;
 };
@@ -135,6 +172,7 @@ export const BILLING_TEMPLATE_OPTIONS: readonly BillingTemplateOption[] = [
 export const BILLING_STATUS_OPTIONS = [
   { label: "Draft", value: BillingDocumentStatus.Draft },
   { label: "Paid", value: BillingDocumentStatus.Paid },
+  { label: "Partially Paid", value: BillingDocumentStatus.PartiallyPaid },
   { label: "Pending", value: BillingDocumentStatus.Pending },
   { label: "Overdue", value: BillingDocumentStatus.Overdue },
 ] as const;
