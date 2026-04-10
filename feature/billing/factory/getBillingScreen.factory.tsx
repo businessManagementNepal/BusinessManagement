@@ -6,6 +6,7 @@ import { createBillingRepository } from "@/feature/billing/data/repository/billi
 import { BillingScreen } from "@/feature/billing/ui/BillingScreen";
 import { createDeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase.impl";
 import { createGetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase.impl";
+import { createPayBillingDocumentUseCase } from "@/feature/billing/useCase/payBillingDocument.useCase.impl";
 import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
 import { createSaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase.impl";
 import { createSaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPhoto.useCase.impl";
@@ -111,6 +112,19 @@ export function GetBillingScreenFactory({
     () => createDeleteBusinessTransactionUseCase(database),
     [database],
   );
+  const payBillingDocumentUseCase = React.useMemo(
+    () =>
+      createPayBillingDocumentUseCase(
+        postBusinessTransactionUseCase,
+        deleteBusinessTransactionUseCase,
+        saveBillingDocumentAllocationsUseCase,
+      ),
+    [
+      postBusinessTransactionUseCase,
+      deleteBusinessTransactionUseCase,
+      saveBillingDocumentAllocationsUseCase,
+    ],
+  );
 
   const viewModel = useBillingViewModel({
     ownerUserRemoteId: activeUserRemoteId,
@@ -123,13 +137,11 @@ export function GetBillingScreenFactory({
     canManage,
     getBillingOverviewUseCase,
     saveBillingDocumentUseCase,
-    saveBillingDocumentAllocationsUseCase,
     deleteBillingDocumentUseCase,
     saveBillPhotoUseCase,
     getOrCreateContactUseCase,
     getMoneyAccountsUseCase,
-    postBusinessTransactionUseCase,
-    deleteBusinessTransactionUseCase,
+    payBillingDocumentUseCase,
   });
 
   return <BillingScreen viewModel={viewModel} />;

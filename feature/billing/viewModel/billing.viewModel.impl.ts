@@ -1,32 +1,24 @@
 import {
-    MoneyAccount,
-    MoneyAccountType,
+  MoneyAccount,
+  MoneyAccountType,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
-    BillingDocument,
-    BillingDocumentStatus,
-    BillingDocumentType,
-    BillingTemplateType,
-    BillPhoto,
+  BillingDocument,
+  BillingDocumentStatus,
+  BillingDocumentType,
+  BillingTemplateType,
+  BillPhoto,
 } from "@/feature/billing/types/billing.types";
 import { buildBillingDraftHtml } from "@/feature/billing/ui/printBillingDocument.util";
 import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { GetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase";
+import { PayBillingDocumentUseCase } from "@/feature/billing/useCase/payBillingDocument.useCase";
 import { SaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPhoto.useCase";
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
-import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase";
 import { ContactType } from "@/feature/contacts/types/contact.types";
 import { GetOrCreateContactUseCase } from "@/feature/contacts/useCase/getOrCreateContact.useCase";
-import {
-    SaveTransactionPayload,
-    TransactionDirection,
-    TransactionSourceModule,
-    TransactionType,
-} from "@/feature/transactions/types/transaction.entity.types";
-import { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
-import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { exportDocument } from "@/shared/utils/document/exportDocument";
 import { resolveRegionalFinancePolicy } from "@/shared/utils/finance/regionalFinancePolicy";
@@ -35,10 +27,10 @@ import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 import {
-    BillingDocumentFormState,
-    BillingLineItemFormState,
-    BillingTabValue,
-    BillingViewModel,
+  BillingDocumentFormState,
+  BillingLineItemFormState,
+  BillingTabValue,
+  BillingViewModel,
 } from "./billing.viewModel";
 
 const createEmptyLineItem = (): BillingLineItemFormState => ({
@@ -63,14 +55,6 @@ const createEmptyForm = (
   settlementAccountRemoteId: "",
   items: [createEmptyLineItem()],
 });
-
-const createTransactionRemoteId = (): string => {
-  return `txn-billing-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-};
-
-const createAllocationRemoteId = (): string => {
-  return `alloc-billing-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-};
 
 const parseNumber = (value: string): number => {
   const parsed = Number(value.trim());
@@ -178,13 +162,11 @@ type Params = {
   canManage: boolean;
   getBillingOverviewUseCase: GetBillingOverviewUseCase;
   saveBillingDocumentUseCase: SaveBillingDocumentUseCase;
-  saveBillingDocumentAllocationsUseCase: SaveBillingDocumentAllocationsUseCase;
   deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
   saveBillPhotoUseCase: SaveBillPhotoUseCase;
   getOrCreateContactUseCase: GetOrCreateContactUseCase;
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
-  postBusinessTransactionUseCase: PostBusinessTransactionUseCase;
-  deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
+  payBillingDocumentUseCase: PayBillingDocumentUseCase;
 };
 
 export const useBillingViewModel = ({
@@ -198,13 +180,11 @@ export const useBillingViewModel = ({
   canManage,
   getBillingOverviewUseCase,
   saveBillingDocumentUseCase,
-  saveBillingDocumentAllocationsUseCase,
   deleteBillingDocumentUseCase,
   saveBillPhotoUseCase,
   getOrCreateContactUseCase,
   getMoneyAccountsUseCase,
-  postBusinessTransactionUseCase,
-  deleteBusinessTransactionUseCase,
+  payBillingDocumentUseCase,
 }: Params): BillingViewModel => {
   const regionalFinancePolicy = useMemo(
     () =>
@@ -591,65 +571,25 @@ export const useBillingViewModel = ({
         return;
       }
 
-      const isSaleDocument = form.documentType === BillingDocumentType.Invoice;
-      const transactionRemoteId = createTransactionRemoteId();
-      const transactionPayload: SaveTransactionPayload = {
-        remoteId: transactionRemoteId,
-        ownerUserRemoteId: ownerUserRemoteId.trim(),
+      const paymentResult = await payBillingDocumentUseCase.execute({
+        billingDocumentRemoteId: result.value.remoteId,
         accountRemoteId,
         accountDisplayNameSnapshot:
           accountDisplayNameSnapshot || "Business Account",
-        transactionType: isSaleDocument
-          ? TransactionType.Income
-          : TransactionType.Expense,
-        direction: isSaleDocument
-          ? TransactionDirection.In
-          : TransactionDirection.Out,
-        title: isSaleDocument
-          ? `Received for ${result.value.documentNumber}`
-          : `Paid for ${result.value.documentNumber}`,
-        amount: paidNowAmount,
-        currencyCode,
-        categoryLabel: "Billing",
-        note: form.notes.trim() || null,
-        happenedAt: normalizedIssuedAt,
+        ownerUserRemoteId: ownerUserRemoteId.trim(),
         settlementMoneyAccountRemoteId: selectedSettlementAccount.remoteId,
         settlementMoneyAccountDisplayNameSnapshot:
           selectedSettlementAccount.label,
-        sourceModule: TransactionSourceModule.Billing,
-        sourceRemoteId: result.value.remoteId,
-        sourceAction: "document_payment",
-        idempotencyKey: `billing:${result.value.remoteId}:payment:${transactionRemoteId}`,
-      };
+        amount: paidNowAmount,
+        settledAt: normalizedIssuedAt,
+        note: form.notes.trim() || null,
+        documentType: form.documentType,
+        documentNumber: result.value.documentNumber,
+      });
 
-      const transactionResult =
-        await postBusinessTransactionUseCase.execute(transactionPayload);
-      if (!transactionResult.success) {
+      if (!paymentResult.success) {
         setErrorMessage(
-          `Bill saved, but payment posting failed: ${transactionResult.error.message}`,
-        );
-        await loadOverview();
-        return;
-      }
-
-      const allocationResult =
-        await saveBillingDocumentAllocationsUseCase.execute([
-          {
-            remoteId: createAllocationRemoteId(),
-            accountRemoteId: result.value.accountRemoteId,
-            documentRemoteId: result.value.remoteId,
-            settlementLedgerEntryRemoteId: null,
-            settlementTransactionRemoteId: transactionRemoteId,
-            amount: paidNowAmount,
-            settledAt: normalizedIssuedAt,
-            note: form.notes.trim() || null,
-          },
-        ]);
-
-      if (!allocationResult.success) {
-        await deleteBusinessTransactionUseCase.execute(transactionRemoteId);
-        setErrorMessage(
-          `Bill saved, but payment allocation failed: ${allocationResult.error.message}`,
+          `Bill saved, but payment processing failed: ${paymentResult.error.message}`,
         );
         await loadOverview();
         return;
@@ -666,15 +606,13 @@ export const useBillingViewModel = ({
     availableSettlementAccounts,
     canManage,
     defaultTaxRatePercent,
-    deleteBusinessTransactionUseCase,
     documents,
     draftTotals.totalAmount,
     form,
     getOrCreateContactUseCase,
     loadOverview,
     ownerUserRemoteId,
-    postBusinessTransactionUseCase,
-    saveBillingDocumentAllocationsUseCase,
+    payBillingDocumentUseCase,
     saveBillingDocumentUseCase,
     currencyCode,
   ]);

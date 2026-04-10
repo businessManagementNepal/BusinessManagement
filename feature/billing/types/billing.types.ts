@@ -122,6 +122,20 @@ export type SaveBillingDocumentAllocationPayload = {
   note?: string | null;
 };
 
+export type PayBillingDocumentPayload = {
+  billingDocumentRemoteId: string;
+  accountRemoteId: string;
+  accountDisplayNameSnapshot: string;
+  ownerUserRemoteId: string;
+  settlementMoneyAccountRemoteId: string;
+  settlementMoneyAccountDisplayNameSnapshot: string;
+  amount: number;
+  settledAt: number;
+  note: string | null;
+  documentType: BillingDocumentTypeValue;
+  documentNumber: string;
+};
+
 export type SaveBillPhotoPayload = {
   remoteId: string;
   accountRemoteId: string;
