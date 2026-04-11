@@ -415,6 +415,7 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
           payload.ledgerEntry.entryType,
         ),
         customerName: payload.ledgerEntry.partyName,
+        contactRemoteId: payload.ledgerEntry.contactRemoteId ?? null,
         status: BillingDocumentStatus.Pending,
         taxRatePercent: 0,
         notes: payload.ledgerEntry.note,
