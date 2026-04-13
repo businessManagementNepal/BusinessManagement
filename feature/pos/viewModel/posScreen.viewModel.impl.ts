@@ -1,3 +1,5 @@
+import type { Contact } from "@/feature/contacts/types/contact.types";
+import { ContactType } from "@/feature/contacts/types/contact.types";
 import type { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import {
@@ -929,9 +931,9 @@ export function usePosScreenViewModel(
 
         const searchTerm = value.trim().toLowerCase();
         const customerOptions = result.value
-          .filter((contact: any) => {
+          .filter((contact: Contact) => {
             // Only customer contacts
-            if (contact.contactType !== "customer") {
+            if (contact.contactType !== ContactType.Customer) {
               return false;
             }
             
@@ -941,7 +943,7 @@ export function usePosScreenViewModel(
             
             return nameMatch || phoneMatch;
           })
-          .map((contact: any) => ({
+          .map((contact: Contact) => ({
             label:
               contact.fullName +
               (contact.phoneNumber ? ` - ${contact.phoneNumber}` : ""),

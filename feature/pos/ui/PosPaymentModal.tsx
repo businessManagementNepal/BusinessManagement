@@ -77,26 +77,49 @@ export function PosPaymentModal({
             />
           </View>
 
-          <View style={[
-            styles.dueAmountCard,
-            {
-              backgroundColor: totals.grandTotal - Number(paidAmount || "0") > 0 ? "#FEF3CD" : "#D1E7DD",
+          {(() => {
+            const paidAmountNum = Number(paidAmount || "0");
+            const grandTotal = totals.grandTotal;
+            const dueAmount = grandTotal - paidAmountNum;
+            
+            if (dueAmount > 0) {
+              // Due amount case
+              return (
+                <View style={[styles.dueAmountCard, { backgroundColor: "#FEF3CD" }]}>
+                  <Text style={styles.dueAmountLabel}>Due Amount</Text>
+                  <Text style={[styles.dueAmountValue, { color: colors.warning }]}>
+                    {formatCurrency(dueAmount, currencyCode, countryCode)}
+                  </Text>
+                </View>
+              );
+            } else if (dueAmount === 0) {
+              // Paid in full case
+              return (
+                <View style={[styles.dueAmountCard, { backgroundColor: "#D1E7DD" }]}>
+                  <Text style={styles.dueAmountLabel}>Paid in Full</Text>
+                  <Text style={[styles.dueAmountValue, { color: colors.success }]}>
+                    {formatCurrency(grandTotal, currencyCode, countryCode)}
+                  </Text>
+                </View>
+              );
+            } else {
+              // Overpayment case - show change to return
+              return (
+                <View style={[styles.dueAmountCard, { backgroundColor: "#E3F2FD" }]}>
+                  <Text style={styles.dueAmountLabel}>Change to Return</Text>
+                  <Text style={[styles.dueAmountValue, { color: colors.primary }]}>
+                    {formatCurrency(Math.abs(dueAmount), currencyCode, countryCode)}
+                  </Text>
+                </View>
+              );
             }
-          ]}>
-            <Text style={styles.dueAmountLabel}>Due Amount</Text>
-            <Text style={[
-              styles.dueAmountValue,
-              {
-                color: totals.grandTotal - Number(paidAmount || "0") > 0 ? colors.warning : colors.success,
-              }
-            ]}>
-              {formatCurrency(totals.grandTotal - Number(paidAmount || "0"), currencyCode, countryCode)}
-            </Text>
-          </View>
+          })()}
 
           <View>
             {(() => {
-              const dueAmount = totals.grandTotal - Number(paidAmount || "0");
+              const paidAmountNum = Number(paidAmount || "0");
+              const grandTotal = totals.grandTotal;
+              const dueAmount = grandTotal - paidAmountNum;
               const requiresCustomer = dueAmount > 0;
               const customerValid = !requiresCustomer || selectedCustomer !== null;
 
@@ -105,7 +128,7 @@ export function PosPaymentModal({
                   {requiresCustomer && !customerValid && (
                     <View style={styles.errorCard}>
                       <Text style={styles.errorText}>
-                        Customer selection is required for unpaid sales
+                        Select a customer to continue with unpaid or partial payment.
                       </Text>
                     </View>
                   )}
