@@ -1,14 +1,14 @@
 import {
-  LedgerEntriesResult,
-  LedgerEntryResult,
-  LedgerOperationResult,
-  SaveLedgerEntryPayload,
+    LedgerEntriesResult,
+    LedgerEntryResult,
+    LedgerOperationResult,
+    SaveLedgerEntryPayload,
 } from "@/feature/ledger/types/ledger.entity.types";
 import {
-  LedgerDatabaseError,
-  LedgerEntryNotFoundError,
-  LedgerError,
-  LedgerUnknownError,
+    LedgerDatabaseError,
+    LedgerEntryNotFoundError,
+    LedgerError,
+    LedgerUnknownError,
 } from "@/feature/ledger/types/ledger.error.types";
 import { LedgerDatasource } from "../dataSource/ledger.datasource";
 import { LedgerRepository } from "./ledger.repository";
@@ -17,7 +17,9 @@ import { mapLedgerEntryModelToDomain } from "./mapper/ledger.mapper";
 export const createLedgerRepository = (
   localDatasource: LedgerDatasource,
 ): LedgerRepository => ({
-  async saveLedgerEntry(payload: SaveLedgerEntryPayload): Promise<LedgerEntryResult> {
+  async saveLedgerEntry(
+    payload: SaveLedgerEntryPayload,
+  ): Promise<LedgerEntryResult> {
     const result = await localDatasource.saveLedgerEntry(payload);
 
     if (result.success) {
@@ -33,9 +35,10 @@ export const createLedgerRepository = (
   async getLedgerEntriesByBusinessAccountRemoteId(
     businessAccountRemoteId: string,
   ): Promise<LedgerEntriesResult> {
-    const result = await localDatasource.getLedgerEntriesByBusinessAccountRemoteId(
-      businessAccountRemoteId,
-    );
+    const result =
+      await localDatasource.getLedgerEntriesByBusinessAccountRemoteId(
+        businessAccountRemoteId,
+      );
 
     if (!result.success) {
       return {
@@ -46,7 +49,9 @@ export const createLedgerRepository = (
 
     try {
       const mappedEntries = await Promise.all(
-        result.value.map((entryModel) => mapLedgerEntryModelToDomain(entryModel)),
+        result.value.map((entryModel) =>
+          mapLedgerEntryModelToDomain(entryModel),
+        ),
       );
 
       return {
@@ -94,6 +99,30 @@ export const createLedgerRepository = (
       success: false,
       error: mapLedgerError(result.error),
     };
+  },
+
+  async getLedgerEntryByLinkedDocumentRemoteId(
+    linkedDocumentRemoteId: string,
+  ): Promise<LedgerEntryResult> {
+    const result = await localDatasource.getLedgerEntryByLinkedDocumentRemoteId(
+      linkedDocumentRemoteId,
+    );
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: mapLedgerError(result.error),
+      };
+    }
+
+    if (!result.value) {
+      return {
+        success: false,
+        error: LedgerEntryNotFoundError,
+      };
+    }
+
+    return mapLedgerModel(result.value);
   },
 });
 

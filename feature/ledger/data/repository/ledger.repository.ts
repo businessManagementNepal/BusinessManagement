@@ -1,8 +1,8 @@
 import {
-  LedgerEntriesResult,
-  LedgerEntryResult,
-  LedgerOperationResult,
-  SaveLedgerEntryPayload,
+    LedgerEntriesResult,
+    LedgerEntryResult,
+    LedgerOperationResult,
+    SaveLedgerEntryPayload,
 } from "@/feature/ledger/types/ledger.entity.types";
 
 export interface LedgerRepository {
@@ -11,5 +11,8 @@ export interface LedgerRepository {
     businessAccountRemoteId: string,
   ): Promise<LedgerEntriesResult>;
   getLedgerEntryByRemoteId(remoteId: string): Promise<LedgerEntryResult>;
+  getLedgerEntryByLinkedDocumentRemoteId(
+    linkedDocumentRemoteId: string,
+  ): Promise<LedgerEntryResult>;
   deleteLedgerEntryByRemoteId(remoteId: string): Promise<LedgerOperationResult>;
 }

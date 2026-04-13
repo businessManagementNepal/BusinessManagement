@@ -1,11 +1,11 @@
+import {
+    LedgerEntrySyncStatus,
+    SaveLedgerEntryPayload,
+} from "@/feature/ledger/types/ledger.entity.types";
 import { Result } from "@/shared/types/result.types";
 import { Database, Q } from "@nozbe/watermelondb";
-import {
-  LedgerEntrySyncStatus,
-  SaveLedgerEntryPayload,
-} from "@/feature/ledger/types/ledger.entity.types";
-import { LedgerDatasource } from "./ledger.datasource";
 import { LedgerEntryModel } from "./db/ledger.model";
+import { LedgerDatasource } from "./ledger.datasource";
 
 const LEDGER_ENTRIES_TABLE = "ledger_entries";
 
@@ -45,7 +45,8 @@ export const createLocalLedgerDatasource = (
     payload: SaveLedgerEntryPayload,
   ): Promise<Result<LedgerEntryModel>> {
     try {
-      const ledgerCollection = database.get<LedgerEntryModel>(LEDGER_ENTRIES_TABLE);
+      const ledgerCollection =
+        database.get<LedgerEntryModel>(LEDGER_ENTRIES_TABLE);
       const existingEntries = await ledgerCollection
         .query(Q.where("remote_id", payload.remoteId))
         .fetch();
@@ -75,10 +76,14 @@ export const createLocalLedgerDatasource = (
             record.referenceNumber = payload.referenceNumber;
             record.reminderAt = payload.reminderAt;
             record.attachmentUri = payload.attachmentUri;
-            record.settledAgainstEntryRemoteId = payload.settledAgainstEntryRemoteId;
-            record.linkedDocumentRemoteId = payload.linkedDocumentRemoteId ?? null;
-            record.linkedTransactionRemoteId = payload.linkedTransactionRemoteId;
-            record.settlementAccountRemoteId = payload.settlementAccountRemoteId;
+            record.settledAgainstEntryRemoteId =
+              payload.settledAgainstEntryRemoteId;
+            record.linkedDocumentRemoteId =
+              payload.linkedDocumentRemoteId ?? null;
+            record.linkedTransactionRemoteId =
+              payload.linkedTransactionRemoteId;
+            record.settlementAccountRemoteId =
+              payload.settlementAccountRemoteId;
             record.settlementAccountDisplayNameSnapshot =
               payload.settlementAccountDisplayNameSnapshot;
             record.deletedAt = null;
@@ -114,8 +119,10 @@ export const createLocalLedgerDatasource = (
           record.referenceNumber = payload.referenceNumber;
           record.reminderAt = payload.reminderAt;
           record.attachmentUri = payload.attachmentUri;
-          record.settledAgainstEntryRemoteId = payload.settledAgainstEntryRemoteId;
-          record.linkedDocumentRemoteId = payload.linkedDocumentRemoteId ?? null;
+          record.settledAgainstEntryRemoteId =
+            payload.settledAgainstEntryRemoteId;
+          record.linkedDocumentRemoteId =
+            payload.linkedDocumentRemoteId ?? null;
           record.linkedTransactionRemoteId = payload.linkedTransactionRemoteId;
           record.settlementAccountRemoteId = payload.settlementAccountRemoteId;
           record.settlementAccountDisplayNameSnapshot =
@@ -141,7 +148,8 @@ export const createLocalLedgerDatasource = (
     businessAccountRemoteId: string,
   ): Promise<Result<LedgerEntryModel[]>> {
     try {
-      const ledgerCollection = database.get<LedgerEntryModel>(LEDGER_ENTRIES_TABLE);
+      const ledgerCollection =
+        database.get<LedgerEntryModel>(LEDGER_ENTRIES_TABLE);
       const entries = await ledgerCollection
         .query(
           Q.where("business_account_remote_id", businessAccountRemoteId),
@@ -165,12 +173,14 @@ export const createLocalLedgerDatasource = (
     remoteId: string,
   ): Promise<Result<LedgerEntryModel | null>> {
     try {
-      const ledgerCollection = database.get<LedgerEntryModel>(LEDGER_ENTRIES_TABLE);
+      const ledgerCollection =
+        database.get<LedgerEntryModel>(LEDGER_ENTRIES_TABLE);
       const matchingEntries = await ledgerCollection
         .query(Q.where("remote_id", remoteId))
         .fetch();
 
-      const entry = matchingEntries.find((record) => record.deletedAt === null) ?? null;
+      const entry =
+        matchingEntries.find((record) => record.deletedAt === null) ?? null;
 
       return {
         success: true,
@@ -184,9 +194,12 @@ export const createLocalLedgerDatasource = (
     }
   },
 
-  async deleteLedgerEntryByRemoteId(remoteId: string): Promise<Result<boolean>> {
+  async deleteLedgerEntryByRemoteId(
+    remoteId: string,
+  ): Promise<Result<boolean>> {
     try {
-      const ledgerCollection = database.get<LedgerEntryModel>(LEDGER_ENTRIES_TABLE);
+      const ledgerCollection =
+        database.get<LedgerEntryModel>(LEDGER_ENTRIES_TABLE);
       const matchingEntries = await ledgerCollection
         .query(Q.where("remote_id", remoteId))
         .fetch();
@@ -211,6 +224,31 @@ export const createLocalLedgerDatasource = (
       return {
         success: true,
         value: true,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async getLedgerEntryByLinkedDocumentRemoteId(
+    linkedDocumentRemoteId: string,
+  ): Promise<Result<LedgerEntryModel | null>> {
+    try {
+      const ledgerCollection =
+        database.get<LedgerEntryModel>(LEDGER_ENTRIES_TABLE);
+      const matchingEntries = await ledgerCollection
+        .query(Q.where("linked_document_remote_id", linkedDocumentRemoteId))
+        .fetch();
+
+      const entry =
+        matchingEntries.find((record) => record.deletedAt === null) ?? null;
+
+      return {
+        success: true,
+        value: entry,
       };
     } catch (error) {
       return {
