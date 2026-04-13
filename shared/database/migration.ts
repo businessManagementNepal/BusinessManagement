@@ -1,15 +1,15 @@
 import {
-  addColumns,
-  createTable,
-  schemaMigrations,
-  unsafeExecuteSql,
-} from "@nozbe/watermelondb/Schema/migrations";
-import {
   BACKFILL_EMPTY_BILLING_DOCUMENT_NUMBER_SQL,
   BILLING_DOCUMENT_ACTIVE_NUMBER_UNIQUE_INDEX_SQL,
   DEDUPE_ACTIVE_BILLING_DOCUMENT_NUMBER_SQL,
   NORMALIZE_BILLING_DOCUMENT_NUMBER_SQL,
 } from "@/feature/billing/data/dataSource/db/billingDocument.uniqueIndex";
+import {
+  addColumns,
+  createTable,
+  schemaMigrations,
+  unsafeExecuteSql,
+} from "@nozbe/watermelondb/Schema/migrations";
 
 export const migrations = schemaMigrations({
   migrations: [
@@ -681,8 +681,16 @@ export const migrations = schemaMigrations({
         addColumns({
           table: "app_settings",
           columns: [
-            { name: "biometric_login_enabled", type: "boolean", isOptional: true },
-            { name: "two_factor_auth_enabled", type: "boolean", isOptional: true },
+            {
+              name: "biometric_login_enabled",
+              type: "boolean",
+              isOptional: true,
+            },
+            {
+              name: "two_factor_auth_enabled",
+              type: "boolean",
+              isOptional: true,
+            },
           ],
         }),
         createTable({
@@ -750,7 +758,11 @@ export const migrations = schemaMigrations({
         addColumns({
           table: "ledger_entries",
           columns: [
-            { name: "linked_transaction_remote_id", type: "string", isOptional: true },
+            {
+              name: "linked_transaction_remote_id",
+              type: "string",
+              isOptional: true,
+            },
           ],
         }),
       ],
@@ -876,5 +888,21 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
-  ],
+    {
+      toVersion: 36,
+      steps: [
+        addColumns({
+          table: "transactions",
+          columns: [
+            {
+              name: "contact_remote_id",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
+          ],
+        }),
+      ],
+    },
+    ],
 });

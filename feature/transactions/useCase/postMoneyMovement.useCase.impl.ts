@@ -46,6 +46,7 @@ const normalizePayload = (
   sourceAction: normalizeOptional(payload.sourceAction),
   idempotencyKey: normalizeOptional(payload.idempotencyKey),
   postingStatus: payload.postingStatus ?? TransactionPostingStatus.Posted,
+  contactRemoteId: normalizeOptional(payload.contactRemoteId),
 });
 
 const validatePayload = (payload: SaveTransactionPayload): string | null => {

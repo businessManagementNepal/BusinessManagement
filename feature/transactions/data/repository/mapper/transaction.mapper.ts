@@ -1,8 +1,8 @@
-import { TransactionModel } from "../../dataSource/db/transaction.model";
 import {
-  Transaction,
-  TransactionPostingStatus,
+    Transaction,
+    TransactionPostingStatus,
 } from "@/feature/transactions/types/transaction.entity.types";
+import { TransactionModel } from "../../dataSource/db/transaction.model";
 
 export const mapTransactionModelToDomain = async (
   model: TransactionModel,
@@ -19,6 +19,8 @@ export const mapTransactionModelToDomain = async (
   categoryLabel: model.categoryLabel,
   note: model.note,
   happenedAt: model.happenedAt,
+  postingStatus: model.postingStatus ?? TransactionPostingStatus.Posted,
+  contactRemoteId: model.contactRemoteId ?? null,
   settlementMoneyAccountRemoteId: model.settlementMoneyAccountRemoteId,
   settlementMoneyAccountDisplayNameSnapshot:
     model.settlementMoneyAccountDisplayNameSnapshot,
@@ -26,7 +28,6 @@ export const mapTransactionModelToDomain = async (
   sourceRemoteId: model.sourceRemoteId,
   sourceAction: model.sourceAction,
   idempotencyKey: model.idempotencyKey,
-  postingStatus: model.postingStatus ?? TransactionPostingStatus.Posted,
   createdAt: model.createdAt.getTime(),
   updatedAt: model.updatedAt.getTime(),
 });

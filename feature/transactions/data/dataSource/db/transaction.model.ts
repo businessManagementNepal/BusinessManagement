@@ -1,5 +1,3 @@
-import { Model } from "@nozbe/watermelondb";
-import { date, field, readonly } from "@nozbe/watermelondb/decorators";
 import {
   TransactionDirectionValue,
   TransactionPostingStatusValue,
@@ -7,6 +5,8 @@ import {
   TransactionSyncStatusValue,
   TransactionTypeValue,
 } from "@/feature/transactions/types/transaction.entity.types";
+import { Model } from "@nozbe/watermelondb";
+import { date, field, readonly } from "@nozbe/watermelondb/decorators";
 
 export class TransactionModel extends Model {
   static table = "transactions";
@@ -32,6 +32,7 @@ export class TransactionModel extends Model {
   @field("source_action") sourceAction!: string | null;
   @field("idempotency_key") idempotencyKey!: string | null;
   @field("posting_status") postingStatus!: TransactionPostingStatusValue;
+  @field("contact_remote_id") contactRemoteId!: string | null;
 
   @field("sync_status") recordSyncStatus!: TransactionSyncStatusValue;
   @field("last_synced_at") lastSyncedAt!: number | null;

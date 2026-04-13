@@ -1,16 +1,16 @@
-import { describe, expect, it } from "vitest";
 import {
-  getTransactionActionLabel,
-  getTransactionStatementLabel,
-  getTransactionStatusLabel,
-} from "@/feature/transactions/viewModel/transactionAuditDisplay.util";
-import {
-  Transaction,
-  TransactionDirection,
-  TransactionPostingStatus,
-  TransactionSourceModule,
-  TransactionType,
+    Transaction,
+    TransactionDirection,
+    TransactionPostingStatus,
+    TransactionSourceModule,
+    TransactionType,
 } from "@/feature/transactions/types/transaction.entity.types";
+import {
+    getTransactionActionLabel,
+    getTransactionStatementLabel,
+    getTransactionStatusLabel,
+} from "@/feature/transactions/viewModel/transactionAuditDisplay.util";
+import { describe, expect, it } from "vitest";
 
 const buildTransaction = (
   overrides: Partial<Transaction> = {},
@@ -34,6 +34,7 @@ const buildTransaction = (
   sourceAction: "opening_balance",
   idempotencyKey: null,
   postingStatus: TransactionPostingStatus.Posted,
+  contactRemoteId: null,
   createdAt: 1,
   updatedAt: 1,
   ...overrides,
@@ -55,7 +56,9 @@ describe("transaction audit display labels", () => {
     });
 
     expect(getTransactionActionLabel(transaction)).toBe("Balance Correction");
-    expect(getTransactionStatementLabel(transaction)).toBe("Balance Correction");
+    expect(getTransactionStatementLabel(transaction)).toBe(
+      "Balance Correction",
+    );
   });
 
   it("labels voided rows without changing their original action label", () => {
@@ -65,6 +68,8 @@ describe("transaction audit display labels", () => {
     });
 
     expect(getTransactionStatusLabel(transaction)).toBe("Voided");
-    expect(getTransactionStatementLabel(transaction)).toBe("Balance Correction");
+    expect(getTransactionStatementLabel(transaction)).toBe(
+      "Balance Correction",
+    );
   });
 });

@@ -1,12 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
 import { MoneyPostingRepository } from "@/feature/transactions/data/repository/moneyPosting.repository";
-import { createPostMoneyMovementUseCase } from "@/feature/transactions/useCase/postMoneyMovement.useCase.impl";
 import {
-  TransactionDirection,
-  TransactionPostingStatus,
-  TransactionSourceModule,
-  TransactionType,
+    TransactionDirection,
+    TransactionPostingStatus,
+    TransactionSourceModule,
+    TransactionType,
 } from "@/feature/transactions/types/transaction.entity.types";
+import { createPostMoneyMovementUseCase } from "@/feature/transactions/useCase/postMoneyMovement.useCase.impl";
+import { describe, expect, it, vi } from "vitest";
 
 describe("postMoneyMovement.useCase", () => {
   it("normalizes payloads and posts through the money posting repository", async () => {
@@ -54,13 +54,14 @@ describe("postMoneyMovement.useCase", () => {
       categoryLabel: "POS",
       note: "cash",
       happenedAt: 1_710_000_000_000,
+      postingStatus: TransactionPostingStatus.Posted,
+      contactRemoteId: null,
       settlementMoneyAccountRemoteId: "cash-1",
       settlementMoneyAccountDisplayNameSnapshot: "Cash Drawer",
       sourceModule: TransactionSourceModule.Manual,
       sourceRemoteId: null,
       sourceAction: null,
       idempotencyKey: null,
-      postingStatus: TransactionPostingStatus.Posted,
     });
   });
 });

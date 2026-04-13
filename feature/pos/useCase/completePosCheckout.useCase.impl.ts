@@ -1,9 +1,4 @@
 import {
-  LedgerBalanceDirection,
-  LedgerEntryType,
-} from "@/feature/ledger/types/ledger.entity.types";
-import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
-import {
   BillingDocumentStatus,
   BillingDocumentType,
   BillingTemplateType,
@@ -11,12 +6,18 @@ import {
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase";
 import {
+  LedgerBalanceDirection,
+  LedgerEntryType,
+} from "@/feature/ledger/types/ledger.entity.types";
+import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
+import {
   SaveTransactionPayload,
   TransactionDirection,
   TransactionSourceModule,
   TransactionType,
 } from "@/feature/transactions/types/transaction.entity.types";
 import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
+import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 import { PosReceipt } from "../types/pos.entity.types";
 import { PosPaymentResult } from "../types/pos.error.types";
 import { CompletePaymentUseCase } from "./completePayment.useCase";
@@ -24,7 +25,6 @@ import {
   CompletePosCheckoutParams,
   CompletePosCheckoutUseCase,
 } from "./completePosCheckout.useCase";
-import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 
 type CreateCompletePosCheckoutUseCaseParams = {
   completePaymentUseCase: CompletePaymentUseCase;
@@ -87,7 +87,9 @@ const parseReceiptIssuedAt = (issuedAt: string): number => {
 const buildPosDocumentNumber = (receiptNumber: string): string =>
   `POS-${receiptNumber}`.toUpperCase();
 
-const buildPricingForDocument = (receipt: PosReceipt): {
+const buildPricingForDocument = (
+  receipt: PosReceipt,
+): {
   adjustedBaseAmount: number;
   taxRatePercent: number;
 } => {
@@ -101,7 +103,9 @@ const buildPricingForDocument = (receipt: PosReceipt): {
   );
   const taxRatePercent =
     adjustedBaseAmount > 0
-      ? Number(((receipt.totals.taxAmount / adjustedBaseAmount) * 100).toFixed(6))
+      ? Number(
+          ((receipt.totals.taxAmount / adjustedBaseAmount) * 100).toFixed(6),
+        )
       : 0;
 
   return {
@@ -110,7 +114,9 @@ const buildPricingForDocument = (receipt: PosReceipt): {
   };
 };
 
-const buildPostingSyncFailedResult = (receipt: PosReceipt): PosPaymentResult => ({
+const buildPostingSyncFailedResult = (
+  receipt: PosReceipt,
+): PosPaymentResult => ({
   success: true,
   value: {
     ...receipt,
@@ -144,13 +150,29 @@ export const createCompletePosCheckoutUseCase = ({
     }
 
     const receipt = paymentResult.value;
-    const businessAccountRemoteId = params.activeBusinessAccountRemoteId?.trim();
+    const businessAccountRemoteId =
+      params.activeBusinessAccountRemoteId?.trim();
     const ownerUserRemoteId = params.activeOwnerUserRemoteId?.trim();
     const settlementAccountRemoteId =
       params.activeSettlementAccountRemoteId?.trim() ?? null;
 
     if (!businessAccountRemoteId || !ownerUserRemoteId) {
       return paymentResult;
+    }
+
+    // ENFORCE: If paid amount > 0, settlement money account must be provided
+    // Settlement must be a Money Account ID (resolved from active Money Accounts)
+    if (receipt.paidAmount > 0 && !settlementAccountRemoteId) {
+      return {
+        success: true,
+        value: {
+          ...receipt,
+          ledgerEffect: {
+            ...receipt.ledgerEffect,
+            type: "posting_sync_failed",
+          },
+        },
+      };
     }
 
     const happenedAt = parseReceiptIssuedAt(receipt.issuedAt);
@@ -186,8 +208,7 @@ export const createCompletePosCheckoutUseCase = ({
           : `Items: ${summary}`,
       );
     }
-    const posDocumentNote =
-      noteParts.length > 0 ? noteParts.join(" | ") : null;
+    const posDocumentNote = noteParts.length > 0 ? noteParts.join(" | ") : null;
 
     const saveDocumentResult = await saveBillingDocumentUseCase.execute({
       remoteId: billingDocumentRemoteId,

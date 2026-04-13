@@ -70,6 +70,7 @@ export type Transaction = {
   sourceAction: string | null;
   idempotencyKey: string | null;
   postingStatus: TransactionPostingStatusValue;
+  contactRemoteId: string | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -94,6 +95,7 @@ export type SaveTransactionPayload = {
   sourceAction?: string | null;
   idempotencyKey?: string | null;
   postingStatus?: TransactionPostingStatusValue;
+  contactRemoteId?: string | null;
 };
 
 export type TransactionsResult = Result<

@@ -1,23 +1,26 @@
+import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
+import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
+import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { getAppSessionState } from "@/feature/appSettings/data/appSettings.store";
 import { AppSettingsModel } from "@/feature/appSettings/data/dataSource/db/appSettings.model";
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
 import {
-  AccountType,
-  AccountTypeValue,
+    AccountType,
+    AccountTypeValue,
 } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { buildInitials } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
+import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
+import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
+import {
+    clearLedgerReminderNotifications,
+    syncLedgerReminderNotifications,
+} from "@/feature/ledger/reminder/ledgerReminder.scheduler";
+import { createGetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase.impl";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createGetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase.impl";
-import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
-import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
-import { createGetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase.impl";
-import {
-  clearLedgerReminderNotifications,
-  syncLedgerReminderNotifications,
-} from "@/feature/ledger/reminder/ledgerReminder.scheduler";
 import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
 import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
@@ -54,6 +57,8 @@ export type DashboardRouteContext = {
   activeAccountDefaultTaxRatePercent: number | null;
   activeAccountDefaultTaxMode: TaxModeValue | null;
   activeAccountDisplayName: string;
+  activeMoneyAccountRemoteId: string | null;
+  activeMoneyAccountDisplayName: string | null;
   profileName: string;
   profileInitials: string;
   sessionError: string | null;
@@ -76,6 +81,8 @@ const INITIAL_CONTEXT: DashboardRouteContext = {
   activeAccountDefaultTaxRatePercent: null,
   activeAccountDefaultTaxMode: null,
   activeAccountDisplayName: "",
+  activeMoneyAccountRemoteId: null,
+  activeMoneyAccountDisplayName: null,
   profileName: "eLekha User",
   profileInitials: "EL",
   sessionError: null,
@@ -113,6 +120,21 @@ export function AppRouteSessionProvider({
   const accountRepository = useMemo(
     () => createAccountRepository(accountDatasource),
     [accountDatasource],
+  );
+
+  const moneyAccountDatasource = useMemo(
+    () => createLocalMoneyAccountDatasource(database),
+    [database],
+  );
+
+  const moneyAccountRepository = useMemo(
+    () => createMoneyAccountRepository(moneyAccountDatasource),
+    [moneyAccountDatasource],
+  );
+
+  const getMoneyAccountsUseCase = useMemo(
+    () => createGetMoneyAccountsUseCase(moneyAccountRepository),
+    [moneyAccountRepository],
   );
 
   const authUserDatasource = useMemo(
@@ -186,6 +208,8 @@ export function AppRouteSessionProvider({
       let activeAccountDefaultTaxRatePercent: number | null = null;
       let activeAccountDefaultTaxMode: TaxModeValue | null = null;
       let activeAccountDisplayName = "";
+      let activeMoneyAccountRemoteId: string | null = null;
+      let activeMoneyAccountDisplayName: string | null = null;
       let sessionError: string | null = null;
 
       let profileName = "eLekha User";
@@ -234,6 +258,26 @@ export function AppRouteSessionProvider({
               profileName = activeAccount.displayName;
               profileInitials = buildInitials(activeAccount.displayName);
             }
+
+            // Resolve active Money Account for this business account
+            if (activeAccountRemoteId) {
+              const moneyAccountsResult = await getMoneyAccountsUseCase.execute(
+                activeAccountRemoteId,
+              );
+
+              if (moneyAccountsResult.success) {
+                // Select first active Money Account
+                const firstActiveMoneyAccount =
+                  moneyAccountsResult.value.find(
+                    (account) => account.isActive,
+                  ) ?? moneyAccountsResult.value[0];
+
+                if (firstActiveMoneyAccount) {
+                  activeMoneyAccountRemoteId = firstActiveMoneyAccount.remoteId;
+                  activeMoneyAccountDisplayName = firstActiveMoneyAccount.name;
+                }
+              }
+            }
           } else {
             hasActiveAccount = false;
           }
@@ -262,6 +306,8 @@ export function AppRouteSessionProvider({
         activeAccountDefaultTaxRatePercent,
         activeAccountDefaultTaxMode,
         activeAccountDisplayName,
+        activeMoneyAccountRemoteId,
+        activeMoneyAccountDisplayName,
         profileName,
         profileInitials,
         sessionError,
