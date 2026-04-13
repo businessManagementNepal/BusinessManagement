@@ -14,7 +14,9 @@ type PosReceiptModalProps = {
   countryCode: string | null;
   onClose: () => void;
   onPrint: () => void;
+  onShare: () => void;
   isPrintAvailable?: boolean;
+  isShareAvailable?: boolean;
 };
 
 export function PosReceiptModal({
@@ -24,7 +26,9 @@ export function PosReceiptModal({
   countryCode,
   onClose,
   onPrint,
+  onShare,
   isPrintAvailable = false,
+  isShareAvailable = true,
 }: PosReceiptModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -139,13 +143,24 @@ export function PosReceiptModal({
             </ScrollView>
           ) : null}
 
-          <AppButton
-            label={isPrintAvailable ? "Print Receipt" : "Print Unavailable"}
-            size="lg"
-            leadingIcon={<Printer size={18} color={colors.primaryForeground} />}
-            onPress={onPrint}
-            disabled={!isPrintAvailable}
-          />
+          <View style={styles.actionsRow}>
+            <AppButton
+              label={isShareAvailable ? "Share Receipt" : "Share Unavailable"}
+              size="lg"
+              variant="secondary"
+              style={styles.actionButton}
+              onPress={onShare}
+              disabled={!isShareAvailable}
+            />
+            <AppButton
+              label={isPrintAvailable ? "Print Receipt" : "Print Unavailable"}
+              size="lg"
+              leadingIcon={<Printer size={18} color={colors.primaryForeground} />}
+              style={styles.actionButton}
+              onPress={onPrint}
+              disabled={!isPrintAvailable}
+            />
+          </View>
         </View>
       </View>
     </Modal>
@@ -289,5 +304,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     fontFamily: "InterMedium",
+  },
+  actionsRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  actionButton: {
+    flex: 1,
   },
 });

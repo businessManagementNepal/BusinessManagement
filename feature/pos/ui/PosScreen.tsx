@@ -14,7 +14,7 @@ import {
     X,
 } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PosSlot } from "../types/pos.entity.types";
 import { PosScreenViewModel } from "../types/pos.state.types";
 import { PosCustomerCreateModal } from "./components/PosCustomerCreateModal";
@@ -33,6 +33,7 @@ type PosScreenProps = {
 const SLOT_COLUMN_COUNT = 4;
 
 export function PosScreen({ viewModel }: PosScreenProps) {
+  const isShareAvailable = Platform.OS !== "web";
   const productLookup = useMemo(
     () => buildSlotProductLookup(viewModel.products),
     [viewModel.products],
@@ -489,9 +490,13 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         currencyCode={viewModel.currencyCode}
         countryCode={viewModel.countryCode}
         onClose={viewModel.onCloseModal}
-        isPrintAvailable={false}
+        isPrintAvailable={true}
+        isShareAvailable={isShareAvailable}
         onPrint={() => {
           void viewModel.onPrintReceipt();
+        }}
+        onShare={() => {
+          void viewModel.onShareReceipt();
         }}
       />
 

@@ -31,6 +31,7 @@ import { createGetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase
 import { createPrintReceiptUseCase } from "../useCase/printReceipt.useCase.impl";
 import { createRemoveProductFromSlotUseCase } from "../useCase/removeProductFromSlot.useCase.impl";
 import { createSearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase.impl";
+import { createShareReceiptUseCase } from "../useCase/shareReceipt.useCase.impl";
 import { usePosScreenViewModel } from "../viewModel/posScreen.viewModel.impl";
 
 type GetPosScreenFactoryProps = {
@@ -56,7 +57,10 @@ export function GetPosScreenFactory({
     () => createLocalPosDatasource({ database: appDatabase }),
     [],
   );
-  const repository = React.useMemo(() => createPosRepository(datasource), [datasource]);
+  const repository = React.useMemo(
+    () => createPosRepository(datasource),
+    [datasource],
+  );
 
   const getPosBootstrapUseCase = React.useMemo(
     () => createGetPosBootstrapUseCase(repository),
@@ -166,8 +170,13 @@ export function GetPosScreenFactory({
     ],
   );
   const printReceiptUseCase = React.useMemo(
-    () => createPrintReceiptUseCase(repository),
-    [repository],
+    () => createPrintReceiptUseCase(),
+    [],
+  );
+
+  const shareReceiptUseCase = React.useMemo(
+    () => createShareReceiptUseCase(),
+    [],
   );
   const productDatasource = React.useMemo(
     () => createLocalProductDatasource(appDatabase),
@@ -202,6 +211,7 @@ export function GetPosScreenFactory({
     clearCartUseCase,
     completePosCheckoutUseCase,
     printReceiptUseCase,
+    shareReceiptUseCase,
     saveProductUseCase,
   });
 

@@ -1,14 +1,24 @@
-import { PosErrorType, PosOperationResult } from "../types/pos.error.types";
-import { PrintReceiptUseCase } from "./printReceipt.useCase";
-
 import { exportDocument } from "@/shared/utils/document/exportDocument";
+import { Platform } from "react-native";
+import { PosErrorType, PosOperationResult } from "../types/pos.error.types";
 import { buildPosReceiptHtml } from "../utils/buildPosReceiptHtml.util";
 import {
-  PrintReceiptPayload
-} from "./printReceipt.useCase";
+    ShareReceiptPayload,
+    ShareReceiptUseCase,
+} from "./shareReceipt.useCase";
 
-export const createPrintReceiptUseCase = (): PrintReceiptUseCase => ({
-  async execute(payload: PrintReceiptPayload): Promise<PosOperationResult> {
+export const createShareReceiptUseCase = (): ShareReceiptUseCase => ({
+  async execute(payload: ShareReceiptPayload): Promise<PosOperationResult> {
+    if (Platform.OS === "web") {
+      return {
+        success: false,
+        error: {
+          type: PosErrorType.UnsupportedOperation,
+          message: "Sharing is not available in this web build.",
+        },
+      };
+    }
+
     const html = buildPosReceiptHtml(
       payload.receipt,
       payload.currencyCode,
@@ -17,7 +27,7 @@ export const createPrintReceiptUseCase = (): PrintReceiptUseCase => ({
 
     const result = await exportDocument({
       html,
-      action: "print",
+      action: "share",
       fileName: `pos_receipt_${payload.receipt.receiptNumber}`,
       title: `POS Receipt ${payload.receipt.receiptNumber}`,
     });

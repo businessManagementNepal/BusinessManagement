@@ -1,11 +1,11 @@
 import { StatusType } from "@/shared/types/status.types";
 import {
-    PosBootstrap,
-    PosCartLine,
-    PosProduct,
-    PosReceipt,
-    PosSlot,
-    PosTotals,
+  PosBootstrap,
+  PosCartLine,
+  PosProduct,
+  PosReceipt,
+  PosSlot,
+  PosTotals,
 } from "./pos.entity.types";
 
 export type PosModalType =
@@ -111,12 +111,18 @@ export type PosScreenViewModel = {
   onClearCart: () => Promise<void>;
   onCompletePayment: () => Promise<void>;
   onPrintReceipt: () => Promise<void>;
-  onSelectCustomer: (customer: import("./pos.entity.types").PosCustomer) => void;
+  onShareReceipt: () => Promise<void>;
+  onSelectCustomer: (
+    customer: import("./pos.entity.types").PosCustomer,
+  ) => void;
   onClearCustomer: () => void;
   onCustomerSearchChange: (searchTerm: string) => void;
   onOpenCustomerCreateModal: () => void;
   onCloseCustomerCreateModal: () => void;
-  onCustomerCreateFormChange: (field: "fullName" | "phone" | "address", value: string) => void;
+  onCustomerCreateFormChange: (
+    field: "fullName" | "phone" | "address",
+    value: string,
+  ) => void;
   onCreateCustomer: () => Promise<void>;
   customerOptions: readonly import("../ui/components/PosCustomerSelector").DropdownOption[];
 };
