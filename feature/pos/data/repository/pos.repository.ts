@@ -1,23 +1,23 @@
 import {
-  PosCartLine,
-  PosProduct,
-  PosReceipt,
-  PosSlot,
-} from "../../types/pos.entity.types";
-import {
-  PosApplyAmountAdjustmentParams,
-  PosAssignProductToSlotParams,
-  PosChangeQuantityParams,
-  PosCompletePaymentParams,
-  PosLoadBootstrapParams,
-  PosRemoveSlotProductParams,
+    PosApplyAmountAdjustmentParams,
+    PosAssignProductToSlotParams,
+    PosChangeQuantityParams,
+    PosCompletePaymentParams,
+    PosLoadBootstrapParams,
+    PosRemoveSlotProductParams,
 } from "../../types/pos.dto.types";
 import {
-  PosBootstrapResult,
-  PosCartLinesResult,
-  PosOperationResult,
-  PosPaymentResult,
-  PosTotalsResult,
+    PosCartLine,
+    PosProduct,
+    PosReceipt,
+    PosSlot,
+} from "../../types/pos.entity.types";
+import {
+    PosBootstrapResult,
+    PosCartLinesResult,
+    PosOperationResult,
+    PosPaymentResult,
+    PosTotalsResult,
 } from "../../types/pos.error.types";
 
 export interface PosRepository {
@@ -43,7 +43,7 @@ export interface PosRepository {
   getCartLines(): Promise<readonly PosCartLine[]>;
   getTotals(): Promise<PosTotalsResult>;
   completePayment(
-    params: PosCompletePaymentParams,
+    params: PosCompletePaymentParams & { selectedCustomer: any },
   ): Promise<PosPaymentResult>;
   printReceipt(receipt: PosReceipt): Promise<PosOperationResult>;
 }

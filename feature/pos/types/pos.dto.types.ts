@@ -23,8 +23,10 @@ export type PosApplyAmountAdjustmentParams = {
   amount: number;
 };
 
+import { PosCustomer } from "./pos.entity.types";
+
 export type PosCompletePaymentParams = {
   paidAmount: number;
   activeSettlementAccountRemoteId: string | null;
+  selectedCustomer: PosCustomer | null;
 };
-

@@ -64,11 +64,13 @@ export function PosCustomerSelector({
           onChange={(value) => {
             const customer = customerOptions.find(opt => opt.value === value);
             if (customer) {
+              // Use full customer data from customerData field if available, otherwise fallback to label
+              const customerData = (customer as any).customerData;
               onSelectCustomer({
                 remoteId: customer.value,
-                fullName: customer.label.split(" - ")[0] || customer.label,
-                phone: customer.label.split(" - ")[1] || null,
-                address: null,
+                fullName: customerData?.fullName || customer.label,
+                phone: customerData?.phone || null,
+                address: customerData?.address || null,
               });
             }
           }}

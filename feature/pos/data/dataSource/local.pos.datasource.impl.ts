@@ -570,6 +570,9 @@ export const createLocalPosDatasource = ({
         paidAmount: Number(params.paidAmount.toFixed(2)),
         dueAmount,
         ledgerEffect,
+        customerName: params.selectedCustomer?.fullName ?? null,
+        customerPhone: params.selectedCustomer?.phone ?? null,
+        contactRemoteId: params.selectedCustomer?.remoteId ?? null,
       };
 
       try {

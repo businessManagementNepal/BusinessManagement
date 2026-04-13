@@ -54,6 +54,9 @@ export type PosReceipt = {
   paidAmount: number;
   dueAmount: number;
   ledgerEffect: PosLedgerEffect;
+  customerName: string | null;
+  customerPhone: string | null;
+  contactRemoteId: string | null;
 };
 
 export type PosCustomer = {

@@ -833,6 +833,12 @@ export function usePosScreenViewModel(
         .map((contact: any) => ({
           label: contact.fullName + (contact.phoneNumber ? ` - ${contact.phoneNumber}` : ""),
           value: contact.remoteId,
+          customerData: {
+            remoteId: contact.remoteId,
+            fullName: contact.fullName,
+            phone: contact.phoneNumber,
+            address: contact.address,
+          },
         }));
 
       setState((currentState) => ({

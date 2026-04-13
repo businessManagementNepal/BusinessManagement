@@ -20,11 +20,8 @@ type PosPaymentModalProps = {
   currencyCode: string;
   countryCode: string | null;
   paidAmount: string;
-  splitCount: string;
   selectedCustomer: PosCustomer | null;
   onPaidAmountChange: (value: string) => void;
-  onSplitCountChange: (value: string) => void;
-  onSplitPreview: () => void;
   onConfirm: () => void;
   onClose: () => void;
 };
@@ -35,11 +32,8 @@ export function PosPaymentModal({
   currencyCode,
   countryCode,
   paidAmount,
-  splitCount,
   selectedCustomer,
   onPaidAmountChange,
-  onSplitCountChange,
-  onSplitPreview,
   onConfirm,
   onClose,
 }: PosPaymentModalProps) {
@@ -70,26 +64,6 @@ export function PosPaymentModal({
               placeholder="0"
               placeholderTextColor={colors.mutedForeground}
               style={styles.input}
-            />
-          </View>
-
-          <View style={styles.row}>
-            <View style={[styles.fieldWrap, styles.flexField]}>
-              <Text style={styles.fieldLabel}>Split Count</Text>
-              <TextInput
-                value={splitCount}
-                onChangeText={onSplitCountChange}
-                keyboardType="number-pad"
-                placeholder="2"
-                placeholderTextColor={colors.mutedForeground}
-                style={styles.input}
-              />
-            </View>
-            <AppButton
-              label="Split Preview"
-              variant="secondary"
-              style={styles.splitButton}
-              onPress={onSplitPreview}
             />
           </View>
 

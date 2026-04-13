@@ -1,28 +1,28 @@
 import {
-  PosBootstrap,
-  PosCartLine,
-  PosLedgerEffect,
-  PosProduct,
-  PosReceipt,
-  PosSlot,
-  PosTotals,
-} from "../../types/pos.entity.types";
-import {
-  PosApplyAmountAdjustmentParams,
-  PosAssignProductToSlotParams,
-  PosChangeQuantityParams,
-  PosCompletePaymentParams,
-  PosLoadBootstrapParams,
-  PosRemoveSlotProductParams,
+    PosApplyAmountAdjustmentParams,
+    PosAssignProductToSlotParams,
+    PosChangeQuantityParams,
+    PosCompletePaymentParams,
+    PosLoadBootstrapParams,
+    PosRemoveSlotProductParams,
 } from "../../types/pos.dto.types";
 import {
-  PosBootstrapResult,
-  PosCartLinesResult,
-  PosError,
-  PosErrorType,
-  PosOperationResult,
-  PosPaymentResult,
-  PosTotalsResult,
+    PosBootstrap,
+    PosCartLine,
+    PosLedgerEffect,
+    PosProduct,
+    PosReceipt,
+    PosSlot,
+    PosTotals,
+} from "../../types/pos.entity.types";
+import {
+    PosBootstrapResult,
+    PosCartLinesResult,
+    PosError,
+    PosErrorType,
+    PosOperationResult,
+    PosPaymentResult,
+    PosTotalsResult,
 } from "../../types/pos.error.types";
 import { PosDatasource } from "./pos.datasource";
 
@@ -431,6 +431,9 @@ export const createMemoryPosDatasource = (): PosDatasource => {
         paidAmount: Number(params.paidAmount.toFixed(2)),
         dueAmount,
         ledgerEffect,
+        customerName: params.selectedCustomer?.fullName ?? null,
+        customerPhone: params.selectedCustomer?.phone ?? null,
+        contactRemoteId: params.selectedCustomer?.remoteId ?? null,
       };
 
       slots = createInitialSlots();

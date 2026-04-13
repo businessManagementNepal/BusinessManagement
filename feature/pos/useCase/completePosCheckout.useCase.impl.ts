@@ -146,6 +146,7 @@ export const createCompletePosCheckoutUseCase = ({
     const paymentResult = await completePaymentUseCase.execute({
       paidAmount: params.paidAmount,
       activeSettlementAccountRemoteId: params.activeSettlementAccountRemoteId,
+      selectedCustomer: params.selectedCustomer,
     });
 
     if (!paymentResult.success) {

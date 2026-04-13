@@ -1,9 +1,9 @@
-import React from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Printer, X } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { Printer, X } from "lucide-react-native";
+import React from "react";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PosReceipt } from "../types/pos.entity.types";
 import { formatCurrency } from "./posScreen.shared";
 
@@ -41,6 +41,16 @@ export function PosReceiptModal({
             <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
               <Text style={styles.metaText}>{receipt.receiptNumber}</Text>
               <Text style={styles.metaText}>{new Date(receipt.issuedAt).toLocaleString()}</Text>
+              
+              {receipt.customerName ? (
+                <View style={styles.customerSection}>
+                  <Text style={styles.customerLabel}>Customer</Text>
+                  <Text style={styles.customerName}>{receipt.customerName}</Text>
+                  {receipt.customerPhone ? (
+                    <Text style={styles.customerPhone}>{receipt.customerPhone}</Text>
+                  ) : null}
+                </View>
+              ) : null}
               {receipt.lines.map((line) => (
                 <View key={line.lineId} style={styles.lineRow}>
                   <View style={styles.lineBody}>
@@ -184,6 +194,30 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
     fontSize: 12,
     fontFamily: "InterMedium",
+    marginBottom: spacing.xs,
+  },
+  customerSection: {
+    backgroundColor: colors.secondary,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  customerLabel: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+    fontFamily: "InterSemiBold",
+    marginBottom: spacing.xs,
+  },
+  customerName: {
+    color: colors.cardForeground,
+    fontSize: 14,
+    fontFamily: "InterBold",
+  },
+  customerPhone: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: "InterMedium",
+    marginTop: spacing.xs,
   },
   lineRow: {
     flexDirection: "row",

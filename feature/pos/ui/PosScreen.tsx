@@ -475,11 +475,8 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         currencyCode={viewModel.currencyCode}
         countryCode={viewModel.countryCode}
         paidAmount={viewModel.paymentInput}
-        splitCount={viewModel.paymentSplitCountInput}
         selectedCustomer={viewModel.selectedCustomer}
         onPaidAmountChange={viewModel.onPaymentInputChange}
-        onSplitCountChange={viewModel.onPaymentSplitCountInputChange}
-        onSplitPreview={viewModel.onOpenSplitBillModal}
         onConfirm={() => {
           void viewModel.onCompletePayment();
         }}

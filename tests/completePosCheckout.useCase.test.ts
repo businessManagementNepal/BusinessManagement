@@ -26,6 +26,9 @@ const createReceipt = (dueAmount: number): PosReceipt => ({
     dueAmount,
     accountRemoteId: "business-1",
   },
+  customerName: null,
+  customerPhone: null,
+  contactRemoteId: null,
 });
 
 const createCoreSyncUseCases = (): {

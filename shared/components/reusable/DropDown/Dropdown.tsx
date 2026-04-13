@@ -1,23 +1,29 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import {
-  Keyboard,
-  Modal,
-  Pressable,
-  StyleProp,
-  StyleSheet,
-  Text,
-  TextStyle,
-  View,
-  ViewStyle,
-  FlatList,
-} from "react-native";
-import { ChevronDown, Check, Globe } from "lucide-react-native";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { Check, ChevronDown, Globe } from "lucide-react-native";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import {
+    FlatList,
+    Keyboard,
+    Modal,
+    Pressable,
+    StyleProp,
+    StyleSheet,
+    Text,
+    TextStyle,
+    View,
+    ViewStyle,
+} from "react-native";
 
 export type DropdownOption = {
   label: string;
   value: string;
+  customerData?: {
+    remoteId: string;
+    fullName: string;
+    phone: string | null;
+    address: string | null;
+  };
 };
 
 type DropdownProps = {
