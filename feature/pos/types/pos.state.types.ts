@@ -16,7 +16,8 @@ export type PosModalType =
   | "surcharge"
   | "payment"
   | "receipt"
-  | "customer-create";
+  | "customer-create"
+  | "sale-history";
 
 export type PosScreenState = {
   status: StatusType;
@@ -106,11 +107,14 @@ export type PosScreenViewModel = {
   onOpenDiscountModal: () => void;
   onOpenSurchargeModal: () => void;
   onOpenPaymentModal: () => void;
+  onClosePaymentModal: () => void;
   onOpenSplitBillModal: () => void;
   onApplyDiscount: () => Promise<void>;
   onApplySurcharge: () => Promise<void>;
   onClearCart: () => Promise<void>;
   onCompletePayment: () => Promise<void>;
+  onOpenReceiptModal: () => void;
+  onCloseReceiptModal: () => void;
   onPrintReceipt: () => Promise<void>;
   onShareReceipt: () => Promise<void>;
   onSelectCustomer: (
@@ -125,6 +129,7 @@ export type PosScreenViewModel = {
     value: string,
   ) => void;
   onCreateCustomer: () => Promise<void>;
+  onOpenSaleHistory: () => void;
   customerOptions: readonly import("../ui/components/PosCustomerSelector").DropdownOption[];
   isCreatingCustomer: boolean;
 };

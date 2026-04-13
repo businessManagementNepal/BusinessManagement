@@ -11,7 +11,7 @@ import {
   ShoppingCart,
   Trash2,
   WalletCards,
-  X,
+  X
 } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -23,7 +23,9 @@ import { PosAdjustAmountModal } from "./PosAdjustAmountModal";
 import { PosPaymentModal } from "./PosPaymentModal";
 import { PosProductSelectionModal } from "./PosProductSelectionModal";
 import { PosQuickProductModal } from "./PosQuickProductModal";
+import { PosReceiptDetail } from "./PosReceiptDetail";
 import { PosReceiptModal } from "./PosReceiptModal";
+import { PosSaleHistory } from "./PosSaleHistory";
 import { buildSlotProductLookup, formatCurrency } from "./posScreen.shared";
 
 type PosScreenProps = {
@@ -102,10 +104,19 @@ export function PosScreen({ viewModel }: PosScreenProps) {
       >
         <Card style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Product Slots</Text>
-            <Text style={styles.sectionSubtitle}>
-              Tap to add in cart | Hold to assign product
-            </Text>
+            <View style={styles.sectionHeaderLeft}>
+              <Text style={styles.sectionTitle}>Product Slots</Text>
+              <Text style={styles.sectionSubtitle}>
+                Tap to add in cart | Hold to assign product
+              </Text>
+            </View>
+            <AppIconButton
+              size="md"
+              onPress={() => viewModel.onOpenSaleHistory()}
+              style={styles.historyButton}
+            >
+              <ShoppingCart size={20} color={colors.primary} />
+            </AppIconButton>
           </View>
 
           <ScrollView style={styles.slotScrollArea} nestedScrollEnabled>
@@ -489,15 +500,31 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         receipt={viewModel.receipt}
         currencyCode={viewModel.currencyCode}
         countryCode={viewModel.countryCode}
-        onClose={viewModel.onCloseModal}
-        isPrintAvailable={true}
-        isShareAvailable={isShareAvailable}
-        onPrint={() => {
-          void viewModel.onPrintReceipt();
-        }}
-        onShare={() => {
-          void viewModel.onShareReceipt();
-        }}
+        onClose={viewModel.onCloseReceiptModal}
+        onPrint={viewModel.onPrintReceipt}
+        onShare={viewModel.onShareReceipt}
+      />
+
+      <PosSaleHistory
+        receipts={[]}
+        isLoading={false}
+        searchTerm=""
+        onSearchChange={() => {}}
+        onReceiptPress={() => {}}
+        onPrintReceipt={() => {}}
+        onShareReceipt={() => {}}
+        onClose={() => {}}
+        currencyCode={viewModel.currencyCode}
+        countryCode={viewModel.countryCode}
+      />
+
+      <PosReceiptDetail
+        receipt={null}
+        onPrintReceipt={() => {}}
+        onShareReceipt={() => {}}
+        onClose={() => {}}
+        currencyCode={viewModel.currencyCode}
+        countryCode={viewModel.countryCode}
       />
 
       <PosCustomerCreateModal
@@ -835,5 +862,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontFamily: "InterMedium",
     paddingBottom: spacing.xs,
+  },
+  sectionHeaderLeft: {
+    flex: 1,
+  },
+  historyButton: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.lg,
+    backgroundColor: colors.accent,
   },
 });
