@@ -66,6 +66,7 @@ const INITIAL_STATE: PosScreenState = {
     phone: "",
     address: "",
   },
+  isCreatingCustomer: false,
 };
 
 const calculateTotals = (
@@ -926,8 +927,20 @@ export function usePosScreenViewModel(
           return;
         }
 
+        const searchTerm = value.trim().toLowerCase();
         const customerOptions = result.value
-          .filter((contact: any) => contact.contactType === "customer")
+          .filter((contact: any) => {
+            // Only customer contacts
+            if (contact.contactType !== "customer") {
+              return false;
+            }
+            
+            // Filter by search term in name or phone
+            const nameMatch = contact.fullName.toLowerCase().includes(searchTerm);
+            const phoneMatch = contact.phoneNumber && contact.phoneNumber.toLowerCase().includes(searchTerm);
+            
+            return nameMatch || phoneMatch;
+          })
           .map((contact: any) => ({
             label:
               contact.fullName +
@@ -990,6 +1003,13 @@ export function usePosScreenViewModel(
       return;
     }
 
+    // Set creating state to true
+    setState((currentState) => ({
+      ...currentState,
+      isCreatingCustomer: true,
+      errorMessage: null,
+    }));
+
     // Create customer
     const result = await getOrCreateBusinessContactUseCase.execute({
       accountRemoteId: activeBusinessAccountRemoteId,
@@ -1004,6 +1024,7 @@ export function usePosScreenViewModel(
     if (!result.success) {
       setState((currentState) => ({
         ...currentState,
+        isCreatingCustomer: false,
         errorMessage: result.error.message,
       }));
       return;
@@ -1026,6 +1047,7 @@ export function usePosScreenViewModel(
         phone: "",
         address: "",
       },
+      isCreatingCustomer: false,
       errorMessage: null,
       infoMessage: `Customer "${fullName}" created and selected successfully.`,
     }));
@@ -1163,6 +1185,7 @@ export function usePosScreenViewModel(
       onClearCart,
       onCompletePayment,
       customerOptions: state.customerOptions,
+      isCreatingCustomer: state.isCreatingCustomer,
     }),
     [
       activeBusinessAccountRemoteId,

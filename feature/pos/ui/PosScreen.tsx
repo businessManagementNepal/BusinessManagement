@@ -5,13 +5,13 @@ import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/Scre
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
-    Minus,
-    Percent,
-    Plus,
-    ShoppingCart,
-    Trash2,
-    WalletCards,
-    X,
+  Minus,
+  Percent,
+  Plus,
+  ShoppingCart,
+  Trash2,
+  WalletCards,
+  X,
 } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -341,7 +341,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           <PosCustomerSelector
             selectedCustomer={viewModel.selectedCustomer}
             customerSearchTerm={viewModel.customerSearchTerm}
-            customerOptions={[]} // TODO: Add customer search logic
+            customerOptions={viewModel.customerOptions}
             onCustomerSearchChange={viewModel.onCustomerSearchChange}
             onSelectCustomer={viewModel.onSelectCustomer}
             onClearCustomer={viewModel.onClearCustomer}
@@ -506,7 +506,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         onFormChange={viewModel.onCustomerCreateFormChange}
         onSubmit={viewModel.onCreateCustomer}
         onClose={viewModel.onCloseCustomerCreateModal}
-        isSubmitting={viewModel.activeModal === "customer-create" && viewModel.errorMessage === null && viewModel.infoMessage?.includes("Creating")}
+        isSubmitting={viewModel.isCreatingCustomer}
         canSubmit={viewModel.customerCreateForm.fullName.trim().length > 0}
       />
     </>

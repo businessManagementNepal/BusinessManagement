@@ -55,6 +55,16 @@ export function PosPaymentModal({
             </Text>
           </View>
 
+          {selectedCustomer && (
+            <View style={styles.customerSummaryCard}>
+              <Text style={styles.customerSummaryLabel}>Customer</Text>
+              <Text style={styles.customerSummaryName}>{selectedCustomer.fullName}</Text>
+              {selectedCustomer.phone && (
+                <Text style={styles.customerSummaryPhone}>{selectedCustomer.phone}</Text>
+              )}
+            </View>
+          )}
+
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>Paid Amount</Text>
             <TextInput
@@ -65,6 +75,23 @@ export function PosPaymentModal({
               placeholderTextColor={colors.mutedForeground}
               style={styles.input}
             />
+          </View>
+
+          <View style={[
+            styles.dueAmountCard,
+            {
+              backgroundColor: totals.grandTotal - Number(paidAmount || "0") > 0 ? "#FEF3CD" : "#D1E7DD",
+            }
+          ]}>
+            <Text style={styles.dueAmountLabel}>Due Amount</Text>
+            <Text style={[
+              styles.dueAmountValue,
+              {
+                color: totals.grandTotal - Number(paidAmount || "0") > 0 ? colors.warning : colors.success,
+              }
+            ]}>
+              {formatCurrency(totals.grandTotal - Number(paidAmount || "0"), currencyCode, countryCode)}
+            </Text>
           </View>
 
           <View>
@@ -188,5 +215,40 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "InterMedium",
     textAlign: "center",
+  },
+  customerSummaryCard: {
+    borderRadius: radius.lg,
+    backgroundColor: colors.secondary,
+    padding: spacing.md,
+    gap: 4,
+  },
+  customerSummaryLabel: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: "InterMedium",
+  },
+  customerSummaryName: {
+    color: colors.cardForeground,
+    fontSize: 14,
+    fontFamily: "InterMedium",
+  },
+  customerSummaryPhone: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: "InterMedium",
+  },
+  dueAmountCard: {
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: 4,
+  },
+  dueAmountLabel: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: "InterMedium",
+  },
+  dueAmountValue: {
+    fontSize: 16,
+    fontFamily: "InterBold",
   },
 });

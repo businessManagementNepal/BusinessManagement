@@ -1,11 +1,11 @@
 import { StatusType } from "@/shared/types/status.types";
 import {
-  PosBootstrap,
-  PosCartLine,
-  PosProduct,
-  PosReceipt,
-  PosSlot,
-  PosTotals,
+    PosBootstrap,
+    PosCartLine,
+    PosProduct,
+    PosReceipt,
+    PosSlot,
+    PosTotals,
 } from "./pos.entity.types";
 
 export type PosModalType =
@@ -48,6 +48,7 @@ export type PosScreenState = {
     phone: string;
     address: string;
   };
+  isCreatingCustomer: boolean;
 };
 
 export type PosScreenViewModel = {
@@ -125,4 +126,5 @@ export type PosScreenViewModel = {
   ) => void;
   onCreateCustomer: () => Promise<void>;
   customerOptions: readonly import("../ui/components/PosCustomerSelector").DropdownOption[];
+  isCreatingCustomer: boolean;
 };

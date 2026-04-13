@@ -22,6 +22,12 @@ type PosCustomerSelectorProps = {
 export type DropdownOption = {
   label: string;
   value: string;
+  customerData?: {
+    remoteId: string;
+    fullName: string;
+    phone: string | null;
+    address: string | null;
+  };
 };
 
 export function PosCustomerSelector({
@@ -63,14 +69,13 @@ export function PosCustomerSelector({
           options={customerOptions}
           onChange={(value) => {
             const customer = customerOptions.find(opt => opt.value === value);
-            if (customer) {
-              // Use full customer data from customerData field if available, otherwise fallback to label
-              const customerData = (customer as any).customerData;
+            if (customer && customer.customerData) {
+              // Use full customer data from customerData field
               onSelectCustomer({
-                remoteId: customer.value,
-                fullName: customerData?.fullName || customer.label,
-                phone: customerData?.phone || null,
-                address: customerData?.address || null,
+                remoteId: customer.customerData.remoteId,
+                fullName: customer.customerData.fullName,
+                phone: customer.customerData.phone,
+                address: customer.customerData.address,
               });
             }
           }}
