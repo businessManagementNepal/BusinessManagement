@@ -3,17 +3,17 @@ import { ContactType } from "@/feature/contacts/types/contact.types";
 import type { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import {
-  ProductKind,
-  ProductStatus,
+    ProductKind,
+    ProductStatus,
 } from "@/feature/products/types/product.types";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { Status } from "@/shared/types/status.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import {
-  buildTaxRateLabel,
-  buildTaxSummaryLabel,
-  resolveRegionalFinancePolicy,
+    buildTaxRateLabel,
+    buildTaxSummaryLabel,
+    resolveRegionalFinancePolicy,
 } from "@/shared/utils/finance/regionalFinancePolicy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PosCartLine, PosCustomer, PosSlot, PosTotals } from "../types/pos.entity.types";
@@ -43,6 +43,7 @@ const INITIAL_STATE: PosScreenState = {
   bootstrap: null,
   products: [],
   filteredProducts: [],
+  quickProducts: [],
   slots: [],
   cartLines: [],
   totals: EMPTY_TOTALS,
@@ -205,6 +206,11 @@ export function usePosScreenViewModel(
     () => regionalFinancePolicy.currencyCode,
     [regionalFinancePolicy.currencyCode],
   );
+
+  const quickProducts = useMemo(() => {
+    // Use first 8 available products as quick products for this phase
+    return state.products.slice(0, 8);
+  }, [state.products]);
 
   const recalculateTotals = useCallback((cartLines: readonly PosCartLine[]) => {
     setState((currentState) => ({
@@ -439,6 +445,69 @@ export function usePosScreenViewModel(
     ],
   );
 
+  const onAddProductToCart = useCallback(
+    async (productId: string) => {
+      // Find the product to get its details
+      const product = state.products.find((p) => p.id === productId);
+      if (!product) {
+        setState((currentState) => ({
+          ...currentState,
+          errorMessage: "Product not found.",
+        }));
+        return;
+      }
+
+      // Check if product already exists in cart
+      const existingLine = state.cartLines.find((line) => line.productId === productId);
+      
+      if (existingLine) {
+        // Increase quantity if already in cart
+        const result = await changeCartLineQuantityUseCase.execute({
+          lineId: existingLine.lineId,
+          nextQuantity: existingLine.quantity + 1,
+        });
+
+        if (!result.success) {
+          setState((currentState) => ({
+            ...currentState,
+            errorMessage: result.error.message,
+          }));
+          return;
+        }
+
+        recalculateTotals(result.value);
+      } else {
+        // Add new line to cart - we need to create a temporary slot for this
+        // Use the assignProductToSlotUseCase with addToCart: true
+        const tempSlotId = `temp-cart-${Date.now()}`;
+        
+        // Create a temporary slot assignment
+        const result = await assignProductToSlotUseCase.execute({
+          slotId: tempSlotId,
+          productId,
+          addToCart: true,
+        });
+
+        if (!result.success) {
+          setState((currentState) => ({
+            ...currentState,
+            errorMessage: result.error.message,
+          }));
+          return;
+        }
+
+        recalculateTotals(result.value);
+      }
+    },
+    [
+      changeCartLineQuantityUseCase,
+      assignProductToSlotUseCase,
+      recalculateTotals,
+      state.products,
+      state.cartLines,
+    ],
+  );
+
   const onCloseModal = useCallback(() => {
     setState((currentState) => ({
       ...currentState,
@@ -568,10 +637,16 @@ export function usePosScreenViewModel(
       errorMessage: null,
       infoMessage: `Product "${normalizedName}" created successfully.`,
     }));
+
+    // Auto-add the newly created product to cart
+    if (result.success) {
+      await onAddProductToCart(result.value.remoteId);
+    }
   }, [
     activeBusinessAccountRemoteId,
     saveProductUseCase,
     searchPosProductsUseCase,
+    onAddProductToCart,
     state.quickProductCategoryInput,
     state.quickProductNameInput,
     state.quickProductPriceInput,
@@ -1141,6 +1216,8 @@ export function usePosScreenViewModel(
         state.filteredProducts.length > 0 || state.productSearchTerm
           ? state.filteredProducts
           : state.products,
+      filteredProducts: state.filteredProducts,
+      quickProducts,
       activeSlotId: state.activeSlotId,
       selectedSlotId: state.selectedSlotId,
       activeModal: state.activeModal,
@@ -1168,6 +1245,7 @@ export function usePosScreenViewModel(
       onRemoveSlotProduct,
       onProductSearchChange,
       onSelectProduct,
+      onAddProductToCart,
       onOpenCreateProductModal,
       onCloseCreateProductModal,
       onQuickProductNameInputChange,
@@ -1240,6 +1318,7 @@ export function usePosScreenViewModel(
       onRemoveCartLine,
       onRemoveSlotProduct,
       onSelectProduct,
+      onAddProductToCart,
       state.customerCreateForm,
       state.customerSearchTerm,
       state.selectedCustomer,
@@ -1278,6 +1357,7 @@ export function usePosScreenViewModel(
       state.totals,
       taxSummaryLabel,
       state.customerOptions,
+      quickProducts,
     ],
   );
 }

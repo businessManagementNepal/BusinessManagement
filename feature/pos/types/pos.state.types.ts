@@ -1,11 +1,11 @@
 import { StatusType } from "@/shared/types/status.types";
 import {
-    PosBootstrap,
-    PosCartLine,
-    PosProduct,
-    PosReceipt,
-    PosSlot,
-    PosTotals,
+  PosBootstrap,
+  PosCartLine,
+  PosProduct,
+  PosReceipt,
+  PosSlot,
+  PosTotals,
 } from "./pos.entity.types";
 
 export type PosModalType =
@@ -23,6 +23,7 @@ export type PosScreenState = {
   bootstrap: PosBootstrap | null;
   products: readonly PosProduct[];
   filteredProducts: readonly PosProduct[];
+  quickProducts: readonly PosProduct[];
   slots: readonly PosSlot[];
   cartLines: readonly PosCartLine[];
   totals: PosTotals;
@@ -61,6 +62,8 @@ export type PosScreenViewModel = {
   cartLines: readonly PosCartLine[];
   totals: PosTotals;
   products: readonly PosProduct[];
+  filteredProducts: readonly PosProduct[];
+  quickProducts: readonly PosProduct[];
   activeSlotId: string | null;
   selectedSlotId: string | null;
   activeModal: PosModalType;
@@ -89,6 +92,7 @@ export type PosScreenViewModel = {
   onRemoveSlotProduct: (slotId: string) => Promise<void>;
   onProductSearchChange: (value: string) => Promise<void>;
   onSelectProduct: (productId: string) => Promise<void>;
+  onAddProductToCart: (productId: string) => Promise<void>;
   onOpenCreateProductModal: () => void;
   onCloseCreateProductModal: () => void;
   onQuickProductNameInputChange: (value: string) => void;

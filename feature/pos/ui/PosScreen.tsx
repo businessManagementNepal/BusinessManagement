@@ -5,17 +5,18 @@ import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/Scre
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
-  Minus,
-  Percent,
-  Plus,
-  ShoppingCart,
-  Trash2,
-  WalletCards,
-  X
+    Minus,
+    Percent,
+    Plus,
+    PlusCircle,
+    Search,
+    ShoppingCart,
+    Trash2,
+    WalletCards
 } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { PosSlot } from "../types/pos.entity.types";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { PosProduct, PosSlot } from "../types/pos.entity.types";
 import { PosScreenViewModel } from "../types/pos.state.types";
 import { PosCustomerCreateModal } from "./components/PosCustomerCreateModal";
 import { PosCustomerSelector } from "./components/PosCustomerSelector";
@@ -103,78 +104,85 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         <Card style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionHeaderLeft}>
-              <Text style={styles.sectionTitle}>Product Slots</Text>
+              <Text style={styles.sectionTitle}>Products</Text>
               <Text style={styles.sectionSubtitle}>
-                Tap to add in cart | Hold to assign product
+                Search and add products directly to cart
               </Text>
             </View>
+            <AppIconButton
+              onPress={viewModel.onOpenCreateProductModal}
+            >
+              <PlusCircle size={20} color={colors.primary} />
+            </AppIconButton>
           </View>
 
-          <ScrollView style={styles.slotScrollArea} nestedScrollEnabled>
-            <View style={styles.slotRowsWrap}>
-              {slotRows.map((row, rowIndex) => (
-                <View key={`row-${rowIndex}`} style={styles.slotRow}>
-                  {row.map((slot) => {
-                    const assignedProduct = slot.assignedProductId
-                      ? productLookup[slot.assignedProductId]
-                      : undefined;
-                    const isFilled = Boolean(assignedProduct);
-                    const isSelected = viewModel.selectedSlotId === slot.slotId;
+          <View style={styles.searchWrap}>
+            <Search size={18} color={colors.mutedForeground} />
+            <TextInput
+              value={viewModel.productSearchTerm}
+              onChangeText={(value) => void viewModel.onProductSearchChange(value)}
+              placeholder="Search products..."
+              placeholderTextColor={colors.mutedForeground}
+              style={styles.searchInput}
+            />
+          </View>
 
-                    return (
-                      <Pressable
-                        key={slot.slotId}
-                        style={[
-                          styles.slotCard,
-                          isFilled ? styles.slotCardFilled : null,
-                          isSelected ? styles.slotCardSelected : null,
-                        ]}
-                        onPress={() => handleSlotPress(slot.slotId)}
-                        onLongPress={() =>
-                          handleSlotLongPress(slot.slotId)
-                        }
-                        delayLongPress={420}
-                      >
-                        {isFilled ? (
-                          <>
-                            <Pressable
-                              style={styles.slotRemoveButton}
-                              onPress={(event) => {
-                                event.stopPropagation();
-                                void viewModel.onRemoveSlotProduct(slot.slotId);
-                              }}
-                            >
-                              <X size={12} color={colors.headerForeground} />
-                            </Pressable>
-                            <View style={styles.slotAvatarWrap}>
-                              <Text style={styles.slotAvatarText}>
-                                {assignedProduct?.shortCode}
-                              </Text>
-                            </View>
-                            <Text
-                              style={styles.slotProductName}
-                              numberOfLines={2}
-                            >
-                              {assignedProduct?.name}
-                            </Text>
-                            <Text style={styles.slotPriceText}>
-                              {formatCurrency(
-                                assignedProduct?.price ?? 0,
-                                viewModel.currencyCode,
-                                viewModel.countryCode,
-                              )}
-                            </Text>
-                          </>
-                        ) : (
-                          <>
-                            <Text style={styles.slotPlus}>+</Text>
-                            <Text style={styles.slotEmptyLabel}>Empty</Text>
-                          </>
-                        )}
-                      </Pressable>
-                    );
-                  })}
-                </View>
+          {viewModel.quickProducts.length > 0 && (
+            <View style={styles.quickProductsSection}>
+              <Text style={styles.quickProductsTitle}>Quick Products</Text>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                style={styles.quickProductsScroll}
+                contentContainerStyle={styles.quickProductsContent}
+              >
+                {viewModel.quickProducts.map((product) => (
+                  <Pressable
+                    key={product.id}
+                    style={styles.quickProductChip}
+                    onPress={() => void viewModel.onAddProductToCart(product.id)}
+                  >
+                    <Text style={styles.quickProductChipText}>
+                      {product.name}
+                    </Text>
+                    <Text style={styles.quickProductChipPrice}>
+                      {formatCurrency(
+                        product.price,
+                        viewModel.currencyCode,
+                        viewModel.countryCode,
+                      )}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <ScrollView style={styles.productsList} nestedScrollEnabled>
+            <View style={styles.productsContent}>
+              {(viewModel.productSearchTerm || viewModel.filteredProducts.length > 0 
+                ? viewModel.filteredProducts 
+                : viewModel.products
+              ).map((product: PosProduct) => (
+                <Pressable
+                  key={product.id}
+                  style={styles.productRow}
+                  onPress={() => void viewModel.onAddProductToCart(product.id)}
+                >
+                  <View style={styles.productAvatarWrap}>
+                    <Text style={styles.productAvatarText}>{product.shortCode}</Text>
+                  </View>
+                  <View style={styles.productBody}>
+                    <Text style={styles.productTitle}>{product.name}</Text>
+                    <Text style={styles.productMeta}>{product.categoryLabel}</Text>
+                  </View>
+                  <Text style={styles.productPrice}>
+                    {formatCurrency(product.price, viewModel.currencyCode, viewModel.countryCode)}
+                  </Text>
+                  <View style={styles.productAddButton}>
+                    <Plus size={16} color={colors.primary} />
+                  </View>
+                </Pressable>
               ))}
             </View>
           </ScrollView>
@@ -190,51 +198,15 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             </View>
           </View>
 
-          {selectedSlotLabel ? (
-            <View style={styles.slotDetailCard}>
-              <Text style={styles.slotDetailLabel}>{selectedSlotLabel}</Text>
-              {selectedCartLine ? (
-                <>
-                  <Text style={styles.slotDetailTitle}>
-                    {selectedCartLine.productName}
-                  </Text>
-                  <Text style={styles.slotDetailMeta}>
-                    {selectedCartLine.categoryLabel} | {formatCurrency(selectedCartLine.unitPrice, viewModel.currencyCode, viewModel.countryCode)} x {selectedCartLine.quantity} = {formatCurrency(selectedCartLine.lineSubtotal, viewModel.currencyCode, viewModel.countryCode)}
-                  </Text>
-                </>
-              ) : selectedAssignedProduct ? (
-                <>
-                  <Text style={styles.slotDetailTitle}>
-                    {selectedAssignedProduct.name}
-                  </Text>
-                  <Text style={styles.slotDetailMeta}>
-                    Assigned to slot at {formatCurrency(selectedAssignedProduct.price, viewModel.currencyCode, viewModel.countryCode)}. Tap slot to add it to cart.
-                  </Text>
-                </>
-              ) : (
-                <Text style={styles.slotDetailMeta}>
-                  No product assigned. Hold the slot to assign one.
-                </Text>
-              )}
-            </View>
-          ) : (
-            <Text style={styles.slotDetailHint}>Tap a slot to show details here.</Text>
-          )}
-
           {viewModel.cartLines.length === 0 ? (
             <Text style={styles.emptyCartText}>
-              Tap an assigned slot to add products.
+              Search and tap products to add them to cart.
             </Text>
           ) : (
             viewModel.cartLines.map((cartLine) => (
               <View
                 key={cartLine.lineId}
-                style={[
-                  styles.cartLineRow,
-                  viewModel.selectedSlotId === cartLine.slotId
-                    ? styles.cartLineRowSelected
-                    : null,
-                ]}
+                style={styles.cartLineRow}
               >
                 <View style={styles.cartLineBody}>
                   <Text style={styles.cartLineTitle}>
@@ -838,5 +810,117 @@ const styles = StyleSheet.create({
   },
   sectionHeaderLeft: {
     flex: 1,
+  },
+  searchWrap: {
+    minHeight: 50,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.secondary,
+    paddingHorizontal: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.cardForeground,
+    fontSize: 14,
+  },
+  quickProductsSection: {
+    marginBottom: spacing.md,
+  },
+  quickProductsTitle: {
+    color: colors.cardForeground,
+    fontSize: 13,
+    fontFamily: "InterSemiBold",
+    marginBottom: spacing.sm,
+  },
+  quickProductsScroll: {
+    flexGrow: 0,
+  },
+  quickProductsContent: {
+    gap: spacing.sm,
+    paddingRight: spacing.sm,
+  },
+  quickProductChip: {
+    backgroundColor: colors.accent,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: "#B8D7C0",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    minWidth: 120,
+    alignItems: "center",
+  },
+  quickProductChipText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
+    textAlign: "center",
+  },
+  quickProductChipPrice: {
+    color: colors.primary,
+    fontSize: 11,
+    fontFamily: "InterBold",
+    marginTop: 2,
+  },
+  productsList: {
+    maxHeight: 280,
+  },
+  productsContent: {
+    gap: spacing.sm,
+  },
+  productRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.lg,
+    backgroundColor: colors.secondary,
+  },
+  productAvatarWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.accent,
+  },
+  productAvatarText: {
+    color: colors.primary,
+    fontFamily: "InterBold",
+    fontSize: 22,
+  },
+  productBody: {
+    flex: 1,
+    gap: 4,
+  },
+  productTitle: {
+    color: colors.cardForeground,
+    fontSize: 15,
+    fontFamily: "InterBold",
+  },
+  productMeta: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: "InterMedium",
+  },
+  productPrice: {
+    color: colors.primary,
+    fontSize: 15,
+    fontFamily: "InterBold",
+    minWidth: 80,
+    textAlign: "right",
+  },
+  productAddButton: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

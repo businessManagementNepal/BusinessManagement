@@ -1,10 +1,10 @@
-import React from "react";
-import { StyleSheet } from "react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { spacing } from "@/shared/components/theme/spacing";
+import React from "react";
+import { StyleSheet } from "react-native";
 
 type PosQuickProductModalProps = {
   visible: boolean;
@@ -33,7 +33,7 @@ export function PosQuickProductModal({
     <FormSheetModal
       visible={visible}
       title="Create Product"
-      subtitle="Quickly add a product and assign it from POS"
+      subtitle="Quickly add a new product for direct selling"
       onClose={onClose}
       closeAccessibilityLabel="Close quick product form"
       presentation="dialog"
