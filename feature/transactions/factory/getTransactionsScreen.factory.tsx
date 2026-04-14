@@ -4,29 +4,28 @@ import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMon
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
 import {
-  Account,
-  AccountType,
-  AccountTypeValue,
+    Account,
+    AccountType,
+    AccountTypeValue,
 } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
-import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
-import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
 import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
 import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
 import { TransactionsScreen } from "@/feature/transactions/ui/TransactionsScreen";
 import { createAddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase.impl";
+import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
 import { createDeleteTransactionUseCase } from "@/feature/transactions/useCase/deleteTransaction.useCase.impl";
 import { createGetTransactionByIdUseCase } from "@/feature/transactions/useCase/getTransactionById.useCase.impl";
 import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
-import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
 import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
 import { createUpdateTransactionUseCase } from "@/feature/transactions/useCase/updateTransaction.useCase.impl";
 import { useTransactionDeleteViewModel } from "@/feature/transactions/viewModel/transactionDelete.viewModel.impl";
 import { useTransactionEditorViewModel } from "@/feature/transactions/viewModel/transactionEditor.viewModel.impl";
 import { useTransactionsListViewModel } from "@/feature/transactions/viewModel/transactionsList.viewModel.impl";
-import { TransactionFilterOption } from "@/feature/transactions/types/transaction.state.types";
+import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
+import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
 import appDatabase from "@/shared/database/appDatabase";
 import React, { useCallback, useMemo, useState } from "react";
 
@@ -37,7 +36,6 @@ export type GetTransactionsScreenFactoryProps = {
   activeAccountCountryCode: string | null;
   accountTypeScope?: AccountTypeValue;
   canManage?: boolean;
-  initialMoneyAccountFilter?: TransactionFilterOption | null;
 };
 
 export function GetTransactionsScreenFactory({
@@ -47,7 +45,6 @@ export function GetTransactionsScreenFactory({
   activeAccountCountryCode,
   accountTypeScope = AccountType.Personal,
   canManage = true,
-  initialMoneyAccountFilter = null,
 }: GetTransactionsScreenFactoryProps) {
   const [reloadSignal, setReloadSignal] = useState(0);
 
@@ -208,7 +205,6 @@ export function GetTransactionsScreenFactory({
     activeAccountRemoteId,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
-    initialMoneyAccountFilter,
     getTransactionsUseCase,
     onOpenCreate: editorViewModel.openCreate,
     onOpenEdit: editorViewModel.openEdit,

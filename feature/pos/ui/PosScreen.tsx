@@ -23,9 +23,7 @@ import { PosAdjustAmountModal } from "./PosAdjustAmountModal";
 import { PosPaymentModal } from "./PosPaymentModal";
 import { PosProductSelectionModal } from "./PosProductSelectionModal";
 import { PosQuickProductModal } from "./PosQuickProductModal";
-import { PosReceiptDetail } from "./PosReceiptDetail";
 import { PosReceiptModal } from "./PosReceiptModal";
-import { PosSaleHistory } from "./PosSaleHistory";
 import { buildSlotProductLookup, formatCurrency } from "./posScreen.shared";
 
 type PosScreenProps = {
@@ -110,13 +108,6 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                 Tap to add in cart | Hold to assign product
               </Text>
             </View>
-            <AppIconButton
-              size="md"
-              onPress={() => viewModel.onOpenSaleHistory()}
-              style={styles.historyButton}
-            >
-              <ShoppingCart size={20} color={colors.primary} />
-            </AppIconButton>
           </View>
 
           <ScrollView style={styles.slotScrollArea} nestedScrollEnabled>
@@ -503,29 +494,11 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         onClose={viewModel.onCloseReceiptModal}
         onPrint={viewModel.onPrintReceipt}
         onShare={viewModel.onShareReceipt}
+        isPrintAvailable={true}
+        isShareAvailable={Platform.OS !== "web"}
       />
 
-      <PosSaleHistory
-        receipts={[]}
-        isLoading={false}
-        searchTerm=""
-        onSearchChange={() => {}}
-        onReceiptPress={() => {}}
-        onPrintReceipt={() => {}}
-        onShareReceipt={() => {}}
-        onClose={() => {}}
-        currencyCode={viewModel.currencyCode}
-        countryCode={viewModel.countryCode}
-      />
 
-      <PosReceiptDetail
-        receipt={null}
-        onPrintReceipt={() => {}}
-        onShareReceipt={() => {}}
-        onClose={() => {}}
-        currencyCode={viewModel.currencyCode}
-        countryCode={viewModel.countryCode}
-      />
 
       <PosCustomerCreateModal
         visible={viewModel.activeModal === "customer-create"}
@@ -865,11 +838,5 @@ const styles = StyleSheet.create({
   },
   sectionHeaderLeft: {
     flex: 1,
-  },
-  historyButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.lg,
-    backgroundColor: colors.accent,
   },
 });

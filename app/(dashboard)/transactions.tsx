@@ -12,7 +12,7 @@ const TRANSACTIONS_MANAGE_PERMISSION_CODE = "transactions.manage";
 
 export default function BusinessTransactionsDashboardRoute() {
   const navigation = useSmoothNavigation();
-  const params = useLocalSearchParams<{
+  useLocalSearchParams<{
     moneyAccountFilter?: string | string[];
     moneyAccountLabel?: string | string[];
   }>();
@@ -38,19 +38,6 @@ export default function BusinessTransactionsDashboardRoute() {
   const canManageTransactions = permissionAccess.hasPermission(
     TRANSACTIONS_MANAGE_PERMISSION_CODE,
   );
-  const moneyAccountFilter = Array.isArray(params.moneyAccountFilter)
-    ? params.moneyAccountFilter[0]
-    : params.moneyAccountFilter;
-  const moneyAccountLabel = Array.isArray(params.moneyAccountLabel)
-    ? params.moneyAccountLabel[0]
-    : params.moneyAccountLabel;
-  const initialMoneyAccountFilter =
-    moneyAccountFilter && moneyAccountLabel
-      ? {
-          value: moneyAccountFilter,
-          label: moneyAccountLabel,
-        }
-      : null;
 
   useEffect(() => {
     if (isLoading || !hasActiveSession || !hasActiveAccount) {
@@ -100,7 +87,6 @@ export default function BusinessTransactionsDashboardRoute() {
       activeAccountCountryCode={activeAccountCountryCode}
       accountTypeScope={AccountType.Business}
       canManage={canManageTransactions}
-      initialMoneyAccountFilter={initialMoneyAccountFilter}
     />
   );
 }

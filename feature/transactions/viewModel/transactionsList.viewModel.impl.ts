@@ -1,55 +1,29 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Transaction,
   TransactionDirection,
-  TransactionPostingStatus,
-  TransactionSourceModule,
-  TransactionSourceModuleValue,
   TransactionType,
   TransactionTypeValue,
 } from "@/feature/transactions/types/transaction.entity.types";
 import {
   TransactionDateFilter,
   TransactionDateFilterValue,
-  TransactionFilterOption,
   TransactionListFilter,
   TransactionListFilterValue,
   TransactionListItemState,
   TransactionMetaChipState,
-  TransactionPostingFilter,
-  TransactionPostingFilterValue,
-  TransactionSourceFilter,
-  TransactionSourceFilterValue,
   TransactionSummaryCardState,
 } from "@/feature/transactions/types/transaction.state.types";
 import { GetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase";
-import { TransactionsListViewModel } from "./transactionsList.viewModel";
 import {
   formatCurrencyAmount,
   resolveCurrencyCode,
 } from "@/shared/utils/currency/accountCurrency";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getTransactionActionLabel,
-  getTransactionSourceLabel,
   getTransactionStatementLabel,
-  getTransactionStatusLabel,
 } from "./transactionAuditDisplay.util";
-
-const MONEY_ACCOUNT_FILTER_ALL = "all";
-
-const SOURCE_FILTER_OPTIONS: readonly {
-  label: string;
-  value: TransactionSourceFilterValue;
-}[] = [
-  { label: "All Sources", value: TransactionSourceFilter.All },
-  { label: "Ledger", value: TransactionSourceFilter.Ledger },
-  { label: "Billing", value: TransactionSourceFilter.Billing },
-  { label: "POS", value: TransactionSourceFilter.Pos },
-  { label: "Manual", value: TransactionSourceFilter.Manual },
-  { label: "Money Accounts", value: TransactionSourceFilter.MoneyAccounts },
-  { label: "EMI", value: TransactionSourceFilter.Emi },
-  { label: "Orders", value: TransactionSourceFilter.Orders },
-];
+import { TransactionsListViewModel } from "./transactionsList.viewModel";
 
 const DATE_FILTER_OPTIONS: readonly {
   label: string;
@@ -60,15 +34,6 @@ const DATE_FILTER_OPTIONS: readonly {
   { label: "Last 7 Days", value: TransactionDateFilter.Last7Days },
   { label: "Last 30 Days", value: TransactionDateFilter.Last30Days },
   { label: "This Month", value: TransactionDateFilter.ThisMonth },
-];
-
-const POSTING_FILTER_OPTIONS: readonly {
-  label: string;
-  value: TransactionPostingFilterValue;
-}[] = [
-  { label: "All Status", value: TransactionPostingFilter.All },
-  { label: "Posted", value: TransactionPostingFilter.Posted },
-  { label: "Voided", value: TransactionPostingFilter.Voided },
 ];
 
 const getStartOfDay = (timestamp: number): number => {
@@ -91,46 +56,12 @@ const formatTransactionDate = (happenedAt: number): string => {
   });
 };
 
-const normalizeSourceModule = (transaction: Transaction): TransactionSourceModuleValue => {
-  return transaction.sourceModule ?? TransactionSourceModule.Manual;
-};
-
-const getPartyLabel = (transaction: Transaction): string | null => {
-  const normalizedTitle = transaction.title.trim();
-  if (!normalizedTitle) {
-    return null;
-  }
-
-  const patterns = [
-    /received\s+from\s+(.+)$/i,
-    /paid\s+to\s+(.+)$/i,
-    /sale\s+due\s*-\s*(.+)$/i,
-    /purchase\s+due\s*-\s*(.+)$/i,
-    /receive\s+money\s*-\s*(.+)$/i,
-    /pay\s+money\s*-\s*(.+)$/i,
-  ];
-
-  for (const pattern of patterns) {
-    const match = normalizedTitle.match(pattern);
-    const candidate = match?.[1]?.trim();
-    if (candidate && candidate.length > 0) {
-      return candidate;
-    }
-  }
-
-  return null;
-};
-
 const buildSubtitle = (transaction: Transaction): string => {
   const dateLabel = formatTransactionDate(transaction.happenedAt);
   const statementLabel = getTransactionStatementLabel(transaction);
   const accountLabel = transaction.accountDisplayNameSnapshot || "Account";
-  const statusSuffix =
-    transaction.postingStatus === TransactionPostingStatus.Voided
-      ? " - No longer affects balance"
-      : "";
 
-  return `${dateLabel} - ${statementLabel} - ${accountLabel}${statusSuffix}`;
+  return `${dateLabel} - ${statementLabel} - ${accountLabel}`;
 };
 
 const buildAmountLabel = (
@@ -148,24 +79,7 @@ const buildAmountLabel = (
     ? `+${amountLabel}`
     : `-${amountLabel}`;
 
-  return transaction.postingStatus === TransactionPostingStatus.Voided
-    ? `Voided ${signedAmount}`
-    : signedAmount;
-};
-
-const resolveMoneyAccountFilterKey = (transaction: Transaction): string | null => {
-  const remoteId = transaction.settlementMoneyAccountRemoteId?.trim() ?? "";
-  if (remoteId.length > 0) {
-    return `id:${remoteId}`;
-  }
-
-  const displayName =
-    transaction.settlementMoneyAccountDisplayNameSnapshot?.trim() ?? "";
-  if (displayName.length > 0) {
-    return `name:${displayName.toLowerCase()}`;
-  }
-
-  return null;
+  return signedAmount;
 };
 
 const matchesDateFilter = (
@@ -202,7 +116,6 @@ type UseTransactionsListViewModelParams = {
   activeAccountRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
-  initialMoneyAccountFilter?: TransactionFilterOption | null;
   getTransactionsUseCase: GetTransactionsUseCase;
   onOpenCreate: (type: TransactionTypeValue) => void;
   onOpenEdit: (remoteId: string) => void;
@@ -214,7 +127,6 @@ export const useTransactionsListViewModel = ({
   activeAccountRemoteId,
   activeAccountCurrencyCode,
   activeAccountCountryCode,
-  initialMoneyAccountFilter,
   getTransactionsUseCase,
   onOpenCreate,
   onOpenEdit,
@@ -227,16 +139,8 @@ export const useTransactionsListViewModel = ({
   const [selectedFilter, setSelectedFilter] = useState<TransactionListFilterValue>(
     TransactionListFilter.All,
   );
-  const [selectedSourceFilter, setSelectedSourceFilter] =
-    useState<TransactionSourceFilterValue>(TransactionSourceFilter.All);
   const [selectedDateFilter, setSelectedDateFilter] =
     useState<TransactionDateFilterValue>(TransactionDateFilter.All);
-  const [selectedPostingFilter, setSelectedPostingFilter] =
-    useState<TransactionPostingFilterValue>(TransactionPostingFilter.All);
-  const [selectedMoneyAccountFilter, setSelectedMoneyAccountFilter] =
-    useState<string>(
-      initialMoneyAccountFilter?.value.trim() || MONEY_ACCOUNT_FILTER_ALL,
-    );
 
   const resolvedCurrencyCode = useMemo(
     () =>
@@ -270,133 +174,32 @@ export const useTransactionsListViewModel = ({
     void loadTransactions();
   }, [loadTransactions, reloadSignal]);
 
-  const moneyAccountFilterOptions = useMemo<readonly TransactionFilterOption[]>(() => {
-    const optionByValue = new Map<string, TransactionFilterOption>();
-
-    optionByValue.set(MONEY_ACCOUNT_FILTER_ALL, {
-      value: MONEY_ACCOUNT_FILTER_ALL,
-      label: "All Money Accounts",
-    });
-
-    const initialFilterValue = initialMoneyAccountFilter?.value.trim() ?? "";
-    const initialFilterLabel = initialMoneyAccountFilter?.label.trim() ?? "";
-    if (
-      initialFilterValue &&
-      initialFilterValue !== MONEY_ACCOUNT_FILTER_ALL &&
-      initialFilterLabel
-    ) {
-      optionByValue.set(initialFilterValue, {
-        value: initialFilterValue,
-        label: initialFilterLabel,
-      });
-    }
-
-    for (const transaction of transactions) {
-      const key = resolveMoneyAccountFilterKey(transaction);
-      if (!key) {
-        continue;
-      }
-
-      const displayLabel =
-        transaction.settlementMoneyAccountDisplayNameSnapshot?.trim() ||
-        "Money Account";
-
-      if (!optionByValue.has(key)) {
-        optionByValue.set(key, {
-          value: key,
-          label: displayLabel,
-        });
-      }
-    }
-
-    return Array.from(optionByValue.values());
-  }, [initialMoneyAccountFilter, transactions]);
-
-  useEffect(() => {
-    const nextInitialFilter =
-      initialMoneyAccountFilter?.value.trim() || MONEY_ACCOUNT_FILTER_ALL;
-    setSelectedMoneyAccountFilter(nextInitialFilter);
-  }, [initialMoneyAccountFilter?.value]);
-
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
-    const hasSelectedOption = moneyAccountFilterOptions.some(
-      (option) => option.value === selectedMoneyAccountFilter,
-    );
-    if (!hasSelectedOption) {
-      setSelectedMoneyAccountFilter(MONEY_ACCOUNT_FILTER_ALL);
-    }
-  }, [isLoading, moneyAccountFilterOptions, selectedMoneyAccountFilter]);
-
   const filteredTransactions = useMemo(() => {
     const normalizedSearch = searchQuery.trim().toLowerCase();
 
     return transactions.filter((transaction) => {
-      const normalizedSourceModule = normalizeSourceModule(transaction);
-      const sourceLabel = getTransactionSourceLabel(
-        normalizedSourceModule,
-      ).toLowerCase();
-      const actionLabel = getTransactionActionLabel(transaction)?.toLowerCase() ?? "";
-      const partyLabel = getPartyLabel(transaction)?.toLowerCase() ?? "";
-      const moneyAccountLabel =
-        transaction.settlementMoneyAccountDisplayNameSnapshot?.toLowerCase() ?? "";
       const accountLabel = transaction.accountDisplayNameSnapshot.toLowerCase();
-      const statusLabel = transaction.postingStatus.toLowerCase();
 
       const matchesSearch =
         normalizedSearch.length === 0 ||
         transaction.title.toLowerCase().includes(normalizedSearch) ||
         (transaction.note ?? "").toLowerCase().includes(normalizedSearch) ||
         (transaction.categoryLabel ?? "").toLowerCase().includes(normalizedSearch) ||
-        sourceLabel.includes(normalizedSearch) ||
-        actionLabel.includes(normalizedSearch) ||
-        partyLabel.includes(normalizedSearch) ||
-        moneyAccountLabel.includes(normalizedSearch) ||
-        accountLabel.includes(normalizedSearch) ||
-        statusLabel.includes(normalizedSearch);
+        accountLabel.includes(normalizedSearch);
 
       if (!matchesSearch) {
         return false;
-      }
-
-      if (selectedSourceFilter !== TransactionSourceFilter.All) {
-        if (normalizedSourceModule !== selectedSourceFilter) {
-          return false;
-        }
-      }
-
-      if (selectedPostingFilter !== TransactionPostingFilter.All) {
-        if (transaction.postingStatus !== selectedPostingFilter) {
-          return false;
-        }
       }
 
       if (!matchesDateFilter(transaction.happenedAt, selectedDateFilter)) {
         return false;
       }
 
-      if (selectedMoneyAccountFilter !== MONEY_ACCOUNT_FILTER_ALL) {
-        if (resolveMoneyAccountFilterKey(transaction) !== selectedMoneyAccountFilter) {
-          return false;
-        }
-      }
-
       switch (selectedFilter) {
         case TransactionListFilter.Income:
-          return (
-            transaction.transactionType === TransactionType.Income ||
-            (transaction.transactionType === TransactionType.Refund &&
-              transaction.direction === TransactionDirection.In)
-          );
+          return transaction.transactionType === TransactionType.Income;
         case TransactionListFilter.Expense:
-          return (
-            transaction.transactionType === TransactionType.Expense ||
-            (transaction.transactionType === TransactionType.Refund &&
-              transaction.direction === TransactionDirection.Out)
-          );
+          return transaction.transactionType === TransactionType.Expense;
         case TransactionListFilter.Transfer:
           return transaction.transactionType === TransactionType.Transfer;
         default:
@@ -406,29 +209,18 @@ export const useTransactionsListViewModel = ({
   }, [
     searchQuery,
     selectedFilter,
-    selectedSourceFilter,
     selectedDateFilter,
-    selectedPostingFilter,
-    selectedMoneyAccountFilter,
     transactions,
   ]);
 
   const summaryCards = useMemo<readonly TransactionSummaryCardState[]>(() => {
     const moneyIn = filteredTransactions.reduce((sum, transaction) => {
-      if (transaction.postingStatus === TransactionPostingStatus.Voided) {
-        return sum;
-      }
-
       return transaction.direction === TransactionDirection.In
         ? sum + transaction.amount
         : sum;
     }, 0);
 
     const moneyOut = filteredTransactions.reduce((sum, transaction) => {
-      if (transaction.postingStatus === TransactionPostingStatus.Voided) {
-        return sum;
-      }
-
       return transaction.direction === TransactionDirection.Out
         ? sum + transaction.amount
         : sum;
@@ -481,26 +273,17 @@ export const useTransactionsListViewModel = ({
 
   const transactionItems = useMemo<readonly TransactionListItemState[]>(() => {
     return filteredTransactions.map((transaction) => {
-      const normalizedSource = normalizeSourceModule(transaction);
-      const sourceLabel = getTransactionSourceLabel(normalizedSource);
       const actionLabel = getTransactionActionLabel(transaction);
       const moneyAccountLabel =
         transaction.settlementMoneyAccountDisplayNameSnapshot?.trim() ?? null;
-      const partyLabel = getPartyLabel(transaction);
-      const isVoided =
-        transaction.postingStatus === TransactionPostingStatus.Voided;
+      const isVoided = false;
 
-      const metaChips: TransactionMetaChipState[] = [
-        { label: sourceLabel, tone: "neutral" },
-      ];
+      const metaChips: TransactionMetaChipState[] = [];
 
       if (actionLabel) {
         metaChips.push({
           label: actionLabel,
-          tone:
-            normalizedSource === TransactionSourceModule.MoneyAccounts
-              ? "warning"
-              : "neutral",
+          tone: "neutral",
         });
       }
 
@@ -508,15 +291,10 @@ export const useTransactionsListViewModel = ({
         metaChips.push({ label: moneyAccountLabel, tone: "neutral" });
       }
 
-      metaChips.push({
-        label: getTransactionStatusLabel(transaction),
-        tone: isVoided ? "danger" : "success",
-      });
-
       return {
         remoteId: transaction.remoteId,
         title: transaction.title,
-        partyLabel,
+        partyLabel: null,
         subtitle: buildSubtitle(transaction),
         amountLabel: buildAmountLabel(
           transaction,
@@ -548,13 +326,6 @@ export const useTransactionsListViewModel = ({
     setSelectedFilter(filter);
   }, []);
 
-  const handleChangeSourceFilter = useCallback(
-    (filter: TransactionSourceFilterValue) => {
-      setSelectedSourceFilter(filter);
-    },
-    [],
-  );
-
   const handleChangeDateFilter = useCallback(
     (filter: TransactionDateFilterValue) => {
       setSelectedDateFilter(filter);
@@ -562,41 +333,21 @@ export const useTransactionsListViewModel = ({
     [],
   );
 
-  const handleChangePostingFilter = useCallback(
-    (filter: TransactionPostingFilterValue) => {
-      setSelectedPostingFilter(filter);
-    },
-    [],
-  );
-
-  const handleChangeMoneyAccountFilter = useCallback((value: string) => {
-    setSelectedMoneyAccountFilter(value);
-  }, []);
-
   return useMemo(
     () => ({
       isLoading,
       errorMessage,
       searchQuery,
       selectedFilter,
-      selectedSourceFilter,
       selectedDateFilter,
-      selectedPostingFilter,
-      selectedMoneyAccountFilter,
-      sourceFilterOptions: SOURCE_FILTER_OPTIONS,
       dateFilterOptions: DATE_FILTER_OPTIONS,
-      postingFilterOptions: POSTING_FILTER_OPTIONS,
-      moneyAccountFilterOptions,
       summaryCards,
       transactionItems,
       emptyStateMessage,
       refresh: loadTransactions,
       onChangeSearchQuery: handleChangeSearchQuery,
       onChangeFilter: handleChangeFilter,
-      onChangeSourceFilter: handleChangeSourceFilter,
       onChangeDateFilter: handleChangeDateFilter,
-      onChangePostingFilter: handleChangePostingFilter,
-      onChangeMoneyAccountFilter: handleChangeMoneyAccountFilter,
       onOpenCreate,
       onOpenEdit,
     }),
@@ -605,21 +356,14 @@ export const useTransactionsListViewModel = ({
       errorMessage,
       handleChangeDateFilter,
       handleChangeFilter,
-      handleChangeMoneyAccountFilter,
-      handleChangePostingFilter,
       handleChangeSearchQuery,
-      handleChangeSourceFilter,
       isLoading,
       loadTransactions,
-      moneyAccountFilterOptions,
       onOpenCreate,
       onOpenEdit,
       searchQuery,
       selectedDateFilter,
       selectedFilter,
-      selectedMoneyAccountFilter,
-      selectedPostingFilter,
-      selectedSourceFilter,
       summaryCards,
       transactionItems,
     ],

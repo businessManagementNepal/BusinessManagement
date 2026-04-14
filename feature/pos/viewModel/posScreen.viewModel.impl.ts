@@ -999,12 +999,6 @@ export function usePosScreenViewModel(
     }));
   }, []);
 
-  const onOpenSaleHistory = useCallback(() => {
-    setState((currentState) => ({
-      ...currentState,
-      activeModal: "sale-history",
-    }));
-  }, []);
 
   const onCreateCustomer = useCallback(async () => {
     const { fullName, phone, address } = state.customerCreateForm;
@@ -1202,7 +1196,6 @@ export function usePosScreenViewModel(
       onCloseCustomerCreateModal,
       onCustomerCreateFormChange,
       onCreateCustomer,
-      onOpenSaleHistory,
       onOpenSplitBillModal,
       onApplyDiscount,
       onApplySurcharge,

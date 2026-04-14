@@ -1,30 +1,30 @@
-import React from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import {
-  ArrowDownLeft,
-  ArrowLeftRight,
-  ArrowUpRight,
-  Pencil,
-  Trash2,
-} from "lucide-react-native";
-import { Card } from "@/shared/components/reusable/Cards/Card";
+import { TransactionType } from "@/feature/transactions/types/transaction.entity.types";
+import { TransactionListFilter } from "@/feature/transactions/types/transaction.state.types";
+import { TransactionDeleteViewModel } from "@/feature/transactions/viewModel/transactionDelete.viewModel";
+import { TransactionEditorViewModel } from "@/feature/transactions/viewModel/transactionEditor.viewModel";
+import { TransactionsListViewModel } from "@/feature/transactions/viewModel/transactionsList.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { Card } from "@/shared/components/reusable/Cards/Card";
 import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
-import { TransactionType } from "@/feature/transactions/types/transaction.entity.types";
-import { TransactionListFilter } from "@/feature/transactions/types/transaction.state.types";
-import { TransactionsListViewModel } from "@/feature/transactions/viewModel/transactionsList.viewModel";
-import { TransactionEditorViewModel } from "@/feature/transactions/viewModel/transactionEditor.viewModel";
-import { TransactionDeleteViewModel } from "@/feature/transactions/viewModel/transactionDelete.viewModel";
+import {
+    ArrowDownLeft,
+    ArrowLeftRight,
+    ArrowUpRight,
+    Pencil,
+    Trash2,
+} from "lucide-react-native";
+import React from "react";
+import {
+    ActivityIndicator,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from "react-native";
 import { TransactionDeleteModal } from "./components/TransactionDeleteModal";
 import { TransactionEditorModal } from "./components/TransactionEditorModal";
 
@@ -172,44 +172,6 @@ export function TransactionsScreen({
           selectedChipTextStyle={styles.filterChipTextSelected}
         />
 
-        <Text style={styles.filterLabel}>Money Account</Text>
-        <FilterChipGroup
-          options={listViewModel.moneyAccountFilterOptions}
-          selectedValue={listViewModel.selectedMoneyAccountFilter}
-          onSelect={listViewModel.onChangeMoneyAccountFilter}
-          scrollStyle={styles.filterScroll}
-          contentContainerStyle={styles.filterRow}
-          chipStyle={styles.filterChip}
-          selectedChipStyle={styles.filterChipSelected}
-          chipTextStyle={styles.filterChipText}
-          selectedChipTextStyle={styles.filterChipTextSelected}
-        />
-
-        <Text style={styles.filterLabel}>Source</Text>
-        <FilterChipGroup
-          options={listViewModel.sourceFilterOptions}
-          selectedValue={listViewModel.selectedSourceFilter}
-          onSelect={listViewModel.onChangeSourceFilter}
-          scrollStyle={styles.filterScroll}
-          contentContainerStyle={styles.filterRow}
-          chipStyle={styles.filterChip}
-          selectedChipStyle={styles.filterChipSelected}
-          chipTextStyle={styles.filterChipText}
-          selectedChipTextStyle={styles.filterChipTextSelected}
-        />
-
-        <Text style={styles.filterLabel}>Status</Text>
-        <FilterChipGroup
-          options={listViewModel.postingFilterOptions}
-          selectedValue={listViewModel.selectedPostingFilter}
-          onSelect={listViewModel.onChangePostingFilter}
-          scrollStyle={styles.filterScroll}
-          contentContainerStyle={styles.filterRow}
-          chipStyle={styles.filterChip}
-          selectedChipStyle={styles.filterChipSelected}
-          chipTextStyle={styles.filterChipText}
-          selectedChipTextStyle={styles.filterChipTextSelected}
-        />
 
         {listViewModel.errorMessage ? (
           <Card style={styles.messageCard}>
