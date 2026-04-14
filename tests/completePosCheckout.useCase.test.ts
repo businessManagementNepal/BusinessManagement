@@ -111,6 +111,7 @@ describe("completePosCheckout.useCase", () => {
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: null,
+      grandTotalSnapshot: 1130,
     });
 
     expect(result.success).toBe(true);
@@ -169,6 +170,7 @@ describe("completePosCheckout.useCase", () => {
         phone: "+1234567890",
         address: null,
       },
+      grandTotalSnapshot: 1130,
     });
 
     expect(result.success).toBe(true);
@@ -231,6 +233,7 @@ describe("completePosCheckout.useCase", () => {
         phone: "+1234567890",
         address: null,
       },
+      grandTotalSnapshot: 1130,
     });
 
     expect(result.success).toBe(true);
@@ -242,7 +245,7 @@ describe("completePosCheckout.useCase", () => {
     }
   });
 
-  it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missing", async () => {
+it(REAL FIX VERIFICATION: paid checkout fails when settlement account is missing - OLD)
     const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
@@ -283,12 +286,14 @@ describe("completePosCheckout.useCase", () => {
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: null,
+      grandTotalSnapshot: 1130,
     });
 
-    // Result is success, but ledger effect shows posting_sync_failed
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.value.ledgerEffect.type).toBe("posting_sync_failed");
+    // Result should be real failure with our production fix
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe("ContextRequired");
+      expect(result.error.message).toContain("Settlement money account");
     }
   });
 
@@ -333,6 +338,7 @@ describe("completePosCheckout.useCase", () => {
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: null,
+      grandTotalSnapshot: 1130,
     });
 
     // Should succeed and create all downstream records
@@ -402,6 +408,7 @@ describe("completePosCheckout.useCase", () => {
         phone: "+1234567890",
         address: null,
       },
+      grandTotalSnapshot: 1130,
     });
 
     expect(result.success).toBe(false);
@@ -411,6 +418,311 @@ describe("completePosCheckout.useCase", () => {
     if (!result.success) {
       expect(result.error.type).toBe("UNKNOWN");
       expect(result.error.message).toContain("Billing-Ledger linkage verification failed");
+    }
+  });
+
+  it("PRODUCTION FIX: fails when business context is missing", async () => {
+    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+      async () => ({
+        success: true as const,
+        value: createReceipt(0),
+      }),
+    );
+    const completePaymentUseCase: CompletePaymentUseCase = {
+      execute: completePaymentExecuteSpy,
+    };
+    const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
+      execute: vi.fn(async (payload) => ({
+        success: true as const,
+        value: {
+          ...payload,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      })),
+      verifyLinkedDocument: vi.fn(async () => ({
+        success: true as const,
+        value: {} as never,
+      })),
+    };
+    const coreSyncUseCases = createCoreSyncUseCases();
+
+    const useCase = createCompletePosCheckoutUseCase({
+      completePaymentUseCase,
+      addLedgerEntryUseCase,
+      getOrCreateBusinessContactUseCase: {
+        execute: vi.fn(),
+      },
+      ...coreSyncUseCases,
+    });
+
+    // Test with missing business account
+    const result1 = await useCase.execute({
+      paidAmount: 1130,
+      activeBusinessAccountRemoteId: null,
+      activeOwnerUserRemoteId: "user-1",
+      activeSettlementAccountRemoteId: "money-cash-1",
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
+      selectedCustomer: null,
+      grandTotalSnapshot: 1130,
+    });
+
+    expect(result1.success).toBe(false);
+    if (!result1.success) {
+      expect(result1.error.type).toBe("ContextRequired");
+      expect(result1.error.message).toContain("POS requires active business account and owner user context");
+    }
+
+    // Test with missing owner user
+    const result2 = await useCase.execute({
+      paidAmount: 1130,
+      activeBusinessAccountRemoteId: "business-1",
+      activeOwnerUserRemoteId: null,
+      activeSettlementAccountRemoteId: "money-cash-1",
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
+      selectedCustomer: null,
+      grandTotalSnapshot: 1130,
+    });
+
+    expect(result2.success).toBe(false);
+    if (!result2.success) {
+      expect(result2.error.type).toBe("ContextRequired");
+      expect(result2.error.message).toContain("owner user");
+    }
+
+    // Verify completePaymentUseCase was never called
+    expect(completePaymentExecuteSpy).not.toHaveBeenCalled();
+  });
+
+  it("PRODUCTION FIX: fails when paid checkout missing settlement account", async () => {
+    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+      async () => ({
+        success: true as const,
+        value: createReceipt(0),
+      }),
+    );
+    const completePaymentUseCase: CompletePaymentUseCase = {
+      execute: completePaymentExecuteSpy,
+    };
+    const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
+      execute: vi.fn(async (payload) => ({
+        success: true as const,
+        value: {
+          ...payload,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      })),
+      verifyLinkedDocument: vi.fn(async () => ({
+        success: true as const,
+        value: {} as never,
+      })),
+    };
+    const coreSyncUseCases = createCoreSyncUseCases();
+
+    const useCase = createCompletePosCheckoutUseCase({
+      completePaymentUseCase,
+      addLedgerEntryUseCase,
+      getOrCreateBusinessContactUseCase: {
+        execute: vi.fn(),
+      },
+      ...coreSyncUseCases,
+    });
+
+    // Paid checkout with NULL settlement account should fail
+    const result = await useCase.execute({
+      paidAmount: 1130,
+      activeBusinessAccountRemoteId: "business-1",
+      activeOwnerUserRemoteId: "user-1",
+      activeSettlementAccountRemoteId: null,
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
+      selectedCustomer: null,
+      grandTotalSnapshot: 1130,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe("ContextRequired");
+      expect(result.error.message).toContain("Settlement money account");
+    }
+
+    // Verify completePaymentUseCase was never called
+    expect(completePaymentExecuteSpy).not.toHaveBeenCalled();
+  });
+
+  it("PRODUCTION FIX: fails when unpaid checkout missing customer", async () => {
+    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+      async () => ({
+        success: true as const,
+        value: createReceipt(300),
+      }),
+    );
+    const completePaymentUseCase: CompletePaymentUseCase = {
+      execute: completePaymentExecuteSpy,
+    };
+    const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
+      execute: vi.fn(async (payload) => ({
+        success: true as const,
+        value: {
+          ...payload,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      })),
+      verifyLinkedDocument: vi.fn(async () => ({
+        success: true as const,
+        value: {} as never,
+      })),
+    };
+    const coreSyncUseCases = createCoreSyncUseCases();
+
+    const useCase = createCompletePosCheckoutUseCase({
+      completePaymentUseCase,
+      addLedgerEntryUseCase,
+      getOrCreateBusinessContactUseCase: {
+        execute: vi.fn(),
+      },
+      ...coreSyncUseCases,
+    });
+
+    // Unpaid checkout with NULL customer should fail
+    const result = await useCase.execute({
+      paidAmount: 830,
+      activeBusinessAccountRemoteId: "business-1",
+      activeOwnerUserRemoteId: "user-1",
+      activeSettlementAccountRemoteId: "money-cash-1",
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
+      selectedCustomer: null,
+      grandTotalSnapshot: 1130, // Will create due amount of 300
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe("ContextRequired");
+      expect(result.error.message).toContain("Customer selection is required for unpaid sales");
+    }
+
+    // Verify completePaymentUseCase was never called
+    expect(completePaymentExecuteSpy).not.toHaveBeenCalled();
+  });
+
+  it("PRODUCTION FIX: succeeds when fully paid anonymous checkout", async () => {
+    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+      async () => ({
+        success: true as const,
+        value: createReceipt(0),
+      }),
+    );
+    const completePaymentUseCase: CompletePaymentUseCase = {
+      execute: completePaymentExecuteSpy,
+    };
+    const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
+      execute: vi.fn(async (payload) => ({
+        success: true as const,
+        value: {
+          ...payload,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      })),
+      verifyLinkedDocument: vi.fn(async () => ({
+        success: true as const,
+        value: {} as never,
+      })),
+    };
+    const coreSyncUseCases = createCoreSyncUseCases();
+
+    const useCase = createCompletePosCheckoutUseCase({
+      completePaymentUseCase,
+      addLedgerEntryUseCase,
+      getOrCreateBusinessContactUseCase: {
+        execute: vi.fn(),
+      },
+      ...coreSyncUseCases,
+    });
+
+    // Fully paid anonymous checkout should succeed
+    const result = await useCase.execute({
+      paidAmount: 1130,
+      activeBusinessAccountRemoteId: "business-1",
+      activeOwnerUserRemoteId: "user-1",
+      activeSettlementAccountRemoteId: "money-cash-1",
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
+      selectedCustomer: null,
+      grandTotalSnapshot: 1130,
+    });
+
+    expect(result.success).toBe(true);
+    expect(completePaymentExecuteSpy).toHaveBeenCalledTimes(1);
+    expect(coreSyncUseCases.postBusinessTransactionUseCase.execute).toHaveBeenCalled();
+    expect(coreSyncUseCases.saveBillingDocumentUseCase.execute).toHaveBeenCalled();
+  });
+
+  it("PRODUCTION FIX: succeeds when unpaid checkout with customer", async () => {
+    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+      async () => ({
+        success: true as const,
+        value: createReceipt(300),
+      }),
+    );
+    const completePaymentUseCase: CompletePaymentUseCase = {
+      execute: completePaymentExecuteSpy,
+    };
+    const addLedgerEntryExecuteSpy: AddLedgerEntryUseCase["execute"] = vi.fn(
+      async (payload) => ({
+        success: true as const,
+        value: {
+          ...payload,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      }),
+    );
+    const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
+      execute: addLedgerEntryExecuteSpy,
+      verifyLinkedDocument: vi.fn(async () => ({
+        success: true as const,
+        value: {} as never,
+      })),
+    };
+    const coreSyncUseCases = createCoreSyncUseCases();
+
+    const useCase = createCompletePosCheckoutUseCase({
+      completePaymentUseCase,
+      addLedgerEntryUseCase,
+      getOrCreateBusinessContactUseCase: {
+        execute: vi.fn(),
+      },
+      ...coreSyncUseCases,
+    });
+
+    // Unpaid checkout with customer should succeed
+    const result = await useCase.execute({
+      paidAmount: 830,
+      activeBusinessAccountRemoteId: "business-1",
+      activeOwnerUserRemoteId: "user-1",
+      activeSettlementAccountRemoteId: "money-cash-1",
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
+      selectedCustomer: {
+        remoteId: "customer-1",
+        fullName: "John Doe",
+        phone: "+1234567890",
+        address: null,
+      },
+      grandTotalSnapshot: 1130, // Will create due amount of 300
+    });
+
+    expect(result.success).toBe(true);
+    expect(addLedgerEntryExecuteSpy).toHaveBeenCalledTimes(1);
+    if (result.success) {
+      expect(result.value.ledgerEffect.type).toBe("due_balance_created");
+      expect(result.value.dueAmount).toBe(300);
     }
   });
 
@@ -470,6 +782,7 @@ describe("completePosCheckout.useCase", () => {
         phone: "+1234567890",
         address: null,
       },
+      grandTotalSnapshot: 1130,
     });
 
     expect(result.success).toBe(true);

@@ -3,17 +3,17 @@ import { ContactType } from "@/feature/contacts/types/contact.types";
 import type { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import {
-    ProductKind,
-    ProductStatus,
+  ProductKind,
+  ProductStatus,
 } from "@/feature/products/types/product.types";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { Status } from "@/shared/types/status.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import {
-    buildTaxRateLabel,
-    buildTaxSummaryLabel,
-    resolveRegionalFinancePolicy,
+  buildTaxRateLabel,
+  buildTaxSummaryLabel,
+  resolveRegionalFinancePolicy,
 } from "@/shared/utils/finance/regionalFinancePolicy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PosCartLine, PosCustomer, PosSlot, PosTotals } from "../types/pos.entity.types";
@@ -714,6 +714,7 @@ export function usePosScreenViewModel(
     regionalFinancePolicy.countryCode,
     state.paymentSplitCountInput,
     state.totals.grandTotal,
+    state.isCreatingCustomer,
   ]);
 
   const onApplyDiscount = useCallback(async () => {
@@ -785,7 +786,7 @@ export function usePosScreenViewModel(
       quickProductPriceInput: "0",
       quickProductCategoryInput: "",
     }));
-  }, [clearCartUseCase, searchPosProductsUseCase]);
+  }, [clearCartUseCase, searchPosProductsUseCase, state.totals.grandTotal, currencyCode, regionalFinancePolicy.countryCode, state.selectedCustomer]);
 
   const onCompletePayment = useCallback(async () => {
     const result = await completePosCheckoutUseCase.execute({
@@ -796,6 +797,7 @@ export function usePosScreenViewModel(
       activeAccountCurrencyCode: currencyCode,
       activeAccountCountryCode: regionalFinancePolicy.countryCode,
       selectedCustomer: state.selectedCustomer,
+      grandTotalSnapshot: state.totals.grandTotal,
     });
 
     if (!result.success) {

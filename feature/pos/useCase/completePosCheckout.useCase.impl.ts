@@ -1,21 +1,21 @@
 import {
-  BillingDocumentStatus,
-  BillingDocumentType,
-  BillingTemplateType,
+    BillingDocumentStatus,
+    BillingDocumentType,
+    BillingTemplateType,
 } from "@/feature/billing/types/billing.types";
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase";
 import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import {
-  LedgerBalanceDirection,
-  LedgerEntryType,
+    LedgerBalanceDirection,
+    LedgerEntryType,
 } from "@/feature/ledger/types/ledger.entity.types";
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
 import {
-  SaveTransactionPayload,
-  TransactionDirection,
-  TransactionSourceModule,
-  TransactionType,
+    SaveTransactionPayload,
+    TransactionDirection,
+    TransactionSourceModule,
+    TransactionType,
 } from "@/feature/transactions/types/transaction.entity.types";
 import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
@@ -23,8 +23,8 @@ import { PosReceipt } from "../types/pos.entity.types";
 import { PosErrorType, PosPaymentResult } from "../types/pos.error.types";
 import { CompletePaymentUseCase } from "./completePayment.useCase";
 import {
-  CompletePosCheckoutParams,
-  CompletePosCheckoutUseCase,
+    CompletePosCheckoutParams,
+    CompletePosCheckoutUseCase,
 } from "./completePosCheckout.useCase";
 
 type CreateCompletePosCheckoutUseCaseParams = {
@@ -143,17 +143,7 @@ export const createCompletePosCheckoutUseCase = ({
       countryCode: params.activeAccountCountryCode,
     });
 
-    const paymentResult = await completePaymentUseCase.execute({
-      paidAmount: params.paidAmount,
-      activeSettlementAccountRemoteId: params.activeSettlementAccountRemoteId,
-      selectedCustomer: params.selectedCustomer,
-    });
-
-    if (!paymentResult.success) {
-      return paymentResult;
-    }
-
-    const receipt = paymentResult.value;
+    // PRE-COMMIT VALIDATION: Business and user context must be present
     const businessAccountRemoteId =
       params.activeBusinessAccountRemoteId?.trim();
     const ownerUserRemoteId = params.activeOwnerUserRemoteId?.trim();
@@ -161,23 +151,50 @@ export const createCompletePosCheckoutUseCase = ({
       params.activeSettlementAccountRemoteId?.trim() ?? null;
 
     if (!businessAccountRemoteId || !ownerUserRemoteId) {
-      return paymentResult;
-    }
-
-    // ENFORCE: If paid amount > 0, settlement money account must be provided
-    // Settlement must be a Money Account ID (resolved from active Money Accounts)
-    if (receipt.paidAmount > 0 && !settlementAccountRemoteId) {
       return {
-        success: true,
-        value: {
-          ...receipt,
-          ledgerEffect: {
-            ...receipt.ledgerEffect,
-            type: "posting_sync_failed",
-          },
+        success: false,
+        error: {
+          type: PosErrorType.ContextRequired,
+          message: "POS requires active business account and owner user context.",
         },
       };
     }
+
+    // PRE-COMMIT VALIDATION: Paid checkout requires settlement money account
+    if (params.paidAmount > 0 && !settlementAccountRemoteId) {
+      return {
+        success: false,
+        error: {
+          type: PosErrorType.ContextRequired,
+          message: "Settlement money account is required for paid sales.",
+        },
+      };
+    }
+
+    // PRE-COMMIT VALIDATION: Unpaid/partial checkout requires customer
+    const expectedDueAmount = Math.max(params.grandTotalSnapshot - params.paidAmount, 0);
+    if (expectedDueAmount > 0 && !params.selectedCustomer) {
+      return {
+        success: false,
+        error: {
+          type: PosErrorType.ContextRequired,
+          message: "Customer selection is required for unpaid sales.",
+        },
+      };
+    }
+
+    const paymentResult = await completePaymentUseCase.execute({
+      paidAmount: params.paidAmount,
+      activeSettlementAccountRemoteId: params.activeSettlementAccountRemoteId,
+      selectedCustomer: params.selectedCustomer,
+      grandTotalSnapshot: params.grandTotalSnapshot,
+    });
+
+    if (!paymentResult.success) {
+      return paymentResult;
+    }
+
+    const receipt = paymentResult.value;
 
     const happenedAt = parseReceiptIssuedAt(receipt.issuedAt);
     const dueLedgerRemoteId =
@@ -297,23 +314,12 @@ export const createCompletePosCheckoutUseCase = ({
       return paymentResult;
     }
 
-    // REQUIRE: Customer must be selected for due balance checkout
-    if (!params.selectedCustomer) {
-      return {
-        success: false,
-        error: {
-          type: PosErrorType.ContextRequired,
-          message: "Customer selection is required for unpaid sales",
-        },
-      };
-    }
-
     const ledgerResult = await addLedgerEntryUseCase.execute({
       remoteId: dueLedgerRemoteId as string,
       businessAccountRemoteId,
       ownerUserRemoteId,
-      partyName: params.selectedCustomer.fullName,
-      partyPhone: params.selectedCustomer.phone,
+      partyName: params.selectedCustomer!.fullName,
+      partyPhone: params.selectedCustomer!.phone,
       entryType: LedgerEntryType.Sale,
       balanceDirection: LedgerBalanceDirection.Receive,
       title: `POS Sale ${receipt.receiptNumber}`,
@@ -331,7 +337,7 @@ export const createCompletePosCheckoutUseCase = ({
       linkedTransactionRemoteId: null,
       settlementAccountRemoteId: settlementAccountRemoteId,
       settlementAccountDisplayNameSnapshot: null,
-      contactRemoteId: params.selectedCustomer.remoteId,
+      contactRemoteId: params.selectedCustomer!.remoteId,
     });
 
     if (!ledgerResult.success) {

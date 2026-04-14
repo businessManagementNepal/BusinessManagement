@@ -135,6 +135,7 @@ describe("POS Customer Creation Due-Balance Flow", () => {
         phone: "+9876543210",
         address: null,
       },
+      grandTotalSnapshot: 1000,
     });
 
     // Verify successful due-balance checkout
@@ -226,6 +227,7 @@ describe("POS Customer Creation Due-Balance Flow", () => {
         phone: "+9876543210",
         address: null,
       },
+      grandTotalSnapshot: 1000,
     });
 
     // Should still succeed since customer creation happens before checkout
