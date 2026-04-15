@@ -463,3 +463,127 @@ describe("PosScreenViewModel session persistence", () => {
     container.remove();
   });
 });
+
+describe("PosScreenViewModel restored search term behavior", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("restored empty search term -> filteredProducts stays empty", async () => {
+    const params = createMockPosViewModelParams({
+      loadPosSessionUseCase: createMockUseCase({
+        success: true,
+        value: {
+          cartLines: [],
+          recentProducts: [],
+          productSearchTerm: "",
+          selectedCustomer: null,
+          selectedSettlementAccountRemoteId: "",
+          discountInput: "",
+          surchargeInput: "",
+        },
+      }),
+    });
+    const { viewModel, root, container } = await mountViewModel(params);
+
+    // Verify that filteredProducts is empty when search term is empty
+    expect(viewModel.filteredProducts).toEqual([]);
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("restored non-empty search term -> matching results are recomputed and shown", async () => {
+    const matchingProduct = {
+      ...mockProduct,
+      name: "Test Product",
+    };
+    const params = createMockPosViewModelParams({
+      searchPosProductsUseCase: {
+        execute: vi.fn().mockResolvedValue([matchingProduct]),
+      },
+      loadPosSessionUseCase: createMockUseCase({
+        success: true,
+        value: {
+          cartLines: [],
+          recentProducts: [],
+          productSearchTerm: "Test",
+          selectedCustomer: null,
+          selectedSettlementAccountRemoteId: "",
+          discountInput: "",
+          surchargeInput: "",
+        },
+      }),
+    });
+    const { viewModel, root, container } = await mountViewModel(params);
+
+    // Verify that search was called with restored term and results are shown
+    expect(params.searchPosProductsUseCase.execute).toHaveBeenCalledWith("Test");
+    expect(viewModel.filteredProducts).toEqual([matchingProduct]);
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("restored non-empty search term with zero matches -> filteredProducts stays empty", async () => {
+    const params = createMockPosViewModelParams({
+      searchPosProductsUseCase: {
+        execute: vi.fn().mockResolvedValue([]),
+      },
+      loadPosSessionUseCase: createMockUseCase({
+        success: true,
+        value: {
+          cartLines: [],
+          recentProducts: [],
+          productSearchTerm: "NonExistent",
+          selectedCustomer: null,
+          selectedSettlementAccountRemoteId: "",
+          discountInput: "",
+          surchargeInput: "",
+        },
+      }),
+    });
+    const { viewModel, root, container } = await mountViewModel(params);
+
+    // Verify that search was called but no results found
+    expect(params.searchPosProductsUseCase.execute).toHaveBeenCalledWith("NonExistent");
+    expect(viewModel.filteredProducts).toEqual([]);
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("restored search term does not reveal full catalog", async () => {
+    const allProducts = [mockProduct, { ...mockProduct, id: "product-2", name: "Other Product" }];
+    const matchingProduct = {
+      ...mockProduct,
+      name: "Test Product",
+    };
+    const params = createMockPosViewModelParams({
+      searchPosProductsUseCase: {
+        execute: vi.fn().mockResolvedValue([matchingProduct]),
+      },
+      loadPosSessionUseCase: createMockUseCase({
+        success: true,
+        value: {
+          cartLines: [],
+          recentProducts: [],
+          productSearchTerm: "Test",
+          selectedCustomer: null,
+          selectedSettlementAccountRemoteId: "",
+          discountInput: "",
+          surchargeInput: "",
+        },
+      }),
+    });
+    const { viewModel, root, container } = await mountViewModel(params);
+
+    // Verify that only matching products are shown, not full catalog
+    expect(params.searchPosProductsUseCase.execute).toHaveBeenCalledWith("Test");
+    expect(viewModel.filteredProducts).toEqual([matchingProduct]);
+    expect(viewModel.filteredProducts).not.toEqual(allProducts);
+
+    root.unmount();
+    container.remove();
+  });
+});

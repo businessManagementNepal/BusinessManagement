@@ -1,6 +1,6 @@
 import {
-    MoneyAccount,
-    MoneyAccountTypeValue,
+  MoneyAccount,
+  MoneyAccountTypeValue,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import type { Contact } from "@/feature/contacts/types/contact.types";
@@ -8,8 +8,8 @@ import { ContactType } from "@/feature/contacts/types/contact.types";
 import type { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import {
-    ProductKind,
-    ProductStatus,
+  ProductKind,
+  ProductStatus,
 } from "@/feature/products/types/product.types";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
@@ -17,17 +17,17 @@ import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { Status } from "@/shared/types/status.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import {
-    buildTaxRateLabel,
-    buildTaxSummaryLabel,
-    resolveRegionalFinancePolicy,
+  buildTaxRateLabel,
+  buildTaxSummaryLabel,
+  resolveRegionalFinancePolicy,
 } from "@/shared/utils/finance/regionalFinancePolicy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    PosCartLine,
-    PosCustomer,
-    PosProduct,
-    PosSlot,
-    PosTotals,
+  PosCartLine,
+  PosCustomer,
+  PosProduct,
+  PosSlot,
+  PosTotals,
 } from "../types/pos.entity.types";
 import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
 import { AddProductToCartUseCase } from "../useCase/addProductToCart.useCase";
@@ -456,12 +456,17 @@ export function usePosScreenViewModel(
         ? activeSettlementAccountRemoteId.trim()
         : "");
 
+    const restoredFilteredProducts =
+      didRestoreSession && sessionDataProductSearchTerm.trim().length > 0
+        ? await searchPosProductsUseCase.execute(sessionDataProductSearchTerm)
+        : [];
+
     const nextState = {
       status: Status.Success,
       bootstrap: result.value,
       slots: result.value.slots,
       products: result.value.products,
-      filteredProducts: [],
+      filteredProducts: restoredFilteredProducts,
       cartLines: didRestoreSession ? sessionDataCartLines : [],
       recentProducts: didRestoreSession ? sessionDataRecentProducts : [],
       productSearchTerm: didRestoreSession ? sessionDataProductSearchTerm : "",
