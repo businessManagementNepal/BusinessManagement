@@ -1,13 +1,15 @@
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { StatusType } from "@/shared/types/status.types";
 import {
-  PosBootstrap,
-  PosCartLine,
-  PosProduct,
-  PosReceipt,
-  PosSlot,
-  PosTotals,
+    PosBootstrap,
+    PosCartLine,
+    PosProduct,
+    PosReceipt,
+    PosSlot,
+    PosTotals,
 } from "./pos.entity.types";
+
+export type PosCheckoutMode = "payment" | "split-bill";
 
 export type PosCheckoutSubmissionKind = "payment" | "split-bill";
 

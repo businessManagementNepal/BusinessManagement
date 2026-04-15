@@ -1,6 +1,6 @@
 import {
-  MoneyAccount,
-  MoneyAccountTypeValue,
+    MoneyAccount,
+    MoneyAccountTypeValue,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import type { Contact } from "@/feature/contacts/types/contact.types";
@@ -8,8 +8,8 @@ import { ContactType } from "@/feature/contacts/types/contact.types";
 import type { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import {
-  ProductKind,
-  ProductStatus,
+    ProductKind,
+    ProductStatus,
 } from "@/feature/products/types/product.types";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
@@ -17,25 +17,26 @@ import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { Status } from "@/shared/types/status.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import {
-  buildTaxRateLabel,
-  buildTaxSummaryLabel,
-  resolveRegionalFinancePolicy,
+    buildTaxRateLabel,
+    buildTaxSummaryLabel,
+    resolveRegionalFinancePolicy,
 } from "@/shared/utils/finance/regionalFinancePolicy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PosPaymentPartInput } from "../types/pos.dto.types";
 import {
-  PosCartLine,
-  PosCustomer,
-  PosProduct,
-  PosReceipt,
-  PosSlot,
-  PosSplitDraftPart,
-  PosTotals,
+    PosCartLine,
+    PosCustomer,
+    PosProduct,
+    PosReceipt,
+    PosSlot,
+    PosSplitDraftPart,
+    PosTotals,
 } from "../types/pos.entity.types";
 import {
-  PosCheckoutSubmissionKind,
-  PosScreenState,
-  PosScreenViewModel,
+    PosCheckoutMode,
+    PosCheckoutSubmissionKind,
+    PosScreenState,
+    PosScreenViewModel
 } from "../types/pos.state.types";
 import { AddProductToCartUseCase } from "../useCase/addProductToCart.useCase";
 import { ApplyDiscountUseCase } from "../useCase/applyDiscount.useCase";
@@ -575,8 +576,92 @@ export function usePosScreenViewModel(
         ]
       : [];
 
+  const validatePaymentCheckout = useCallback((): string | null => {
+    const paidAmount = parseAmountInput(state.paymentInput);
+    const settlementAccountRemoteId =
+      state.selectedSettlementAccountRemoteId.trim();
+    const dueAmount = Number((state.totals.grandTotal - paidAmount).toFixed(2));
+
+    if (paidAmount > 0 && !settlementAccountRemoteId) {
+      return "Select a settlement money account for paid sales.";
+    }
+
+    if (dueAmount > 0 && !state.selectedCustomer) {
+      return "Select a customer to continue with unpaid or partial payment.";
+    }
+
+    return null;
+  }, [
+    state.paymentInput,
+    state.selectedSettlementAccountRemoteId,
+    state.totals.grandTotal,
+    state.selectedCustomer,
+  ]);
+
+  const buildPaymentCheckoutParts = useCallback(
+    (): readonly PosPaymentPartInput[] => {
+      const paidAmount = parseAmountInput(state.paymentInput);
+      const settlementAccountRemoteId =
+        state.selectedSettlementAccountRemoteId.trim();
+
+      return buildNormalPaymentParts(paidAmount, settlementAccountRemoteId);
+    },
+    [state.paymentInput, state.selectedSettlementAccountRemoteId],
+  );
+
+  const validateCheckoutMode = useCallback(
+    (mode: PosCheckoutMode): string | null => {
+      if (mode === "payment") {
+        return validatePaymentCheckout();
+      }
+
+      return validateSplitBillDraft(
+        state.splitBillDraftParts,
+        state.totals.grandTotal,
+        state.selectedCustomer,
+      );
+    },
+    [
+      state.splitBillDraftParts,
+      state.totals.grandTotal,
+      state.selectedCustomer,
+      validatePaymentCheckout,
+    ],
+  );
+
+  const buildCheckoutPaymentParts = useCallback(
+    (mode: PosCheckoutMode): readonly PosPaymentPartInput[] => {
+      if (mode === "payment") {
+        return buildPaymentCheckoutParts();
+      }
+
+      return state.splitBillDraftParts.map((part) => ({
+        paymentPartId: part.paymentPartId,
+        payerLabel: part.payerLabel.trim() || null,
+        amount: parseAmountInput(part.amountInput),
+        settlementAccountRemoteId: part.settlementAccountRemoteId,
+      }));
+    },
+    [buildPaymentCheckoutParts, state.splitBillDraftParts],
+  );
+
+  const setCheckoutModeError = useCallback(
+    (mode: PosCheckoutMode, message: string) => {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: mode === "payment" ? message : currentState.errorMessage,
+        splitBillErrorMessage:
+          mode === "split-bill" ? message : currentState.splitBillErrorMessage,
+      }));
+    },
+    [],
+  );
+
   const submitCheckout = useCallback(
-    async (paymentParts: readonly PosPaymentPartInput[]): Promise<boolean> => {
+    async (
+      mode: PosCheckoutMode,
+      paymentParts: readonly PosPaymentPartInput[],
+    ): Promise<boolean> => {
       const result = await completePosCheckoutUseCase.execute({
         paymentParts,
         selectedCustomer: state.selectedCustomer,
@@ -590,7 +675,14 @@ export function usePosScreenViewModel(
       if (!result.success) {
         setState((currentState) => ({
           ...currentState,
-          errorMessage: result.error.message,
+          errorMessage:
+            mode === "payment"
+              ? result.error.message
+              : currentState.errorMessage,
+          splitBillErrorMessage:
+            mode === "split-bill"
+              ? result.error.message
+              : currentState.splitBillErrorMessage,
         }));
         return false;
       }
@@ -607,6 +699,31 @@ export function usePosScreenViewModel(
       regionalFinancePolicy.currencyCode,
       regionalFinancePolicy.countryCode,
       finalizeSuccessfulCheckout,
+    ],
+  );
+
+  const runCheckoutFlow = useCallback(
+    async (mode: PosCheckoutMode): Promise<boolean> => {
+      const validationError = validateCheckoutMode(mode);
+
+      if (validationError) {
+        setCheckoutModeError(mode, validationError);
+        return false;
+      }
+
+      const paymentParts = buildCheckoutPaymentParts(mode);
+
+      return runCheckoutSubmission(
+        mode === "payment" ? "payment" : "split-bill",
+        async () => submitCheckout(mode, paymentParts),
+      );
+    },
+    [
+      validateCheckoutMode,
+      setCheckoutModeError,
+      buildCheckoutPaymentParts,
+      runCheckoutSubmission,
+      submitCheckout,
     ],
   );
 
@@ -1449,32 +1566,8 @@ export function usePosScreenViewModel(
   ]);
 
   const onCompletePayment = useCallback(async () => {
-    const paidAmount = parseAmountInput(state.paymentInput);
-    const settlementAccountRemoteId =
-      state.selectedSettlementAccountRemoteId.trim();
-
-    if (paidAmount > 0 && !settlementAccountRemoteId) {
-      setState((currentState) => ({
-        ...currentState,
-        errorMessage: "Select a settlement money account for paid sales.",
-      }));
-      return;
-    }
-
-    const paymentParts = buildNormalPaymentParts(
-      paidAmount,
-      settlementAccountRemoteId,
-    );
-
-    await runCheckoutSubmission("payment", async () =>
-      submitCheckout(paymentParts),
-    );
-  }, [
-    state.paymentInput,
-    state.selectedSettlementAccountRemoteId,
-    submitCheckout,
-    runCheckoutSubmission,
-  ]);
+    await runCheckoutFlow("payment");
+  }, [runCheckoutFlow]);
 
   const onPrintReceipt = useCallback(async () => {
     if (!state.receipt) {
@@ -1917,38 +2010,8 @@ export function usePosScreenViewModel(
   );
 
   const onCompleteSplitBillPayment = useCallback(async () => {
-    const validationError = validateSplitBillDraft(
-      state.splitBillDraftParts,
-      state.totals.grandTotal,
-      state.selectedCustomer,
-    );
-
-    if (validationError) {
-      setState((currentState) => ({
-        ...currentState,
-        splitBillErrorMessage: validationError,
-      }));
-      return;
-    }
-
-    const paymentParts: readonly PosPaymentPartInput[] =
-      state.splitBillDraftParts.map((part) => ({
-        paymentPartId: part.paymentPartId,
-        payerLabel: part.payerLabel.trim() || null,
-        amount: parseAmountInput(part.amountInput),
-        settlementAccountRemoteId: part.settlementAccountRemoteId,
-      }));
-
-    await runCheckoutSubmission("split-bill", async () =>
-      submitCheckout(paymentParts),
-    );
-  }, [
-    state.splitBillDraftParts,
-    state.totals.grandTotal,
-    state.selectedCustomer,
-    submitCheckout,
-    runCheckoutSubmission,
-  ]);
+    await runCheckoutFlow("split-bill");
+  }, [runCheckoutFlow]);
 
   const onOpenReceiptModal = useCallback(() => {
     setState((currentState) => ({
