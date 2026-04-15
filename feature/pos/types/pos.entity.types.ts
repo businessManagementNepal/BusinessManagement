@@ -53,10 +53,26 @@ export type PosReceipt = {
   totals: PosTotals;
   paidAmount: number;
   dueAmount: number;
+  paymentParts: readonly PosReceiptPaymentPart[];
   ledgerEffect: PosLedgerEffect;
   customerName: string | null;
   customerPhone: string | null;
   contactRemoteId: string | null;
+};
+
+export type PosSplitDraftPart = {
+  paymentPartId: string;
+  payerLabel: string;
+  amountInput: string;
+  settlementAccountRemoteId: string;
+};
+
+export type PosReceiptPaymentPart = {
+  paymentPartId: string;
+  payerLabel: string | null;
+  amount: number;
+  settlementAccountRemoteId: string;
+  settlementAccountLabel: string | null;
 };
 
 export type PosCustomer = {

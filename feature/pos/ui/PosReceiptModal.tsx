@@ -108,6 +108,23 @@ export function PosReceiptModal({
                 </View>
               </View>
 
+              {receipt.paymentParts && receipt.paymentParts.length > 0 && (
+                <View style={styles.paymentBreakdownSection}>
+                  <Text style={styles.sectionTitle}>Payments</Text>
+                  {receipt.paymentParts.map((part) => (
+                    <View key={part.paymentPartId} style={styles.paymentBreakdownRow}>
+                      <Text style={styles.paymentBreakdownLabel}>
+                        {part.payerLabel ?? "Payment"}
+                        {part.settlementAccountLabel ? ` • ${part.settlementAccountLabel}` : ""}
+                      </Text>
+                      <Text style={styles.paymentBreakdownAmount}>
+                        {formatCurrency(part.amount, currencyCode, countryCode)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
               <Text style={styles.grandTotalLabel}>Grand Total</Text>
               <Text style={styles.grandTotalValue}>
                 {formatCurrency(receipt.totals.grandTotal, currencyCode, countryCode)}
@@ -311,5 +328,35 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+  },
+  paymentBreakdownSection: {
+    backgroundColor: colors.muted,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+    gap: 6,
+  },
+  sectionTitle: {
+    color: colors.cardForeground,
+    fontSize: 14,
+    fontFamily: "InterBold",
+    marginBottom: spacing.xs,
+  },
+  paymentBreakdownRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  paymentBreakdownLabel: {
+    color: colors.cardForeground,
+    fontSize: 13,
+    fontFamily: "InterMedium",
+    flex: 1,
+  },
+  paymentBreakdownAmount: {
+    color: colors.cardForeground,
+    fontSize: 13,
+    fontFamily: "InterSemiBold",
   },
 });

@@ -7,7 +7,10 @@ import { createCompletePosCheckoutUseCase } from "@/feature/pos/useCase/complete
 import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import { describe, expect, it, vi } from "vitest";
 
-const createReceipt = (dueAmount: number): PosReceipt => ({
+const createReceipt = (
+  dueAmount: number,
+  paymentParts?: any[],
+): PosReceipt => ({
   receiptNumber: "RCPT-12345678",
   issuedAt: "2026-04-03T00:00:00.000Z",
   lines: [],
@@ -29,6 +32,7 @@ const createReceipt = (dueAmount: number): PosReceipt => ({
   customerName: null,
   customerPhone: null,
   contactRemoteId: null,
+  paymentParts: paymentParts ?? [],
 });
 
 const createCoreSyncUseCases = (): {
@@ -68,7 +72,14 @@ describe("completePosCheckout.useCase", () => {
     const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(0),
+        value: createReceipt(0, [
+          {
+            paymentPartId: "part-1",
+            payerLabel: null,
+            amount: 1130,
+            settlementAccountRemoteId: "money-cash-1",
+          },
+        ]),
       }),
     );
     const completePaymentUseCase: CompletePaymentUseCase = {
@@ -104,14 +115,20 @@ describe("completePosCheckout.useCase", () => {
     });
 
     const result = await useCase.execute({
-      paidAmount: 1130,
-      activeBusinessAccountRemoteId: "business-1",
-      activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: "money-cash-1",
-      activeAccountCurrencyCode: "NPR",
-      activeAccountCountryCode: "NP",
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 1130,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
       selectedCustomer: null,
       grandTotalSnapshot: 1130,
+      activeBusinessAccountRemoteId: "business-1",
+      activeOwnerUserRemoteId: "user-1",
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
     });
 
     expect(result.success).toBe(true);
@@ -122,7 +139,14 @@ describe("completePosCheckout.useCase", () => {
     const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(300),
+        value: createReceipt(300, [
+          {
+            paymentPartId: "part-1",
+            payerLabel: null,
+            amount: 830,
+            settlementAccountRemoteId: "money-cash-1",
+          },
+        ]),
       }),
     );
     const completePaymentUseCase: CompletePaymentUseCase = {
@@ -158,12 +182,14 @@ describe("completePosCheckout.useCase", () => {
     });
 
     const result = await useCase.execute({
-      paidAmount: 830,
-      activeBusinessAccountRemoteId: "business-1",
-      activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: "money-cash-1",
-      activeAccountCurrencyCode: "NPR",
-      activeAccountCountryCode: "NP",
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 830,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
       selectedCustomer: {
         remoteId: "customer-1",
         fullName: "John Doe",
@@ -171,6 +197,10 @@ describe("completePosCheckout.useCase", () => {
         address: null,
       },
       grandTotalSnapshot: 1130,
+      activeBusinessAccountRemoteId: "business-1",
+      activeOwnerUserRemoteId: "user-1",
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
     });
 
     expect(result.success).toBe(true);
@@ -221,7 +251,14 @@ describe("completePosCheckout.useCase", () => {
     });
 
     const result = await useCase.execute({
-      paidAmount: 880,
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 880,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
       activeSettlementAccountRemoteId: "money-cash-1",
@@ -245,7 +282,7 @@ describe("completePosCheckout.useCase", () => {
     }
   });
 
-it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missing - OLD", async () => {
+  it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missing - OLD", async () => {
     const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
@@ -272,14 +309,19 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
       completePaymentUseCase: { execute: completePaymentExecuteSpy },
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
-      execute: vi.fn(),
-    },
+        execute: vi.fn(),
+      },
       ...coreSyncUseCases,
     });
 
     // Paid checkout with NULL settlement account should fail
     const result = await useCase.execute({
-      paidAmount: 1130,
+      paymentParts: [{
+        paymentPartId: "part-1",
+        payerLabel: null,
+        amount: 1130,
+        settlementAccountRemoteId: "",
+      }],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
       activeSettlementAccountRemoteId: null,
@@ -324,14 +366,21 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
       completePaymentUseCase: { execute: completePaymentExecuteSpy },
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
-      execute: vi.fn(),
-    },
+        execute: vi.fn(),
+      },
       ...coreSyncUseCases,
     });
 
     // Paid checkout with REAL MONEY ACCOUNT settlement should succeed
     const result = await useCase.execute({
-      paidAmount: 1130,
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 1130,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
       activeSettlementAccountRemoteId: "money-cash-1",
@@ -371,15 +420,14 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
         },
       }),
     );
-    const verifyLinkedDocumentSpy: AddLedgerEntryUseCase["verifyLinkedDocument"] = vi.fn(
-      async () => ({
+    const verifyLinkedDocumentSpy: AddLedgerEntryUseCase["verifyLinkedDocument"] =
+      vi.fn(async () => ({
         success: false as const,
         error: {
           type: "VALIDATION_ERROR" as const,
           message: "No ledger entry found linked to this billing document.",
         },
-      }),
-    );
+      }));
     const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
       execute: addLedgerEntryExecuteSpy,
       verifyLinkedDocument: verifyLinkedDocumentSpy,
@@ -390,13 +438,18 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
       completePaymentUseCase: { execute: completePaymentExecuteSpy },
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
-      execute: vi.fn(),
-    },
+        execute: vi.fn(),
+      },
       ...coreSyncUseCases,
     });
 
     const result = await useCase.execute({
-      paidAmount: 830,
+      paymentParts: [{
+        paymentPartId: "part-1",
+        payerLabel: null,
+        amount: 830,
+        settlementAccountRemoteId: "money-cash-1",
+      }],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
       activeSettlementAccountRemoteId: "money-cash-1",
@@ -417,7 +470,9 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
 
     if (!result.success) {
       expect(result.error.type).toBe("UNKNOWN");
-      expect(result.error.message).toContain("Billing-Ledger linkage verification failed");
+      expect(result.error.message).toContain(
+        "Billing-Ledger linkage verification failed",
+      );
     }
   });
 
@@ -458,7 +513,12 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
 
     // Test with missing business account
     const result1 = await useCase.execute({
-      paidAmount: 1130,
+      paymentParts: [{
+        paymentPartId: "part-1",
+        payerLabel: null,
+        amount: 1130,
+        settlementAccountRemoteId: "money-cash-1",
+      }],
       activeBusinessAccountRemoteId: null,
       activeOwnerUserRemoteId: "user-1",
       activeSettlementAccountRemoteId: "money-cash-1",
@@ -471,12 +531,19 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
     expect(result1.success).toBe(false);
     if (!result1.success) {
       expect(result1.error.type).toBe("CONTEXT_REQUIRED");
-      expect(result1.error.message).toContain("POS requires active business account and owner user context");
+      expect(result1.error.message).toContain(
+        "POS requires active business account and owner user context",
+      );
     }
 
     // Test with missing owner user
     const result2 = await useCase.execute({
-      paidAmount: 1130,
+      paymentParts: [{
+        paymentPartId: "part-1",
+        payerLabel: null,
+        amount: 1130,
+        settlementAccountRemoteId: "money-cash-1",
+      }],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: null,
       activeSettlementAccountRemoteId: "money-cash-1",
@@ -533,7 +600,12 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
 
     // Paid checkout with NULL settlement account should fail
     const result = await useCase.execute({
-      paidAmount: 1130,
+      paymentParts: [{
+        paymentPartId: "part-1",
+        payerLabel: null,
+        amount: 1130,
+        settlementAccountRemoteId: "",
+      }],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
       activeSettlementAccountRemoteId: null,
@@ -590,7 +662,12 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
 
     // Unpaid checkout with NULL customer should fail
     const result = await useCase.execute({
-      paidAmount: 830,
+      paymentParts: [{
+        paymentPartId: "part-1",
+        payerLabel: null,
+        amount: 830,
+        settlementAccountRemoteId: "money-cash-1",
+      }],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
       activeSettlementAccountRemoteId: "money-cash-1",
@@ -603,7 +680,9 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.type).toBe("CONTEXT_REQUIRED");
-      expect(result.error.message).toContain("Customer selection is required for unpaid sales");
+      expect(result.error.message).toContain(
+        "Customer selection is required for unpaid sales",
+      );
     }
 
     // Verify completePaymentUseCase was never called
@@ -647,7 +726,12 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
 
     // Fully paid anonymous checkout should succeed
     const result = await useCase.execute({
-      paidAmount: 1130,
+      paymentParts: [{
+        paymentPartId: "part-1",
+        payerLabel: null,
+        amount: 1130,
+        settlementAccountRemoteId: "money-cash-1",
+      }],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
       activeSettlementAccountRemoteId: "money-cash-1",
@@ -659,8 +743,12 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
 
     expect(result.success).toBe(true);
     expect(completePaymentExecuteSpy).toHaveBeenCalledTimes(1);
-    expect(coreSyncUseCases.postBusinessTransactionUseCase.execute).toHaveBeenCalled();
-    expect(coreSyncUseCases.saveBillingDocumentUseCase.execute).toHaveBeenCalled();
+    expect(
+      coreSyncUseCases.postBusinessTransactionUseCase.execute,
+    ).toHaveBeenCalled();
+    expect(
+      coreSyncUseCases.saveBillingDocumentUseCase.execute,
+    ).toHaveBeenCalled();
   });
 
   it("PRODUCTION FIX: succeeds when unpaid checkout with customer", async () => {
@@ -703,7 +791,12 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
 
     // Unpaid checkout with customer should succeed
     const result = await useCase.execute({
-      paidAmount: 830,
+      paymentParts: [{
+        paymentPartId: "part-1",
+        payerLabel: null,
+        amount: 830,
+        settlementAccountRemoteId: "money-cash-1",
+      }],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
       activeSettlementAccountRemoteId: "money-cash-1",
@@ -743,8 +836,8 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
         },
       }),
     );
-    const verifyLinkedDocumentSpy: AddLedgerEntryUseCase["verifyLinkedDocument"] = vi.fn(
-      async (billingDocId, expectedLedgerId) => ({
+    const verifyLinkedDocumentSpy: AddLedgerEntryUseCase["verifyLinkedDocument"] =
+      vi.fn(async (billingDocId, expectedLedgerId) => ({
         success: true as const,
         value: {
           remoteId: expectedLedgerId,
@@ -752,8 +845,7 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
           createdAt: 1,
           updatedAt: 1,
         } as never,
-      }),
-    );
+      }));
     const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
       execute: addLedgerEntryExecuteSpy,
       verifyLinkedDocument: verifyLinkedDocumentSpy,
@@ -764,13 +856,18 @@ it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missin
       completePaymentUseCase: { execute: completePaymentExecuteSpy },
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
-      execute: vi.fn(),
-    },
+        execute: vi.fn(),
+      },
       ...coreSyncUseCases,
     });
 
     const result = await useCase.execute({
-      paidAmount: 830,
+      paymentParts: [{
+        paymentPartId: "part-1",
+        payerLabel: null,
+        amount: 830,
+        settlementAccountRemoteId: "money-cash-1",
+      }],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
       activeSettlementAccountRemoteId: "money-cash-1",

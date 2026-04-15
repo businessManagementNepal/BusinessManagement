@@ -1,12 +1,12 @@
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { StatusType } from "@/shared/types/status.types";
 import {
-  PosBootstrap,
-  PosCartLine,
-  PosProduct,
-  PosReceipt,
-  PosSlot,
-  PosTotals,
+    PosBootstrap,
+    PosCartLine,
+    PosProduct,
+    PosReceipt,
+    PosSlot,
+    PosTotals,
 } from "./pos.entity.types";
 
 export type PosModalType =
@@ -16,6 +16,7 @@ export type PosModalType =
   | "discount"
   | "surcharge"
   | "payment"
+  | "split-bill"
   | "receipt"
   | "customer-create";
 
@@ -53,6 +54,8 @@ export type PosScreenState = {
     address: string;
   };
   isCreatingCustomer: boolean;
+  splitBillDraftParts: readonly import("./pos.entity.types").PosSplitDraftPart[];
+  splitBillErrorMessage: string | null;
 };
 
 export type PosScreenViewModel = {
@@ -117,10 +120,28 @@ export type PosScreenViewModel = {
   onOpenPaymentModal: () => void;
   onClosePaymentModal: () => void;
   onOpenSplitBillModal: () => void;
+  onCloseSplitBillModal: () => void;
+  onApplyEqualSplit: (count: number) => Promise<void>;
+  onAddSplitBillPart: () => Promise<void>;
+  onRemoveSplitBillPart: (paymentPartId: string) => Promise<void>;
+  onChangeSplitBillPartPayerLabel: (
+    paymentPartId: string,
+    value: string,
+  ) => Promise<void>;
+  onChangeSplitBillPartAmount: (
+    paymentPartId: string,
+    value: string,
+  ) => Promise<void>;
+  onChangeSplitBillPartSettlementAccount: (
+    paymentPartId: string,
+    settlementAccountRemoteId: string,
+  ) => Promise<void>;
+  onCompleteSplitBillPayment: () => Promise<void>;
   onApplyDiscount: () => Promise<void>;
   onApplySurcharge: () => Promise<void>;
   onClearCart: () => Promise<void>;
   onCompletePayment: () => Promise<void>;
+  onConfirmPayment: () => Promise<void>;
   onOpenReceiptModal: () => void;
   onCloseReceiptModal: () => void;
   onPrintReceipt: () => Promise<void>;
@@ -140,4 +161,8 @@ export type PosScreenViewModel = {
   onSettlementAccountChange: (settlementAccountRemoteId: string) => void;
   customerOptions: readonly import("../ui/components/PosCustomerSelector").DropdownOption[];
   isCreatingCustomer: boolean;
+  splitBillDraftParts: readonly import("./pos.entity.types").PosSplitDraftPart[];
+  splitBillAllocatedAmount: number;
+  splitBillRemainingAmount: number;
+  splitBillErrorMessage: string | null;
 };

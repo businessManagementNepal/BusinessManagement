@@ -1,30 +1,31 @@
 import {
-    BillingDocumentStatus,
-    BillingDocumentType,
-    BillingTemplateType,
+  BillingDocumentStatus,
+  BillingDocumentType,
+  BillingTemplateType,
 } from "@/feature/billing/types/billing.types";
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase";
 import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import {
-    LedgerBalanceDirection,
-    LedgerEntryType,
+  LedgerBalanceDirection,
+  LedgerEntryType,
 } from "@/feature/ledger/types/ledger.entity.types";
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
 import {
-    SaveTransactionPayload,
-    TransactionDirection,
-    TransactionSourceModule,
-    TransactionType,
+  SaveTransactionPayload,
+  TransactionDirection,
+  TransactionSourceModule,
+  TransactionType,
 } from "@/feature/transactions/types/transaction.entity.types";
 import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
+import type { PosPaymentPartInput } from "../types/pos.dto.types";
 import { PosReceipt } from "../types/pos.entity.types";
 import { PosErrorType, PosPaymentResult } from "../types/pos.error.types";
 import { CompletePaymentUseCase } from "./completePayment.useCase";
 import {
-    CompletePosCheckoutParams,
-    CompletePosCheckoutUseCase,
+  CompletePosCheckoutParams,
+  CompletePosCheckoutUseCase,
 } from "./completePosCheckout.useCase";
 
 type CreateCompletePosCheckoutUseCaseParams = {
@@ -89,6 +90,13 @@ const parseReceiptIssuedAt = (issuedAt: string): number => {
 const buildPosDocumentNumber = (receiptNumber: string): string =>
   `POS-${receiptNumber}`.toUpperCase();
 
+const calculatePaidAmountFromParts = (
+  paymentParts: readonly PosPaymentPartInput[],
+): number =>
+  Number(
+    paymentParts.reduce((sum, part) => sum + part.amount, 0).toFixed(2),
+  );
+
 const buildPricingForDocument = (
   receipt: PosReceipt,
 ): {
@@ -147,8 +155,6 @@ export const createCompletePosCheckoutUseCase = ({
     const businessAccountRemoteId =
       params.activeBusinessAccountRemoteId?.trim();
     const ownerUserRemoteId = params.activeOwnerUserRemoteId?.trim();
-    const settlementAccountRemoteId =
-      params.activeSettlementAccountRemoteId?.trim() ?? null;
 
     if (!businessAccountRemoteId || !ownerUserRemoteId) {
       return {
@@ -161,7 +167,11 @@ export const createCompletePosCheckoutUseCase = ({
     }
 
     // PRE-COMMIT VALIDATION: Paid checkout requires settlement money account
-    if (params.paidAmount > 0 && !settlementAccountRemoteId) {
+    const paidAmount = calculatePaidAmountFromParts(params.paymentParts);
+    const firstPaymentPart = params.paymentParts[0];
+    const settlementAccountRemoteId = firstPaymentPart?.settlementAccountRemoteId ?? null;
+    
+    if (paidAmount > 0 && !settlementAccountRemoteId) {
       return {
         success: false,
         error: {
@@ -172,7 +182,7 @@ export const createCompletePosCheckoutUseCase = ({
     }
 
     // PRE-COMMIT VALIDATION: Unpaid/partial checkout requires customer
-    const expectedDueAmount = Math.max(params.grandTotalSnapshot - params.paidAmount, 0);
+    const expectedDueAmount = Math.max(params.grandTotalSnapshot - paidAmount, 0);
     if (expectedDueAmount > 0 && !params.selectedCustomer) {
       return {
         success: false,
@@ -184,8 +194,7 @@ export const createCompletePosCheckoutUseCase = ({
     }
 
     const paymentResult = await completePaymentUseCase.execute({
-      paidAmount: params.paidAmount,
-      activeSettlementAccountRemoteId: params.activeSettlementAccountRemoteId,
+      paymentParts: params.paymentParts,
       selectedCustomer: params.selectedCustomer,
       grandTotalSnapshot: params.grandTotalSnapshot,
     });
@@ -195,6 +204,15 @@ export const createCompletePosCheckoutUseCase = ({
     }
 
     const receipt = paymentResult.value;
+
+    // Build payment breakdown for receipt
+    const receiptPaymentParts = params.paymentParts.map((part) => ({
+      paymentPartId: part.paymentPartId,
+      payerLabel: part.payerLabel,
+      amount: part.amount,
+      settlementAccountRemoteId: part.settlementAccountRemoteId,
+      settlementAccountLabel: null, // Settlement account labels would need money account lookup
+    }));
 
     const happenedAt = parseReceiptIssuedAt(receipt.issuedAt);
     const dueLedgerRemoteId =
@@ -261,52 +279,44 @@ export const createCompletePosCheckoutUseCase = ({
         return buildPostingSyncFailedResult(receipt);
       }
 
-      const transactionRemoteId = createTransactionRemoteId();
-      const postTransactionPayload: SaveTransactionPayload = {
-        remoteId: transactionRemoteId,
-        ownerUserRemoteId,
-        accountRemoteId: businessAccountRemoteId,
-        accountDisplayNameSnapshot: "Business Account",
-        transactionType: TransactionType.Income,
-        direction: TransactionDirection.In,
-        title: `POS Payment ${receipt.receiptNumber}`,
-        amount: Number(receipt.paidAmount.toFixed(2)),
-        currencyCode,
-        categoryLabel: "POS",
-        note: `Payment for POS receipt ${receipt.receiptNumber}`,
-        happenedAt,
-        settlementMoneyAccountRemoteId: settlementAccountRemoteId,
-        settlementMoneyAccountDisplayNameSnapshot: null,
-        sourceModule: TransactionSourceModule.Pos,
-        sourceRemoteId: billingDocumentRemoteId,
-        sourceAction: "checkout_payment",
-        idempotencyKey: `pos:${receipt.receiptNumber}:payment`,
-        contactRemoteId: params.selectedCustomer?.remoteId ?? null,
-      };
+      // Post one money movement per payment part
+      for (const paymentPart of params.paymentParts) {
+        if (paymentPart.amount <= 0) {
+          return buildPostingSyncFailedResult(receipt);
+        }
+        
+        if (!paymentPart.settlementAccountRemoteId?.trim()) {
+          return buildPostingSyncFailedResult(receipt);
+        }
 
-      const postTransactionResult =
-        await postBusinessTransactionUseCase.execute(postTransactionPayload);
-      if (!postTransactionResult.success) {
-        return buildPostingSyncFailedResult(receipt);
-      }
+        const transactionRemoteId = createTransactionRemoteId();
+        const postTransactionPayload: SaveTransactionPayload = {
+          remoteId: transactionRemoteId,
+          ownerUserRemoteId,
+          accountRemoteId: businessAccountRemoteId,
+          accountDisplayNameSnapshot: "Business Account",
+          transactionType: TransactionType.Income,
+          direction: TransactionDirection.In,
+          title: `POS Payment ${receipt.receiptNumber} - ${paymentPart.paymentPartId}`,
+          amount: Number(paymentPart.amount.toFixed(2)),
+          currencyCode,
+          categoryLabel: "POS",
+          note: `Payment for POS receipt ${receipt.receiptNumber} - ${paymentPart.paymentPartId}`,
+          happenedAt,
+          settlementMoneyAccountRemoteId: paymentPart.settlementAccountRemoteId,
+          settlementMoneyAccountDisplayNameSnapshot: null,
+          sourceModule: TransactionSourceModule.Pos,
+          sourceRemoteId: billingDocumentRemoteId,
+          sourceAction: "checkout_payment",
+          idempotencyKey: `pos:${receipt.receiptNumber}:payment:${paymentPart.paymentPartId}`,
+          contactRemoteId: params.selectedCustomer?.remoteId ?? null,
+        };
 
-      paymentTransactionRemoteId = transactionRemoteId;
-      const saveAllocationResult =
-        await saveBillingDocumentAllocationsUseCase.execute([
-          {
-            remoteId: createBillingAllocationRemoteId(),
-            accountRemoteId: businessAccountRemoteId,
-            documentRemoteId: billingDocumentRemoteId,
-            settlementLedgerEntryRemoteId: null,
-            settlementTransactionRemoteId: paymentTransactionRemoteId,
-            amount: Number(receipt.paidAmount.toFixed(2)),
-            settledAt: happenedAt,
-            note: `POS payment ${receipt.receiptNumber}`,
-          },
-        ]);
-
-      if (!saveAllocationResult.success) {
-        return buildPostingSyncFailedResult(receipt);
+        const postTransactionResult =
+          await postBusinessTransactionUseCase.execute(postTransactionPayload);
+        if (!postTransactionResult.success) {
+          return buildPostingSyncFailedResult(receipt);
+        }
       }
     }
 
@@ -376,6 +386,7 @@ export const createCompletePosCheckoutUseCase = ({
       success: true,
       value: {
         ...receipt,
+        paymentParts: receiptPaymentParts,
         ledgerEffect: {
           ...receipt.ledgerEffect,
           type: "due_balance_created",

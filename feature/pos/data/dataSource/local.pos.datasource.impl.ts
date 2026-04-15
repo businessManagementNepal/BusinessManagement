@@ -4,36 +4,36 @@ import { ProductModel } from "@/feature/products/data/dataSource/db/product.mode
 import { RecordSyncStatus } from "@/feature/session/types/authSession.types";
 import { Database, Q } from "@nozbe/watermelondb";
 import {
-  PosAddProductToCartParams,
-  PosApplyAmountAdjustmentParams,
-  PosAssignProductToSlotParams,
-  PosChangeQuantityParams,
-  PosClearSessionParams,
-  PosCompletePaymentParams,
-  PosLoadBootstrapParams,
-  PosLoadSessionParams,
-  PosRemoveSlotProductParams,
-  PosSaveSessionParams,
-  PosSessionData,
-  PosSessionResult
+    PosAddProductToCartParams,
+    PosApplyAmountAdjustmentParams,
+    PosAssignProductToSlotParams,
+    PosChangeQuantityParams,
+    PosClearSessionParams,
+    PosCompletePaymentParams,
+    PosLoadBootstrapParams,
+    PosLoadSessionParams,
+    PosRemoveSlotProductParams,
+    PosSaveSessionParams,
+    PosSessionData,
+    PosSessionResult
 } from "../../types/pos.dto.types";
 import {
-  PosBootstrap,
-  PosCartLine,
-  PosLedgerEffect,
-  PosProduct,
-  PosReceipt,
-  PosSlot,
-  PosTotals,
+    PosBootstrap,
+    PosCartLine,
+    PosLedgerEffect,
+    PosProduct,
+    PosReceipt,
+    PosSlot,
+    PosTotals,
 } from "../../types/pos.entity.types";
 import {
-  PosBootstrapResult,
-  PosCartLinesResult,
-  PosError,
-  PosErrorType,
-  PosOperationResult,
-  PosPaymentResult,
-  PosTotalsResult,
+    PosBootstrapResult,
+    PosCartLinesResult,
+    PosError,
+    PosErrorType,
+    PosOperationResult,
+    PosPaymentResult,
+    PosTotalsResult,
 } from "../../types/pos.error.types";
 import { PosDatasource } from "./pos.datasource";
 
@@ -572,7 +572,6 @@ export const createLocalPosDatasource = ({
     ): Promise<PosPaymentResult> {
       if (
         !activeBusinessAccountRemoteId ||
-        !activeSettlementAccountRemoteId ||
         !activeOwnerUserRemoteId
       ) {
         return {
@@ -580,13 +579,12 @@ export const createLocalPosDatasource = ({
           error: {
             type: PosErrorType.ContextRequired,
             message:
-              "POS requires an active settlement account before taking payment.",
+              "POS requires an active business account and owner user context.",
           },
         };
       }
 
       const businessAccountRemoteId = activeBusinessAccountRemoteId;
-      const settlementAccountRemoteId = activeSettlementAccountRemoteId;
 
       if (cartLines.length === 0) {
         return {
@@ -598,17 +596,19 @@ export const createLocalPosDatasource = ({
         };
       }
 
-      if (params.paidAmount < 0) {
-        return {
-          success: false,
-          error: createValidationError("Paid amount cannot be negative."),
-        };
-      }
+      // Calculate paid amount from payment parts
+      const paidAmount = Number(
+        params.paymentParts.reduce((sum, part) => sum + part.amount, 0).toFixed(2),
+      );
 
       const totals = getTotalsValue();
       const dueAmount = Number(
-        Math.max(totals.grandTotal - params.paidAmount, 0).toFixed(2),
+        Math.max(totals.grandTotal - paidAmount, 0).toFixed(2),
       );
+      // Get first payment part's settlement account for ledger effect
+      const firstPaymentPart = params.paymentParts[0];
+      const settlementAccountRemoteId = firstPaymentPart?.settlementAccountRemoteId ?? null;
+
       const ledgerEffect: PosLedgerEffect =
         dueAmount > 0
           ? {
@@ -622,17 +622,27 @@ export const createLocalPosDatasource = ({
               accountRemoteId: settlementAccountRemoteId,
             };
 
+      // Build payment breakdown for receipt
+      const receiptPaymentParts = params.paymentParts.map((part) => ({
+        paymentPartId: part.paymentPartId,
+        payerLabel: part.payerLabel,
+        amount: part.amount,
+        settlementAccountRemoteId: part.settlementAccountRemoteId,
+        settlementAccountLabel: null, // Will be populated in checkout use case
+      }));
+
       const receipt: PosReceipt = {
         receiptNumber: formatReceiptNumber(),
         issuedAt: new Date().toISOString(),
         lines: cloneCartLines(cartLines),
         totals,
-        paidAmount: Number(params.paidAmount.toFixed(2)),
+        paidAmount: Number(paidAmount.toFixed(2)),
         dueAmount,
         ledgerEffect,
         customerName: params.selectedCustomer?.fullName ?? null,
         customerPhone: params.selectedCustomer?.phone ?? null,
         contactRemoteId: params.selectedCustomer?.remoteId ?? null,
+        paymentParts: receiptPaymentParts,
       };
 
       try {

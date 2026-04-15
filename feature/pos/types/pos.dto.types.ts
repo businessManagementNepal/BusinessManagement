@@ -1,4 +1,9 @@
-import { PosCartLine, PosCustomer, PosProduct } from "./pos.entity.types";
+import type {
+    PosCartLine,
+    PosCustomer,
+    PosProduct,
+    PosSplitDraftPart,
+} from "./pos.entity.types";
 
 export type PosLoadBootstrapParams = {
   activeBusinessAccountRemoteId: string | null;
@@ -29,9 +34,15 @@ export type PosApplyAmountAdjustmentParams = {
   amount: number;
 };
 
+export type PosPaymentPartInput = {
+  paymentPartId: string;
+  payerLabel: string | null;
+  amount: number;
+  settlementAccountRemoteId: string;
+};
+
 export type PosCompletePaymentParams = {
-  paidAmount: number;
-  activeSettlementAccountRemoteId: string | null;
+  paymentParts: readonly PosPaymentPartInput[];
   selectedCustomer: PosCustomer | null;
   grandTotalSnapshot: number;
 };
@@ -46,6 +57,7 @@ export type PosSaveSessionParams = {
     selectedSettlementAccountRemoteId?: string;
     discountInput: string;
     surchargeInput: string;
+    splitBillDraftParts?: readonly PosSplitDraftPart[];
   };
 };
 
@@ -65,6 +77,7 @@ export type PosSessionData = {
   selectedSettlementAccountRemoteId?: string;
   discountInput: string;
   surchargeInput: string;
+  splitBillDraftParts?: readonly PosSplitDraftPart[];
 };
 
 export type PosSessionResult = {

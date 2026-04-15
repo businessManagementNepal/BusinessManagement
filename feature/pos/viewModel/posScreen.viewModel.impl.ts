@@ -27,6 +27,7 @@ import {
   PosCustomer,
   PosProduct,
   PosSlot,
+  PosSplitDraftPart,
   PosTotals,
 } from "../types/pos.entity.types";
 import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
@@ -89,6 +90,8 @@ const INITIAL_STATE: PosScreenState = {
     address: "",
   },
   isCreatingCustomer: false,
+  splitBillDraftParts: [],
+  splitBillErrorMessage: null,
 };
 
 const calculateTotals = (
@@ -141,6 +144,91 @@ const buildNextRecentProducts = (
   );
 
   return [product, ...filteredRecent];
+};
+
+const buildEqualSplitDraftParts = (
+  count: number,
+  grandTotal: number,
+  defaultSettlementAccountRemoteId: string,
+): readonly PosSplitDraftPart[] => {
+  const safeCount = Math.max(count, 2);
+  const base = Number((grandTotal / safeCount).toFixed(2));
+
+  const parts = Array.from({ length: safeCount }, (_, index) => ({
+    paymentPartId: `part-${index + 1}`,
+    payerLabel: `Friend ${index + 1}`,
+    amountInput: base.toFixed(2),
+    settlementAccountRemoteId: defaultSettlementAccountRemoteId,
+  }));
+
+  const allocated = parts.reduce(
+    (sum, part) => sum + Number(part.amountInput || "0"),
+    0,
+  );
+  const diff = Number((grandTotal - allocated).toFixed(2));
+
+  if (diff !== 0 && parts.length > 0) {
+    const last = parts[parts.length - 1];
+    parts[parts.length - 1] = {
+      ...last,
+      amountInput: (Number(last.amountInput) + diff).toFixed(2),
+    };
+  }
+
+  return parts;
+};
+
+const getSplitDraftSummary = (
+  parts: readonly PosSplitDraftPart[],
+  grandTotal: number,
+) => {
+  const allocatedAmount = parts.reduce(
+    (sum, part) => sum + parseAmountInput(part.amountInput),
+    0,
+  );
+
+  return {
+    allocatedAmount: Number(allocatedAmount.toFixed(2)),
+    remainingAmount: Number((grandTotal - allocatedAmount).toFixed(2)),
+  };
+};
+
+const validateSplitBillDraft = (
+  parts: readonly PosSplitDraftPart[],
+  grandTotal: number,
+  selectedCustomer: PosCustomer | null,
+): string | null => {
+  if (parts.length < 2) {
+    return "Add at least two payment parts for split bill.";
+  }
+
+  let allocated = 0;
+
+  for (const part of parts) {
+    const amount = parseAmountInput(part.amountInput);
+
+    if (amount <= 0) {
+      return "Each split row must have an amount greater than zero.";
+    }
+
+    if (!part.settlementAccountRemoteId.trim()) {
+      return "Each split row must have a settlement money account.";
+    }
+
+    allocated += amount;
+  }
+
+  const remaining = Number((grandTotal - allocated).toFixed(2));
+
+  if (remaining < 0) {
+    return "Split payment total cannot exceed grand total.";
+  }
+
+  if (remaining > 0 && !selectedCustomer) {
+    return "Select a customer when split payment leaves a due amount.";
+  }
+
+  return null;
 };
 
 const getMoneyAccountTypeLabel = (type: MoneyAccountTypeValue): string =>
@@ -268,6 +356,13 @@ export function usePosScreenViewModel(
     return state.recentProducts;
   }, [state.recentProducts]);
 
+  const splitBillSummary = useMemo(() => {
+    return getSplitDraftSummary(
+      state.splitBillDraftParts,
+      state.totals.grandTotal,
+    );
+  }, [state.splitBillDraftParts, state.totals.grandTotal]);
+
   const updateRecentProducts = useCallback((product: PosProduct) => {
     let nextRecentProducts: readonly PosProduct[] = [];
 
@@ -296,6 +391,7 @@ export function usePosScreenViewModel(
         selectedSettlementAccountRemoteId: string;
         discountInput: string;
         surchargeInput: string;
+        splitBillDraftParts: readonly PosSplitDraftPart[];
       }> = {},
     ) => {
       if (!activeBusinessAccountRemoteId) {
@@ -316,6 +412,8 @@ export function usePosScreenViewModel(
             state.selectedSettlementAccountRemoteId,
           discountInput: overrides.discountInput ?? state.discountInput,
           surchargeInput: overrides.surchargeInput ?? state.surchargeInput,
+          splitBillDraftParts:
+            overrides.splitBillDraftParts ?? state.splitBillDraftParts,
         },
       });
     },
@@ -328,6 +426,7 @@ export function usePosScreenViewModel(
       state.selectedSettlementAccountRemoteId,
       state.discountInput,
       state.surchargeInput,
+      state.splitBillDraftParts,
     ],
   );
 
@@ -418,6 +517,7 @@ export function usePosScreenViewModel(
     let sessionDataDiscountInput = "";
     let sessionDataSurchargeInput = "";
     let sessionDataSettlementAccountRemoteId = "";
+    let sessionDataSplitBillDraftParts: readonly PosSplitDraftPart[] = [];
     let didRestoreSession = false;
 
     if (activeBusinessAccountRemoteId) {
@@ -435,6 +535,7 @@ export function usePosScreenViewModel(
         sessionDataSurchargeInput = sessionData.surchargeInput;
         sessionDataSettlementAccountRemoteId =
           sessionData.selectedSettlementAccountRemoteId?.trim() ?? "";
+        sessionDataSplitBillDraftParts = sessionData.splitBillDraftParts ?? [];
         didRestoreSession = true;
       }
     }
@@ -456,6 +557,18 @@ export function usePosScreenViewModel(
         ? activeSettlementAccountRemoteId.trim()
         : "");
 
+    // Sanitize restored split draft parts - remove invalid settlement accounts
+    const sanitizedSplitBillDraftParts = sessionDataSplitBillDraftParts.map(
+      (part) => ({
+        ...part,
+        settlementAccountRemoteId: moneyAccountOptions.some(
+          (option) => option.value === part.settlementAccountRemoteId,
+        )
+          ? part.settlementAccountRemoteId
+          : defaultSettlementAccountRemoteId,
+      }),
+    );
+
     const restoredFilteredProducts =
       didRestoreSession && sessionDataProductSearchTerm.trim().length > 0
         ? await searchPosProductsUseCase.execute(sessionDataProductSearchTerm)
@@ -475,6 +588,9 @@ export function usePosScreenViewModel(
       moneyAccountOptions,
       discountInput: didRestoreSession ? sessionDataDiscountInput : "",
       surchargeInput: didRestoreSession ? sessionDataSurchargeInput : "",
+      splitBillDraftParts: didRestoreSession
+        ? sanitizedSplitBillDraftParts
+        : [],
       totals: EMPTY_TOTALS,
       activeSlotId: null,
       selectedSlotId: null,
@@ -1066,31 +1182,6 @@ export function usePosScreenViewModel(
     }));
   }, []);
 
-  const onOpenSplitBillModal = useCallback(() => {
-    const splitCount = Math.max(Number(state.paymentSplitCountInput || "2"), 2);
-    const splitAmount =
-      splitCount > 0 ? state.totals.grandTotal / splitCount : 0;
-
-    setState((currentState) => ({
-      ...currentState,
-      infoMessage: `Split preview: ${splitCount} people x ${formatCurrencyAmount(
-        {
-          amount: splitAmount,
-          currencyCode,
-          countryCode: regionalFinancePolicy.countryCode,
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        },
-      )}`,
-    }));
-  }, [
-    currencyCode,
-    regionalFinancePolicy.countryCode,
-    state.paymentSplitCountInput,
-    state.totals.grandTotal,
-    state.isCreatingCustomer,
-  ]);
-
   const onApplyDiscount = useCallback(async () => {
     const result = await applyDiscountUseCase.execute({
       amount: parseAmountInput(state.discountInput),
@@ -1197,14 +1288,20 @@ export function usePosScreenViewModel(
     }
 
     const result = await completePosCheckoutUseCase.execute({
-      paidAmount,
-      activeBusinessAccountRemoteId,
-      activeOwnerUserRemoteId,
-      activeSettlementAccountRemoteId: settlementAccountRemoteId || null,
-      activeAccountCurrencyCode: currencyCode,
-      activeAccountCountryCode: regionalFinancePolicy.countryCode,
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: paidAmount,
+          settlementAccountRemoteId: settlementAccountRemoteId,
+        },
+      ],
       selectedCustomer: state.selectedCustomer,
       grandTotalSnapshot: state.totals.grandTotal,
+      activeBusinessAccountRemoteId,
+      activeOwnerUserRemoteId,
+      activeAccountCurrencyCode: currencyCode,
+      activeAccountCountryCode: regionalFinancePolicy.countryCode,
     });
 
     if (!result.success) {
@@ -1542,8 +1639,338 @@ export function usePosScreenViewModel(
   }, []);
 
   const onConfirmPayment = useCallback(async () => {
-    await onCompletePayment();
-  }, [onCompletePayment]);
+    const paidAmount = parseAmountInput(state.paymentInput);
+
+    if (paidAmount > 0) {
+      const paymentParts = [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: paidAmount,
+          settlementAccountRemoteId: state.selectedSettlementAccountRemoteId,
+        },
+      ];
+
+      const result = await completePosCheckoutUseCase.execute({
+        paymentParts,
+        selectedCustomer: state.selectedCustomer,
+        grandTotalSnapshot: state.totals.grandTotal,
+        activeBusinessAccountRemoteId,
+        activeOwnerUserRemoteId,
+        activeAccountCurrencyCode: regionalFinancePolicy.currencyCode,
+        activeAccountCountryCode: regionalFinancePolicy.countryCode,
+      });
+
+      if (!result.success) {
+        setState((currentState) => ({
+          ...currentState,
+          errorMessage: result.error.message,
+        }));
+        return;
+      }
+
+      setState((currentState) => ({
+        ...currentState,
+        slots: createEmptySlots(),
+        cartLines: [],
+        totals: EMPTY_TOTALS,
+        activeModal: "receipt",
+        activeSlotId: null,
+        selectedSlotId: null,
+        discountInput: "",
+        surchargeInput: "",
+        paymentInput: "",
+        receipt: result.value,
+        filteredProducts: [],
+        quickProductNameInput: "",
+        quickProductPriceInput: "0",
+        quickProductCategoryInput: "",
+        infoMessage:
+          result.value.ledgerEffect.type === "due_balance_created"
+            ? `Sale completed. ${formatCurrencyAmount({
+                amount: result.value.dueAmount,
+                currencyCode,
+                countryCode: regionalFinancePolicy.countryCode,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })} was posted as ledger due.`
+            : result.value.ledgerEffect.type === "due_balance_create_failed"
+              ? `Sale completed. ${formatCurrencyAmount({
+                  amount: result.value.dueAmount,
+                  currencyCode,
+                  countryCode: regionalFinancePolicy.countryCode,
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })} due could not be posted automatically. Add it from Ledger.`
+              : result.value.ledgerEffect.type === "posting_sync_failed"
+                ? "Sale completed, but accounting sync failed. Please review Ledger/Billing."
+                : "Sale completed successfully.",
+        errorMessage: null,
+      }));
+
+      // Clear session after successful checkout
+      if (activeBusinessAccountRemoteId) {
+        await clearPosSessionUseCase.execute({
+          businessAccountRemoteId: activeBusinessAccountRemoteId,
+        });
+      }
+    } else {
+      await onCompletePayment();
+    }
+  }, [
+    onCompletePayment,
+    completePosCheckoutUseCase,
+    parseAmountInput,
+    state.selectedSettlementAccountRemoteId,
+    state.selectedCustomer,
+    state.totals.grandTotal,
+    activeBusinessAccountRemoteId,
+    clearPosSessionUseCase,
+    currencyCode,
+    regionalFinancePolicy.countryCode,
+  ]);
+
+  const onOpenSplitBillModal = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      activeModal: "split-bill",
+      splitBillErrorMessage: null,
+    }));
+  }, []);
+
+  const onCloseSplitBillModal = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      activeModal: "none",
+      splitBillErrorMessage: null,
+    }));
+  }, []);
+
+  const onApplyEqualSplit = useCallback(
+    async (count: number) => {
+      const equalParts = buildEqualSplitDraftParts(
+        count,
+        state.totals.grandTotal,
+        state.selectedSettlementAccountRemoteId,
+      );
+      setState((currentState) => ({
+        ...currentState,
+        splitBillDraftParts: equalParts,
+        splitBillErrorMessage: null,
+      }));
+
+      await saveCurrentSession({
+        splitBillDraftParts: equalParts,
+      });
+    },
+    [
+      buildEqualSplitDraftParts,
+      state.totals.grandTotal,
+      state.selectedSettlementAccountRemoteId,
+      saveCurrentSession,
+    ],
+  );
+
+  const onAddSplitBillPart = useCallback(async () => {
+    const newPart: PosSplitDraftPart = {
+      paymentPartId: `part-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      payerLabel: `Friend ${state.splitBillDraftParts.length + 1}`,
+      amountInput: "",
+      settlementAccountRemoteId: state.selectedSettlementAccountRemoteId,
+    };
+    const updatedParts = [...state.splitBillDraftParts, newPart];
+    setState((currentState) => ({
+      ...currentState,
+      splitBillDraftParts: updatedParts,
+      splitBillErrorMessage: null,
+    }));
+
+    await saveCurrentSession({
+      splitBillDraftParts: updatedParts,
+    });
+  }, [
+    state.splitBillDraftParts.length,
+    state.selectedSettlementAccountRemoteId,
+    saveCurrentSession,
+  ]);
+
+  const onRemoveSplitBillPart = useCallback(
+    async (paymentPartId: string) => {
+      const updatedParts = state.splitBillDraftParts.filter(
+        (part) => part.paymentPartId !== paymentPartId,
+      );
+      setState((currentState) => ({
+        ...currentState,
+        splitBillDraftParts: updatedParts,
+        splitBillErrorMessage: null,
+      }));
+
+      await saveCurrentSession({
+        splitBillDraftParts: updatedParts,
+      });
+    },
+    [state.splitBillDraftParts, saveCurrentSession],
+  );
+
+  const onChangeSplitBillPartAmount = useCallback(
+    async (paymentPartId: string, value: string) => {
+      const updatedParts = state.splitBillDraftParts.map((part) =>
+        part.paymentPartId === paymentPartId
+          ? { ...part, amountInput: value }
+          : part,
+      );
+      setState((currentState) => ({
+        ...currentState,
+        splitBillDraftParts: updatedParts,
+        splitBillErrorMessage: null,
+      }));
+
+      await saveCurrentSession({
+        splitBillDraftParts: updatedParts,
+      });
+    },
+    [state.splitBillDraftParts, saveCurrentSession],
+  );
+
+  const onChangeSplitBillPartPayerLabel = useCallback(
+    async (paymentPartId: string, value: string) => {
+      const updatedParts = state.splitBillDraftParts.map((part) =>
+        part.paymentPartId === paymentPartId
+          ? { ...part, payerLabel: value }
+          : part,
+      );
+      setState((currentState) => ({
+        ...currentState,
+        splitBillDraftParts: updatedParts,
+        splitBillErrorMessage: null,
+      }));
+
+      await saveCurrentSession({
+        splitBillDraftParts: updatedParts,
+      });
+    },
+    [state.splitBillDraftParts, saveCurrentSession],
+  );
+
+  const onChangeSplitBillPartSettlementAccount = useCallback(
+    async (paymentPartId: string, settlementAccountRemoteId: string) => {
+      const updatedParts = state.splitBillDraftParts.map((part) =>
+        part.paymentPartId === paymentPartId
+          ? { ...part, settlementAccountRemoteId }
+          : part,
+      );
+      setState((currentState) => ({
+        ...currentState,
+        splitBillDraftParts: updatedParts,
+        splitBillErrorMessage: null,
+      }));
+
+      await saveCurrentSession({
+        splitBillDraftParts: updatedParts,
+      });
+    },
+    [state.splitBillDraftParts, saveCurrentSession],
+  );
+
+  const onCompleteSplitBillPayment = useCallback(async () => {
+    const validationError = validateSplitBillDraft(
+      state.splitBillDraftParts,
+      state.totals.grandTotal,
+      state.selectedCustomer,
+    );
+
+    if (validationError) {
+      setState((currentState) => ({
+        ...currentState,
+        splitBillErrorMessage: validationError,
+      }));
+      return;
+    }
+
+    // Map split draft parts to payment parts
+    const paymentParts = state.splitBillDraftParts.map((part) => ({
+      paymentPartId: part.paymentPartId,
+      payerLabel: part.payerLabel.trim() || null,
+      amount: parseAmountInput(part.amountInput),
+      settlementAccountRemoteId: part.settlementAccountRemoteId,
+    }));
+
+    const result = await completePosCheckoutUseCase.execute({
+      paymentParts,
+      selectedCustomer: state.selectedCustomer,
+      grandTotalSnapshot: state.totals.grandTotal,
+      activeBusinessAccountRemoteId,
+      activeOwnerUserRemoteId,
+      activeAccountCurrencyCode: regionalFinancePolicy.currencyCode,
+      activeAccountCountryCode: regionalFinancePolicy.countryCode,
+    });
+
+    if (!result.success) {
+      setState((currentState) => ({
+        ...currentState,
+        splitBillErrorMessage: result.error.message,
+      }));
+      return;
+    }
+
+    setState((currentState) => ({
+      ...currentState,
+      slots: createEmptySlots(),
+      cartLines: [],
+      totals: EMPTY_TOTALS,
+      activeModal: "receipt",
+      activeSlotId: null,
+      selectedSlotId: null,
+      discountInput: "",
+      surchargeInput: "",
+      paymentInput: "",
+      receipt: result.value,
+      filteredProducts: [],
+      quickProductNameInput: "",
+      quickProductPriceInput: "0",
+      quickProductCategoryInput: "",
+      splitBillDraftParts: [],
+      splitBillErrorMessage: null,
+      infoMessage:
+        result.value.ledgerEffect.type === "due_balance_created"
+          ? `Sale completed. ${formatCurrencyAmount({
+              amount: result.value.dueAmount,
+              currencyCode,
+              countryCode: regionalFinancePolicy.countryCode,
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })} was posted as ledger due.`
+          : result.value.ledgerEffect.type === "due_balance_create_failed"
+            ? `Sale completed. ${formatCurrencyAmount({
+                amount: result.value.dueAmount,
+                currencyCode,
+                countryCode: regionalFinancePolicy.countryCode,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })} due could not be posted automatically. Add it from Ledger.`
+            : result.value.ledgerEffect.type === "posting_sync_failed"
+              ? "Sale completed, but accounting sync failed. Please review Ledger/Billing."
+              : "Sale completed successfully.",
+      errorMessage: null,
+    }));
+
+    // Clear session after successful checkout
+    if (activeBusinessAccountRemoteId) {
+      await clearPosSessionUseCase.execute({
+        businessAccountRemoteId: activeBusinessAccountRemoteId,
+      });
+    }
+  }, [
+    validateSplitBillDraft,
+    state.splitBillDraftParts,
+    state.totals.grandTotal,
+    state.selectedCustomer,
+    activeBusinessAccountRemoteId,
+    clearPosSessionUseCase,
+    completePosCheckoutUseCase,
+    currencyCode,
+    regionalFinancePolicy.countryCode,
+  ]);
 
   const onOpenReceiptModal = useCallback(() => {
     setState((currentState) => ({
@@ -1619,6 +2046,15 @@ export function usePosScreenViewModel(
       onOpenPaymentModal,
       onClosePaymentModal,
       onConfirmPayment,
+      onOpenSplitBillModal,
+      onCloseSplitBillModal,
+      onApplyEqualSplit,
+      onAddSplitBillPart,
+      onRemoveSplitBillPart,
+      onChangeSplitBillPartAmount,
+      onChangeSplitBillPartPayerLabel,
+      onChangeSplitBillPartSettlementAccount,
+      onCompleteSplitBillPayment,
       onOpenReceiptModal,
       onCloseReceiptModal,
       onPrintReceipt,
@@ -1631,7 +2067,6 @@ export function usePosScreenViewModel(
       onCustomerCreateFormChange,
       onCreateCustomer,
       onSettlementAccountChange,
-      onOpenSplitBillModal,
       onApplyDiscount,
       onApplySurcharge,
       onClearCart,
@@ -1641,6 +2076,10 @@ export function usePosScreenViewModel(
       selectedSettlementAccountRemoteId:
         state.selectedSettlementAccountRemoteId,
       isCreatingCustomer: state.isCreatingCustomer,
+      splitBillDraftParts: state.splitBillDraftParts,
+      splitBillAllocatedAmount: splitBillSummary.allocatedAmount,
+      splitBillRemainingAmount: splitBillSummary.remainingAmount,
+      splitBillErrorMessage: state.splitBillErrorMessage,
     }),
     [
       activeBusinessAccountRemoteId,

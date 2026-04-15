@@ -5,23 +5,23 @@ import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/Scre
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
-    Minus,
-    Percent,
-    Plus,
-    PlusCircle,
-    ShoppingCart,
-    Trash2,
-    WalletCards,
+  Minus,
+  Percent,
+  Plus,
+  PlusCircle,
+  ShoppingCart,
+  Trash2,
+  WalletCards,
 } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef } from "react";
 import {
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { PosProduct, PosSlot } from "../types/pos.entity.types";
 import { PosScreenViewModel } from "../types/pos.state.types";
@@ -33,6 +33,7 @@ import { PosProductSelectionModal } from "./PosProductSelectionModal";
 import { PosQuickProductModal } from "./PosQuickProductModal";
 import { PosReceiptModal } from "./PosReceiptModal";
 import { buildSlotProductLookup, formatCurrency } from "./posScreen.shared";
+import { PosSplitBillModal } from "./PosSplitBillModal";
 
 type PosScreenProps = {
   viewModel: PosScreenViewModel;
@@ -500,10 +501,30 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         moneyAccountOptions={viewModel.moneyAccountOptions}
         onPaidAmountChange={viewModel.onPaymentInputChange}
         onSettlementAccountChange={viewModel.onSettlementAccountChange}
-        onConfirm={() => {
-          void viewModel.onCompletePayment();
-        }}
+        onConfirm={viewModel.onConfirmPayment}
         onClose={viewModel.onCloseModal}
+      />
+
+      <PosSplitBillModal
+        visible={viewModel.activeModal === "split-bill"}
+        grandTotal={viewModel.totals.grandTotal}
+        allocatedAmount={viewModel.splitBillAllocatedAmount}
+        remainingAmount={viewModel.splitBillRemainingAmount}
+        parts={viewModel.splitBillDraftParts}
+        moneyAccountOptions={viewModel.moneyAccountOptions}
+        currencyCode={viewModel.currencyCode}
+        countryCode={viewModel.countryCode}
+        errorMessage={viewModel.splitBillErrorMessage}
+        onClose={viewModel.onCloseSplitBillModal}
+        onApplyEqualSplit={viewModel.onApplyEqualSplit}
+        onAddPart={viewModel.onAddSplitBillPart}
+        onRemovePart={viewModel.onRemoveSplitBillPart}
+        onChangePartPayerLabel={viewModel.onChangeSplitBillPartPayerLabel}
+        onChangePartAmount={viewModel.onChangeSplitBillPartAmount}
+        onChangePartSettlementAccount={
+          viewModel.onChangeSplitBillPartSettlementAccount
+        }
+        onSubmit={viewModel.onCompleteSplitBillPayment}
       />
 
       <PosReceiptModal
