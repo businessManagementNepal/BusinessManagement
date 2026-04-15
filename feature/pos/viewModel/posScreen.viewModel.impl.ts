@@ -28,7 +28,6 @@ import {
   PosCustomer,
   PosProduct,
   PosReceipt,
-  PosSlot,
   PosSplitDraftPart,
   PosTotals,
 } from "../types/pos.entity.types";
@@ -41,7 +40,6 @@ import {
 import { AddProductToCartUseCase } from "../useCase/addProductToCart.useCase";
 import { ApplyDiscountUseCase } from "../useCase/applyDiscount.useCase";
 import { ApplySurchargeUseCase } from "../useCase/applySurcharge.useCase";
-import { AssignProductToSlotUseCase } from "../useCase/assignProductToSlot.useCase";
 import { ChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQuantity.useCase";
 import { ClearCartUseCase } from "../useCase/clearCart.useCase";
 import { ClearPosSessionUseCase } from "../useCase/clearPosSession.useCase";
@@ -49,7 +47,6 @@ import { CompletePosCheckoutUseCase } from "../useCase/completePosCheckout.useCa
 import { GetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase";
 import { LoadPosSessionUseCase } from "../useCase/loadPosSession.useCase";
 import { PrintReceiptUseCase } from "../useCase/printReceipt.useCase";
-import { RemoveProductFromSlotUseCase } from "../useCase/removeProductFromSlot.useCase";
 import { SavePosSessionUseCase } from "../useCase/savePosSession.useCase";
 import { SearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase";
 import { ShareReceiptUseCase } from "../useCase/shareReceipt.useCase";
@@ -69,11 +66,8 @@ const INITIAL_STATE: PosScreenState = {
   products: [],
   filteredProducts: [],
   recentProducts: [],
-  slots: [],
   cartLines: [],
   totals: EMPTY_TOTALS,
-  activeSlotId: null,
-  selectedSlotId: null,
   activeModal: "none",
   productSearchTerm: "",
   discountInput: "",
@@ -254,12 +248,6 @@ const mapMoneyAccountToOption = (
   };
 };
 
-const createEmptySlots = (): readonly PosSlot[] =>
-  Array.from({ length: 16 }, (_, index) => ({
-    slotId: `slot-${index + 1}`,
-    assignedProductId: null,
-  }));
-
 export type UsePosScreenViewModelParams = {
   activeBusinessAccountRemoteId: string | null;
   activeOwnerUserRemoteId: string | null;
@@ -270,9 +258,7 @@ export type UsePosScreenViewModelParams = {
   activeAccountDefaultTaxMode: TaxModeValue | null;
   getPosBootstrapUseCase: GetPosBootstrapUseCase;
   searchPosProductsUseCase: SearchPosProductsUseCase;
-  assignProductToSlotUseCase: AssignProductToSlotUseCase;
   addProductToCartUseCase: AddProductToCartUseCase;
-  removeProductFromSlotUseCase: RemoveProductFromSlotUseCase;
   changeCartLineQuantityUseCase: ChangeCartLineQuantityUseCase;
   applyDiscountUseCase: ApplyDiscountUseCase;
   applySurchargeUseCase: ApplySurchargeUseCase;
@@ -302,9 +288,7 @@ export function usePosScreenViewModel(
     activeAccountDefaultTaxMode,
     getPosBootstrapUseCase,
     searchPosProductsUseCase,
-    assignProductToSlotUseCase,
     addProductToCartUseCase,
-    removeProductFromSlotUseCase,
     changeCartLineQuantityUseCase,
     applyDiscountUseCase,
     applySurchargeUseCase,
@@ -507,12 +491,9 @@ export function usePosScreenViewModel(
     async (receipt: PosReceipt) => {
       setState((currentState) => ({
         ...currentState,
-        slots: createEmptySlots(),
         cartLines: [],
         totals: EMPTY_TOTALS,
         activeModal: "receipt",
-        activeSlotId: null,
-        selectedSlotId: null,
         discountInput: "",
         surchargeInput: "",
         paymentInput: "",
@@ -859,7 +840,6 @@ export function usePosScreenViewModel(
     const nextState = {
       status: Status.Success,
       bootstrap: result.value,
-      slots: result.value.slots,
       products: result.value.products,
       filteredProducts: restoredFilteredProducts,
       cartLines: didRestoreSession ? sessionDataCartLines : [],
@@ -874,8 +854,6 @@ export function usePosScreenViewModel(
         ? sanitizedSplitBillDraftParts
         : [],
       totals: EMPTY_TOTALS,
-      activeSlotId: null,
-      selectedSlotId: null,
       errorMessage: null,
     };
 
@@ -908,75 +886,6 @@ export function usePosScreenViewModel(
     void load();
   }, [load]);
 
-  const onPressSlot = useCallback(
-    async (slotId: string) => {
-      const selectedSlot = state.slots.find((slot) => slot.slotId === slotId);
-
-      setState((currentState) => ({
-        ...currentState,
-        selectedSlotId: slotId,
-        errorMessage: null,
-      }));
-
-      if (!selectedSlot?.assignedProductId) {
-        return;
-      }
-
-      const result = await assignProductToSlotUseCase.execute({
-        slotId,
-        productId: selectedSlot.assignedProductId,
-        addToCart: true,
-      });
-
-      if (!result.success) {
-        setState((currentState) => ({
-          ...currentState,
-          errorMessage: result.error.message,
-        }));
-        return;
-      }
-
-      recalculateTotals(result.value);
-    },
-    [assignProductToSlotUseCase, recalculateTotals, state.slots],
-  );
-
-  const onLongPressSlot = useCallback((slotId: string) => {
-    setState((currentState) => ({
-      ...currentState,
-      activeSlotId: slotId,
-      selectedSlotId: slotId,
-      activeModal: "product-selection",
-      errorMessage: null,
-      infoMessage: null,
-    }));
-  }, []);
-
-  const onRemoveSlotProduct = useCallback(
-    async (slotId: string) => {
-      const result = await removeProductFromSlotUseCase.execute({ slotId });
-      if (!result.success) {
-        setState((currentState) => ({
-          ...currentState,
-          errorMessage: result.error.message,
-        }));
-        return;
-      }
-
-      setState((currentState) => {
-        const nextSlots = currentState.slots.map((slot) =>
-          slot.slotId === slotId ? { ...slot, assignedProductId: null } : slot,
-        );
-        return {
-          ...currentState,
-          slots: nextSlots,
-        };
-      });
-      recalculateTotals(result.value);
-    },
-    [recalculateTotals, removeProductFromSlotUseCase],
-  );
-
   const onProductSearchChange = useCallback(
     async (value: string) => {
       const products = await searchPosProductsUseCase.execute(value);
@@ -991,61 +900,6 @@ export function usePosScreenViewModel(
       });
     },
     [searchPosProductsUseCase, saveCurrentSession],
-  );
-
-  const onSelectProduct = useCallback(
-    async (productId: string) => {
-      const activeSlotId = state.activeSlotId;
-      if (!activeSlotId) {
-        setState((currentState) => ({
-          ...currentState,
-          errorMessage: "Select a slot before assigning a product.",
-        }));
-        return;
-      }
-
-      const result = await assignProductToSlotUseCase.execute({
-        slotId: activeSlotId,
-        productId,
-        addToCart: false,
-      });
-
-      if (!result.success) {
-        setState((currentState) => ({
-          ...currentState,
-          errorMessage: result.error.message,
-        }));
-        return;
-      }
-
-      setState((currentState) => {
-        const nextSlots = currentState.slots.map((slot) =>
-          slot.slotId === activeSlotId
-            ? { ...slot, assignedProductId: productId }
-            : slot,
-        );
-        return {
-          ...currentState,
-          slots: nextSlots,
-          activeModal: "none",
-          activeSlotId: null,
-          selectedSlotId: activeSlotId,
-          productSearchTerm: "",
-          quickProductNameInput: "",
-          quickProductPriceInput: "0",
-          quickProductCategoryInput: "",
-        };
-      });
-
-      // Don't reset filteredProducts - keep current search results
-      recalculateTotals(result.value);
-    },
-    [
-      assignProductToSlotUseCase,
-      recalculateTotals,
-      searchPosProductsUseCase,
-      state.activeSlotId,
-    ],
   );
 
   const onAddProductToCart = useCallback(
@@ -1342,23 +1196,6 @@ export function usePosScreenViewModel(
         return;
       }
 
-      // Only update slots for actual slot lines, not direct-added lines (direct-{productId})
-      if (line.slotId.startsWith("slot-")) {
-        setState((currentState) => ({
-          ...currentState,
-          slots: currentState.slots.map((slot) => {
-            if (slot.slotId !== line.slotId) {
-              return slot;
-            }
-
-            return result.value.some(
-              (cartLine) => cartLine.slotId === slot.slotId,
-            )
-              ? slot
-              : { ...slot, assignedProductId: null };
-          }),
-        }));
-      }
       recalculateTotals(result.value);
 
       await saveCurrentSession({
@@ -1522,12 +1359,9 @@ export function usePosScreenViewModel(
 
     setState((currentState) => ({
       ...currentState,
-      slots: createEmptySlots(),
       cartLines: [],
       totals: EMPTY_TOTALS,
       activeModal: "none",
-      activeSlotId: null,
-      selectedSlotId: null,
       discountInput: "",
       surchargeInput: "",
       paymentInput: "",
@@ -2021,14 +1855,11 @@ export function usePosScreenViewModel(
       currencyCode,
       countryCode: regionalFinancePolicy.countryCode,
       taxSummaryLabel,
-      slots: state.slots,
       cartLines: state.cartLines,
       totals: state.totals,
       products: state.filteredProducts, // Only show filtered products, never all products
       filteredProducts: state.filteredProducts,
       recentProducts,
-      activeSlotId: state.activeSlotId,
-      selectedSlotId: state.selectedSlotId,
       activeModal: state.activeModal,
       productSearchTerm: state.productSearchTerm,
       discountInput: state.discountInput,
@@ -2048,11 +1879,7 @@ export function usePosScreenViewModel(
         Boolean(activeOwnerUserRemoteId) &&
         Boolean(activeSettlementAccountRemoteId),
       load,
-      onPressSlot,
-      onLongPressSlot,
-      onRemoveSlotProduct,
       onProductSearchChange,
-      onSelectProduct,
       onAddProductToCart,
       onOpenCreateProductModal,
       onCloseCreateProductModal,
@@ -2127,8 +1954,6 @@ export function usePosScreenViewModel(
       onDecreaseQuantity,
       onDiscountInputChange,
       onIncreaseQuantity,
-      onPressSlot,
-      onLongPressSlot,
       onOpenDiscountModal,
       onOpenPaymentModal,
       onOpenSplitBillModal,
@@ -2143,14 +1968,11 @@ export function usePosScreenViewModel(
       onQuickProductPriceInputChange,
       onQuickProductCategoryInputChange,
       onRemoveCartLine,
-      onRemoveSlotProduct,
-      onSelectProduct,
       onAddProductToCart,
       state.customerCreateForm,
       state.customerSearchTerm,
       state.selectedCustomer,
       state.activeModal,
-      state.activeSlotId,
       state.cartLines,
       state.discountInput,
       state.errorMessage,
@@ -2164,8 +1986,6 @@ export function usePosScreenViewModel(
       state.quickProductPriceInput,
       state.receipt,
       state.selectedSettlementAccountRemoteId,
-      state.selectedSlotId,
-      state.slots,
       state.status,
       state.surchargeInput,
       state.totals,

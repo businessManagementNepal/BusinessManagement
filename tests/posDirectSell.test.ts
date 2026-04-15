@@ -411,7 +411,6 @@ describe("POS Direct Sell Functionality", () => {
       if (result.success) {
         expect(result.value[0].productId).toBe("product-new");
         expect(result.value[0].quantity).toBe(1);
-        expect(result.value[0].slotId).toBe("direct-product-new"); // Compatibility slot ID
       }
     });
   });

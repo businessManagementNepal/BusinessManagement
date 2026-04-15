@@ -13,7 +13,7 @@ import {
     Trash2,
     WalletCards,
 } from "lucide-react-native";
-import React, { useCallback, useMemo, useRef } from "react";
+import React from "react";
 import {
     Platform,
     Pressable,
@@ -23,94 +23,26 @@ import {
     TextInput,
     View,
 } from "react-native";
-import { PosProduct, PosSlot } from "../types/pos.entity.types";
+import { PosProduct } from "../types/pos.entity.types";
 import { PosScreenViewModel } from "../types/pos.state.types";
 import { PosCustomerCreateModal } from "./components/PosCustomerCreateModal";
 import { PosCustomerSelector } from "./components/PosCustomerSelector";
 import { PosAdjustAmountModal } from "./PosAdjustAmountModal";
 import { PosPaymentModal } from "./PosPaymentModal";
-import { PosProductSelectionModal } from "./PosProductSelectionModal";
 import { PosQuickProductModal } from "./PosQuickProductModal";
 import { PosReceiptModal } from "./PosReceiptModal";
-import { buildSlotProductLookup, formatCurrency } from "./posScreen.shared";
+import { formatCurrency } from "./posScreen.shared";
 import { PosSplitBillModal } from "./PosSplitBillModal";
 
 type PosScreenProps = {
   viewModel: PosScreenViewModel;
 };
 
-const SLOT_COLUMN_COUNT = 4;
-
 export function PosScreen({ viewModel }: PosScreenProps) {
   const isShareAvailable = Platform.OS !== "web";
-  const productLookup = useMemo(
-    () => buildSlotProductLookup(viewModel.products),
-    [viewModel.products],
-  );
-
-  const slotRows = useMemo(() => {
-    const rows: PosSlot[][] = [];
-    for (
-      let index = 0;
-      index < viewModel.slots.length;
-      index += SLOT_COLUMN_COUNT
-    ) {
-      rows.push(viewModel.slots.slice(index, index + SLOT_COLUMN_COUNT));
-    }
-    return rows;
-  }, [viewModel.slots]);
-
-  const selectedSlotId = viewModel.selectedSlotId;
   const cartLines = viewModel.cartLines;
 
-  const selectedCartLine = useMemo(
-    () =>
-      selectedSlotId
-        ? (cartLines.find((cartLine) => cartLine.slotId === selectedSlotId) ??
-          null)
-        : null,
-    [cartLines, selectedSlotId],
-  );
-
-  const selectedSlotLabel = selectedSlotId
-    ? `Slot ${selectedSlotId.replace("slot-", "")}`
-    : null;
-
-  const selectedSlot = useMemo(
-    () =>
-      selectedSlotId
-        ? (viewModel.slots.find((slot) => slot.slotId === selectedSlotId) ??
-          null)
-        : null,
-    [selectedSlotId, viewModel.slots],
-  );
-
-  const selectedAssignedProduct = selectedSlot?.assignedProductId
-    ? productLookup[selectedSlot.assignedProductId]
-    : null;
-
-  const longPressTriggeredRef = useRef<string | null>(null);
-
-  const handleSlotPress = useCallback(
-    (slotId: string) => {
-      if (longPressTriggeredRef.current === slotId) {
-        longPressTriggeredRef.current = null;
-        return;
-      }
-
-      void viewModel.onPressSlot(slotId);
-    },
-    [viewModel],
-  );
-
-  const handleSlotLongPress = useCallback(
-    (slotId: string) => {
-      longPressTriggeredRef.current = slotId;
-      viewModel.onLongPressSlot(slotId);
-    },
-    [viewModel],
-  );
-
+  
   return (
     <>
       <ScreenContainer
@@ -437,22 +369,6 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
         ) : null}
       </ScreenContainer>
-
-      <PosProductSelectionModal
-        visible={viewModel.activeModal === "product-selection"}
-        products={viewModel.products}
-        currencyCode={viewModel.currencyCode}
-        countryCode={viewModel.countryCode}
-        searchTerm={viewModel.productSearchTerm}
-        onSearchChange={(value) => {
-          void viewModel.onProductSearchChange(value);
-        }}
-        onClose={viewModel.onCloseModal}
-        onSelectProduct={(productId) => {
-          void viewModel.onSelectProduct(productId);
-        }}
-        onCreateProduct={viewModel.onOpenCreateProductModal}
-      />
 
       <PosQuickProductModal
         visible={viewModel.activeModal === "create-product"}

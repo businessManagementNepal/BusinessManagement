@@ -8,14 +8,8 @@ export type PosProduct = {
   shortCode: string;
 };
 
-export type PosSlot = {
-  slotId: string;
-  assignedProductId: string | null;
-};
-
 export type PosCartLine = {
   lineId: string;
-  slotId: string;
   productId: string;
   productName: string;
   categoryLabel: string;
@@ -84,7 +78,6 @@ export type PosCustomer = {
 
 export type PosBootstrap = {
   products: readonly PosProduct[];
-  slots: readonly PosSlot[];
   activeBusinessAccountRemoteId: string | null;
   activeOwnerUserRemoteId: string | null;
   activeSettlementAccountRemoteId: string | null;

@@ -6,13 +6,11 @@ import { Database, Q } from "@nozbe/watermelondb";
 import {
     PosAddProductToCartParams,
     PosApplyAmountAdjustmentParams,
-    PosAssignProductToSlotParams,
     PosChangeQuantityParams,
     PosClearSessionParams,
     PosCompletePaymentParams,
     PosLoadBootstrapParams,
     PosLoadSessionParams,
-    PosRemoveSlotProductParams,
     PosSaveSessionParams,
     PosSessionData,
     PosSessionResult
@@ -23,7 +21,6 @@ import {
     PosLedgerEffect,
     PosProduct,
     PosReceipt,
-    PosSlot,
     PosTotals,
 } from "../../types/pos.entity.types";
 import {
@@ -39,17 +36,6 @@ import { PosDatasource } from "./pos.datasource";
 
 const PRODUCTS_TABLE = "products";
 const INVENTORY_MOVEMENTS_TABLE = "inventory_movements";
-const SLOT_COUNT = 16;
-
-const createInitialSlots = (): PosSlot[] => {
-  return Array.from({ length: SLOT_COUNT }, (_, index) => ({
-    slotId: `slot-${index + 1}`,
-    assignedProductId: null,
-  }));
-};
-
-const cloneSlots = (slots: readonly PosSlot[]): PosSlot[] =>
-  slots.map((slot) => ({ ...slot }));
 
 const cloneCartLines = (cartLines: readonly PosCartLine[]): PosCartLine[] =>
   cartLines.map((line) => ({ ...line }));
@@ -146,9 +132,8 @@ const calculateTotals = (
   };
 };
 
-const buildCartLine = (slotId: string, product: PosProduct): PosCartLine => ({
-  lineId: `line-${slotId}`,
-  slotId,
+const buildCartLine = (product: PosProduct): PosCartLine => ({
+  lineId: `line-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   productId: product.id,
   productName: product.name,
   categoryLabel: product.categoryLabel,
@@ -191,7 +176,6 @@ export const createLocalPosDatasource = ({
   let activeSettlementAccountRemoteId: string | null = null;
   let activeOwnerUserRemoteId: string | null = null;
   let products: readonly PosProduct[] = [];
-  let slots: PosSlot[] = createInitialSlots();
   let cartLines: PosCartLine[] = [];
   let discountAmount = 0;
   let surchargeAmount = 0;
@@ -200,7 +184,6 @@ export const createLocalPosDatasource = ({
     calculateTotals(cartLines, discountAmount, surchargeAmount);
 
   const resetSessionState = (): void => {
-    slots = createInitialSlots();
     cartLines = [];
     discountAmount = 0;
     surchargeAmount = 0;
@@ -250,9 +233,7 @@ export const createLocalPosDatasource = ({
     return mapProductModelToPosProduct(product);
   };
 
-  const findSlotIndex = (slotId: string): number =>
-    slots.findIndex((slot) => slot.slotId === slotId);
-
+  
   return {
     async loadBootstrap(
       params: PosLoadBootstrapParams,
@@ -297,7 +278,6 @@ export const createLocalPosDatasource = ({
         const loadedProducts = await loadActiveProducts();
         const bootstrap: PosBootstrap = {
           products: loadedProducts,
-          slots: cloneSlots(slots),
           activeBusinessAccountRemoteId: params.activeBusinessAccountRemoteId,
           activeOwnerUserRemoteId: params.activeOwnerUserRemoteId,
           activeSettlementAccountRemoteId:
@@ -329,74 +309,6 @@ export const createLocalPosDatasource = ({
           product.categoryLabel.toLowerCase().includes(normalizedSearchTerm)
         );
       });
-    },
-
-    async assignProductToSlot(
-      params: PosAssignProductToSlotParams,
-    ): Promise<PosCartLinesResult> {
-      const slotIndex = findSlotIndex(params.slotId);
-      if (slotIndex === -1) {
-        return {
-          success: false,
-          error: {
-            type: PosErrorType.SlotNotFound,
-            message: "The selected slot was not found.",
-          },
-        };
-      }
-
-      const product = await getActiveProductById(params.productId);
-      if (!product) {
-        return {
-          success: false,
-          error: {
-            type: PosErrorType.ProductNotFound,
-            message: "The selected product was not found.",
-          },
-        };
-      }
-
-      slots = slots.map((slot, index) =>
-        index === slotIndex ? { ...slot, assignedProductId: product.id } : slot,
-      );
-
-      if (!params.addToCart) {
-        cartLines = cartLines.filter((line) => line.slotId !== params.slotId);
-        return {
-          success: true,
-          value: cloneCartLines(cartLines),
-        };
-      }
-
-      const existingLineIndex = cartLines.findIndex(
-        (line) => line.slotId === params.slotId,
-      );
-
-      if (existingLineIndex === -1) {
-        cartLines = [...cartLines, buildCartLine(params.slotId, product)];
-      } else {
-        cartLines = cartLines.map((line, index) => {
-          if (index !== existingLineIndex) {
-            return line;
-          }
-
-          if (line.productId !== product.id) {
-            return buildCartLine(params.slotId, product);
-          }
-
-          const nextQuantity = line.quantity + 1;
-          return {
-            ...line,
-            quantity: nextQuantity,
-            lineSubtotal: Number((nextQuantity * line.unitPrice).toFixed(2)),
-          };
-        });
-      }
-
-      return {
-        success: true,
-        value: cloneCartLines(cartLines),
-      };
     },
 
     async addProductToCart(
@@ -439,34 +351,8 @@ export const createLocalPosDatasource = ({
         };
       }
 
-      const compatibilitySlotId = `direct-${params.productId}`;
-      const newLine = buildCartLine(compatibilitySlotId, product);
+      const newLine = buildCartLine(product);
       cartLines = [...cartLines, newLine];
-
-      return {
-        success: true,
-        value: cloneCartLines(cartLines),
-      };
-    },
-
-    async removeProductFromSlot(
-      params: PosRemoveSlotProductParams,
-    ): Promise<PosCartLinesResult> {
-      const slotIndex = findSlotIndex(params.slotId);
-      if (slotIndex === -1) {
-        return {
-          success: false,
-          error: {
-            type: PosErrorType.SlotNotFound,
-            message: "The selected slot was not found.",
-          },
-        };
-      }
-
-      slots = slots.map((slot, index) =>
-        index === slotIndex ? { ...slot, assignedProductId: null } : slot,
-      );
-      cartLines = cartLines.filter((line) => line.slotId !== params.slotId);
 
       return {
         success: true,
@@ -491,14 +377,7 @@ export const createLocalPosDatasource = ({
       }
 
       if (params.nextQuantity <= 0) {
-        const targetLine = cartLines[lineIndex];
         cartLines = cartLines.filter((line) => line.lineId !== params.lineId);
-        slots = slots.map((slot) =>
-          slot.slotId === targetLine.slotId
-            ? { ...slot, assignedProductId: null }
-            : slot,
-        );
-
         return { success: true, value: cloneCartLines(cartLines) };
       }
 
@@ -553,10 +432,6 @@ export const createLocalPosDatasource = ({
     async clearCart(): Promise<PosOperationResult> {
       resetSessionState();
       return { success: true, value: true };
-    },
-
-    async getSlots(): Promise<readonly PosSlot[]> {
-      return cloneSlots(slots);
     },
 
     async getCartLines(): Promise<readonly PosCartLine[]> {

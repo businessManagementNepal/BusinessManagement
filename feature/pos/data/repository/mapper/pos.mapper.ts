@@ -1,9 +1,9 @@
 import {
-  PosBootstrap,
-  PosCartLine,
-  PosProduct,
-  PosReceipt,
-  PosTotals,
+    PosBootstrap,
+    PosCartLine,
+    PosProduct,
+    PosReceipt,
+    PosTotals,
 } from "../../../types/pos.entity.types";
 
 export const mapPosProductToDomain = (product: PosProduct): PosProduct => ({
@@ -13,7 +13,6 @@ export const mapPosProductToDomain = (product: PosProduct): PosProduct => ({
 export const mapPosBootstrapToDomain = (bootstrap: PosBootstrap): PosBootstrap => ({
   ...bootstrap,
   products: bootstrap.products.map(mapPosProductToDomain),
-  slots: bootstrap.slots.map((slot) => ({ ...slot })),
 });
 
 export const mapPosCartLinesToDomain = (

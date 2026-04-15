@@ -5,7 +5,6 @@ import {
     PosCartLine,
     PosProduct,
     PosReceipt,
-    PosSlot,
     PosTotals,
 } from "./pos.entity.types";
 
@@ -15,7 +14,6 @@ export type PosCheckoutSubmissionKind = "payment" | "split-bill";
 
 export type PosModalType =
   | "none"
-  | "product-selection"
   | "create-product"
   | "discount"
   | "surcharge"
@@ -30,11 +28,8 @@ export type PosScreenState = {
   products: readonly PosProduct[];
   filteredProducts: readonly PosProduct[];
   recentProducts: readonly PosProduct[];
-  slots: readonly PosSlot[];
   cartLines: readonly PosCartLine[];
   totals: PosTotals;
-  activeSlotId: string | null;
-  selectedSlotId: string | null;
   activeModal: PosModalType;
   productSearchTerm: string;
   discountInput: string;
@@ -69,14 +64,11 @@ export type PosScreenViewModel = {
   currencyCode: string;
   countryCode: string | null;
   taxSummaryLabel: string;
-  slots: readonly PosSlot[];
   cartLines: readonly PosCartLine[];
   totals: PosTotals;
   products: readonly PosProduct[];
   filteredProducts: readonly PosProduct[];
   recentProducts: readonly PosProduct[];
-  activeSlotId: string | null;
-  selectedSlotId: string | null;
   activeModal: PosModalType;
   productSearchTerm: string;
   discountInput: string;
@@ -99,11 +91,7 @@ export type PosScreenViewModel = {
   moneyAccountOptions: readonly DropdownOption[];
   isBusinessContextResolved: boolean;
   load: () => Promise<void>;
-  onPressSlot: (slotId: string) => Promise<void>;
-  onLongPressSlot: (slotId: string) => void;
-  onRemoveSlotProduct: (slotId: string) => Promise<void>;
   onProductSearchChange: (value: string) => Promise<void>;
-  onSelectProduct: (productId: string) => Promise<void>;
   onAddProductToCart: (productId: string) => Promise<void>;
   onOpenCreateProductModal: () => void;
   onCloseCreateProductModal: () => void;

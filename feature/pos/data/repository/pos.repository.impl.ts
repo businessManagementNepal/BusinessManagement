@@ -1,36 +1,33 @@
 import {
-  PosAddProductToCartParams,
-  PosApplyAmountAdjustmentParams,
-  PosAssignProductToSlotParams,
-  PosChangeQuantityParams,
-  PosClearSessionParams,
-  PosCompletePaymentParams,
-  PosLoadBootstrapParams,
-  PosLoadSessionParams,
-  PosRemoveSlotProductParams,
-  PosSaveSessionParams,
-  PosSessionResult,
+    PosAddProductToCartParams,
+    PosApplyAmountAdjustmentParams,
+    PosChangeQuantityParams,
+    PosClearSessionParams,
+    PosCompletePaymentParams,
+    PosLoadBootstrapParams,
+    PosLoadSessionParams,
+    PosSaveSessionParams,
+    PosSessionResult,
 } from "../../types/pos.dto.types";
 import {
-  PosCartLine,
-  PosReceipt,
-  PosSlot,
+    PosCartLine,
+    PosReceipt,
 } from "../../types/pos.entity.types";
 import {
-  PosBootstrapResult,
-  PosCartLinesResult,
-  PosError,
-  PosOperationResult,
-  PosPaymentResult,
-  PosTotalsResult
+    PosBootstrapResult,
+    PosCartLinesResult,
+    PosError,
+    PosOperationResult,
+    PosPaymentResult,
+    PosTotalsResult
 } from "../../types/pos.error.types";
 import { PosDatasource } from "../dataSource/pos.datasource";
 import {
-  mapPosBootstrapToDomain,
-  mapPosCartLinesToDomain,
-  mapPosProductToDomain,
-  mapPosReceiptToDomain,
-  mapPosTotalsToDomain,
+    mapPosBootstrapToDomain,
+    mapPosCartLinesToDomain,
+    mapPosProductToDomain,
+    mapPosReceiptToDomain,
+    mapPosTotalsToDomain,
 } from "./mapper/pos.mapper";
 import { PosRepository } from "./pos.repository";
 
@@ -53,32 +50,10 @@ export const createPosRepository = (
     return result.map(mapPosProductToDomain);
   },
 
-  async assignProductToSlot(
-    params: PosAssignProductToSlotParams,
-  ): Promise<PosCartLinesResult> {
-    const result = await datasource.assignProductToSlot(params);
-    if (!result.success) {
-      return { success: false, error: mapRepositoryError(result.error) };
-    }
-
-    return { success: true, value: mapPosCartLinesToDomain(result.value) };
-  },
-
   async addProductToCart(
     params: PosAddProductToCartParams,
   ): Promise<PosCartLinesResult> {
     const result = await datasource.addProductToCart(params);
-    if (!result.success) {
-      return { success: false, error: mapRepositoryError(result.error) };
-    }
-
-    return { success: true, value: mapPosCartLinesToDomain(result.value) };
-  },
-
-  async removeProductFromSlot(
-    params: PosRemoveSlotProductParams,
-  ): Promise<PosCartLinesResult> {
-    const result = await datasource.removeProductFromSlot(params);
     if (!result.success) {
       return { success: false, error: mapRepositoryError(result.error) };
     }
@@ -121,11 +96,6 @@ export const createPosRepository = (
 
   async clearCart(): Promise<PosOperationResult> {
     return datasource.clearCart();
-  },
-
-  async getSlots(): Promise<readonly PosSlot[]> {
-    const slots = await datasource.getSlots();
-    return slots.map((slot) => ({ ...slot }));
   },
 
   async getCartLines(): Promise<readonly PosCartLine[]> {

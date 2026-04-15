@@ -1,9 +1,9 @@
 /** @vitest-environment jsdom */
 
 import type {
-  PosCartLine,
-  PosCustomer,
-  PosProduct,
+    PosCartLine,
+    PosCustomer,
+    PosProduct,
 } from "@/feature/pos/types/pos.entity.types";
 import type { PosScreenViewModel } from "@/feature/pos/types/pos.state.types";
 import { usePosScreenViewModel } from "@/feature/pos/viewModel/posScreen.viewModel.impl";
@@ -24,7 +24,6 @@ const mockProduct: PosProduct = {
 
 const mockCartLine: PosCartLine = {
   lineId: "line-1",
-  slotId: "direct-product-1",
   productId: mockProduct.id,
   productName: mockProduct.name,
   categoryLabel: mockProduct.categoryLabel,

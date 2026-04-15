@@ -26,7 +26,6 @@ import { PosScreen } from "../ui/PosScreen";
 import { createAddProductToCartUseCase } from "../useCase/addProductToCart.useCase.impl";
 import { createApplyDiscountUseCase } from "../useCase/applyDiscount.useCase.impl";
 import { createApplySurchargeUseCase } from "../useCase/applySurcharge.useCase.impl";
-import { createAssignProductToSlotUseCase } from "../useCase/assignProductToSlot.useCase.impl";
 import { createChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQuantity.useCase.impl";
 import { createClearCartUseCase } from "../useCase/clearCart.useCase.impl";
 import { createClearPosSessionUseCase } from "../useCase/clearPosSession.useCase.impl";
@@ -35,7 +34,6 @@ import { createCompletePosCheckoutUseCase } from "../useCase/completePosCheckout
 import { createGetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase.impl";
 import { createLoadPosSessionUseCase } from "../useCase/loadPosSession.useCase.impl";
 import { createPrintReceiptUseCase } from "../useCase/printReceipt.useCase.impl";
-import { createRemoveProductFromSlotUseCase } from "../useCase/removeProductFromSlot.useCase.impl";
 import { createSavePosSessionUseCase } from "../useCase/savePosSession.useCase.impl";
 import { createSearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase.impl";
 import { createShareReceiptUseCase } from "../useCase/shareReceipt.useCase.impl";
@@ -77,16 +75,8 @@ export function GetPosScreenFactory({
     () => createSearchPosProductsUseCase(repository),
     [repository],
   );
-  const assignProductToSlotUseCase = React.useMemo(
-    () => createAssignProductToSlotUseCase(repository),
-    [repository],
-  );
   const addProductToCartUseCase = React.useMemo(
     () => createAddProductToCartUseCase(repository),
-    [repository],
-  );
-  const removeProductFromSlotUseCase = React.useMemo(
-    () => createRemoveProductFromSlotUseCase(repository),
     [repository],
   );
   const changeCartLineQuantityUseCase = React.useMemo(
@@ -237,9 +227,7 @@ export function GetPosScreenFactory({
     activeAccountDefaultTaxMode,
     getPosBootstrapUseCase,
     searchPosProductsUseCase,
-    assignProductToSlotUseCase,
     addProductToCartUseCase,
-    removeProductFromSlotUseCase,
     changeCartLineQuantityUseCase,
     applyDiscountUseCase,
     applySurchargeUseCase,

@@ -11,18 +11,8 @@ export type PosLoadBootstrapParams = {
   activeSettlementAccountRemoteId: string | null;
 };
 
-export type PosAssignProductToSlotParams = {
-  slotId: string;
-  productId: string;
-  addToCart: boolean;
-};
-
 export type PosAddProductToCartParams = {
   productId: string;
-};
-
-export type PosRemoveSlotProductParams = {
-  slotId: string;
 };
 
 export type PosChangeQuantityParams = {
