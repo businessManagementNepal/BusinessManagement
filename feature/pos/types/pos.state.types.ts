@@ -1,3 +1,4 @@
+import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { StatusType } from "@/shared/types/status.types";
 import {
   PosBootstrap,
@@ -44,6 +45,8 @@ export type PosScreenState = {
   selectedCustomer: import("./pos.entity.types").PosCustomer | null;
   customerSearchTerm: string;
   customerOptions: readonly import("../ui/components/PosCustomerSelector").DropdownOption[];
+  selectedSettlementAccountRemoteId: string;
+  moneyAccountOptions: readonly DropdownOption[];
   customerCreateForm: {
     fullName: string;
     phone: string;
@@ -85,6 +88,8 @@ export type PosScreenViewModel = {
     phone: string;
     address: string;
   };
+  selectedSettlementAccountRemoteId: string;
+  moneyAccountOptions: readonly DropdownOption[];
   isBusinessContextResolved: boolean;
   load: () => Promise<void>;
   onPressSlot: (slotId: string) => Promise<void>;
@@ -132,6 +137,7 @@ export type PosScreenViewModel = {
     value: string,
   ) => void;
   onCreateCustomer: () => Promise<void>;
+  onSettlementAccountChange: (settlementAccountRemoteId: string) => void;
   customerOptions: readonly import("../ui/components/PosCustomerSelector").DropdownOption[];
   isCreatingCustomer: boolean;
 };

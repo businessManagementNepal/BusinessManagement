@@ -5,16 +5,24 @@ import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/Scre
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
-  Minus,
-  Percent,
-  Plus,
-  PlusCircle,
-  ShoppingCart,
-  Trash2,
-  WalletCards
+    Minus,
+    Percent,
+    Plus,
+    PlusCircle,
+    ShoppingCart,
+    Trash2,
+    WalletCards,
 } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from "react-native";
 import { PosProduct, PosSlot } from "../types/pos.entity.types";
 import { PosScreenViewModel } from "../types/pos.state.types";
 import { PosCustomerCreateModal } from "./components/PosCustomerCreateModal";
@@ -57,7 +65,8 @@ export function PosScreen({ viewModel }: PosScreenProps) {
   const selectedCartLine = useMemo(
     () =>
       selectedSlotId
-        ? cartLines.find((cartLine) => cartLine.slotId === selectedSlotId) ?? null
+        ? (cartLines.find((cartLine) => cartLine.slotId === selectedSlotId) ??
+          null)
         : null,
     [cartLines, selectedSlotId],
   );
@@ -69,7 +78,8 @@ export function PosScreen({ viewModel }: PosScreenProps) {
   const selectedSlot = useMemo(
     () =>
       selectedSlotId
-        ? viewModel.slots.find((slot) => slot.slotId === selectedSlotId) ?? null
+        ? (viewModel.slots.find((slot) => slot.slotId === selectedSlotId) ??
+          null)
         : null,
     [selectedSlotId, viewModel.slots],
   );
@@ -80,19 +90,25 @@ export function PosScreen({ viewModel }: PosScreenProps) {
 
   const longPressTriggeredRef = useRef<string | null>(null);
 
-  const handleSlotPress = useCallback((slotId: string) => {
-    if (longPressTriggeredRef.current === slotId) {
-      longPressTriggeredRef.current = null;
-      return;
-    }
+  const handleSlotPress = useCallback(
+    (slotId: string) => {
+      if (longPressTriggeredRef.current === slotId) {
+        longPressTriggeredRef.current = null;
+        return;
+      }
 
-    void viewModel.onPressSlot(slotId);
-  }, [viewModel]);
+      void viewModel.onPressSlot(slotId);
+    },
+    [viewModel],
+  );
 
-  const handleSlotLongPress = useCallback((slotId: string) => {
-    longPressTriggeredRef.current = slotId;
-    viewModel.onLongPressSlot(slotId);
-  }, [viewModel]);
+  const handleSlotLongPress = useCallback(
+    (slotId: string) => {
+      longPressTriggeredRef.current = slotId;
+      viewModel.onLongPressSlot(slotId);
+    },
+    [viewModel],
+  );
 
   return (
     <>
@@ -108,9 +124,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                 Search and add products directly to cart
               </Text>
             </View>
-            <AppIconButton
-              onPress={viewModel.onOpenCreateProductModal}
-            >
+            <AppIconButton onPress={viewModel.onOpenCreateProductModal}>
               <PlusCircle size={20} color={colors.primary} />
             </AppIconButton>
           </View>
@@ -118,7 +132,9 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           <View style={styles.searchWrap}>
             <TextInput
               value={viewModel.productSearchTerm}
-              onChangeText={(value) => void viewModel.onProductSearchChange(value)}
+              onChangeText={(value) =>
+                void viewModel.onProductSearchChange(value)
+              }
               placeholder="Search products..."
               placeholderTextColor={colors.mutedForeground}
               style={styles.searchInput}
@@ -128,8 +144,8 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           {viewModel.recentProducts.length > 0 && (
             <View style={styles.quickProductsSection}>
               <Text style={styles.quickProductsTitle}>Recent Products</Text>
-              <ScrollView 
-                horizontal 
+              <ScrollView
+                horizontal
                 showsHorizontalScrollIndicator={false}
                 style={styles.quickProductsScroll}
                 contentContainerStyle={styles.quickProductsContent}
@@ -138,7 +154,9 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                   <Pressable
                     key={product.id}
                     style={styles.quickProductChip}
-                    onPress={() => void viewModel.onAddProductToCart(product.id)}
+                    onPress={() =>
+                      void viewModel.onAddProductToCart(product.id)
+                    }
                   >
                     <Text style={styles.quickProductChipText}>
                       {product.name}
@@ -160,7 +178,8 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             <View style={styles.emptySearchState}>
               <Text style={styles.emptySearchTitle}>Search for Products</Text>
               <Text style={styles.emptySearchSubtitle}>
-                Type a product name or category to find and add items to your cart
+                Type a product name or category to find and add items to your
+                cart
               </Text>
             </View>
           ) : viewModel.filteredProducts.length > 0 ? (
@@ -170,17 +189,27 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                   <Pressable
                     key={product.id}
                     style={styles.productRow}
-                    onPress={() => void viewModel.onAddProductToCart(product.id)}
+                    onPress={() =>
+                      void viewModel.onAddProductToCart(product.id)
+                    }
                   >
                     <View style={styles.productAvatarWrap}>
-                      <Text style={styles.productAvatarText}>{product.shortCode}</Text>
+                      <Text style={styles.productAvatarText}>
+                        {product.shortCode}
+                      </Text>
                     </View>
                     <View style={styles.productBody}>
                       <Text style={styles.productTitle}>{product.name}</Text>
-                      <Text style={styles.productMeta}>{product.categoryLabel}</Text>
+                      <Text style={styles.productMeta}>
+                        {product.categoryLabel}
+                      </Text>
                     </View>
                     <Text style={styles.productPrice}>
-                      {formatCurrency(product.price, viewModel.currencyCode, viewModel.countryCode)}
+                      {formatCurrency(
+                        product.price,
+                        viewModel.currencyCode,
+                        viewModel.countryCode,
+                      )}
                     </Text>
                     <View style={styles.productAddButton}>
                       <Plus size={16} color={colors.primary} />
@@ -193,7 +222,8 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             <View style={styles.emptySearchState}>
               <Text style={styles.emptySearchTitle}>No products found</Text>
               <Text style={styles.emptySearchSubtitle}>
-                Try a different product name or category, or create a new product from POS
+                Try a different product name or category, or create a new
+                product from POS
               </Text>
             </View>
           )}
@@ -215,16 +245,18 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             </Text>
           ) : (
             viewModel.cartLines.map((cartLine) => (
-              <View
-                key={cartLine.lineId}
-                style={styles.cartLineRow}
-              >
+              <View key={cartLine.lineId} style={styles.cartLineRow}>
                 <View style={styles.cartLineBody}>
                   <Text style={styles.cartLineTitle}>
                     {cartLine.productName}
                   </Text>
                   <Text style={styles.cartLineMeta}>
-                    {formatCurrency(cartLine.unitPrice, viewModel.currencyCode, viewModel.countryCode)} x {cartLine.quantity}
+                    {formatCurrency(
+                      cartLine.unitPrice,
+                      viewModel.currencyCode,
+                      viewModel.countryCode,
+                    )}{" "}
+                    x {cartLine.quantity}
                   </Text>
                 </View>
                 <View style={styles.cartLineActions}>
@@ -462,7 +494,12 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         countryCode={viewModel.countryCode}
         paidAmount={viewModel.paymentInput}
         selectedCustomer={viewModel.selectedCustomer}
+        selectedSettlementAccountRemoteId={
+          viewModel.selectedSettlementAccountRemoteId
+        }
+        moneyAccountOptions={viewModel.moneyAccountOptions}
         onPaidAmountChange={viewModel.onPaymentInputChange}
+        onSettlementAccountChange={viewModel.onSettlementAccountChange}
         onConfirm={() => {
           void viewModel.onCompletePayment();
         }}
@@ -480,8 +517,6 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         isPrintAvailable={true}
         isShareAvailable={Platform.OS !== "web"}
       />
-
-
 
       <PosCustomerCreateModal
         visible={viewModel.activeModal === "customer-create"}
@@ -529,7 +564,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: spacing.xs,
-    
   },
   sectionTitle: {
     color: colors.cardForeground,

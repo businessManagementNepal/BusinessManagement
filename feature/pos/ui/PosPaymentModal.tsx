@@ -1,15 +1,19 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import {
+  Dropdown,
+  DropdownOption,
+} from "@/shared/components/reusable/DropDown/Dropdown";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Printer, X } from "lucide-react-native";
 import React from "react";
 import {
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { PosCustomer, PosTotals } from "../types/pos.entity.types";
 import { formatCurrency } from "./posScreen.shared";
@@ -21,7 +25,10 @@ type PosPaymentModalProps = {
   countryCode: string | null;
   paidAmount: string;
   selectedCustomer: PosCustomer | null;
+  selectedSettlementAccountRemoteId: string;
+  moneyAccountOptions: readonly DropdownOption[];
   onPaidAmountChange: (value: string) => void;
+  onSettlementAccountChange: (settlementAccountRemoteId: string) => void;
   onConfirm: () => void;
   onClose: () => void;
 };
@@ -33,12 +40,20 @@ export function PosPaymentModal({
   countryCode,
   paidAmount,
   selectedCustomer,
+  selectedSettlementAccountRemoteId,
+  moneyAccountOptions,
   onPaidAmountChange,
+  onSettlementAccountChange,
   onConfirm,
   onClose,
 }: PosPaymentModalProps) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
           <View style={styles.headerRow}>
@@ -58,12 +73,28 @@ export function PosPaymentModal({
           {selectedCustomer && (
             <View style={styles.customerSummaryCard}>
               <Text style={styles.customerSummaryLabel}>Customer</Text>
-              <Text style={styles.customerSummaryName}>{selectedCustomer.fullName}</Text>
+              <Text style={styles.customerSummaryName}>
+                {selectedCustomer.fullName}
+              </Text>
               {selectedCustomer.phone && (
-                <Text style={styles.customerSummaryPhone}>{selectedCustomer.phone}</Text>
+                <Text style={styles.customerSummaryPhone}>
+                  {selectedCustomer.phone}
+                </Text>
               )}
             </View>
           )}
+
+          <View style={styles.fieldWrap}>
+            <Text style={styles.fieldLabel}>Settlement Account</Text>
+            <Dropdown
+              value={selectedSettlementAccountRemoteId}
+              options={moneyAccountOptions}
+              onChange={onSettlementAccountChange}
+              placeholder="Select settlement account"
+              modalTitle="Select settlement account"
+              showLeadingIcon={false}
+            />
+          </View>
 
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>Paid Amount</Text>
@@ -81,13 +112,17 @@ export function PosPaymentModal({
             const paidAmountNum = Number(paidAmount || "0");
             const grandTotal = totals.grandTotal;
             const dueAmount = grandTotal - paidAmountNum;
-            
+
             if (dueAmount > 0) {
               // Due amount case
               return (
-                <View style={[styles.dueAmountCard, { backgroundColor: "#FEF3CD" }]}>
+                <View
+                  style={[styles.dueAmountCard, { backgroundColor: "#FEF3CD" }]}
+                >
                   <Text style={styles.dueAmountLabel}>Due Amount</Text>
-                  <Text style={[styles.dueAmountValue, { color: colors.warning }]}>
+                  <Text
+                    style={[styles.dueAmountValue, { color: colors.warning }]}
+                  >
                     {formatCurrency(dueAmount, currencyCode, countryCode)}
                   </Text>
                 </View>
@@ -95,9 +130,13 @@ export function PosPaymentModal({
             } else if (dueAmount === 0) {
               // Paid in full case
               return (
-                <View style={[styles.dueAmountCard, { backgroundColor: "#D1E7DD" }]}>
+                <View
+                  style={[styles.dueAmountCard, { backgroundColor: "#D1E7DD" }]}
+                >
                   <Text style={styles.dueAmountLabel}>Paid in Full</Text>
-                  <Text style={[styles.dueAmountValue, { color: colors.success }]}>
+                  <Text
+                    style={[styles.dueAmountValue, { color: colors.success }]}
+                  >
                     {formatCurrency(grandTotal, currencyCode, countryCode)}
                   </Text>
                 </View>
@@ -105,10 +144,18 @@ export function PosPaymentModal({
             } else {
               // Overpayment case - show change to return
               return (
-                <View style={[styles.dueAmountCard, { backgroundColor: "#E3F2FD" }]}>
+                <View
+                  style={[styles.dueAmountCard, { backgroundColor: "#E3F2FD" }]}
+                >
                   <Text style={styles.dueAmountLabel}>Change to Return</Text>
-                  <Text style={[styles.dueAmountValue, { color: colors.primary }]}>
-                    {formatCurrency(Math.abs(dueAmount), currencyCode, countryCode)}
+                  <Text
+                    style={[styles.dueAmountValue, { color: colors.primary }]}
+                  >
+                    {formatCurrency(
+                      Math.abs(dueAmount),
+                      currencyCode,
+                      countryCode,
+                    )}
                   </Text>
                 </View>
               );
@@ -121,23 +168,38 @@ export function PosPaymentModal({
               const grandTotal = totals.grandTotal;
               const dueAmount = grandTotal - paidAmountNum;
               const requiresCustomer = dueAmount > 0;
-              const customerValid = !requiresCustomer || selectedCustomer !== null;
+              const customerValid =
+                !requiresCustomer || selectedCustomer !== null;
+              const requiresSettlementAccount = paidAmountNum > 0;
+              const settlementAccountValid =
+                !requiresSettlementAccount ||
+                selectedSettlementAccountRemoteId.trim().length > 0;
 
               return (
                 <>
                   {requiresCustomer && !customerValid && (
                     <View style={styles.errorCard}>
                       <Text style={styles.errorText}>
-                        Select a customer to continue with unpaid or partial payment.
+                        Select a customer to continue with unpaid or partial
+                        payment.
+                      </Text>
+                    </View>
+                  )}
+                  {requiresSettlementAccount && !settlementAccountValid && (
+                    <View style={styles.errorCard}>
+                      <Text style={styles.errorText}>
+                        Select a settlement account to continue with paid sales.
                       </Text>
                     </View>
                   )}
                   <AppButton
                     label="Complete Sale"
                     size="lg"
-                    leadingIcon={<Printer size={18} color={colors.primaryForeground} />}
+                    leadingIcon={
+                      <Printer size={18} color={colors.primaryForeground} />
+                    }
                     onPress={onConfirm}
-                    disabled={!customerValid}
+                    disabled={!customerValid || !settlementAccountValid}
                   />
                 </>
               );

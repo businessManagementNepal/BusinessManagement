@@ -43,6 +43,7 @@ export type PosSaveSessionParams = {
     recentProducts: readonly PosProduct[];
     productSearchTerm: string;
     selectedCustomer: PosCustomer | null;
+    selectedSettlementAccountRemoteId?: string;
     discountInput: string;
     surchargeInput: string;
   };
@@ -61,6 +62,7 @@ export type PosSessionData = {
   recentProducts: readonly PosProduct[];
   productSearchTerm: string;
   selectedCustomer: PosCustomer | null;
+  selectedSettlementAccountRemoteId?: string;
   discountInput: string;
   surchargeInput: string;
 };

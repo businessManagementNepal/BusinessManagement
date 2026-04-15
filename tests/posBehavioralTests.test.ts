@@ -332,23 +332,29 @@ describe("POS Behavioral Tests", () => {
   describe("UI State Behavior", () => {
     it("should show empty state when no search term", () => {
       // This tests the search-only visible product list behavior
-      const searchTerm = "";
-      const filteredProducts = searchTerm ? mockProducts.filter(
-        (product) =>
-          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.categoryLabel.toLowerCase().includes(searchTerm.toLowerCase()),
-      ) : [] as PosProduct[];
+      const searchTerm: string = "";
+      const filteredProducts = searchTerm
+        ? mockProducts.filter(
+            (product) =>
+              product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              product.categoryLabel
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase()),
+          )
+        : ([] as PosProduct[]);
 
       expect(filteredProducts).toHaveLength(0);
     });
 
     it("should show matching products when search term exists", () => {
       // This tests the search-only visible product list behavior
-      const searchTerm = "Test";
+      const searchTerm: string = "Test";
       const filteredProducts = mockProducts.filter(
         (product) =>
           product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.categoryLabel.toLowerCase().includes(searchTerm.toLowerCase()),
+          product.categoryLabel
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()),
       );
 
       expect(filteredProducts).toHaveLength(2);
@@ -358,11 +364,13 @@ describe("POS Behavioral Tests", () => {
 
     it("should show no results when search term has no matches", () => {
       // This tests the search-only visible product list behavior
-      const searchTerm = "NonExistent";
+      const searchTerm: string = "NonExistent";
       const filteredProducts = mockProducts.filter(
         (product) =>
           product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.categoryLabel.toLowerCase().includes(searchTerm.toLowerCase()),
+          product.categoryLabel
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()),
       );
 
       expect(filteredProducts).toHaveLength(0);
@@ -373,18 +381,27 @@ describe("POS Behavioral Tests", () => {
       let recentProducts: PosProduct[] = [];
 
       // Add first product
-      recentProducts = [mockProducts[0], ...recentProducts.filter(p => p.id !== mockProducts[0].id)];
+      recentProducts = [
+        mockProducts[0],
+        ...recentProducts.filter((p) => p.id !== mockProducts[0].id),
+      ];
       expect(recentProducts).toHaveLength(1);
       expect(recentProducts[0].id).toBe("product-1");
 
       // Add second product
-      recentProducts = [mockProducts[1], ...recentProducts.filter(p => p.id !== mockProducts[1].id)];
+      recentProducts = [
+        mockProducts[1],
+        ...recentProducts.filter((p) => p.id !== mockProducts[1].id),
+      ];
       expect(recentProducts).toHaveLength(2);
       expect(recentProducts[0].id).toBe("product-2");
       expect(recentProducts[1].id).toBe("product-1");
 
       // Re-add first product (should move to front)
-      recentProducts = [mockProducts[0], ...recentProducts.filter(p => p.id !== mockProducts[0].id)];
+      recentProducts = [
+        mockProducts[0],
+        ...recentProducts.filter((p) => p.id !== mockProducts[0].id),
+      ];
       expect(recentProducts).toHaveLength(2);
       expect(recentProducts[0].id).toBe("product-1");
       expect(recentProducts[1].id).toBe("product-2");
@@ -403,10 +420,13 @@ describe("POS Behavioral Tests", () => {
       }));
 
       let recentProducts: PosProduct[] = [];
-      
+
       // Add all products
-      manyProducts.forEach(product => {
-        recentProducts = [product, ...recentProducts.filter(p => p.id !== product.id)];
+      manyProducts.forEach((product) => {
+        recentProducts = [
+          product,
+          ...recentProducts.filter((p) => p.id !== product.id),
+        ];
       });
 
       // Should track all products used in current session (no artificial limit)
@@ -478,7 +498,7 @@ describe("POS Behavioral Tests", () => {
 
       expect(result.success).toBe(true);
       expect(result.value).toEqual(sessionData);
-      
+
       // Verify all fields are preserved
       expect(result.value?.cartLines).toHaveLength(1);
       expect(result.value?.recentProducts).toHaveLength(2);

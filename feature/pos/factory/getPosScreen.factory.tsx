@@ -1,3 +1,6 @@
+import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
+import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
+import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
 import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
 import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
@@ -211,6 +214,19 @@ export function GetPosScreenFactory({
     [productRepository],
   );
 
+  const moneyAccountDatasource = React.useMemo(
+    () => createLocalMoneyAccountDatasource(appDatabase),
+    [],
+  );
+  const moneyAccountRepository = React.useMemo(
+    () => createMoneyAccountRepository(moneyAccountDatasource),
+    [moneyAccountDatasource],
+  );
+  const getMoneyAccountsUseCase = React.useMemo(
+    () => createGetMoneyAccountsUseCase(moneyAccountRepository),
+    [moneyAccountRepository],
+  );
+
   const viewModel = usePosScreenViewModel({
     activeBusinessAccountRemoteId,
     activeOwnerUserRemoteId,
@@ -237,6 +253,7 @@ export function GetPosScreenFactory({
     savePosSessionUseCase,
     loadPosSessionUseCase,
     clearPosSessionUseCase,
+    getMoneyAccountsUseCase,
   });
 
   return <PosScreen viewModel={viewModel} />;

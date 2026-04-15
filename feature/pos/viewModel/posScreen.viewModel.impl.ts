@@ -1,3 +1,8 @@
+import {
+  MoneyAccount,
+  MoneyAccountTypeValue,
+} from "@/feature/accounts/types/moneyAccount.types";
+import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import type { Contact } from "@/feature/contacts/types/contact.types";
 import { ContactType } from "@/feature/contacts/types/contact.types";
 import type { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
@@ -7,6 +12,7 @@ import {
   ProductStatus,
 } from "@/feature/products/types/product.types";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
+import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { Status } from "@/shared/types/status.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
@@ -75,6 +81,8 @@ const INITIAL_STATE: PosScreenState = {
   selectedCustomer: null,
   customerSearchTerm: "",
   customerOptions: [],
+  selectedSettlementAccountRemoteId: "",
+  moneyAccountOptions: [],
   customerCreateForm: {
     fullName: "",
     phone: "",
@@ -124,6 +132,21 @@ const parseAmountInput = (value: string): number => {
   return parsed;
 };
 
+const getMoneyAccountTypeLabel = (type: MoneyAccountTypeValue): string =>
+  type === "cash" ? "Cash" : type === "bank" ? "Bank" : "Wallet";
+
+const mapMoneyAccountToOption = (
+  moneyAccount: MoneyAccount,
+): DropdownOption => {
+  const typeLabel = getMoneyAccountTypeLabel(moneyAccount.type);
+  const primarySuffix = moneyAccount.isPrimary ? " (Primary)" : "";
+
+  return {
+    label: `${moneyAccount.name} | ${typeLabel}${primarySuffix}`,
+    value: moneyAccount.remoteId,
+  };
+};
+
 const createEmptySlots = (): readonly PosSlot[] =>
   Array.from({ length: 16 }, (_, index) => ({
     slotId: `slot-${index + 1}`,
@@ -150,6 +173,7 @@ export type UsePosScreenViewModelParams = {
   getContactsUseCase: GetContactsUseCase;
   clearCartUseCase: ClearCartUseCase;
   completePosCheckoutUseCase: CompletePosCheckoutUseCase;
+  getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   printReceiptUseCase: PrintReceiptUseCase;
   shareReceiptUseCase: ShareReceiptUseCase;
   saveProductUseCase: SaveProductUseCase;
@@ -181,6 +205,7 @@ export function usePosScreenViewModel(
     getContactsUseCase,
     clearCartUseCase,
     completePosCheckoutUseCase,
+    getMoneyAccountsUseCase,
     printReceiptUseCase,
     saveProductUseCase,
     shareReceiptUseCase,
@@ -246,32 +271,51 @@ export function usePosScreenViewModel(
     });
   }, []);
 
-  const saveCurrentSession = useCallback(async () => {
-    if (!activeBusinessAccountRemoteId) {
-      return;
-    }
+  const saveCurrentSession = useCallback(
+    async (
+      overrides: Partial<{
+        cartLines: readonly PosCartLine[];
+        recentProducts: readonly PosProduct[];
+        productSearchTerm: string;
+        selectedCustomer: typeof state.selectedCustomer;
+        selectedSettlementAccountRemoteId: string;
+        discountInput: string;
+        surchargeInput: string;
+      }> = {},
+    ) => {
+      if (!activeBusinessAccountRemoteId) {
+        return;
+      }
 
-    await savePosSessionUseCase.execute({
-      businessAccountRemoteId: activeBusinessAccountRemoteId,
-      sessionData: {
-        cartLines: state.cartLines,
-        recentProducts: state.recentProducts,
-        productSearchTerm: state.productSearchTerm,
-        selectedCustomer: state.selectedCustomer,
-        discountInput: state.discountInput,
-        surchargeInput: state.surchargeInput,
-      },
-    });
-  }, [
-    activeBusinessAccountRemoteId,
-    savePosSessionUseCase,
-    state.cartLines,
-    state.recentProducts,
-    state.productSearchTerm,
-    state.selectedCustomer,
-    state.discountInput,
-    state.surchargeInput,
-  ]);
+      await savePosSessionUseCase.execute({
+        businessAccountRemoteId: activeBusinessAccountRemoteId,
+        sessionData: {
+          cartLines: overrides.cartLines ?? state.cartLines,
+          recentProducts: overrides.recentProducts ?? state.recentProducts,
+          productSearchTerm:
+            overrides.productSearchTerm ?? state.productSearchTerm,
+          selectedCustomer:
+            overrides.selectedCustomer ?? state.selectedCustomer,
+          selectedSettlementAccountRemoteId:
+            overrides.selectedSettlementAccountRemoteId ??
+            state.selectedSettlementAccountRemoteId,
+          discountInput: overrides.discountInput ?? state.discountInput,
+          surchargeInput: overrides.surchargeInput ?? state.surchargeInput,
+        },
+      });
+    },
+    [
+      activeBusinessAccountRemoteId,
+      savePosSessionUseCase,
+      state.cartLines,
+      state.recentProducts,
+      state.productSearchTerm,
+      state.selectedCustomer,
+      state.selectedSettlementAccountRemoteId,
+      state.discountInput,
+      state.surchargeInput,
+    ],
+  );
 
   const recalculateTotals = useCallback((cartLines: readonly PosCartLine[]) => {
     setState((currentState) => ({
@@ -339,73 +383,108 @@ export function usePosScreenViewModel(
       return;
     }
 
-    // 2. Load saved session snapshot
+    let moneyAccountOptions: DropdownOption[] = [];
+    if (activeBusinessAccountRemoteId) {
+      const moneyAccountsResult = await getMoneyAccountsUseCase.execute(
+        activeBusinessAccountRemoteId,
+      );
+      if (moneyAccountsResult.success) {
+        moneyAccountOptions = moneyAccountsResult.value.map(
+          mapMoneyAccountToOption,
+        );
+      }
+    }
+
+    let sessionDataSelectedCustomer = null as
+      | null
+      | typeof state.selectedCustomer;
+    let sessionDataCartLines: readonly PosCartLine[] = [];
+    let sessionDataRecentProducts: readonly PosProduct[] = [];
+    let sessionDataProductSearchTerm = "";
+    let sessionDataDiscountInput = "";
+    let sessionDataSurchargeInput = "";
+    let sessionDataSettlementAccountRemoteId = "";
+    let didRestoreSession = false;
+
     if (activeBusinessAccountRemoteId) {
       const sessionResult = await loadPosSessionUseCase.execute({
         businessAccountRemoteId: activeBusinessAccountRemoteId,
       });
 
       if (sessionResult.success && sessionResult.value) {
-        // 3. Hydrate screen state with session data
         const sessionData = sessionResult.value;
-        setState((currentState) => ({
-          ...currentState,
-          status: Status.Success,
-          bootstrap: result.value,
-          slots: result.value.slots,
-          products: result.value.products,
-          filteredProducts: [], // Start with empty filtered list, require search
-          cartLines: sessionData.cartLines,
-          recentProducts: sessionData.recentProducts,
-          productSearchTerm: sessionData.productSearchTerm,
-          selectedCustomer: sessionData.selectedCustomer,
-          discountInput: sessionData.discountInput,
-          surchargeInput: sessionData.surchargeInput,
-          totals: EMPTY_TOTALS, // Will be recalculated below
-          activeSlotId: null,
-          selectedSlotId: null,
-          errorMessage: null,
-        }));
-
-        // 4. Recompute totals with restored cart lines
-        const restoredTotals = calculateTotals(
-          sessionData.cartLines,
-          parseAmountInput(sessionData.discountInput),
-          parseAmountInput(sessionData.surchargeInput),
-        );
-        setState((currentState) => ({
-          ...currentState,
-          totals: restoredTotals,
-        }));
-        return;
+        sessionDataCartLines = sessionData.cartLines;
+        sessionDataRecentProducts = sessionData.recentProducts;
+        sessionDataProductSearchTerm = sessionData.productSearchTerm;
+        sessionDataSelectedCustomer = sessionData.selectedCustomer;
+        sessionDataDiscountInput = sessionData.discountInput;
+        sessionDataSurchargeInput = sessionData.surchargeInput;
+        sessionDataSettlementAccountRemoteId =
+          sessionData.selectedSettlementAccountRemoteId?.trim() ?? "";
+        didRestoreSession = true;
       }
     }
 
-    // No session data or failed to load - start fresh
-    setState((currentState) => ({
-      ...currentState,
+    const validSessionSettlementAccountRemoteId =
+      sessionDataSettlementAccountRemoteId &&
+      moneyAccountOptions.some(
+        (option) => option.value === sessionDataSettlementAccountRemoteId,
+      )
+        ? sessionDataSettlementAccountRemoteId
+        : "";
+
+    const defaultSettlementAccountRemoteId =
+      validSessionSettlementAccountRemoteId ||
+      (activeSettlementAccountRemoteId?.trim() &&
+      moneyAccountOptions.some(
+        (option) => option.value === activeSettlementAccountRemoteId.trim(),
+      )
+        ? activeSettlementAccountRemoteId.trim()
+        : "");
+
+    const nextState = {
       status: Status.Success,
       bootstrap: result.value,
       slots: result.value.slots,
       products: result.value.products,
-      filteredProducts: [], // Start with empty filtered list, require search
-      cartLines: [],
-      recentProducts: [],
-      productSearchTerm: "",
-      selectedCustomer: null,
-      discountInput: "",
-      surchargeInput: "",
+      filteredProducts: [],
+      cartLines: didRestoreSession ? sessionDataCartLines : [],
+      recentProducts: didRestoreSession ? sessionDataRecentProducts : [],
+      productSearchTerm: didRestoreSession ? sessionDataProductSearchTerm : "",
+      selectedCustomer: didRestoreSession ? sessionDataSelectedCustomer : null,
+      selectedSettlementAccountRemoteId: defaultSettlementAccountRemoteId,
+      moneyAccountOptions,
+      discountInput: didRestoreSession ? sessionDataDiscountInput : "",
+      surchargeInput: didRestoreSession ? sessionDataSurchargeInput : "",
       totals: EMPTY_TOTALS,
       activeSlotId: null,
       selectedSlotId: null,
       errorMessage: null,
+    };
+
+    setState((currentState) => ({
+      ...currentState,
+      ...nextState,
     }));
+
+    if (didRestoreSession) {
+      const restoredTotals = calculateTotals(
+        sessionDataCartLines,
+        parseAmountInput(sessionDataDiscountInput),
+        parseAmountInput(sessionDataSurchargeInput),
+      );
+      setState((currentState) => ({
+        ...currentState,
+        totals: restoredTotals,
+      }));
+    }
   }, [
     activeBusinessAccountRemoteId,
     activeOwnerUserRemoteId,
     activeSettlementAccountRemoteId,
     getPosBootstrapUseCase,
-    searchPosProductsUseCase,
+    getMoneyAccountsUseCase,
+    loadPosSessionUseCase,
   ]);
 
   useEffect(() => {
@@ -781,11 +860,16 @@ export function usePosScreenViewModel(
       }
 
       recalculateTotals(result.value);
-      
+
       // Save session after cart change
       await saveCurrentSession();
     },
-    [changeCartLineQuantityUseCase, recalculateTotals, saveCurrentSession, state.cartLines],
+    [
+      changeCartLineQuantityUseCase,
+      recalculateTotals,
+      saveCurrentSession,
+      state.cartLines,
+    ],
   );
 
   const onDecreaseQuantity = useCallback(
@@ -809,7 +893,7 @@ export function usePosScreenViewModel(
       }
 
       // Only update slots for actual slot lines, not direct-added lines (direct-{productId})
-      if (line.slotId.startsWith('slot-')) {
+      if (line.slotId.startsWith("slot-")) {
         setState((currentState) => ({
           ...currentState,
           slots: currentState.slots.map((slot) => {
@@ -826,11 +910,16 @@ export function usePosScreenViewModel(
         }));
       }
       recalculateTotals(result.value);
-      
+
       // Save session after cart change
       await saveCurrentSession();
     },
-    [changeCartLineQuantityUseCase, recalculateTotals, saveCurrentSession, state.cartLines],
+    [
+      changeCartLineQuantityUseCase,
+      recalculateTotals,
+      saveCurrentSession,
+      state.cartLines,
+    ],
   );
 
   const onRemoveCartLine = useCallback(
@@ -849,30 +938,51 @@ export function usePosScreenViewModel(
       }
 
       recalculateTotals(result.value);
-      
+
       // Save session after cart change
       await saveCurrentSession();
     },
     [changeCartLineQuantityUseCase, recalculateTotals, saveCurrentSession],
   );
 
-  const onDiscountInputChange = useCallback(async (value: string) => {
-    setState((currentState) => ({ ...currentState, discountInput: value }));
-    
-    // Save session after discount input change
-    await saveCurrentSession();
-  }, [saveCurrentSession]);
+  const onDiscountInputChange = useCallback(
+    async (value: string) => {
+      setState((currentState) => ({ ...currentState, discountInput: value }));
 
-  const onSurchargeInputChange = useCallback(async (value: string) => {
-    setState((currentState) => ({ ...currentState, surchargeInput: value }));
-    
-    // Save session after surcharge input change
-    await saveCurrentSession();
-  }, [saveCurrentSession]);
+      // Save session after discount input change
+      await saveCurrentSession();
+    },
+    [saveCurrentSession],
+  );
+
+  const onSurchargeInputChange = useCallback(
+    async (value: string) => {
+      setState((currentState) => ({ ...currentState, surchargeInput: value }));
+
+      // Save session after surcharge input change
+      await saveCurrentSession();
+    },
+    [saveCurrentSession],
+  );
 
   const onPaymentInputChange = useCallback((value: string) => {
     setState((currentState) => ({ ...currentState, paymentInput: value }));
   }, []);
+
+  const onSettlementAccountChange = useCallback(
+    (settlementAccountRemoteId: string) => {
+      setState((currentState) => ({
+        ...currentState,
+        selectedSettlementAccountRemoteId: settlementAccountRemoteId,
+        errorMessage: null,
+      }));
+
+      void saveCurrentSession({
+        selectedSettlementAccountRemoteId: settlementAccountRemoteId,
+      });
+    },
+    [saveCurrentSession],
+  );
 
   const onPaymentSplitCountInputChange = useCallback((value: string) => {
     setState((currentState) => ({
@@ -1018,11 +1128,23 @@ export function usePosScreenViewModel(
   ]);
 
   const onCompletePayment = useCallback(async () => {
+    const paidAmount = parseAmountInput(state.paymentInput);
+    const settlementAccountRemoteId =
+      state.selectedSettlementAccountRemoteId.trim();
+
+    if (paidAmount > 0 && !settlementAccountRemoteId) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: "Select a settlement money account for paid sales.",
+      }));
+      return;
+    }
+
     const result = await completePosCheckoutUseCase.execute({
-      paidAmount: parseAmountInput(state.paymentInput),
+      paidAmount,
       activeBusinessAccountRemoteId,
       activeOwnerUserRemoteId,
-      activeSettlementAccountRemoteId,
+      activeSettlementAccountRemoteId: settlementAccountRemoteId || null,
       activeAccountCurrencyCode: currencyCode,
       activeAccountCountryCode: regionalFinancePolicy.countryCode,
       selectedCustomer: state.selectedCustomer,
@@ -1119,18 +1241,21 @@ export function usePosScreenViewModel(
     }));
   }, [printReceiptUseCase, state.receipt]);
 
-  const onSelectCustomer = useCallback(async (customer: PosCustomer) => {
-    setState((currentState) => ({
-      ...currentState,
-      selectedCustomer: customer,
-      customerSearchTerm: "",
-      customerOptions: [],
-      errorMessage: null,
-    }));
+  const onSelectCustomer = useCallback(
+    async (customer: PosCustomer) => {
+      setState((currentState) => ({
+        ...currentState,
+        selectedCustomer: customer,
+        customerSearchTerm: "",
+        customerOptions: [],
+        errorMessage: null,
+      }));
 
-    // Save session after customer selection
-    await saveCurrentSession();
-  }, [saveCurrentSession]);
+      // Save session after customer selection
+      await saveCurrentSession();
+    },
+    [saveCurrentSession],
+  );
 
   const onClearCustomer = useCallback(async () => {
     customerSearchRequestRef.current += 1;
@@ -1443,12 +1568,16 @@ export function usePosScreenViewModel(
       onCloseCustomerCreateModal,
       onCustomerCreateFormChange,
       onCreateCustomer,
+      onSettlementAccountChange,
       onOpenSplitBillModal,
       onApplyDiscount,
       onApplySurcharge,
       onClearCart,
       onCompletePayment,
       customerOptions: state.customerOptions,
+      moneyAccountOptions: state.moneyAccountOptions,
+      selectedSettlementAccountRemoteId:
+        state.selectedSettlementAccountRemoteId,
       isCreatingCustomer: state.isCreatingCustomer,
     }),
     [
@@ -1498,6 +1627,7 @@ export function usePosScreenViewModel(
       onOpenCustomerCreateModal,
       onCloseCustomerCreateModal,
       onCreateCustomer,
+      onSettlementAccountChange,
       onOpenReceiptModal,
       onSelectCustomer,
       onSurchargeInputChange,
@@ -1517,6 +1647,7 @@ export function usePosScreenViewModel(
       state.quickProductNameInput,
       state.quickProductPriceInput,
       state.receipt,
+      state.selectedSettlementAccountRemoteId,
       state.selectedSlotId,
       state.slots,
       state.status,
@@ -1524,6 +1655,7 @@ export function usePosScreenViewModel(
       state.totals,
       taxSummaryLabel,
       state.customerOptions,
+      state.moneyAccountOptions,
       recentProducts,
     ],
   );
