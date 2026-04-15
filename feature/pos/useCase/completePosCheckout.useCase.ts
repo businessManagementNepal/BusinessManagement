@@ -4,7 +4,6 @@ import { PosPaymentResult } from "../types/pos.error.types";
 export type CompletePosCheckoutParams = PosCompletePaymentParams & {
   activeBusinessAccountRemoteId: string | null;
   activeOwnerUserRemoteId: string | null;
-  activeSettlementAccountRemoteId?: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
   selectedCustomer: import("../types/pos.entity.types").PosCustomer | null;

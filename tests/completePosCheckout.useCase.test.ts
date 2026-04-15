@@ -1,7 +1,7 @@
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase";
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
-import { PosReceipt } from "@/feature/pos/types/pos.entity.types";
+import { PosReceipt, PosReceiptPaymentPart } from "@/feature/pos/types/pos.entity.types";
 import { CompletePaymentUseCase } from "@/feature/pos/useCase/completePayment.useCase";
 import { createCompletePosCheckoutUseCase } from "@/feature/pos/useCase/completePosCheckout.useCase.impl";
 import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 
 const createReceipt = (
   dueAmount: number,
-  paymentParts?: any[],
+  paymentParts?: readonly PosReceiptPaymentPart[],
 ): PosReceipt => ({
   receiptNumber: "RCPT-12345678",
   issuedAt: "2026-04-03T00:00:00.000Z",
@@ -78,6 +78,7 @@ describe("completePosCheckout.useCase", () => {
             payerLabel: null,
             amount: 1130,
             settlementAccountRemoteId: "money-cash-1",
+            settlementAccountLabel: "Cash Account",
           },
         ]),
       }),
@@ -145,6 +146,7 @@ describe("completePosCheckout.useCase", () => {
             payerLabel: null,
             amount: 830,
             settlementAccountRemoteId: "money-cash-1",
+            settlementAccountLabel: "Cash Account",
           },
         ]),
       }),
@@ -261,7 +263,6 @@ describe("completePosCheckout.useCase", () => {
       ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: "money-cash-1",
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: {
@@ -316,15 +317,16 @@ describe("completePosCheckout.useCase", () => {
 
     // Paid checkout with NULL settlement account should fail
     const result = await useCase.execute({
-      paymentParts: [{
-        paymentPartId: "part-1",
-        payerLabel: null,
-        amount: 1130,
-        settlementAccountRemoteId: "",
-      }],
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 1130,
+          settlementAccountRemoteId: "",
+        },
+      ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: null,
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: null,
@@ -383,7 +385,6 @@ describe("completePosCheckout.useCase", () => {
       ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: "money-cash-1",
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: null,
@@ -444,15 +445,16 @@ describe("completePosCheckout.useCase", () => {
     });
 
     const result = await useCase.execute({
-      paymentParts: [{
-        paymentPartId: "part-1",
-        payerLabel: null,
-        amount: 830,
-        settlementAccountRemoteId: "money-cash-1",
-      }],
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 830,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: "money-cash-1",
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: {
@@ -513,15 +515,16 @@ describe("completePosCheckout.useCase", () => {
 
     // Test with missing business account
     const result1 = await useCase.execute({
-      paymentParts: [{
-        paymentPartId: "part-1",
-        payerLabel: null,
-        amount: 1130,
-        settlementAccountRemoteId: "money-cash-1",
-      }],
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 1130,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
       activeBusinessAccountRemoteId: null,
       activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: "money-cash-1",
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: null,
@@ -538,15 +541,16 @@ describe("completePosCheckout.useCase", () => {
 
     // Test with missing owner user
     const result2 = await useCase.execute({
-      paymentParts: [{
-        paymentPartId: "part-1",
-        payerLabel: null,
-        amount: 1130,
-        settlementAccountRemoteId: "money-cash-1",
-      }],
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 1130,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: null,
-      activeSettlementAccountRemoteId: "money-cash-1",
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: null,
@@ -600,15 +604,16 @@ describe("completePosCheckout.useCase", () => {
 
     // Paid checkout with NULL settlement account should fail
     const result = await useCase.execute({
-      paymentParts: [{
-        paymentPartId: "part-1",
-        payerLabel: null,
-        amount: 1130,
-        settlementAccountRemoteId: "",
-      }],
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 1130,
+          settlementAccountRemoteId: "",
+        },
+      ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: null,
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: null,
@@ -662,15 +667,16 @@ describe("completePosCheckout.useCase", () => {
 
     // Unpaid checkout with NULL customer should fail
     const result = await useCase.execute({
-      paymentParts: [{
-        paymentPartId: "part-1",
-        payerLabel: null,
-        amount: 830,
-        settlementAccountRemoteId: "money-cash-1",
-      }],
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 830,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: "money-cash-1",
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: null,
@@ -726,15 +732,16 @@ describe("completePosCheckout.useCase", () => {
 
     // Fully paid anonymous checkout should succeed
     const result = await useCase.execute({
-      paymentParts: [{
-        paymentPartId: "part-1",
-        payerLabel: null,
-        amount: 1130,
-        settlementAccountRemoteId: "money-cash-1",
-      }],
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 1130,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: "money-cash-1",
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: null,
@@ -791,15 +798,16 @@ describe("completePosCheckout.useCase", () => {
 
     // Unpaid checkout with customer should succeed
     const result = await useCase.execute({
-      paymentParts: [{
-        paymentPartId: "part-1",
-        payerLabel: null,
-        amount: 830,
-        settlementAccountRemoteId: "money-cash-1",
-      }],
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 830,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: "money-cash-1",
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: {
@@ -862,15 +870,16 @@ describe("completePosCheckout.useCase", () => {
     });
 
     const result = await useCase.execute({
-      paymentParts: [{
-        paymentPartId: "part-1",
-        payerLabel: null,
-        amount: 830,
-        settlementAccountRemoteId: "money-cash-1",
-      }],
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 830,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: "money-cash-1",
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: {
@@ -893,6 +902,109 @@ describe("completePosCheckout.useCase", () => {
     if (result.success) {
       expect(result.value.ledgerEffect.type).toBe("due_balance_created");
       expect(result.value.dueAmount).toBe(300);
+    }
+  });
+
+  it("SPLIT PAYMENT: receipt contains payment breakdown", async () => {
+    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+      async () => ({
+        success: true as const,
+        value: createReceipt(0, [
+          {
+            paymentPartId: "part-1",
+            payerLabel: "Alice",
+            amount: 500,
+            settlementAccountRemoteId: "money-cash-1",
+            settlementAccountLabel: "Cash Account",
+          },
+          {
+            paymentPartId: "part-2",
+            payerLabel: "Bob",
+            amount: 630,
+            settlementAccountRemoteId: "money-bank-1",
+            settlementAccountLabel: "Bank Account",
+          },
+        ]),
+      }),
+    );
+    const completePaymentUseCase: CompletePaymentUseCase = {
+      execute: completePaymentExecuteSpy,
+    };
+    const addLedgerEntryExecuteSpy: AddLedgerEntryUseCase["execute"] = vi.fn(
+      async (payload) => ({
+        success: false as const,
+        error: {
+          type: "DATABASE_ERROR" as const,
+          message: "Ledger posting failed",
+        },
+      }),
+    );
+    const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
+      execute: addLedgerEntryExecuteSpy,
+      verifyLinkedDocument: vi.fn(async () => ({
+        success: true as const,
+        value: {} as never,
+      })),
+    };
+    const coreSyncUseCases = createCoreSyncUseCases();
+
+    const useCase = createCompletePosCheckoutUseCase({
+      completePaymentUseCase,
+      addLedgerEntryUseCase,
+      getOrCreateBusinessContactUseCase: {
+        execute: vi.fn(),
+      },
+      ...coreSyncUseCases,
+    });
+
+    const result = await useCase.execute({
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: "Alice",
+          amount: 500,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+        {
+          paymentPartId: "part-2",
+          payerLabel: "Bob",
+          amount: 630,
+          settlementAccountRemoteId: "money-bank-1",
+        },
+      ],
+      selectedCustomer: null,
+      grandTotalSnapshot: 1130,
+      activeBusinessAccountRemoteId: "business-1",
+      activeOwnerUserRemoteId: "user-1",
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
+    });
+
+    expect(result.success).toBe(true);
+    expect(addLedgerEntryExecuteSpy).not.toHaveBeenCalled();
+    if (result.success) {
+      expect(result.value).toEqual(
+        expect.objectContaining({
+          paymentParts: [
+            {
+              paymentPartId: "part-1",
+              payerLabel: "Alice",
+              amount: 500,
+              settlementAccountRemoteId: "money-cash-1",
+              settlementAccountLabel: "Cash Account",
+            },
+            {
+              paymentPartId: "part-2",
+              payerLabel: "Bob",
+              amount: 630,
+              settlementAccountRemoteId: "money-bank-1",
+              settlementAccountLabel: "Bank Account",
+            },
+          ],
+          paidAmount: 1130,
+          dueAmount: 0,
+        })
+      );
     }
   });
 });

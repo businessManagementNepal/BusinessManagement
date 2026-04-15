@@ -47,7 +47,7 @@ export type PosScreenState = {
   customerSearchTerm: string;
   customerOptions: readonly import("../ui/components/PosCustomerSelector").DropdownOption[];
   selectedSettlementAccountRemoteId: string;
-  moneyAccountOptions: readonly DropdownOption[];
+  moneyAccountOptions: readonly import("../ui/components/PosCustomerSelector").DropdownOption[];
   customerCreateForm: {
     fullName: string;
     phone: string;
@@ -55,7 +55,7 @@ export type PosScreenState = {
   };
   isCreatingCustomer: boolean;
   splitBillDraftParts: readonly import("./pos.entity.types").PosSplitDraftPart[];
-  splitBillErrorMessage: string | null;
+  splitBillErrorMessage: { type: import("./pos.entity.types").PosErrorType; message: string } | null;
 };
 
 export type PosScreenViewModel = {

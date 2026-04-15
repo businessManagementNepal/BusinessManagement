@@ -93,9 +93,7 @@ const buildPosDocumentNumber = (receiptNumber: string): string =>
 const calculatePaidAmountFromParts = (
   paymentParts: readonly PosPaymentPartInput[],
 ): number =>
-  Number(
-    paymentParts.reduce((sum, part) => sum + part.amount, 0).toFixed(2),
-  );
+  Number(paymentParts.reduce((sum, part) => sum + part.amount, 0).toFixed(2));
 
 const buildPricingForDocument = (
   receipt: PosReceipt,
@@ -161,17 +159,19 @@ export const createCompletePosCheckoutUseCase = ({
         success: false,
         error: {
           type: PosErrorType.ContextRequired,
-          message: "POS requires active business account and owner user context.",
+          message:
+            "POS requires active business account and owner user context.",
         },
       };
     }
 
     // PRE-COMMIT VALIDATION: Paid checkout requires settlement money account
     const paidAmount = calculatePaidAmountFromParts(params.paymentParts);
-    const firstPaymentPart = params.paymentParts[0];
-    const settlementAccountRemoteId = firstPaymentPart?.settlementAccountRemoteId ?? null;
-    
-    if (paidAmount > 0 && !settlementAccountRemoteId) {
+    const hasMissingSettlementAccount = params.paymentParts.some(
+      (part) => part.amount > 0 && !part.settlementAccountRemoteId?.trim(),
+    );
+
+    if (paidAmount > 0 && hasMissingSettlementAccount) {
       return {
         success: false,
         error: {
@@ -182,7 +182,10 @@ export const createCompletePosCheckoutUseCase = ({
     }
 
     // PRE-COMMIT VALIDATION: Unpaid/partial checkout requires customer
-    const expectedDueAmount = Math.max(params.grandTotalSnapshot - paidAmount, 0);
+    const expectedDueAmount = Math.max(
+      params.grandTotalSnapshot - paidAmount,
+      0,
+    );
     if (expectedDueAmount > 0 && !params.selectedCustomer) {
       return {
         success: false,
@@ -275,16 +278,12 @@ export const createCompletePosCheckoutUseCase = ({
     let paymentTransactionRemoteId: string | null = null;
 
     if (receipt.paidAmount > 0) {
-      if (!settlementAccountRemoteId) {
-        return buildPostingSyncFailedResult(receipt);
-      }
-
       // Post one money movement per payment part
       for (const paymentPart of params.paymentParts) {
         if (paymentPart.amount <= 0) {
           return buildPostingSyncFailedResult(receipt);
         }
-        
+
         if (!paymentPart.settlementAccountRemoteId?.trim()) {
           return buildPostingSyncFailedResult(receipt);
         }
@@ -345,7 +344,7 @@ export const createCompletePosCheckoutUseCase = ({
       settledAgainstEntryRemoteId: null,
       linkedDocumentRemoteId: billingDocumentRemoteId,
       linkedTransactionRemoteId: null,
-      settlementAccountRemoteId: settlementAccountRemoteId,
+      settlementAccountRemoteId: null,
       settlementAccountDisplayNameSnapshot: null,
       contactRemoteId: params.selectedCustomer!.remoteId,
     });
@@ -366,17 +365,18 @@ export const createCompletePosCheckoutUseCase = ({
     // VERIFY: Ensure Billing ↔ Ledger linkage is consistent
     // Check that the ledger entry can be found by the billing document remote ID
     if (dueLedgerRemoteId) {
-      const linkageVerificationResult = await addLedgerEntryUseCase.verifyLinkedDocument(
-        billingDocumentRemoteId,
-        dueLedgerRemoteId,
-      );
+      const linkageVerificationResult =
+        await addLedgerEntryUseCase.verifyLinkedDocument(
+          billingDocumentRemoteId,
+          dueLedgerRemoteId,
+        );
 
       if (!linkageVerificationResult.success) {
         return {
           success: false,
           error: {
             type: PosErrorType.Unknown,
-            message: `Billing-Ledger linkage verification failed: ${linkageVerificationResult.error?.message || 'Unknown error'}`,
+            message: `Billing-Ledger linkage verification failed: ${linkageVerificationResult.error?.message || "Unknown error"}`,
           },
         };
       }

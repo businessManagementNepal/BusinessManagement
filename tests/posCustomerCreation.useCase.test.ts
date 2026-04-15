@@ -30,6 +30,7 @@ const createReceipt = (dueAmount: number): PosReceipt => ({
   customerName: null,
   customerPhone: null,
   contactRemoteId: null,
+  paymentParts: [],
 });
 
 const createCoreSyncUseCases = () => ({
@@ -80,9 +81,8 @@ describe("POS Customer Creation Due-Balance Flow", () => {
       }),
     };
 
-    const getOrCreateBusinessContactUseCase = createGetOrCreateBusinessContactUseCase(
-      getOrCreateContactUseCase
-    );
+    const getOrCreateBusinessContactUseCase =
+      createGetOrCreateBusinessContactUseCase(getOrCreateContactUseCase);
 
     // Mock payment use case for due balance scenario
     const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
@@ -123,10 +123,16 @@ describe("POS Customer Creation Due-Balance Flow", () => {
 
     // Execute checkout with newly created customer
     const result = await useCase.execute({
-      paidAmount: 750, // Partial payment, leaving 250 due
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 750,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: "money-cash-1",
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: {
@@ -150,7 +156,7 @@ describe("POS Customer Creation Due-Balance Flow", () => {
         partyName: "Jane Smith",
         partyPhone: "+9876543210",
         amount: 250, // Due amount
-      })
+      }),
     );
 
     if (result.success) {
@@ -174,9 +180,8 @@ describe("POS Customer Creation Due-Balance Flow", () => {
       }),
     };
 
-    const getOrCreateBusinessContactUseCase = createGetOrCreateBusinessContactUseCase(
-      getOrCreateContactUseCase
-    );
+    const getOrCreateBusinessContactUseCase =
+      createGetOrCreateBusinessContactUseCase(getOrCreateContactUseCase);
 
     const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
       async () => ({
@@ -215,10 +220,16 @@ describe("POS Customer Creation Due-Balance Flow", () => {
 
     // Execute checkout with customer data (simulating post-creation scenario)
     const result = await useCase.execute({
-      paidAmount: 750,
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 750,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
-      activeSettlementAccountRemoteId: "money-cash-1",
       activeAccountCurrencyCode: "NPR",
       activeAccountCountryCode: "NP",
       selectedCustomer: {

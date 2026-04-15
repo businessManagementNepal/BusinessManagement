@@ -30,6 +30,7 @@ import {
   PosSplitDraftPart,
   PosTotals,
 } from "../types/pos.entity.types";
+import { PosErrorType } from "../types/pos.error.types";
 import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
 import { AddProductToCartUseCase } from "../useCase/addProductToCart.useCase";
 import { ApplyDiscountUseCase } from "../useCase/applyDiscount.useCase";
@@ -197,9 +198,15 @@ const validateSplitBillDraft = (
   parts: readonly PosSplitDraftPart[],
   grandTotal: number,
   selectedCustomer: PosCustomer | null,
-): string | null => {
+): {
+  type: (typeof PosErrorType)[keyof typeof PosErrorType];
+  message: string;
+} | null => {
   if (parts.length < 2) {
-    return "Add at least two payment parts for split bill.";
+    return {
+      type: PosErrorType.Validation,
+      message: "Add at least two payment parts for split bill.",
+    };
   }
 
   let allocated = 0;
@@ -208,11 +215,17 @@ const validateSplitBillDraft = (
     const amount = parseAmountInput(part.amountInput);
 
     if (amount <= 0) {
-      return "Each split row must have an amount greater than zero.";
+      return {
+        type: PosErrorType.Validation,
+        message: "Each split row must have an amount greater than zero.",
+      };
     }
 
     if (!part.settlementAccountRemoteId.trim()) {
-      return "Each split row must have a settlement money account.";
+      return {
+        type: PosErrorType.ContextRequired,
+        message: "Each split row must have a settlement money account.",
+      };
     }
 
     allocated += amount;
@@ -221,11 +234,17 @@ const validateSplitBillDraft = (
   const remaining = Number((grandTotal - allocated).toFixed(2));
 
   if (remaining < 0) {
-    return "Split payment total cannot exceed grand total.";
+    return {
+      type: PosErrorType.ContextRequired,
+      message: "Split payment total cannot exceed grand total.",
+    };
   }
 
   if (remaining > 0 && !selectedCustomer) {
-    return "Select a customer when split payment leaves a due amount.";
+    return {
+      type: PosErrorType.ContextRequired,
+      message: "Select a customer when split payment leaves a due amount.",
+    };
   }
 
   return null;
@@ -1731,11 +1750,19 @@ export function usePosScreenViewModel(
   ]);
 
   const onOpenSplitBillModal = useCallback(() => {
-    setState((currentState) => ({
-      ...currentState,
-      activeModal: "split-bill",
-      splitBillErrorMessage: null,
-    }));
+    setState((currentState) => {
+      const initialParts = buildEqualSplitDraftParts(
+        2,
+        currentState.totals.grandTotal,
+        currentState.selectedSettlementAccountRemoteId,
+      );
+      return {
+        ...currentState,
+        activeModal: "split-bill",
+        splitBillDraftParts: initialParts,
+        splitBillErrorMessage: null,
+      };
+    });
   }, []);
 
   const onCloseSplitBillModal = useCallback(() => {
@@ -1882,7 +1909,7 @@ export function usePosScreenViewModel(
     if (validationError) {
       setState((currentState) => ({
         ...currentState,
-        splitBillErrorMessage: validationError,
+        splitBillErrorMessage: validationError.message,
       }));
       return;
     }
@@ -1908,7 +1935,7 @@ export function usePosScreenViewModel(
     if (!result.success) {
       setState((currentState) => ({
         ...currentState,
-        splitBillErrorMessage: result.error.message,
+        splitBillErrorMessage: result.error,
       }));
       return;
     }
@@ -2079,7 +2106,7 @@ export function usePosScreenViewModel(
       splitBillDraftParts: state.splitBillDraftParts,
       splitBillAllocatedAmount: splitBillSummary.allocatedAmount,
       splitBillRemainingAmount: splitBillSummary.remainingAmount,
-      splitBillErrorMessage: state.splitBillErrorMessage,
+      splitBillErrorMessage: state.splitBillErrorMessage?.message || null,
     }),
     [
       activeBusinessAccountRemoteId,

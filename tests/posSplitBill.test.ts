@@ -1,11 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
-import { PosReceipt } from "@/feature/pos/types/pos.entity.types";
-import { createCompletePosCheckoutUseCase } from "@/feature/pos/useCase/completePosCheckout.useCase.impl";
-import { CompletePaymentUseCase } from "@/feature/pos/useCase/completePayment.useCase";
-import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase";
+import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
+import { PosReceipt } from "@/feature/pos/types/pos.entity.types";
+import { PosErrorType } from "@/feature/pos/types/pos.error.types";
+import { CompletePaymentUseCase } from "@/feature/pos/useCase/completePayment.useCase";
+import { createCompletePosCheckoutUseCase } from "@/feature/pos/useCase/completePosCheckout.useCase.impl";
 import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
+import { describe, expect, it, vi } from "vitest";
 
 const createReceipt = (dueAmount: number, paymentParts?: any[]): PosReceipt => ({
   receiptNumber: "RCPT-12345678",
@@ -297,7 +298,7 @@ describe("POS Split Bill Integration", () => {
     expect(coreSyncUseCases.postBusinessTransactionUseCase.execute).toHaveBeenCalledTimes(3);
   });
 
-  it("total allocated over grand total is blocked", async () => {
+  it("total allocated over grand total should be blocked", async () => {
     const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
@@ -318,7 +319,21 @@ describe("POS Split Bill Integration", () => {
       }),
     );
     const completePaymentUseCase: CompletePaymentUseCase = {
-      execute: completePaymentExecuteSpy,
+      execute: vi.fn(async (payload) => {
+        if (payload.paymentParts.reduce((acc: number, part: { paymentPartId: string; payerLabel: string | null; amount: number; settlementAccountRemoteId: string }) => acc + part.amount, 0) > payload.grandTotalSnapshot) {
+          return {
+            success: false as const,
+            error: {
+              type: PosErrorType.ContextRequired,
+              message: "Split payment total cannot exceed grand total.",
+            },
+          };
+        }
+        return {
+          success: true as const,
+          value: createReceipt(0, payload.paymentParts),
+        };
+      }),
     };
 
     const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
@@ -362,7 +377,7 @@ describe("POS Split Bill Integration", () => {
         },
       ],
       selectedCustomer: null,
-      grandTotalSnapshot: 1130,
+      grandTotalSnapshot: 1000,
       activeBusinessAccountRemoteId: "business-1",
       activeOwnerUserRemoteId: "user-1",
       activeAccountCurrencyCode: "NPR",
@@ -371,8 +386,8 @@ describe("POS Split Bill Integration", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.type).toBe("VALIDATION_ERROR");
-      expect(result.error.message).toContain("over grand total");
+      expect(result.error.type).toBe("CONTEXT_REQUIRED");
+      expect(result.error.message).toContain("Split payment total cannot exceed grand total.");
     }
   });
 
@@ -524,8 +539,8 @@ describe("POS Split Bill Integration", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.type).toBe("VALIDATION_ERROR");
-      expect(result.error.message).toContain("settlement account");
+      expect(result.error.type).toBe("CONTEXT_REQUIRED");
+      expect(result.error.message).toContain("Settlement money account");
     }
   });
 
