@@ -1,6 +1,6 @@
 import {
-  MoneyAccount,
-  MoneyAccountTypeValue,
+    MoneyAccount,
+    MoneyAccountTypeValue,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import type { Contact } from "@/feature/contacts/types/contact.types";
@@ -8,8 +8,8 @@ import { ContactType } from "@/feature/contacts/types/contact.types";
 import type { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import {
-  ProductKind,
-  ProductStatus,
+    ProductKind,
+    ProductStatus,
 } from "@/feature/products/types/product.types";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
@@ -17,17 +17,17 @@ import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { Status } from "@/shared/types/status.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import {
-  buildTaxRateLabel,
-  buildTaxSummaryLabel,
-  resolveRegionalFinancePolicy,
+    buildTaxRateLabel,
+    buildTaxSummaryLabel,
+    resolveRegionalFinancePolicy,
 } from "@/shared/utils/finance/regionalFinancePolicy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  PosCartLine,
-  PosCustomer,
-  PosProduct,
-  PosSlot,
-  PosTotals,
+    PosCartLine,
+    PosCustomer,
+    PosProduct,
+    PosSlot,
+    PosTotals,
 } from "../types/pos.entity.types";
 import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
 import { AddProductToCartUseCase } from "../useCase/addProductToCart.useCase";
@@ -130,6 +130,17 @@ const parseAmountInput = (value: string): number => {
   }
 
   return parsed;
+};
+
+const buildNextRecentProducts = (
+  currentRecentProducts: readonly PosProduct[],
+  product: PosProduct,
+): readonly PosProduct[] => {
+  const filteredRecent = currentRecentProducts.filter(
+    (item) => item.id !== product.id,
+  );
+
+  return [product, ...filteredRecent];
 };
 
 const getMoneyAccountTypeLabel = (type: MoneyAccountTypeValue): string =>
@@ -258,17 +269,21 @@ export function usePosScreenViewModel(
   }, [state.recentProducts]);
 
   const updateRecentProducts = useCallback((product: PosProduct) => {
+    let nextRecentProducts: readonly PosProduct[] = [];
+
     setState((currentState) => {
-      // Remove existing occurrence and add to front (LRU behavior)
-      const filteredRecent = currentState.recentProducts.filter(
-        (item) => item.id !== product.id,
+      nextRecentProducts = buildNextRecentProducts(
+        currentState.recentProducts,
+        product,
       );
 
       return {
         ...currentState,
-        recentProducts: [product, ...filteredRecent], // No limit - session-only tracking
+        recentProducts: nextRecentProducts,
       };
     });
+
+    return nextRecentProducts;
   }, []);
 
   const saveCurrentSession = useCallback(
@@ -310,7 +325,6 @@ export function usePosScreenViewModel(
       state.cartLines,
       state.recentProducts,
       state.productSearchTerm,
-      state.selectedCustomer,
       state.selectedSettlementAccountRemoteId,
       state.discountInput,
       state.surchargeInput,
@@ -569,8 +583,9 @@ export function usePosScreenViewModel(
         filteredProducts: products,
       }));
 
-      // Save session after product search change
-      await saveCurrentSession();
+      await saveCurrentSession({
+        productSearchTerm: value,
+      });
     },
     [searchPosProductsUseCase, saveCurrentSession],
   );
@@ -651,23 +666,38 @@ export function usePosScreenViewModel(
         return;
       }
 
+      const nextRecentProducts = buildNextRecentProducts(
+        state.recentProducts,
+        product,
+      );
+
       recalculateTotals(result.value);
-      updateRecentProducts(product);
 
       setState((currentState) => ({
         ...currentState,
+        cartLines: result.value,
+        totals: calculateTotals(
+          result.value,
+          parseAmountInput(currentState.discountInput),
+          parseAmountInput(currentState.surchargeInput),
+        ),
+        recentProducts: nextRecentProducts,
         errorMessage: null,
       }));
 
-      // Save session after cart change
-      await saveCurrentSession();
+      await saveCurrentSession({
+        cartLines: result.value,
+        recentProducts: nextRecentProducts,
+      });
     },
     [
       addProductToCartUseCase,
+      calculateTotals,
+      parseAmountInput,
       recalculateTotals,
-      updateRecentProducts,
       saveCurrentSession,
       state.products,
+      state.recentProducts,
     ],
   );
 
@@ -811,8 +841,12 @@ export function usePosScreenViewModel(
       shortCode: saveResult.value.name.trim().slice(0, 1).toUpperCase() || "P",
     };
 
+    const nextRecentProducts = buildNextRecentProducts(
+      state.recentProducts,
+      createdProduct,
+    );
+
     recalculateTotals(addResult.value);
-    updateRecentProducts(createdProduct);
 
     setState((currentState) => ({
       ...currentState,
@@ -822,9 +856,21 @@ export function usePosScreenViewModel(
       quickProductCategoryInput: "",
       products: refreshedProducts,
       filteredProducts: refreshedProducts, // Keep filtered products tied to search term
+      cartLines: addResult.value,
+      totals: calculateTotals(
+        addResult.value,
+        parseAmountInput(currentState.discountInput),
+        parseAmountInput(currentState.surchargeInput),
+      ),
+      recentProducts: nextRecentProducts,
       errorMessage: null,
       infoMessage: `Product "${normalizedName}" created and added to cart successfully.`,
     }));
+
+    await saveCurrentSession({
+      cartLines: addResult.value,
+      recentProducts: nextRecentProducts,
+    });
   }, [
     activeBusinessAccountRemoteId,
     addProductToCartUseCase,
@@ -861,8 +907,9 @@ export function usePosScreenViewModel(
 
       recalculateTotals(result.value);
 
-      // Save session after cart change
-      await saveCurrentSession();
+      await saveCurrentSession({
+        cartLines: result.value,
+      });
     },
     [
       changeCartLineQuantityUseCase,
@@ -911,8 +958,9 @@ export function usePosScreenViewModel(
       }
       recalculateTotals(result.value);
 
-      // Save session after cart change
-      await saveCurrentSession();
+      await saveCurrentSession({
+        cartLines: result.value,
+      });
     },
     [
       changeCartLineQuantityUseCase,
@@ -939,8 +987,9 @@ export function usePosScreenViewModel(
 
       recalculateTotals(result.value);
 
-      // Save session after cart change
-      await saveCurrentSession();
+      await saveCurrentSession({
+        cartLines: result.value,
+      });
     },
     [changeCartLineQuantityUseCase, recalculateTotals, saveCurrentSession],
   );
@@ -949,8 +998,9 @@ export function usePosScreenViewModel(
     async (value: string) => {
       setState((currentState) => ({ ...currentState, discountInput: value }));
 
-      // Save session after discount input change
-      await saveCurrentSession();
+      await saveCurrentSession({
+        discountInput: value,
+      });
     },
     [saveCurrentSession],
   );
@@ -959,8 +1009,9 @@ export function usePosScreenViewModel(
     async (value: string) => {
       setState((currentState) => ({ ...currentState, surchargeInput: value }));
 
-      // Save session after surcharge input change
-      await saveCurrentSession();
+      await saveCurrentSession({
+        surchargeInput: value,
+      });
     },
     [saveCurrentSession],
   );
@@ -1251,8 +1302,9 @@ export function usePosScreenViewModel(
         errorMessage: null,
       }));
 
-      // Save session after customer selection
-      await saveCurrentSession();
+      await saveCurrentSession({
+        selectedCustomer: customer,
+      });
     },
     [saveCurrentSession],
   );
@@ -1267,8 +1319,9 @@ export function usePosScreenViewModel(
       errorMessage: null,
     }));
 
-    // Save session after clearing customer
-    await saveCurrentSession();
+    await saveCurrentSession({
+      selectedCustomer: null,
+    });
   }, [saveCurrentSession]);
 
   const onCustomerSearchChange = useCallback(
@@ -1440,6 +1493,10 @@ export function usePosScreenViewModel(
       errorMessage: null,
       infoMessage: `Customer "${fullName}" created and selected successfully.`,
     }));
+
+    await saveCurrentSession({
+      selectedCustomer: newCustomer,
+    });
   }, [
     getOrCreateBusinessContactUseCase,
     activeBusinessAccountRemoteId,
