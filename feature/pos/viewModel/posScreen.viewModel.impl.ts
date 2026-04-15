@@ -962,7 +962,6 @@ export function usePosScreenViewModel(
     setState((currentState) => ({
       ...currentState,
       activeModal: "none",
-      activeSlotId: null,
       productSearchTerm: currentState.productSearchTerm,
       quickProductNameInput: "",
       quickProductPriceInput: "0",

@@ -1,9 +1,9 @@
 /** @vitest-environment jsdom */
 
 import type {
-    PosCartLine,
-    PosCustomer,
-    PosProduct,
+  PosCartLine,
+  PosCustomer,
+  PosProduct,
 } from "@/feature/pos/types/pos.entity.types";
 import type { PosScreenViewModel } from "@/feature/pos/types/pos.state.types";
 import { usePosScreenViewModel } from "@/feature/pos/viewModel/posScreen.viewModel.impl";
@@ -59,7 +59,6 @@ const createMockPosViewModelParams = (
     getPosBootstrapUseCase: createMockUseCase({
       success: true,
       value: {
-        slots: [],
         products: [mockProduct],
         activeBusinessAccountRemoteId: "business-1",
         activeOwnerUserRemoteId: "owner-1",
@@ -69,14 +68,9 @@ const createMockPosViewModelParams = (
     searchPosProductsUseCase: {
       execute: vi.fn().mockResolvedValue([mockProduct]),
     },
-    assignProductToSlotUseCase: createMockUseCase({ success: true, value: [] }),
     addProductToCartUseCase: createMockUseCase({
       success: true,
       value: [mockCartLine],
-    }),
-    removeProductFromSlotUseCase: createMockUseCase({
-      success: true,
-      value: [],
     }),
     changeCartLineQuantityUseCase: createMockUseCase({
       success: true,

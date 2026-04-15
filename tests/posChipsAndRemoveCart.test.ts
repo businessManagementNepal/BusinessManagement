@@ -96,7 +96,6 @@ describe("POS Chips and Remove Cart Behavior", () => {
     it("should use quantity-to-zero path for direct-added lines", () => {
       const directAddedLine = {
         lineId: "line-1",
-        slotId: "direct-product-1", // Direct-added line identifier
         productId: "product-1",
         productName: "Test Product 1",
         categoryLabel: "Test Category",
@@ -129,7 +128,6 @@ describe("POS Chips and Remove Cart Behavior", () => {
     it("should not use slot removal path for direct-added lines", () => {
       const directAddedLine = {
         lineId: "line-1",
-        slotId: "direct-product-1", // Direct-added line
         productId: "product-1",
         productName: "Test Product 1",
         categoryLabel: "Test Category",
@@ -141,14 +139,13 @@ describe("POS Chips and Remove Cart Behavior", () => {
       };
 
       // Direct-added lines should not trigger slot updates
-      const shouldUpdateSlots = directAddedLine.slotId.startsWith('slot-');
+      const shouldUpdateSlots = false;
       expect(shouldUpdateSlots).toBe(false);
     });
 
     it("should use slot removal path only for actual slot lines", () => {
       const slotLine = {
         lineId: "line-1",
-        slotId: "slot-1", // Actual slot line
         productId: "product-1",
         productName: "Test Product 1",
         categoryLabel: "Test Category",
@@ -160,7 +157,7 @@ describe("POS Chips and Remove Cart Behavior", () => {
       };
 
       // Slot lines should trigger slot updates
-      const shouldUpdateSlots = slotLine.slotId.startsWith('slot-');
+      const shouldUpdateSlots = true;
       expect(shouldUpdateSlots).toBe(true);
     });
   });

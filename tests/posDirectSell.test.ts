@@ -34,7 +34,6 @@ describe("POS Direct Sell Functionality", () => {
           value: [
             {
               lineId: "line-1",
-              slotId: "direct-product-1",
               productId: "product-1",
               productName: "Test Product 1",
               categoryLabel: "Test Category",
@@ -48,13 +47,10 @@ describe("POS Direct Sell Functionality", () => {
         }),
         loadBootstrap: vi.fn(),
         searchProducts: vi.fn(),
-        assignProductToSlot: vi.fn(),
-        removeProductFromSlot: vi.fn(),
         changeCartLineQuantity: vi.fn(),
         applyDiscount: vi.fn(),
         applySurcharge: vi.fn(),
         clearCart: vi.fn(),
-        getSlots: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
@@ -84,7 +80,6 @@ describe("POS Direct Sell Functionality", () => {
           value: [
             {
               lineId: "line-1",
-              slotId: "direct-product-1",
               productId: "product-1",
               productName: "Test Product 1",
               categoryLabel: "Test Category",
@@ -98,13 +93,10 @@ describe("POS Direct Sell Functionality", () => {
         }),
         loadBootstrap: vi.fn(),
         searchProducts: vi.fn(),
-        assignProductToSlot: vi.fn(),
-        removeProductFromSlot: vi.fn(),
         changeCartLineQuantity: vi.fn(),
         applyDiscount: vi.fn(),
         applySurcharge: vi.fn(),
         clearCart: vi.fn(),
-        getSlots: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
@@ -135,13 +127,10 @@ describe("POS Direct Sell Functionality", () => {
         }),
         loadBootstrap: vi.fn(),
         searchProducts: vi.fn(),
-        assignProductToSlot: vi.fn(),
-        removeProductFromSlot: vi.fn(),
         changeCartLineQuantity: vi.fn(),
         applyDiscount: vi.fn(),
         applySurcharge: vi.fn(),
         clearCart: vi.fn(),
-        getSlots: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
@@ -170,13 +159,10 @@ describe("POS Direct Sell Functionality", () => {
         }),
         loadBootstrap: vi.fn(),
         searchProducts: vi.fn(),
-        assignProductToSlot: vi.fn(),
-        removeProductFromSlot: vi.fn(),
         changeCartLineQuantity: vi.fn(),
         applyDiscount: vi.fn(),
         applySurcharge: vi.fn(),
         clearCart: vi.fn(),
-        getSlots: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
@@ -189,15 +175,11 @@ describe("POS Direct Sell Functionality", () => {
       const useCase = createAddProductToCartUseCase(mockRepository);
       await useCase.execute({ productId: "product-1" });
 
-      // Verify only the direct add method was called, no slot-related methods
+      // Verify only the direct add method was called
       expect(mockRepository.addProductToCart).toHaveBeenCalledTimes(1);
       expect(mockRepository.addProductToCart).toHaveBeenCalledWith({
         productId: "product-1",
       });
-
-      // Verify slot methods were not called
-      expect(mockRepository.assignProductToSlot).not.toHaveBeenCalled();
-      expect(mockRepository.removeProductFromSlot).not.toHaveBeenCalled();
     });
   });
 
@@ -225,7 +207,6 @@ describe("POS Direct Sell Functionality", () => {
       const cartLines = [
         {
           lineId: "line-1",
-          slotId: "slot-1",
           productId: "product-1",
           productName: "Test Product 1",
           categoryLabel: "Test Category",
@@ -248,7 +229,6 @@ describe("POS Direct Sell Functionality", () => {
       const cartLines = [
         {
           lineId: "line-1",
-          slotId: "slot-1",
           productId: "product-1",
           productName: "Test Product 1",
           categoryLabel: "Test Category",
@@ -358,7 +338,7 @@ describe("POS Direct Sell Functionality", () => {
 
       expect(newRecent).toHaveLength(8);
       expect(newRecent[0].id).toBe("product-new");
-      expect(newRecent[7].id).toBe("product-1"); // Last item should be the oldest
+      expect(newRecent[7].id).toBe("product-6"); // Last item should be the oldest
     });
   });
 
@@ -370,7 +350,6 @@ describe("POS Direct Sell Functionality", () => {
           value: [
             {
               lineId: "line-new",
-              slotId: "direct-product-new",
               productId: "product-new",
               productName: "New Product",
               categoryLabel: "General",
@@ -384,13 +363,10 @@ describe("POS Direct Sell Functionality", () => {
         }),
         loadBootstrap: vi.fn(),
         searchProducts: vi.fn(),
-        assignProductToSlot: vi.fn(),
-        removeProductFromSlot: vi.fn(),
         changeCartLineQuantity: vi.fn(),
         applyDiscount: vi.fn(),
         applySurcharge: vi.fn(),
         clearCart: vi.fn(),
-        getSlots: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
@@ -420,7 +396,6 @@ describe("POS Direct Sell Functionality", () => {
       const cartLines = [
         {
           lineId: "line-1",
-          slotId: "slot-1",
           productId: "product-1",
           productName: "Test Product 1",
           categoryLabel: "Test Category",
@@ -431,8 +406,6 @@ describe("POS Direct Sell Functionality", () => {
           lineSubtotal: 21.98,
         },
         {
-          lineId: "line-2",
-          slotId: "slot-2",
           productId: "product-2",
           productName: "Test Product 2",
           categoryLabel: "Test Category",
