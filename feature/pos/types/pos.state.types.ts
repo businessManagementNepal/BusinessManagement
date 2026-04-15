@@ -1,12 +1,12 @@
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { StatusType } from "@/shared/types/status.types";
 import {
-    PosBootstrap,
-    PosCartLine,
-    PosProduct,
-    PosReceipt,
-    PosSlot,
-    PosTotals,
+  PosBootstrap,
+  PosCartLine,
+  PosProduct,
+  PosReceipt,
+  PosSlot,
+  PosTotals,
 } from "./pos.entity.types";
 
 export type PosModalType =
@@ -55,7 +55,7 @@ export type PosScreenState = {
   };
   isCreatingCustomer: boolean;
   splitBillDraftParts: readonly import("./pos.entity.types").PosSplitDraftPart[];
-  splitBillErrorMessage: { type: import("./pos.entity.types").PosErrorType; message: string } | null;
+  splitBillErrorMessage: string | null;
 };
 
 export type PosScreenViewModel = {

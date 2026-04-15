@@ -22,15 +22,16 @@ import {
   resolveRegionalFinancePolicy,
 } from "@/shared/utils/finance/regionalFinancePolicy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { PosPaymentPartInput } from "../types/pos.dto.types";
 import {
   PosCartLine,
   PosCustomer,
   PosProduct,
+  PosReceipt,
   PosSlot,
   PosSplitDraftPart,
   PosTotals,
 } from "../types/pos.entity.types";
-import { PosErrorType } from "../types/pos.error.types";
 import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
 import { AddProductToCartUseCase } from "../useCase/addProductToCart.useCase";
 import { ApplyDiscountUseCase } from "../useCase/applyDiscount.useCase";
@@ -198,15 +199,9 @@ const validateSplitBillDraft = (
   parts: readonly PosSplitDraftPart[],
   grandTotal: number,
   selectedCustomer: PosCustomer | null,
-): {
-  type: (typeof PosErrorType)[keyof typeof PosErrorType];
-  message: string;
-} | null => {
+): string | null => {
   if (parts.length < 2) {
-    return {
-      type: PosErrorType.Validation,
-      message: "Add at least two payment parts for split bill.",
-    };
+    return "Add at least two payment parts for split bill.";
   }
 
   let allocated = 0;
@@ -215,17 +210,11 @@ const validateSplitBillDraft = (
     const amount = parseAmountInput(part.amountInput);
 
     if (amount <= 0) {
-      return {
-        type: PosErrorType.Validation,
-        message: "Each split row must have an amount greater than zero.",
-      };
+      return "Each split row must have an amount greater than zero.";
     }
 
     if (!part.settlementAccountRemoteId.trim()) {
-      return {
-        type: PosErrorType.ContextRequired,
-        message: "Each split row must have a settlement money account.",
-      };
+      return "Each split row must have a settlement money account.";
     }
 
     allocated += amount;
@@ -234,17 +223,11 @@ const validateSplitBillDraft = (
   const remaining = Number((grandTotal - allocated).toFixed(2));
 
   if (remaining < 0) {
-    return {
-      type: PosErrorType.ContextRequired,
-      message: "Split payment total cannot exceed grand total.",
-    };
+    return "Split payment total cannot exceed grand total.";
   }
 
   if (remaining > 0 && !selectedCustomer) {
-    return {
-      type: PosErrorType.ContextRequired,
-      message: "Select a customer when split payment leaves a due amount.",
-    };
+    return "Select a customer when split payment leaves a due amount.";
   }
 
   return null;
@@ -270,6 +253,7 @@ const createEmptySlots = (): readonly PosSlot[] =>
     slotId: `slot-${index + 1}`,
     assignedProductId: null,
   }));
+
 
 export type UsePosScreenViewModelParams = {
   activeBusinessAccountRemoteId: string | null;
@@ -460,6 +444,113 @@ export function usePosScreenViewModel(
       ),
     }));
   }, []);
+
+  const finalizeSuccessfulCheckout = useCallback(
+    async (receipt: PosReceipt) => {
+      setState((currentState) => ({
+        ...currentState,
+        slots: createEmptySlots(),
+        cartLines: [],
+        totals: EMPTY_TOTALS,
+        activeModal: "receipt",
+        activeSlotId: null,
+        selectedSlotId: null,
+        discountInput: "",
+        surchargeInput: "",
+        paymentInput: "",
+        receipt,
+        filteredProducts: [],
+        quickProductNameInput: "",
+        quickProductPriceInput: "0",
+        quickProductCategoryInput: "",
+        splitBillDraftParts: [],
+        splitBillErrorMessage: null,
+        infoMessage:
+          receipt.ledgerEffect.type === "due_balance_created"
+            ? `Sale completed. ${formatCurrencyAmount({
+                amount: receipt.dueAmount,
+                currencyCode,
+                countryCode: regionalFinancePolicy.countryCode,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })} was posted as ledger due.`
+            : receipt.ledgerEffect.type === "due_balance_create_failed"
+              ? `Sale completed. ${formatCurrencyAmount({
+                  amount: receipt.dueAmount,
+                  currencyCode,
+                  countryCode: regionalFinancePolicy.countryCode,
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })} due could not be posted automatically. Add it from Ledger.`
+              : receipt.ledgerEffect.type === "posting_sync_failed"
+                ? "Sale completed, but accounting sync failed. Please review Ledger/Billing."
+                : "Sale completed successfully.",
+        errorMessage: null,
+      }));
+
+      if (activeBusinessAccountRemoteId) {
+        await clearPosSessionUseCase.execute({
+          businessAccountRemoteId: activeBusinessAccountRemoteId,
+        });
+      }
+    },
+    [
+      activeBusinessAccountRemoteId,
+      clearPosSessionUseCase,
+      currencyCode,
+      regionalFinancePolicy.countryCode,
+    ],
+  );
+
+  const buildNormalPaymentParts = (
+  paidAmount: number,
+  settlementAccountRemoteId: string,
+): readonly PosPaymentPartInput[] =>
+  paidAmount > 0
+    ? [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: paidAmount,
+          settlementAccountRemoteId,
+        },
+      ]
+    : [];
+
+const submitCheckout = useCallback(
+    async (paymentParts: readonly PosPaymentPartInput[]) => {
+      const result = await completePosCheckoutUseCase.execute({
+        paymentParts,
+        selectedCustomer: state.selectedCustomer,
+        grandTotalSnapshot: state.totals.grandTotal,
+        activeBusinessAccountRemoteId,
+        activeOwnerUserRemoteId,
+        activeAccountCurrencyCode: regionalFinancePolicy.currencyCode,
+        activeAccountCountryCode: regionalFinancePolicy.countryCode,
+      });
+
+      if (!result.success) {
+        setState((currentState) => ({
+          ...currentState,
+          errorMessage: result.error.message,
+        }));
+        return false;
+      }
+
+      await finalizeSuccessfulCheckout(result.value);
+      return true;
+    },
+    [
+      completePosCheckoutUseCase,
+      state.selectedCustomer,
+      state.totals.grandTotal,
+      activeBusinessAccountRemoteId,
+      activeOwnerUserRemoteId,
+      regionalFinancePolicy.currencyCode,
+      regionalFinancePolicy.countryCode,
+      finalizeSuccessfulCheckout,
+    ],
+  );
 
   const onShareReceipt = useCallback(async () => {
     if (!state.receipt) {
@@ -1294,100 +1385,29 @@ export function usePosScreenViewModel(
   ]);
 
   const onCompletePayment = useCallback(async () => {
-    const paidAmount = parseAmountInput(state.paymentInput);
-    const settlementAccountRemoteId =
-      state.selectedSettlementAccountRemoteId.trim();
+  const paidAmount = parseAmountInput(state.paymentInput);
+  const settlementAccountRemoteId =
+    state.selectedSettlementAccountRemoteId.trim();
 
-    if (paidAmount > 0 && !settlementAccountRemoteId) {
-      setState((currentState) => ({
-        ...currentState,
-        errorMessage: "Select a settlement money account for paid sales.",
-      }));
-      return;
-    }
-
-    const result = await completePosCheckoutUseCase.execute({
-      paymentParts: [
-        {
-          paymentPartId: "part-1",
-          payerLabel: null,
-          amount: paidAmount,
-          settlementAccountRemoteId: settlementAccountRemoteId,
-        },
-      ],
-      selectedCustomer: state.selectedCustomer,
-      grandTotalSnapshot: state.totals.grandTotal,
-      activeBusinessAccountRemoteId,
-      activeOwnerUserRemoteId,
-      activeAccountCurrencyCode: currencyCode,
-      activeAccountCountryCode: regionalFinancePolicy.countryCode,
-    });
-
-    if (!result.success) {
-      setState((currentState) => ({
-        ...currentState,
-        errorMessage: result.error.message,
-      }));
-      return;
-    }
-
+  if (paidAmount > 0 && !settlementAccountRemoteId) {
     setState((currentState) => ({
       ...currentState,
-      slots: createEmptySlots(),
-      cartLines: [],
-      totals: EMPTY_TOTALS,
-      activeModal: "receipt",
-      activeSlotId: null,
-      selectedSlotId: null,
-      discountInput: "",
-      surchargeInput: "",
-      paymentInput: "",
-      receipt: result.value,
-      filteredProducts: [], // Clear filtered products after checkout
-      quickProductNameInput: "",
-      quickProductPriceInput: "0",
-      quickProductCategoryInput: "",
-      infoMessage:
-        result.value.ledgerEffect.type === "due_balance_created"
-          ? `Sale completed. ${formatCurrencyAmount({
-              amount: result.value.dueAmount,
-              currencyCode,
-              countryCode: regionalFinancePolicy.countryCode,
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })} was posted as ledger due.`
-          : result.value.ledgerEffect.type === "due_balance_create_failed"
-            ? `Sale completed. ${formatCurrencyAmount({
-                amount: result.value.dueAmount,
-                currencyCode,
-                countryCode: regionalFinancePolicy.countryCode,
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })} due could not be posted automatically. Add it from Ledger.`
-            : result.value.ledgerEffect.type === "posting_sync_failed"
-              ? "Sale completed, but accounting sync failed. Please review Ledger/Billing."
-              : "Sale completed successfully.",
-      errorMessage: null,
+      errorMessage: "Select a settlement money account for paid sales.",
     }));
+    return;
+  }
 
-    // Clear session after successful checkout
-    if (activeBusinessAccountRemoteId) {
-      await clearPosSessionUseCase.execute({
-        businessAccountRemoteId: activeBusinessAccountRemoteId,
-      });
-    }
-  }, [
-    activeBusinessAccountRemoteId,
-    clearPosSessionUseCase,
-    activeOwnerUserRemoteId,
-    activeSettlementAccountRemoteId,
-    completePosCheckoutUseCase,
-    currencyCode,
-    regionalFinancePolicy,
-    searchPosProductsUseCase,
-    state.selectedCustomer,
-    state.paymentInput,
-  ]);
+  const paymentParts = buildNormalPaymentParts(
+    paidAmount,
+    settlementAccountRemoteId,
+  );
+
+  await submitCheckout(paymentParts);
+}, [
+  state.paymentInput,
+  state.selectedSettlementAccountRemoteId,
+  submitCheckout,
+]);
 
   const onPrintReceipt = useCallback(async () => {
     if (!state.receipt) {
@@ -1658,112 +1678,24 @@ export function usePosScreenViewModel(
   }, []);
 
   const onConfirmPayment = useCallback(async () => {
-    const paidAmount = parseAmountInput(state.paymentInput);
-
-    if (paidAmount > 0) {
-      const paymentParts = [
-        {
-          paymentPartId: "part-1",
-          payerLabel: null,
-          amount: paidAmount,
-          settlementAccountRemoteId: state.selectedSettlementAccountRemoteId,
-        },
-      ];
-
-      const result = await completePosCheckoutUseCase.execute({
-        paymentParts,
-        selectedCustomer: state.selectedCustomer,
-        grandTotalSnapshot: state.totals.grandTotal,
-        activeBusinessAccountRemoteId,
-        activeOwnerUserRemoteId,
-        activeAccountCurrencyCode: regionalFinancePolicy.currencyCode,
-        activeAccountCountryCode: regionalFinancePolicy.countryCode,
-      });
-
-      if (!result.success) {
-        setState((currentState) => ({
-          ...currentState,
-          errorMessage: result.error.message,
-        }));
-        return;
-      }
-
-      setState((currentState) => ({
-        ...currentState,
-        slots: createEmptySlots(),
-        cartLines: [],
-        totals: EMPTY_TOTALS,
-        activeModal: "receipt",
-        activeSlotId: null,
-        selectedSlotId: null,
-        discountInput: "",
-        surchargeInput: "",
-        paymentInput: "",
-        receipt: result.value,
-        filteredProducts: [],
-        quickProductNameInput: "",
-        quickProductPriceInput: "0",
-        quickProductCategoryInput: "",
-        infoMessage:
-          result.value.ledgerEffect.type === "due_balance_created"
-            ? `Sale completed. ${formatCurrencyAmount({
-                amount: result.value.dueAmount,
-                currencyCode,
-                countryCode: regionalFinancePolicy.countryCode,
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })} was posted as ledger due.`
-            : result.value.ledgerEffect.type === "due_balance_create_failed"
-              ? `Sale completed. ${formatCurrencyAmount({
-                  amount: result.value.dueAmount,
-                  currencyCode,
-                  countryCode: regionalFinancePolicy.countryCode,
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })} due could not be posted automatically. Add it from Ledger.`
-              : result.value.ledgerEffect.type === "posting_sync_failed"
-                ? "Sale completed, but accounting sync failed. Please review Ledger/Billing."
-                : "Sale completed successfully.",
-        errorMessage: null,
-      }));
-
-      // Clear session after successful checkout
-      if (activeBusinessAccountRemoteId) {
-        await clearPosSessionUseCase.execute({
-          businessAccountRemoteId: activeBusinessAccountRemoteId,
-        });
-      }
-    } else {
-      await onCompletePayment();
-    }
-  }, [
-    onCompletePayment,
-    completePosCheckoutUseCase,
-    parseAmountInput,
-    state.selectedSettlementAccountRemoteId,
-    state.selectedCustomer,
-    state.totals.grandTotal,
-    activeBusinessAccountRemoteId,
-    clearPosSessionUseCase,
-    currencyCode,
-    regionalFinancePolicy.countryCode,
-  ]);
+    await onCompletePayment();
+  }, [onCompletePayment]);
 
   const onOpenSplitBillModal = useCallback(() => {
-    setState((currentState) => {
-      const initialParts = buildEqualSplitDraftParts(
-        2,
-        currentState.totals.grandTotal,
-        currentState.selectedSettlementAccountRemoteId,
-      );
-      return {
-        ...currentState,
-        activeModal: "split-bill",
-        splitBillDraftParts: initialParts,
-        splitBillErrorMessage: null,
-      };
-    });
-  }, []);
+  setState((currentState) => ({
+    ...currentState,
+    activeModal: "split-bill",
+    splitBillDraftParts:
+      currentState.splitBillDraftParts.length > 0
+        ? currentState.splitBillDraftParts
+        : buildEqualSplitDraftParts(
+            2,
+            currentState.totals.grandTotal,
+            currentState.selectedSettlementAccountRemoteId,
+          ),
+    splitBillErrorMessage: null,
+  }));
+}, []);
 
   const onCloseSplitBillModal = useCallback(() => {
     setState((currentState) => ({
@@ -1909,18 +1841,18 @@ export function usePosScreenViewModel(
     if (validationError) {
       setState((currentState) => ({
         ...currentState,
-        splitBillErrorMessage: validationError.message,
+        splitBillErrorMessage: validationError,
       }));
       return;
     }
 
-    // Map split draft parts to payment parts
-    const paymentParts = state.splitBillDraftParts.map((part) => ({
-      paymentPartId: part.paymentPartId,
-      payerLabel: part.payerLabel.trim() || null,
-      amount: parseAmountInput(part.amountInput),
-      settlementAccountRemoteId: part.settlementAccountRemoteId,
-    }));
+    const paymentParts: readonly PosPaymentPartInput[] =
+      state.splitBillDraftParts.map((part) => ({
+        paymentPartId: part.paymentPartId,
+        payerLabel: part.payerLabel.trim() || null,
+        amount: parseAmountInput(part.amountInput),
+        settlementAccountRemoteId: part.settlementAccountRemoteId,
+      }));
 
     const result = await completePosCheckoutUseCase.execute({
       paymentParts,
@@ -1935,68 +1867,22 @@ export function usePosScreenViewModel(
     if (!result.success) {
       setState((currentState) => ({
         ...currentState,
-        splitBillErrorMessage: result.error,
+        splitBillErrorMessage: result.error.message,
       }));
       return;
     }
 
-    setState((currentState) => ({
-      ...currentState,
-      slots: createEmptySlots(),
-      cartLines: [],
-      totals: EMPTY_TOTALS,
-      activeModal: "receipt",
-      activeSlotId: null,
-      selectedSlotId: null,
-      discountInput: "",
-      surchargeInput: "",
-      paymentInput: "",
-      receipt: result.value,
-      filteredProducts: [],
-      quickProductNameInput: "",
-      quickProductPriceInput: "0",
-      quickProductCategoryInput: "",
-      splitBillDraftParts: [],
-      splitBillErrorMessage: null,
-      infoMessage:
-        result.value.ledgerEffect.type === "due_balance_created"
-          ? `Sale completed. ${formatCurrencyAmount({
-              amount: result.value.dueAmount,
-              currencyCode,
-              countryCode: regionalFinancePolicy.countryCode,
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })} was posted as ledger due.`
-          : result.value.ledgerEffect.type === "due_balance_create_failed"
-            ? `Sale completed. ${formatCurrencyAmount({
-                amount: result.value.dueAmount,
-                currencyCode,
-                countryCode: regionalFinancePolicy.countryCode,
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })} due could not be posted automatically. Add it from Ledger.`
-            : result.value.ledgerEffect.type === "posting_sync_failed"
-              ? "Sale completed, but accounting sync failed. Please review Ledger/Billing."
-              : "Sale completed successfully.",
-      errorMessage: null,
-    }));
-
-    // Clear session after successful checkout
-    if (activeBusinessAccountRemoteId) {
-      await clearPosSessionUseCase.execute({
-        businessAccountRemoteId: activeBusinessAccountRemoteId,
-      });
-    }
+    await finalizeSuccessfulCheckout(result.value);
   }, [
-    validateSplitBillDraft,
     state.splitBillDraftParts,
     state.totals.grandTotal,
     state.selectedCustomer,
-    activeBusinessAccountRemoteId,
-    clearPosSessionUseCase,
     completePosCheckoutUseCase,
-    currencyCode,
+    activeBusinessAccountRemoteId,
+    activeOwnerUserRemoteId,
+    regionalFinancePolicy.currencyCode,
     regionalFinancePolicy.countryCode,
+    finalizeSuccessfulCheckout,
   ]);
 
   const onOpenReceiptModal = useCallback(() => {
@@ -2106,7 +1992,7 @@ export function usePosScreenViewModel(
       splitBillDraftParts: state.splitBillDraftParts,
       splitBillAllocatedAmount: splitBillSummary.allocatedAmount,
       splitBillRemainingAmount: splitBillSummary.remainingAmount,
-      splitBillErrorMessage: state.splitBillErrorMessage?.message || null,
+      splitBillErrorMessage: state.splitBillErrorMessage || null,
     }),
     [
       activeBusinessAccountRemoteId,

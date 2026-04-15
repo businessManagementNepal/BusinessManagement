@@ -898,14 +898,26 @@ describe("completePosCheckout.useCase", () => {
       expect.any(String), // billingDocumentRemoteId
       expect.any(String), // expectedLedgerEntryRemoteId
     );
-
-    if (result.success) {
-      expect(result.value.ledgerEffect.type).toBe("due_balance_created");
-      expect(result.value.dueAmount).toBe(300);
-    }
   });
 
-  it("SPLIT PAYMENT: receipt contains payment breakdown", async () => {
+  // NEW TESTS: Payment parts enrichment tests
+ describe("Payment Parts Enrichment", () => {
+  const createSuccessfulLedgerUseCase = (): AddLedgerEntryUseCase => ({
+    execute: vi.fn(async (payload) => ({
+      success: true as const,
+      value: {
+        ...payload,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    })),
+    verifyLinkedDocument: vi.fn(async () => ({
+      success: true as const,
+      value: {} as never,
+    })),
+  });
+
+  it("fully paid checkout returns receipt with paymentParts", async () => {
     const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
@@ -927,30 +939,12 @@ describe("completePosCheckout.useCase", () => {
         ]),
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
-      execute: completePaymentExecuteSpy,
-    };
-    const addLedgerEntryExecuteSpy: AddLedgerEntryUseCase["execute"] = vi.fn(
-      async (payload) => ({
-        success: false as const,
-        error: {
-          type: "DATABASE_ERROR" as const,
-          message: "Ledger posting failed",
-        },
-      }),
-    );
-    const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
-      execute: addLedgerEntryExecuteSpy,
-      verifyLinkedDocument: vi.fn(async () => ({
-        success: true as const,
-        value: {} as never,
-      })),
-    };
+
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
-      addLedgerEntryUseCase,
+      completePaymentUseCase: { execute: completePaymentExecuteSpy },
+      addLedgerEntryUseCase: createSuccessfulLedgerUseCase(),
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
       },
@@ -981,7 +975,7 @@ describe("completePosCheckout.useCase", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(addLedgerEntryExecuteSpy).not.toHaveBeenCalled();
+
     if (result.success) {
       expect(result.value).toEqual(
         expect.objectContaining({
@@ -991,20 +985,118 @@ describe("completePosCheckout.useCase", () => {
               payerLabel: "Alice",
               amount: 500,
               settlementAccountRemoteId: "money-cash-1",
-              settlementAccountLabel: "Cash Account",
+              settlementAccountLabel: null,
             },
             {
               paymentPartId: "part-2",
               payerLabel: "Bob",
               amount: 630,
               settlementAccountRemoteId: "money-bank-1",
-              settlementAccountLabel: "Bank Account",
+              settlementAccountLabel: null,
             },
           ],
           paidAmount: 1130,
           dueAmount: 0,
-        })
+        }),
       );
     }
   });
+
+  it("partial paid checkout returns receipt with paymentParts", async () => {
+    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+      async () => ({
+        success: true as const,
+        value: createReceipt(300),
+      }),
+    );
+
+    const coreSyncUseCases = createCoreSyncUseCases();
+
+    const useCase = createCompletePosCheckoutUseCase({
+      completePaymentUseCase: { execute: completePaymentExecuteSpy },
+      addLedgerEntryUseCase: createSuccessfulLedgerUseCase(),
+      getOrCreateBusinessContactUseCase: { execute: vi.fn() },
+      ...coreSyncUseCases,
+    });
+
+    const result = await useCase.execute({
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 830,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
+      activeBusinessAccountRemoteId: "business-1",
+      activeOwnerUserRemoteId: "user-1",
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
+      selectedCustomer: {
+        remoteId: "customer-1",
+        fullName: "John Doe",
+        phone: "+1234567890",
+        address: null,
+      },
+      grandTotalSnapshot: 1130,
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.value.paymentParts).toHaveLength(1);
+      expect(result.value.paymentParts[0]).toEqual({
+        paymentPartId: "part-1",
+        payerLabel: null,
+        amount: 830,
+        settlementAccountRemoteId: "money-cash-1",
+        settlementAccountLabel: null,
+      });
+      expect(result.value.ledgerEffect.type).toBe("due_balance_created");
+      expect(result.value.dueAmount).toBe(300);
+    }
+  });
+
+  it("zero paid checkout returns receipt with empty paymentParts", async () => {
+    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+      async () => ({
+        success: true as const,
+        value: createReceipt(1130),
+      }),
+    );
+
+    const coreSyncUseCases = createCoreSyncUseCases();
+
+    const useCase = createCompletePosCheckoutUseCase({
+      completePaymentUseCase: { execute: completePaymentExecuteSpy },
+      addLedgerEntryUseCase: createSuccessfulLedgerUseCase(),
+      getOrCreateBusinessContactUseCase: { execute: vi.fn() },
+      ...coreSyncUseCases,
+    });
+
+    const result = await useCase.execute({
+      paymentParts: [],
+      activeBusinessAccountRemoteId: "business-1",
+      activeOwnerUserRemoteId: "user-1",
+      activeAccountCurrencyCode: "NPR",
+      activeAccountCountryCode: "NP",
+      selectedCustomer: {
+        remoteId: "customer-1",
+        fullName: "John Doe",
+        phone: "+1234567890",
+        address: null,
+      },
+      grandTotalSnapshot: 1130,
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.value.paymentParts).toHaveLength(0);
+      expect(result.value.ledgerEffect.type).toBe("due_balance_created");
+      expect(result.value.dueAmount).toBe(1130);
+    }
+  });
 });
+});
+

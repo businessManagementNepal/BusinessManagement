@@ -217,9 +217,14 @@ export const createCompletePosCheckoutUseCase = ({
       settlementAccountLabel: null, // Settlement account labels would need money account lookup
     }));
 
+    const enrichedReceipt: PosReceipt = {
+      ...receipt,
+      paymentParts: receiptPaymentParts,
+    };
+
     const happenedAt = parseReceiptIssuedAt(receipt.issuedAt);
     const dueLedgerRemoteId =
-      receipt.dueAmount > 0 ? createLedgerEntryRemoteId() : null;
+      enrichedReceipt.dueAmount > 0 ? createLedgerEntryRemoteId() : null;
     const billingDocumentRemoteId = createBillingDocumentRemoteId();
     const pricingForDocument = buildPricingForDocument(receipt);
     const posLineItems = [
@@ -263,7 +268,7 @@ export const createCompletePosCheckoutUseCase = ({
       taxRatePercent: pricingForDocument.taxRatePercent,
       notes: posDocumentNote,
       issuedAt: happenedAt,
-      dueAt: receipt.dueAmount > 0 ? getTodayStartTimestamp() : null,
+      dueAt: enrichedReceipt.dueAmount > 0 ? getTodayStartTimestamp() : null,
       sourceModule: TransactionSourceModule.Pos,
       sourceRemoteId: receipt.receiptNumber,
       linkedLedgerEntryRemoteId: dueLedgerRemoteId,
@@ -272,20 +277,20 @@ export const createCompletePosCheckoutUseCase = ({
     });
 
     if (!saveDocumentResult.success) {
-      return buildPostingSyncFailedResult(receipt);
+      return buildPostingSyncFailedResult(enrichedReceipt);
     }
 
     let paymentTransactionRemoteId: string | null = null;
 
-    if (receipt.paidAmount > 0) {
+    if (enrichedReceipt.paidAmount > 0) {
       // Post one money movement per payment part
       for (const paymentPart of params.paymentParts) {
         if (paymentPart.amount <= 0) {
-          return buildPostingSyncFailedResult(receipt);
+          return buildPostingSyncFailedResult(enrichedReceipt);
         }
 
         if (!paymentPart.settlementAccountRemoteId?.trim()) {
-          return buildPostingSyncFailedResult(receipt);
+          return buildPostingSyncFailedResult(enrichedReceipt);
         }
 
         const transactionRemoteId = createTransactionRemoteId();
@@ -314,13 +319,16 @@ export const createCompletePosCheckoutUseCase = ({
         const postTransactionResult =
           await postBusinessTransactionUseCase.execute(postTransactionPayload);
         if (!postTransactionResult.success) {
-          return buildPostingSyncFailedResult(receipt);
+          return buildPostingSyncFailedResult(enrichedReceipt);
         }
       }
     }
 
-    if (receipt.dueAmount <= 0) {
-      return paymentResult;
+    if (enrichedReceipt.dueAmount <= 0) {
+      return {
+        success: true,
+        value: enrichedReceipt,
+      };
     }
 
     const ledgerResult = await addLedgerEntryUseCase.execute({
