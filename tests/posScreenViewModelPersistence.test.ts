@@ -5,8 +5,8 @@ import type {
   PosCustomer,
   PosProduct,
 } from "@/feature/pos/types/pos.entity.types";
-import type { PosScreenViewModel } from "@/feature/pos/viewModel/posScreen.viewModel";
-import { usePosScreenViewModel } from "@/feature/pos/viewModel/posScreen.viewModel.impl";
+import type { PosScreenCoordinatorViewModel } from "@/feature/pos/viewModel/posScreenCoordinator.viewModel";
+import { usePosScreenCoordinatorViewModel } from "@/feature/pos/viewModel/posScreenCoordinator.viewModel.impl";
 import React, { useEffect } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { act } from "react-dom/test-utils";
@@ -153,7 +153,8 @@ function HookHarness({
   params: ReturnType<typeof createMockPosViewModelParams>;
   onReady: (viewModel: PosScreenViewModel) => void;
 }) {
-  const viewModel = usePosScreenViewModel(params as any);
+  const coordinator = usePosScreenCoordinatorViewModel(params as any);
+  const viewModel = mapCoordinatorToLegacyViewModel(coordinator);
 
   useEffect(() => {
     onReady(viewModel);
@@ -219,6 +220,28 @@ const activeCustomerSearchableProduct = {
   ...mockProduct,
   id: "product-1",
 };
+
+const mapCoordinatorToLegacyViewModel = (
+  coordinator: PosScreenCoordinatorViewModel,
+) => ({
+  filteredProducts: coordinator.catalog.filteredProducts,
+  onProductSearchChange: coordinator.catalog.onProductSearchChange,
+  onAddProductToCart: coordinator.catalog.onAddProductToCart,
+  onIncreaseQuantity: coordinator.cart.onIncreaseQuantity,
+  onDecreaseQuantity: coordinator.cart.onDecreaseQuantity,
+  onRemoveCartLine: coordinator.cart.onRemoveCartLine,
+  onSettlementAccountChange: coordinator.checkout.onSettlementAccountChange,
+  onSelectCustomer: coordinator.customer.onSelectCustomer,
+  onClearCustomer: coordinator.customer.onClearCustomer,
+  onQuickProductNameInputChange: coordinator.catalog.onQuickProductNameInputChange,
+  onQuickProductPriceInputChange: coordinator.catalog.onQuickProductPriceInputChange,
+  onQuickProductCategoryInputChange: coordinator.catalog.onQuickProductCategoryInputChange,
+  onCreateProductFromPos: coordinator.catalog.onCreateProductFromPos,
+  onCustomerCreateFormChange: coordinator.customer.onCustomerCreateFormChange,
+  onCreateCustomer: coordinator.customer.onCreateCustomer,
+});
+
+type PosScreenViewModel = ReturnType<typeof mapCoordinatorToLegacyViewModel>;
 
 describe("PosScreenViewModel session persistence", () => {
   afterEach(() => {

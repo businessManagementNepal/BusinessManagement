@@ -12,7 +12,6 @@ import {
 import {
     PosCartLine,
     PosProduct,
-    PosReceipt,
 } from "../../types/pos.entity.types";
 import {
     PosBootstrapResult,
@@ -41,7 +40,6 @@ export interface PosRepository {
   getCartLines(): Promise<readonly PosCartLine[]>;
   getTotals(): Promise<PosTotalsResult>;
   completePayment(params: PosCompletePaymentParams): Promise<PosPaymentResult>;
-  printReceipt(receipt: PosReceipt): Promise<PosOperationResult>;
   saveSession(params: PosSaveSessionParams): Promise<PosOperationResult>;
   loadSession(params: PosLoadSessionParams): Promise<PosSessionResult>;
   clearSession(params: PosClearSessionParams): Promise<PosOperationResult>;

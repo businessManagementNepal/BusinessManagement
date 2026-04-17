@@ -11,7 +11,6 @@ import {
 } from "../../types/pos.dto.types";
 import {
     PosCartLine,
-    PosReceipt,
 } from "../../types/pos.entity.types";
 import {
     PosBootstrapResult,
@@ -121,10 +120,6 @@ export const createPosRepository = (
     }
 
     return { success: true, value: mapPosReceiptToDomain(result.value) };
-  },
-
-  async printReceipt(receipt: PosReceipt): Promise<PosOperationResult> {
-    return datasource.printReceipt(receipt);
   },
 
   async saveSession(params: PosSaveSessionParams): Promise<PosOperationResult> {

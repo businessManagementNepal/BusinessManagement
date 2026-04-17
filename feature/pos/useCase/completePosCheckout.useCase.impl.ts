@@ -73,6 +73,11 @@ const createTransactionRemoteId = (): string => {
   return `txn-pos-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 };
 
+const createPosReceiptNumber = (): string => {
+  const timestamp = Date.now().toString().slice(-8);
+  return `RCPT-${timestamp}`;
+};
+
 const getTodayStartTimestamp = (): number => {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
@@ -133,6 +138,15 @@ const buildPostingSyncFailedResult = (
       type: "posting_sync_failed",
     },
   },
+});
+
+const buildFallbackTotals = (grandTotalSnapshot: number) => ({
+  itemCount: 0,
+  gross: Number(grandTotalSnapshot.toFixed(2)),
+  discountAmount: 0,
+  surchargeAmount: 0,
+  taxAmount: 0,
+  grandTotal: Number(grandTotalSnapshot.toFixed(2)),
 });
 
 export const createCompletePosCheckoutUseCase = ({
@@ -196,7 +210,62 @@ export const createCompletePosCheckoutUseCase = ({
       };
     }
 
+    const cartLinesSnapshot = params.cartLinesSnapshot ?? [];
+    const totalsSnapshot =
+      params.totalsSnapshot ?? buildFallbackTotals(params.grandTotalSnapshot);
+
+    // PRE-COMMIT VALIDATION: Checkout requires cart lines snapshot
+    if (params.cartLinesSnapshot && params.cartLinesSnapshot.length === 0) {
+      return {
+        success: false,
+        error: {
+          type: PosErrorType.EmptyCart,
+          message: "Add at least one product before taking payment.",
+        },
+      };
+    }
+
+    const dueAmount = Number(
+      Math.max(params.grandTotalSnapshot - paidAmount, 0).toFixed(2),
+    );
+    const settlementAccountRemoteId =
+      params.paymentParts[0]?.settlementAccountRemoteId?.trim() || null;
+    const receiptPaymentParts = params.paymentParts.map((part) => ({
+      paymentPartId: part.paymentPartId,
+      payerLabel: part.payerLabel,
+      amount: Number(part.amount.toFixed(2)),
+      settlementAccountRemoteId: part.settlementAccountRemoteId,
+      settlementAccountLabel: null,
+    }));
+    const draftReceipt: PosReceipt = {
+      receiptNumber: createPosReceiptNumber(),
+      issuedAt: new Date().toISOString(),
+      lines: cartLinesSnapshot.map((line) => ({ ...line })),
+      totals: { ...totalsSnapshot },
+      paidAmount,
+      dueAmount,
+      paymentParts: receiptPaymentParts,
+      ledgerEffect:
+        dueAmount > 0
+          ? {
+              type: "due_balance_pending",
+              dueAmount,
+              accountRemoteId: settlementAccountRemoteId,
+            }
+          : {
+              type: "none",
+              dueAmount: 0,
+              accountRemoteId: settlementAccountRemoteId,
+            },
+      customerName: params.selectedCustomer?.fullName ?? null,
+      customerPhone: params.selectedCustomer?.phone ?? null,
+      contactRemoteId: params.selectedCustomer?.remoteId ?? null,
+    };
+
     const paymentResult = await completePaymentUseCase.execute({
+      businessAccountRemoteId,
+      cartLines: cartLinesSnapshot,
+      receipt: draftReceipt,
       paymentParts: params.paymentParts,
       selectedCustomer: params.selectedCustomer,
       grandTotalSnapshot: params.grandTotalSnapshot,
@@ -207,15 +276,6 @@ export const createCompletePosCheckoutUseCase = ({
     }
 
     const receipt = paymentResult.value;
-
-    // Build payment breakdown for receipt
-    const receiptPaymentParts = params.paymentParts.map((part) => ({
-      paymentPartId: part.paymentPartId,
-      payerLabel: part.payerLabel,
-      amount: part.amount,
-      settlementAccountRemoteId: part.settlementAccountRemoteId,
-      settlementAccountLabel: null, // Settlement account labels would need money account lookup
-    }));
 
     const enrichedReceipt: PosReceipt = {
       ...receipt,

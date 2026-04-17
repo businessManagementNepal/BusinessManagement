@@ -33,9 +33,12 @@ export type PosPaymentPartInput = {
 };
 
 export type PosCompletePaymentParams = {
-  paymentParts: readonly PosPaymentPartInput[];
-  selectedCustomer: PosCustomer | null;
-  grandTotalSnapshot: number;
+  businessAccountRemoteId: string;
+  cartLines: readonly PosCartLine[];
+  receipt: PosReceipt;
+  paymentParts?: readonly PosPaymentPartInput[];
+  selectedCustomer?: PosCustomer | null;
+  grandTotalSnapshot?: number;
 };
 
 export type PosReceiptDocumentParams = {

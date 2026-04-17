@@ -18,9 +18,7 @@ import {
 import {
     PosBootstrap,
     PosCartLine,
-    PosLedgerEffect,
     PosProduct,
-    PosReceipt,
     PosTotals,
 } from "../../types/pos.entity.types";
 import {
@@ -49,11 +47,6 @@ const createUnknownError = (message: string): PosError => ({
   type: PosErrorType.Unknown,
   message,
 });
-
-const formatReceiptNumber = (): string => {
-  const timestamp = Date.now().toString().slice(-8);
-  return `RCPT-${timestamp}`;
-};
 
 const parseTaxRate = (taxRateLabel: string | null): number => {
   if (!taxRateLabel) {
@@ -173,8 +166,6 @@ export const createLocalPosDatasource = ({
   database,
 }: CreateLocalPosDatasourceParams): PosDatasource => {
   let activeBusinessAccountRemoteId: string | null = null;
-  let activeSettlementAccountRemoteId: string | null = null;
-  let activeOwnerUserRemoteId: string | null = null;
   let products: readonly PosProduct[] = [];
   let cartLines: PosCartLine[] = [];
   let discountAmount = 0;
@@ -271,8 +262,6 @@ export const createLocalPosDatasource = ({
         resetSessionState();
       }
       activeBusinessAccountRemoteId = params.activeBusinessAccountRemoteId;
-      activeSettlementAccountRemoteId = params.activeSettlementAccountRemoteId;
-      activeOwnerUserRemoteId = params.activeOwnerUserRemoteId;
 
       try {
         const loadedProducts = await loadActiveProducts();
@@ -445,23 +434,18 @@ export const createLocalPosDatasource = ({
     async completePayment(
       params: PosCompletePaymentParams,
     ): Promise<PosPaymentResult> {
-      if (
-        !activeBusinessAccountRemoteId ||
-        !activeOwnerUserRemoteId
-      ) {
+      const businessAccountRemoteId = params.businessAccountRemoteId?.trim();
+      if (!businessAccountRemoteId) {
         return {
           success: false,
           error: {
             type: PosErrorType.ContextRequired,
-            message:
-              "POS requires an active business account and owner user context.",
+            message: "Business account context is required for POS checkout.",
           },
         };
       }
 
-      const businessAccountRemoteId = activeBusinessAccountRemoteId;
-
-      if (cartLines.length === 0) {
+      if (params.cartLines.length === 0) {
         return {
           success: false,
           error: {
@@ -471,62 +455,13 @@ export const createLocalPosDatasource = ({
         };
       }
 
-      // Calculate paid amount from payment parts
-      const paidAmount = Number(
-        params.paymentParts.reduce((sum, part) => sum + part.amount, 0).toFixed(2),
-      );
-
-      const totals = getTotalsValue();
-      const dueAmount = Number(
-        Math.max(totals.grandTotal - paidAmount, 0).toFixed(2),
-      );
-      // Get first payment part's settlement account for ledger effect
-      const firstPaymentPart = params.paymentParts[0];
-      const settlementAccountRemoteId = firstPaymentPart?.settlementAccountRemoteId ?? null;
-
-      const ledgerEffect: PosLedgerEffect =
-        dueAmount > 0
-          ? {
-              type: "due_balance_pending",
-              dueAmount,
-              accountRemoteId: settlementAccountRemoteId,
-            }
-          : {
-              type: "none",
-              dueAmount: 0,
-              accountRemoteId: settlementAccountRemoteId,
-            };
-
-      // Build payment breakdown for receipt
-      const receiptPaymentParts = params.paymentParts.map((part) => ({
-        paymentPartId: part.paymentPartId,
-        payerLabel: part.payerLabel,
-        amount: part.amount,
-        settlementAccountRemoteId: part.settlementAccountRemoteId,
-        settlementAccountLabel: null, // Will be populated in checkout use case
-      }));
-
-      const receipt: PosReceipt = {
-        receiptNumber: formatReceiptNumber(),
-        issuedAt: new Date().toISOString(),
-        lines: cloneCartLines(cartLines),
-        totals,
-        paidAmount: Number(paidAmount.toFixed(2)),
-        dueAmount,
-        ledgerEffect,
-        customerName: params.selectedCustomer?.fullName ?? null,
-        customerPhone: params.selectedCustomer?.phone ?? null,
-        contactRemoteId: params.selectedCustomer?.remoteId ?? null,
-        paymentParts: receiptPaymentParts,
-      };
-
       try {
         const productCollection = database.get<ProductModel>(PRODUCTS_TABLE);
         const movementCollection = database.get<InventoryMovementModel>(
           INVENTORY_MOVEMENTS_TABLE,
         );
         const soldQuantityByProductId = new Map<string, number>();
-        for (const cartLine of cartLines) {
+        for (const cartLine of params.cartLines) {
           soldQuantityByProductId.set(
             cartLine.productId,
             (soldQuantityByProductId.get(cartLine.productId) ?? 0) +
@@ -582,15 +517,15 @@ export const createLocalPosDatasource = ({
             });
           }
 
-          for (let index = 0; index < cartLines.length; index += 1) {
-            const cartLine = cartLines[index];
+          for (let index = 0; index < params.cartLines.length; index += 1) {
+            const cartLine = params.cartLines[index];
             const product = productByRemoteId.get(cartLine.productId);
             if (!product || product.kind !== "item") {
               continue;
             }
             const now = Date.now();
             await movementCollection.create((record) => {
-              record.remoteId = `${receipt.receiptNumber}-${index + 1}-${now}`;
+              record.remoteId = `${params.receipt.receiptNumber}-${index + 1}-${now}`;
               record.accountRemoteId = businessAccountRemoteId;
               record.productRemoteId = product.remoteId;
               record.productNameSnapshot = product.name;
@@ -600,7 +535,7 @@ export const createLocalPosDatasource = ({
               record.deltaQuantity = cartLine.quantity * -1;
               record.unitRate = cartLine.unitPrice;
               record.reason = null;
-              record.remark = `POS sale ${receipt.receiptNumber}`;
+              record.remark = `POS sale ${params.receipt.receiptNumber}`;
               record.movementAt = now;
               record.recordSyncStatus = RecordSyncStatus.PendingCreate;
               record.lastSyncedAt = null;
@@ -620,20 +555,10 @@ export const createLocalPosDatasource = ({
         };
       }
 
+      activeBusinessAccountRemoteId = businessAccountRemoteId;
       await loadActiveProducts();
       resetSessionState();
-      return { success: true, value: receipt };
-    },
-
-    async printReceipt(_: PosReceipt): Promise<PosOperationResult> {
-      return {
-        success: false,
-        error: {
-          type: PosErrorType.UnsupportedOperation,
-          message:
-            "Receipt printing is not available in this build yet. Use the on-screen receipt for now.",
-        },
-      };
+      return { success: true, value: params.receipt };
     },
 
     async saveSession(params: PosSaveSessionParams): Promise<PosOperationResult> {

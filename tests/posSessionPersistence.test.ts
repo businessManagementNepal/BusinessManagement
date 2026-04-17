@@ -67,7 +67,6 @@ describe("POS Session Persistence", () => {
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
-        printReceipt: vi.fn(),
       };
 
       const saveSessionUseCase = createSavePosSessionUseCase(mockRepository);
@@ -118,7 +117,6 @@ describe("POS Session Persistence", () => {
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
-        printReceipt: vi.fn(),
       };
 
       const saveSessionUseCase = createSavePosSessionUseCase(mockRepository);
@@ -167,7 +165,6 @@ describe("POS Session Persistence", () => {
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
-        printReceipt: vi.fn(),
       };
 
       const loadSessionUseCase = createLoadPosSessionUseCase(mockRepository);
@@ -210,7 +207,6 @@ describe("POS Session Persistence", () => {
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
-        printReceipt: vi.fn(),
       };
 
       const loadSessionUseCase = createLoadPosSessionUseCase(mockRepository);
@@ -245,7 +241,6 @@ describe("POS Session Persistence", () => {
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
-        printReceipt: vi.fn(),
       };
 
       const loadSessionUseCase = createLoadPosSessionUseCase(mockRepository);
@@ -279,7 +274,6 @@ describe("POS Session Persistence", () => {
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
-        printReceipt: vi.fn(),
       };
 
       const clearSessionUseCase = createClearPosSessionUseCase(mockRepository);
@@ -314,7 +308,6 @@ describe("POS Session Persistence", () => {
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
-        printReceipt: vi.fn(),
       };
 
       const clearSessionUseCase = createClearPosSessionUseCase(mockRepository);
@@ -355,7 +348,6 @@ describe("POS Session Persistence", () => {
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
-        printReceipt: vi.fn(),
       };
 
       const saveSessionUseCase = createSavePosSessionUseCase(mockRepository);
@@ -429,7 +421,6 @@ describe("POS Session Persistence", () => {
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
-        printReceipt: vi.fn(),
       };
 
       const loadSessionUseCase = createLoadPosSessionUseCase(mockRepository);
@@ -480,7 +471,6 @@ describe("POS Session Persistence", () => {
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
-        printReceipt: vi.fn(),
       };
 
       const saveSessionUseCase = createSavePosSessionUseCase(mockRepository);
@@ -536,7 +526,6 @@ describe("POS Session Persistence", () => {
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
         completePayment: vi.fn(),
-        printReceipt: vi.fn(),
       };
 
       const saveSessionUseCase = createSavePosSessionUseCase(mockRepository);
