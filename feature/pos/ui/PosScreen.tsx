@@ -5,23 +5,24 @@ import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/Scre
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
-    Minus,
-    Percent,
-    Plus,
-    PlusCircle,
-    ShoppingCart,
-    Trash2,
-    WalletCards,
+  History,
+  Minus,
+  Percent,
+  Plus,
+  PlusCircle,
+  ShoppingCart,
+  Trash2,
+  WalletCards,
 } from "lucide-react-native";
 import React from "react";
 import {
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { PosProduct } from "../types/pos.entity.types";
 import type { PosScreenCoordinatorViewModel } from "../viewModel/posScreenCoordinator.viewModel";
@@ -31,6 +32,7 @@ import { PosAdjustAmountModal } from "./PosAdjustAmountModal";
 import { PosPaymentModal } from "./PosPaymentModal";
 import { PosQuickProductModal } from "./PosQuickProductModal";
 import { PosReceiptModal } from "./PosReceiptModal";
+import { PosSaleHistory } from "./PosSaleHistory";
 import { formatCurrency } from "./posScreen.shared";
 import { PosSplitBillModal } from "./PosSplitBillModal";
 
@@ -45,6 +47,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
   const checkout = viewModel.checkout;
   const splitBill = viewModel.splitBill;
   const receipt = viewModel.receipt;
+  const saleHistory = viewModel.saleHistory;
 
   
   return (
@@ -61,9 +64,21 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                 Search and add products directly to cart
               </Text>
             </View>
-            <AppIconButton onPress={catalog.onOpenCreateProductModal}>
-              <PlusCircle size={20} color={colors.primary} />
-            </AppIconButton>
+            <View style={styles.productHeaderActions}>
+              {saleHistory ? (
+                <AppIconButton
+                  onPress={() => {
+                    void saleHistory.onOpenHistory();
+                  }}
+                  accessibilityLabel="View sale history"
+                >
+                  <History size={20} color={colors.mutedForeground} />
+                </AppIconButton>
+              ) : null}
+              <AppIconButton onPress={catalog.onOpenCreateProductModal}>
+                <PlusCircle size={20} color={colors.primary} />
+              </AppIconButton>
+            </View>
           </View>
 
           <View style={styles.searchWrap}>
@@ -468,6 +483,26 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         isSubmitting={customer.isCreatingCustomer}
         canSubmit={customer.customerCreateForm.fullName.trim().length > 0}
       />
+
+      {saleHistory ? (
+        <PosSaleHistory
+          visible={saleHistory.activeModal !== "none"}
+          receipts={saleHistory.receipts}
+          isLoading={saleHistory.isLoading}
+          searchTerm={saleHistory.searchTerm}
+          selectedReceipt={saleHistory.selectedReceipt}
+          activeModal={saleHistory.activeModal}
+          errorMessage={saleHistory.errorMessage}
+          currencyCode={viewModel.currencyCode}
+          countryCode={viewModel.countryCode}
+          onSearchChange={saleHistory.onSearchChange}
+          onReceiptPress={saleHistory.onReceiptPress}
+          onPrintReceipt={saleHistory.onPrintReceipt}
+          onShareReceipt={saleHistory.onShareReceipt}
+          onCloseHistory={saleHistory.onCloseHistory}
+          onCloseDetail={saleHistory.onCloseDetail}
+        />
+      ) : null}
     </>
   );
 }
@@ -681,6 +716,11 @@ const styles = StyleSheet.create({
   },
   sectionHeaderLeft: {
     flex: 1,
+  },
+  productHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
   searchWrap: {
     minHeight: 50,
