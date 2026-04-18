@@ -3,7 +3,7 @@ import {
   ProductStatus,
 } from "@/feature/products/types/product.types";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { POS_DEFAULT_QUICK_PRODUCT_PRICE_INPUT } from "../types/pos.constant";
 import type { PosProduct } from "../types/pos.entity.types";
 import type { PosScreenCoordinatorState } from "../types/pos.state.types";
@@ -40,21 +40,61 @@ export function usePosCatalogViewModel({
   saveProductUseCase,
   saveCurrentSession,
 }: UsePosCatalogViewModelParams): PosCatalogViewModel {
+  const productSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const productSearchRequestIdRef = useRef(0);
+
   const onProductSearchChange = useCallback(
     async (value: string) => {
-      const products = await searchPosProductsUseCase.execute(value);
+      const normalizedValue = value.trim();
       setState((currentState) => ({
         ...currentState,
         productSearchTerm: value,
-        filteredProducts: products,
+        filteredProducts:
+          normalizedValue === "" ? [] : currentState.filteredProducts,
+        errorMessage: null,
       }));
 
-      await saveCurrentSession({
-        productSearchTerm: value,
-      });
+      if (productSearchDebounceRef.current) {
+        clearTimeout(productSearchDebounceRef.current);
+      }
+
+      const requestId = ++productSearchRequestIdRef.current;
+
+      productSearchDebounceRef.current = setTimeout(() => {
+        void (async () => {
+          if (value.trim() === "") {
+            await saveCurrentSession({
+              productSearchTerm: value,
+            });
+            return;
+          }
+
+          const products = await searchPosProductsUseCase.execute(value);
+          if (requestId !== productSearchRequestIdRef.current) {
+            return;
+          }
+
+          setState((currentState) => ({
+            ...currentState,
+            filteredProducts: products,
+          }));
+
+          await saveCurrentSession({
+            productSearchTerm: value,
+          });
+        })();
+      }, 250);
     },
     [saveCurrentSession, searchPosProductsUseCase, setState],
   );
+
+  useEffect(() => {
+    return () => {
+      if (productSearchDebounceRef.current) {
+        clearTimeout(productSearchDebounceRef.current);
+      }
+    };
+  }, []);
 
   const onAddProductToCart = useCallback(
     async (productId: string) => {
@@ -194,7 +234,7 @@ export function usePosCatalogViewModel({
       categoryName: state.quickProductCategoryInput.trim() || null,
       salePrice: parsedPrice,
       costPrice: null,
-      stockQuantity: 0,
+      stockQuantity: 1,
       unitLabel: "pcs",
       skuOrBarcode: null,
       taxRateLabel: defaultTaxRateLabel,

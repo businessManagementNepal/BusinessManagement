@@ -2,7 +2,7 @@ import type { Contact } from "@/feature/contacts/types/contact.types";
 import { ContactType } from "@/feature/contacts/types/contact.types";
 import type { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import type { PosCustomer } from "../types/pos.entity.types";
 import type { PosScreenCoordinatorState } from "../types/pos.state.types";
 import { POS_DEFAULT_CUSTOMER_SEARCH_LIMIT } from "../types/pos.constant";
@@ -31,6 +31,7 @@ export function usePosCustomerViewModel({
   saveCurrentSession,
 }: UsePosCustomerViewModelParams): PosCustomerViewModel {
   const customerSearchRequestRef = useRef(0);
+  const customerSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onSelectCustomer = useCallback(
     (customer: PosCustomer) => {
@@ -68,6 +69,10 @@ export function usePosCustomerViewModel({
         errorMessage: null,
       }));
 
+      if (customerSearchDebounceRef.current) {
+        clearTimeout(customerSearchDebounceRef.current);
+      }
+
       if (!activeBusinessAccountRemoteId || trimmedValue === "") {
         customerSearchRequestRef.current += 1;
         setState((currentState) => ({
@@ -80,72 +85,82 @@ export function usePosCustomerViewModel({
       const requestId = ++customerSearchRequestRef.current;
       const searchTerm = trimmedValue.toLowerCase();
 
-      void (async () => {
-        try {
-          const result = await getContactsUseCase.execute({
-            accountRemoteId: activeBusinessAccountRemoteId,
-          });
-          if (requestId !== customerSearchRequestRef.current) {
-            return;
-          }
+      customerSearchDebounceRef.current = setTimeout(() => {
+        void (async () => {
+          try {
+            const result = await getContactsUseCase.execute({
+              accountRemoteId: activeBusinessAccountRemoteId,
+            });
+            if (requestId !== customerSearchRequestRef.current) {
+              return;
+            }
 
-          if (!result.success) {
+            if (!result.success) {
+              setState((currentState) => ({
+                ...currentState,
+                customerOptions: [],
+                errorMessage: result.error.message,
+              }));
+              return;
+            }
+
+            const customerOptions = result.value
+              .filter(
+                (contact: Contact) => contact.contactType === ContactType.Customer,
+              )
+              .filter((contact: Contact) => {
+                const nameMatch = contact.fullName
+                  .toLowerCase()
+                  .includes(searchTerm);
+                const phoneMatch =
+                  contact.phoneNumber?.toLowerCase().includes(searchTerm) ?? false;
+
+                return nameMatch || phoneMatch;
+              })
+              .slice(0, POS_DEFAULT_CUSTOMER_SEARCH_LIMIT)
+              .map((contact: Contact) => ({
+                label:
+                  contact.fullName +
+                  (contact.phoneNumber ? ` - ${contact.phoneNumber}` : ""),
+                value: contact.remoteId,
+                customerData: {
+                  remoteId: contact.remoteId,
+                  fullName: contact.fullName,
+                  phone: contact.phoneNumber,
+                  address: contact.address,
+                },
+              }));
+
+            setState((currentState) => ({
+              ...currentState,
+              customerOptions,
+            }));
+          } catch (error) {
+            if (requestId !== customerSearchRequestRef.current) {
+              return;
+            }
             setState((currentState) => ({
               ...currentState,
               customerOptions: [],
-              errorMessage: result.error.message,
+              errorMessage:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to search customers",
             }));
-            return;
           }
-
-          const customerOptions = result.value
-            .filter(
-              (contact: Contact) => contact.contactType === ContactType.Customer,
-            )
-            .filter((contact: Contact) => {
-              const nameMatch = contact.fullName
-                .toLowerCase()
-                .includes(searchTerm);
-              const phoneMatch =
-                contact.phoneNumber?.toLowerCase().includes(searchTerm) ?? false;
-
-              return nameMatch || phoneMatch;
-            })
-            .slice(0, POS_DEFAULT_CUSTOMER_SEARCH_LIMIT)
-            .map((contact: Contact) => ({
-              label:
-                contact.fullName +
-                (contact.phoneNumber ? ` - ${contact.phoneNumber}` : ""),
-              value: contact.remoteId,
-              customerData: {
-                remoteId: contact.remoteId,
-                fullName: contact.fullName,
-                phone: contact.phoneNumber,
-                address: contact.address,
-              },
-            }));
-
-          setState((currentState) => ({
-            ...currentState,
-            customerOptions,
-          }));
-        } catch (error) {
-          if (requestId !== customerSearchRequestRef.current) {
-            return;
-          }
-          setState((currentState) => ({
-            ...currentState,
-            customerOptions: [],
-            errorMessage:
-              error instanceof Error
-                ? error.message
-                : "Failed to search customers",
-          }));
-        }
-      })();
+        })();
+      }, 250);
     },
     [activeBusinessAccountRemoteId, getContactsUseCase, setState],
   );
+
+  useEffect(() => {
+    return () => {
+      if (customerSearchDebounceRef.current) {
+        clearTimeout(customerSearchDebounceRef.current);
+      }
+    };
+  }, []);
 
   const onOpenCustomerCreateModal = useCallback(() => {
     setState((currentState) => ({

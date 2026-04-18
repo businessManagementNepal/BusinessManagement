@@ -1,5 +1,5 @@
 import type { BillingDocument } from "@/feature/billing/types/billing.types";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PosReceipt } from "../types/pos.entity.types";
 import type { PosSaleHistoryItem } from "../types/posSaleHistory.entity.types";
 import type { GetPosSaleHistoryUseCase } from "../useCase/getPosSaleHistory.useCase";
@@ -107,9 +107,11 @@ export function usePosSaleHistoryViewModel({
   sharePosReceiptUseCase,
 }: UsePosSaleHistoryViewModelParams): PosSaleHistoryViewModel {
   const [state, setState] = useState<PosSaleHistoryViewModelState>(INITIAL_STATE);
+  const historySearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const historySearchRequestIdRef = useRef(0);
 
   const loadReceipts = useCallback(
-    async (searchTermOverride?: string) => {
+    async (searchTerm: string, requestId?: number) => {
       setState((currentState) => ({
         ...currentState,
         isLoading: true,
@@ -118,8 +120,15 @@ export function usePosSaleHistoryViewModel({
 
       const result = await getPosSaleHistoryUseCase.execute({
         accountRemoteId,
-        searchTerm: searchTermOverride ?? state.searchTerm,
+        searchTerm,
       });
+
+      if (
+        typeof requestId === "number" &&
+        requestId !== historySearchRequestIdRef.current
+      ) {
+        return;
+      }
 
       if (!result.success) {
         setState((currentState) => ({
@@ -139,7 +148,7 @@ export function usePosSaleHistoryViewModel({
         isLoading: false,
       }));
     },
-    [accountRemoteId, getPosSaleHistoryUseCase, state.searchTerm],
+    [accountRemoteId, getPosSaleHistoryUseCase],
   );
 
   const onSearchChange = useCallback(
@@ -148,7 +157,15 @@ export function usePosSaleHistoryViewModel({
         ...currentState,
         searchTerm: value,
       }));
-      void loadReceipts(value);
+
+      if (historySearchDebounceRef.current) {
+        clearTimeout(historySearchDebounceRef.current);
+      }
+
+      const requestId = ++historySearchRequestIdRef.current;
+      historySearchDebounceRef.current = setTimeout(() => {
+        void loadReceipts(value, requestId);
+      }, 300);
     },
     [loadReceipts],
   );
@@ -200,15 +217,25 @@ export function usePosSaleHistoryViewModel({
   );
 
   const onOpenHistory = useCallback(async () => {
+    if (historySearchDebounceRef.current) {
+      clearTimeout(historySearchDebounceRef.current);
+    }
+    const requestId = ++historySearchRequestIdRef.current;
+
     setState((currentState) => ({
       ...currentState,
       activeModal: "history",
     }));
 
-    await loadReceipts();
-  }, [loadReceipts]);
+    await loadReceipts(state.searchTerm || "", requestId);
+  }, [loadReceipts, state.searchTerm]);
 
   const onCloseHistory = useCallback(() => {
+    if (historySearchDebounceRef.current) {
+      clearTimeout(historySearchDebounceRef.current);
+    }
+    historySearchRequestIdRef.current += 1;
+
     setState((currentState) => ({
       ...currentState,
       activeModal: "none",
@@ -216,6 +243,22 @@ export function usePosSaleHistoryViewModel({
       selectedReceipt: null,
     }));
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (historySearchDebounceRef.current) {
+        clearTimeout(historySearchDebounceRef.current);
+      }
+    };
+  }, []);
+
+  const onLoadReceipts = useCallback(
+    async () => {
+      const requestId = ++historySearchRequestIdRef.current;
+      await loadReceipts(state.searchTerm, requestId);
+    },
+    [loadReceipts, state.searchTerm],
+  );
 
   const onCloseDetail = useCallback(() => {
     setState((currentState) => ({
@@ -240,10 +283,10 @@ export function usePosSaleHistoryViewModel({
       onOpenHistory,
       onCloseHistory,
       onCloseDetail,
-      onLoadReceipts: loadReceipts,
+      onLoadReceipts,
     }),
     [
-      loadReceipts,
+      onLoadReceipts,
       onCloseDetail,
       onCloseHistory,
       onOpenHistory,

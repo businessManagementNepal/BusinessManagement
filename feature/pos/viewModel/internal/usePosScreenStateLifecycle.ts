@@ -5,6 +5,7 @@ import {
   type SetStateAction,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import type { PosScreenCoordinatorState } from "../../types/pos.state.types";
@@ -60,6 +61,13 @@ export function usePosScreenStateLifecycle({
   const [state, setState] = useState<PosScreenCoordinatorState>(
     INITIAL_POS_SCREEN_COORDINATOR_STATE,
   );
+  const stateRef = useRef<PosScreenCoordinatorState>(
+    INITIAL_POS_SCREEN_COORDINATOR_STATE,
+  );
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const saveCurrentSession = useCallback(
     async (overrides: PosSessionStateOverrides = {}) => {
@@ -69,10 +77,10 @@ export function usePosScreenStateLifecycle({
 
       await savePosSessionUseCase.execute({
         businessAccountRemoteId: activeBusinessAccountRemoteId,
-        sessionData: buildPosSessionDataFromState(state, overrides),
+        sessionData: buildPosSessionDataFromState(stateRef.current, overrides),
       });
     },
-    [activeBusinessAccountRemoteId, savePosSessionUseCase, state],
+    [activeBusinessAccountRemoteId, savePosSessionUseCase],
   );
 
   const load = useCallback(async () => {
