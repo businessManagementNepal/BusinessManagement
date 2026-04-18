@@ -1,249 +1,263 @@
-import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
-import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase";
-import { createGetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase.impl";
-import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
-import { PosReceipt } from "@/feature/pos/types/pos.entity.types";
-import { CommitPosSaleInventoryMutationsUseCase } from "@/feature/pos/useCase/commitPosSaleInventoryMutations.useCase";
-import { createCompletePosCheckoutUseCase } from "@/feature/pos/useCase/completePosCheckout.useCase.impl";
-import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
+import type { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
+import type { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
+import type { PosCartLine, PosCustomer, PosTotals } from "@/feature/pos/types/pos.entity.types";
+import type { CreatePosSaleDraftUseCase } from "@/feature/pos/useCase/createPosSaleDraft.useCase";
+import type { UpdatePosSaleWorkflowStateUseCase } from "@/feature/pos/useCase/updatePosSaleWorkflowState.useCase";
+import type { PosSaleRecord } from "@/feature/pos/types/posSale.entity.types";
+import type { CommitPosSaleInventoryMutationsUseCase } from "@/feature/pos/useCase/commitPosSaleInventoryMutations.useCase";
+import type { PosCheckoutRepository } from "@/feature/pos/workflow/posCheckout/repository/posCheckout.repository";
+import {
+  PosCheckoutWorkflowStatus,
+} from "@/feature/pos/workflow/posCheckout/types/posCheckout.state.types";
+import type { RunPosCheckoutParams } from "@/feature/pos/workflow/posCheckout/types/posCheckout.types";
+import { createRunPosCheckoutUseCase } from "@/feature/pos/workflow/posCheckout/useCase/runPosCheckout.useCase.impl";
+import type { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import { describe, expect, it, vi } from "vitest";
 
-const createReceipt = (dueAmount: number): PosReceipt => ({
-  receiptNumber: "RCPT-12345678",
-  issuedAt: "2026-04-03T00:00:00.000Z",
-  lines: [],
-  totals: {
-    itemCount: 1,
+const BASE_TOTALS: PosTotals = {
+  itemCount: 1,
+  gross: 1000,
+  discountAmount: 0,
+  surchargeAmount: 0,
+  taxAmount: 130,
+  grandTotal: 1130,
+};
+
+const BASE_CART_LINES: readonly PosCartLine[] = [
+  {
+    lineId: "line-1",
+    productId: "product-1",
+    productName: "Test Product",
+    categoryLabel: "General",
+    shortCode: "TP",
+    quantity: 1,
+    unitPrice: 1000,
+    taxRate: 0.13,
+    lineSubtotal: 1000,
+  },
+];
+
+const CREATED_CUSTOMER: PosCustomer = {
+  remoteId: "new-customer-123",
+  fullName: "Jane Smith",
+  phone: "+9876543210",
+  address: null,
+};
+
+const createRunParams = (
+  overrides: Partial<RunPosCheckoutParams> = {},
+): RunPosCheckoutParams => ({
+  idempotencyKey: "idem-customer-1",
+  paymentParts: [
+    {
+      paymentPartId: "part-1",
+      payerLabel: null,
+      amount: 750,
+      settlementAccountRemoteId: "money-cash-1",
+    },
+  ],
+  selectedCustomer: CREATED_CUSTOMER,
+  grandTotalSnapshot: 1000,
+  cartLinesSnapshot: BASE_CART_LINES,
+  totalsSnapshot: {
+    ...BASE_TOTALS,
+    grandTotal: 1000,
+    taxAmount: 0,
     gross: 1000,
-    discountAmount: 0,
-    surchargeAmount: 0,
-    taxAmount: 130,
-    grandTotal: 1130,
   },
-  paidAmount: Number((1130 - dueAmount).toFixed(2)),
-  dueAmount,
-  ledgerEffect: {
-    type: dueAmount > 0 ? "due_balance_pending" : "none",
-    dueAmount,
-    accountRemoteId: "business-1",
-  },
-  customerName: null,
-  customerPhone: null,
-  contactRemoteId: null,
-  paymentParts: [],
+  activeBusinessAccountRemoteId: "business-1",
+  activeOwnerUserRemoteId: "user-1",
+  activeAccountCurrencyCode: "NPR",
+  activeAccountCountryCode: "NP",
+  ...overrides,
 });
 
-const createCoreSyncUseCases = () => ({
-  saveBillingDocumentUseCase: {
-    execute: vi.fn().mockResolvedValue({
-      success: true,
+const createCheckoutHarness = () => {
+  let saleState: PosSaleRecord | null = null;
+  let postedTransactionCount = 0;
+
+  const getSaleByIdempotencyKey: PosCheckoutRepository["getSaleByIdempotencyKey"] = vi.fn(
+    async () => ({
+      success: true as const,
+      value: null,
+    }),
+  );
+
+  const createPosSaleDraftUseCase: CreatePosSaleDraftUseCase = {
+    execute: vi.fn(async (params) => {
+      saleState = {
+        remoteId: params.remoteId,
+        receiptNumber: params.receiptNumber,
+        businessAccountRemoteId: params.businessAccountRemoteId,
+        ownerUserRemoteId: params.ownerUserRemoteId,
+        idempotencyKey: params.idempotencyKey,
+        workflowStatus: PosCheckoutWorkflowStatus.PendingValidation,
+        customerRemoteId: params.customerRemoteId,
+        customerNameSnapshot: params.customerNameSnapshot,
+        customerPhoneSnapshot: params.customerPhoneSnapshot,
+        currencyCode: params.currencyCode,
+        countryCode: params.countryCode,
+        cartLinesSnapshot: params.cartLinesSnapshot,
+        totalsSnapshot: params.totalsSnapshot,
+        paymentParts: params.paymentParts,
+        receipt: params.receipt,
+        billingDocumentRemoteId: null,
+        ledgerEntryRemoteId: null,
+        postedTransactionRemoteIds: [],
+        lastErrorType: null,
+        lastErrorMessage: null,
+        createdAt: 1,
+        updatedAt: 1,
+      };
+
+      return {
+        success: true as const,
+        value: saleState,
+      };
+    }),
+  };
+
+  const updatePosSaleWorkflowStateUseCase: UpdatePosSaleWorkflowStateUseCase = {
+    execute: vi.fn(async (params) => {
+      if (!saleState) {
+        return {
+          success: false as const,
+          error: {
+            type: "NOT_FOUND" as const,
+            message: "Sale not found.",
+          },
+        };
+      }
+
+      saleState = {
+        ...saleState,
+        workflowStatus: params.workflowStatus,
+        receipt: params.receipt,
+        billingDocumentRemoteId: params.billingDocumentRemoteId,
+        ledgerEntryRemoteId: params.ledgerEntryRemoteId,
+        postedTransactionRemoteIds: params.postedTransactionRemoteIds,
+        lastErrorType: params.lastErrorType,
+        lastErrorMessage: params.lastErrorMessage,
+        updatedAt: saleState.updatedAt + 1,
+      };
+
+      return {
+        success: true as const,
+        value: saleState,
+      };
+    }),
+  };
+
+  const saveBillingDocumentUseCase: SaveBillingDocumentUseCase = {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: {} as never,
+    })),
+  };
+
+  const postBusinessTransactionUseCase: PostBusinessTransactionUseCase = {
+    execute: vi.fn(async () => ({
+      success: true as const,
       value: {
-        remoteId: "billing-doc-123",
+        remoteId: `txn-${++postedTransactionCount}`,
+      } as never,
+    })),
+  };
+
+  const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
+    execute: vi.fn(async (payload) => ({
+      success: true as const,
+      value: {
+        ...payload,
         createdAt: 1,
         updatedAt: 1,
       },
-    }),
-  } as SaveBillingDocumentUseCase,
-  saveBillingDocumentAllocationsUseCase: {
-    execute: vi.fn().mockResolvedValue({
-      success: true,
-      value: [],
-    }),
-  } as SaveBillingDocumentAllocationsUseCase,
-  postBusinessTransactionUseCase: {
-    execute: vi.fn().mockResolvedValue({
-      success: true,
-      value: {
-        remoteId: "txn-123",
-        createdAt: 1,
-        updatedAt: 1,
-      },
-    }),
-  } as PostBusinessTransactionUseCase,
-});
+    })),
+    verifyLinkedDocument: vi.fn(async () => ({
+      success: true as const,
+      value: {} as never,
+    })),
+  };
 
-describe("POS Customer Creation Due-Balance Flow", () => {
-  it("creates new customer and processes due-balance checkout with contact linkage", async () => {
-    // Mock contact creation use case
-    const mockContact = {
-      remoteId: "new-customer-123",
-      fullName: "Jane Smith",
-      phone: "+9876543210",
-      address: null,
-      createdAt: 1,
-      updatedAt: 1,
-    };
+  const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: true,
+    })),
+  };
 
-    const getOrCreateContactUseCase = {
-      execute: vi.fn().mockResolvedValue({
-        success: true,
-        value: mockContact,
-      }),
-    };
+  const useCase = createRunPosCheckoutUseCase({
+    posCheckoutRepository: {
+      getSaleByIdempotencyKey,
+    },
+    createPosSaleDraftUseCase,
+    updatePosSaleWorkflowStateUseCase,
+    saveBillingDocumentUseCase,
+    postBusinessTransactionUseCase,
+    addLedgerEntryUseCase,
+    commitPosSaleInventoryMutationsUseCase,
+  });
 
-    const getOrCreateBusinessContactUseCase =
-      createGetOrCreateBusinessContactUseCase(getOrCreateContactUseCase);
+  return {
+    useCase,
+    spies: {
+      saveBillingDocumentExecute: saveBillingDocumentUseCase.execute,
+      addLedgerEntryExecute: addLedgerEntryUseCase.execute,
+      verifyLinkedDocument: addLedgerEntryUseCase.verifyLinkedDocument,
+      commitInventoryExecute: commitPosSaleInventoryMutationsUseCase.execute,
+    },
+  };
+};
 
-    // Mock payment use case for due balance scenario
-    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
-      async () => ({
-        success: true as const,
-        value: true, // Due balance of 250
-      }),
-    );
+describe("POS Customer-linked due-balance checkout", () => {
+  it("posts due balance with selected customer linkage", async () => {
+    const { useCase, spies } = createCheckoutHarness();
 
-    // Mock ledger entry creation
-    const addLedgerEntryExecuteSpy: AddLedgerEntryUseCase["execute"] = vi.fn(
-      async (payload) => ({
-        success: true as const,
-        value: {
-          ...payload,
-          createdAt: 1,
-          updatedAt: 1,
-        },
-      }),
-    );
+    const result = await useCase.execute(createRunParams());
 
-    const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
-      execute: addLedgerEntryExecuteSpy,
-      verifyLinkedDocument: vi.fn(async () => ({
-        success: true as const,
-        value: {} as never,
-      })),
-    };
-
-    const coreSyncUseCases = createCoreSyncUseCases();
-
-    const useCase = createCompletePosCheckoutUseCase({
-      commitPosSaleInventoryMutationsUseCase: { execute: completePaymentExecuteSpy },
-      addLedgerEntryUseCase,
-      getOrCreateBusinessContactUseCase,
-      ...coreSyncUseCases,
-    });
-
-    // Execute checkout with newly created customer
-    const result = await useCase.execute({
-      paymentParts: [
-        {
-          paymentPartId: "part-1",
-          payerLabel: null,
-          amount: 750,
-          settlementAccountRemoteId: "money-cash-1",
-        },
-      ],
-      activeBusinessAccountRemoteId: "business-1",
-      activeOwnerUserRemoteId: "user-1",
-      activeAccountCurrencyCode: "NPR",
-      activeAccountCountryCode: "NP",
-      selectedCustomer: {
-        remoteId: "new-customer-123",
-        fullName: "Jane Smith",
-        phone: "+9876543210",
-        address: null,
-      },
-      grandTotalSnapshot: 1000,
-    });
-
-    // Verify successful due-balance checkout
     expect(result.success).toBe(true);
-    expect(addLedgerEntryExecuteSpy).toHaveBeenCalledTimes(1);
+    expect(spies.addLedgerEntryExecute).toHaveBeenCalledTimes(1);
+    expect(spies.verifyLinkedDocument).toHaveBeenCalledTimes(1);
 
-    // Verify ledger entry was created with correct customer data
-    expect(addLedgerEntryExecuteSpy).toHaveBeenCalledTimes(1);
-    expect(addLedgerEntryExecuteSpy).toHaveBeenCalledWith(
+    expect(spies.addLedgerEntryExecute).toHaveBeenCalledWith(
       expect.objectContaining({
-        contactRemoteId: "new-customer-123",
-        partyName: "Jane Smith",
-        partyPhone: "+9876543210",
-        amount: 250, // Due amount
+        contactRemoteId: CREATED_CUSTOMER.remoteId,
+        partyName: CREATED_CUSTOMER.fullName,
+        partyPhone: CREATED_CUSTOMER.phone,
+        amount: 250,
+      }),
+    );
+
+    expect(spies.saveBillingDocumentExecute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contactRemoteId: CREATED_CUSTOMER.remoteId,
+        customerName: CREATED_CUSTOMER.fullName,
       }),
     );
 
     if (result.success) {
-      expect(result.value.ledgerEffect.type).toBe("due_balance_created");
-      expect(result.value.dueAmount).toBe(250);
+      expect(result.value.workflowStatus).toBe(PosCheckoutWorkflowStatus.Posted);
+      expect(result.value.receipt?.ledgerEffect.type).toBe("due_balance_created");
+      expect(result.value.receipt?.dueAmount).toBe(250);
     }
-
-    // Verify billing document would receive same contactRemoteId
-    // (This is tested in the main completePosCheckout tests)
   });
 
-  it("fails due-balance checkout when customer creation returns error", async () => {
-    // Mock contact creation failure
-    const getOrCreateContactUseCase = {
-      execute: vi.fn().mockResolvedValue({
-        success: false,
-        error: {
-          type: "VALIDATION_ERROR",
-          message: "Invalid customer data",
-        },
-      }),
-    };
+  it("fails due-balance checkout when selected customer is missing", async () => {
+    const { useCase, spies } = createCheckoutHarness();
 
-    const getOrCreateBusinessContactUseCase =
-      createGetOrCreateBusinessContactUseCase(getOrCreateContactUseCase);
-
-    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
-      async () => ({
-        success: true as const,
-        value: true,
+    const result = await useCase.execute(
+      createRunParams({
+        selectedCustomer: null,
       }),
     );
 
-    const addLedgerEntryExecuteSpy: AddLedgerEntryUseCase["execute"] = vi.fn(
-      async (payload) => ({
-        success: true as const,
-        value: {
-          ...payload,
-          createdAt: 1,
-          updatedAt: 1,
-        },
-      }),
-    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe("CONTEXT_REQUIRED");
+      expect(result.error.message).toContain("Customer selection is required");
+    }
 
-    const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
-      execute: addLedgerEntryExecuteSpy,
-      verifyLinkedDocument: vi.fn().mockResolvedValue({
-        success: true as const,
-        value: {} as never,
-      }),
-    };
-
-    const coreSyncUseCases = createCoreSyncUseCases();
-
-    const useCase = createCompletePosCheckoutUseCase({
-      commitPosSaleInventoryMutationsUseCase: { execute: completePaymentExecuteSpy },
-      addLedgerEntryUseCase,
-      getOrCreateBusinessContactUseCase,
-      ...coreSyncUseCases,
-    });
-
-    // Execute checkout with customer data (simulating post-creation scenario)
-    const result = await useCase.execute({
-      paymentParts: [
-        {
-          paymentPartId: "part-1",
-          payerLabel: null,
-          amount: 750,
-          settlementAccountRemoteId: "money-cash-1",
-        },
-      ],
-      activeBusinessAccountRemoteId: "business-1",
-      activeOwnerUserRemoteId: "user-1",
-      activeAccountCurrencyCode: "NPR",
-      activeAccountCountryCode: "NP",
-      selectedCustomer: {
-        remoteId: "new-customer-123",
-        fullName: "Jane Smith",
-        phone: "+9876543210",
-        address: null,
-      },
-      grandTotalSnapshot: 1000,
-    });
-
-    // Should still succeed since customer creation happens before checkout
-    // The failure would be handled in the UI layer during customer creation
-    expect(result.success).toBe(true);
-    expect(addLedgerEntryExecuteSpy).toHaveBeenCalledTimes(1);
+    expect(spies.commitInventoryExecute).not.toHaveBeenCalled();
+    expect(spies.addLedgerEntryExecute).not.toHaveBeenCalled();
   });
 });
