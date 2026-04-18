@@ -44,7 +44,6 @@ export const mapBillingDocumentModelToDomain = (
   sourceModule: document.sourceModule,
   sourceRemoteId: document.sourceRemoteId,
   linkedLedgerEntryRemoteId: document.linkedLedgerEntryRemoteId,
-  posWorkflowStatus: document.posWorkflowStatus,
   items: items.map(mapBillingItemModelToDomain),
   createdAt: document.createdAt.getTime(),
   updatedAt: document.updatedAt.getTime(),

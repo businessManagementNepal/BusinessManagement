@@ -127,7 +127,6 @@ const mapPosSaleToBillingDocument = (sale: PosSaleRecord): BillingDocument => {
     sourceModule: "pos",
     sourceRemoteId: sale.receiptNumber,
     linkedLedgerEntryRemoteId: sale.ledgerEntryRemoteId,
-    posWorkflowStatus: sale.workflowStatus,
     items,
     createdAt: sale.createdAt,
     updatedAt: sale.updatedAt,
