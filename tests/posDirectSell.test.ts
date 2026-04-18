@@ -1,5 +1,8 @@
 import { PosProduct } from "@/feature/pos/types/pos.entity.types";
 import { PosErrorType } from "@/feature/pos/types/pos.error.types";
+import { createLocalPosDatasource } from "@/feature/pos/data/dataSource/local.pos.datasource.impl";
+import { ProductModel } from "@/feature/products/data/dataSource/db/product.model";
+import type { Database } from "@nozbe/watermelondb";
 import { createAddProductToCartUseCase } from "@/feature/pos/useCase/addProductToCart.useCase.impl";
 import { describe, expect, it, vi } from "vitest";
 
@@ -26,6 +29,113 @@ const mockProducts: PosProduct[] = [
 ];
 
 describe("POS Direct Sell Functionality", () => {
+  const createProductModel = (params: {
+    remoteId: string;
+    name: string;
+    kind: "item" | "service";
+    stockQuantity: number | null;
+    salePrice?: number;
+    accountRemoteId?: string;
+  }): ProductModel =>
+    ({
+      remoteId: params.remoteId,
+      accountRemoteId: params.accountRemoteId ?? "account-1",
+      name: params.name,
+      kind: params.kind,
+      categoryName: "General",
+      salePrice: params.salePrice ?? 10,
+      stockQuantity: params.stockQuantity,
+      unitLabel: "pcs",
+      taxRateLabel: "0%",
+      status: "active",
+      deletedAt: null,
+    }) as unknown as ProductModel;
+
+  type WhereClause = {
+    type: "where";
+    left: string;
+    comparison: {
+      operator: string;
+      right?: {
+        value?: unknown;
+        values?: unknown[];
+      };
+    };
+  };
+
+  const isWhereClause = (clause: unknown): clause is WhereClause =>
+    typeof clause === "object" &&
+    clause !== null &&
+    "type" in clause &&
+    (clause as { type?: string }).type === "where" &&
+    "left" in clause;
+
+  const createMockDatabase = (seedProducts: ProductModel[]): Database => {
+    const productCollection = {
+      query: (...clauses: unknown[]) => ({
+        fetch: async () => {
+          let filtered = [...seedProducts];
+
+          for (const clause of clauses) {
+            if (!isWhereClause(clause)) {
+              continue;
+            }
+
+            const rightValue = clause.comparison.right?.value;
+            if (clause.left === "remote_id" && typeof rightValue === "string") {
+              filtered = filtered.filter((product) => product.remoteId === rightValue);
+            }
+            if (clause.left === "account_remote_id" && typeof rightValue === "string") {
+              filtered = filtered.filter(
+                (product) => product.accountRemoteId === rightValue,
+              );
+            }
+            if (clause.left === "status" && typeof rightValue === "string") {
+              filtered = filtered.filter((product) => product.status === rightValue);
+            }
+            if (clause.left === "deleted_at" && rightValue === null) {
+              filtered = filtered.filter((product) => product.deletedAt === null);
+            }
+          }
+
+          return filtered;
+        },
+      }),
+    };
+
+    return {
+      get: vi.fn((table: string) => {
+        if (table === "products") {
+          return productCollection;
+        }
+        throw new Error(`Unexpected table lookup: ${table}`);
+      }),
+      adapter: {
+        setLocal: vi.fn(),
+        getLocal: vi.fn(),
+        removeLocal: vi.fn(),
+      },
+      write: vi.fn(async (action: () => Promise<unknown>) => action()),
+      read: vi.fn(async (action: () => Promise<unknown>) => action()),
+    } as unknown as Database;
+  };
+
+  const createBootstrappedDatasource = async (
+    seedProducts: ProductModel[],
+  ) => {
+    const database = createMockDatabase(seedProducts);
+    const datasource = createLocalPosDatasource({ database });
+
+    const bootstrapResult = await datasource.loadBootstrap({
+      activeBusinessAccountRemoteId: "account-1",
+      activeOwnerUserRemoteId: "owner-1",
+      activeSettlementAccountRemoteId: "settlement-1",
+    });
+
+    expect(bootstrapResult.success).toBe(true);
+    return datasource;
+  };
+
   describe("Direct Cart-Add Path", () => {
     it("should add product directly to cart without requiring slot id", async () => {
       const mockRepository = {
@@ -488,6 +598,119 @@ describe("POS Direct Sell Functionality", () => {
       if (result.success) {
         expect(result.value[0].productId).toBe("product-new");
         expect(result.value[0].quantity).toBe(1);
+      }
+    });
+  });
+
+  describe("Cart Quantity Stock Enforcement", () => {
+    it("should fail when incrementing an item beyond stock", async () => {
+      const datasource = await createBootstrappedDatasource([
+        createProductModel({
+          remoteId: "item-1",
+          name: "Widget",
+          kind: "item",
+          stockQuantity: 1,
+        }),
+      ]);
+
+      const addResult = await datasource.addProductToCart({ productId: "item-1" });
+      expect(addResult.success).toBe(true);
+      if (!addResult.success) {
+        return;
+      }
+
+      const changeResult = await datasource.changeCartLineQuantity({
+        lineId: addResult.value[0].lineId,
+        nextQuantity: 2,
+      });
+
+      expect(changeResult.success).toBe(false);
+      if (!changeResult.success) {
+        expect(changeResult.error.type).toBe(PosErrorType.OutOfStock);
+      }
+    });
+
+    it("should allow incrementing an item within stock", async () => {
+      const datasource = await createBootstrappedDatasource([
+        createProductModel({
+          remoteId: "item-2",
+          name: "Bottle",
+          kind: "item",
+          stockQuantity: 3,
+        }),
+      ]);
+
+      const addResult = await datasource.addProductToCart({ productId: "item-2" });
+      expect(addResult.success).toBe(true);
+      if (!addResult.success) {
+        return;
+      }
+
+      const changeResult = await datasource.changeCartLineQuantity({
+        lineId: addResult.value[0].lineId,
+        nextQuantity: 2,
+      });
+
+      expect(changeResult.success).toBe(true);
+      if (changeResult.success) {
+        expect(changeResult.value[0].quantity).toBe(2);
+      }
+    });
+
+    it("should allow incrementing a service product", async () => {
+      const datasource = await createBootstrappedDatasource([
+        createProductModel({
+          remoteId: "service-1",
+          name: "Consultation",
+          kind: "service",
+          stockQuantity: 0,
+          salePrice: 50,
+        }),
+      ]);
+
+      const addResult = await datasource.addProductToCart({
+        productId: "service-1",
+      });
+      expect(addResult.success).toBe(true);
+      if (!addResult.success) {
+        return;
+      }
+
+      const changeResult = await datasource.changeCartLineQuantity({
+        lineId: addResult.value[0].lineId,
+        nextQuantity: 5,
+      });
+
+      expect(changeResult.success).toBe(true);
+      if (changeResult.success) {
+        expect(changeResult.value[0].quantity).toBe(5);
+      }
+    });
+
+    it("should remove a line when quantity is changed to zero", async () => {
+      const datasource = await createBootstrappedDatasource([
+        createProductModel({
+          remoteId: "item-3",
+          name: "Notebook",
+          kind: "item",
+          stockQuantity: 10,
+        }),
+      ]);
+
+      const addResult = await datasource.addProductToCart({ productId: "item-3" });
+      expect(addResult.success).toBe(true);
+      if (!addResult.success) {
+        return;
+      }
+
+      const changeResult = await datasource.changeCartLineQuantity({
+        lineId: addResult.value[0].lineId,
+        nextQuantity: 0,
+      });
+
+      expect(changeResult.success).toBe(true);
+      if (changeResult.success) {
+        expect(changeResult.value).toHaveLength(0);
       }
     });
   });

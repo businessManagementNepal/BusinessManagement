@@ -198,9 +198,9 @@ export const createLocalPosDatasource = ({
     return products;
   };
 
-  const getActiveProductById = async (
+  const getActiveProductModelById = async (
     productId: string,
-  ): Promise<PosProduct | null> => {
+  ): Promise<ProductModel | null> => {
     if (!activeBusinessAccountRemoteId) {
       return null;
     }
@@ -214,7 +214,14 @@ export const createLocalPosDatasource = ({
         Q.where("deleted_at", Q.eq(null)),
       )
       .fetch();
-    const product = matchingProducts[0];
+
+    return matchingProducts[0] ?? null;
+  };
+
+  const getActiveProductById = async (
+    productId: string,
+  ): Promise<PosProduct | null> => {
+    const product = await getActiveProductModelById(productId);
     if (!product) {
       return null;
     }
@@ -311,16 +318,7 @@ export const createLocalPosDatasource = ({
         };
       }
 
-      const collection = database.get<ProductModel>(PRODUCTS_TABLE);
-      const matchingProducts = await collection
-        .query(
-          Q.where("remote_id", params.productId),
-          Q.where("account_remote_id", activeBusinessAccountRemoteId),
-          Q.where("status", "active"),
-          Q.where("deleted_at", Q.eq(null)),
-        )
-        .fetch();
-      const productModel = matchingProducts[0];
+      const productModel = await getActiveProductModelById(params.productId);
 
       if (!productModel) {
         return {
@@ -421,6 +419,35 @@ export const createLocalPosDatasource = ({
       if (params.nextQuantity <= 0) {
         cartLines = cartLines.filter((line) => line.lineId !== params.lineId);
         return { success: true, value: cloneCartLines(cartLines) };
+      }
+
+      const targetLine = cartLines[lineIndex];
+      const productModel = await getActiveProductModelById(targetLine.productId);
+
+      if (!productModel) {
+        return {
+          success: false,
+          error: {
+            type: PosErrorType.ProductNotFound,
+            message: "The selected product was not found.",
+          },
+        };
+      }
+
+      if (productModel.kind === "item") {
+        const currentStock = productModel.stockQuantity ?? 0;
+        if (params.nextQuantity > currentStock) {
+          return {
+            success: false,
+            error: {
+              type: PosErrorType.OutOfStock,
+              message:
+                currentStock <= 0
+                  ? `${productModel.name} is out of stock.`
+                  : `Only ${currentStock} unit(s) of ${productModel.name} available.`,
+            },
+          };
+        }
       }
 
       cartLines = cartLines.map((line, index) => {
