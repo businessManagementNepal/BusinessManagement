@@ -1,7 +1,7 @@
 import type { BillingDocument } from "@/feature/billing/types/billing.types";
 import { useCallback, useMemo, useState } from "react";
 import type { PosReceipt } from "../types/pos.entity.types";
-import type { PosSaleHistoryState } from "../types/pos.state.types";
+import type { PosSaleHistoryItem } from "../types/posSaleHistory.entity.types";
 import type { GetPosSaleHistoryUseCase } from "../useCase/getPosSaleHistory.useCase";
 import type { PrintPosReceiptUseCase } from "../useCase/printPosReceipt.useCase";
 import type { SharePosReceiptUseCase } from "../useCase/sharePosReceipt.useCase";
@@ -18,7 +18,13 @@ interface UsePosSaleHistoryViewModelParams {
 
 type PosSaleHistoryModalState = "history" | "detail" | "none";
 
-type PosSaleHistoryViewModelState = PosSaleHistoryState & {
+type PosSaleHistoryViewModelState = {
+  receipts: PosSaleHistoryItem[];
+  filteredReceipts: PosSaleHistoryItem[];
+  isLoading: boolean;
+  searchTerm: string;
+  selectedReceipt: PosSaleHistoryItem | null;
+  errorMessage: string | null;
   activeModal: PosSaleHistoryModalState;
 };
 
@@ -128,8 +134,8 @@ export function usePosSaleHistoryViewModel({
 
       setState((currentState) => ({
         ...currentState,
-        receipts: result.value,
-        filteredReceipts: result.value,
+        receipts: [...result.value],
+        filteredReceipts: [...result.value],
         isLoading: false,
       }));
     },
@@ -147,7 +153,7 @@ export function usePosSaleHistoryViewModel({
     [loadReceipts],
   );
 
-  const onReceiptPress = useCallback((receipt: BillingDocument) => {
+  const onReceiptPress = useCallback((receipt: PosSaleHistoryItem) => {
     setState((currentState) => ({
       ...currentState,
       selectedReceipt: receipt,
@@ -156,8 +162,8 @@ export function usePosSaleHistoryViewModel({
   }, []);
 
   const onPrintReceipt = useCallback(
-    async (receipt: BillingDocument) => {
-      const mappedReceipt = mapBillingDocumentToPosReceipt(receipt);
+    async (receipt: PosSaleHistoryItem) => {
+      const mappedReceipt = mapBillingDocumentToPosReceipt(receipt.document);
       const result = await printPosReceiptUseCase.execute({
         receipt: mappedReceipt,
         currencyCode,
@@ -175,8 +181,8 @@ export function usePosSaleHistoryViewModel({
   );
 
   const onShareReceipt = useCallback(
-    async (receipt: BillingDocument) => {
-      const mappedReceipt = mapBillingDocumentToPosReceipt(receipt);
+    async (receipt: PosSaleHistoryItem) => {
+      const mappedReceipt = mapBillingDocumentToPosReceipt(receipt.document);
       const result = await sharePosReceiptUseCase.execute({
         receipt: mappedReceipt,
         currencyCode,

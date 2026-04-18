@@ -1,16 +1,16 @@
-import type { BillingDocument } from "@/feature/billing/types/billing.types";
+import type { PosSaleHistoryItem } from "../types/posSaleHistory.entity.types";
 
 export interface PosSaleHistoryViewModel {
-  receipts: readonly BillingDocument[];
+  receipts: readonly PosSaleHistoryItem[];
   isLoading: boolean;
   searchTerm: string;
-  selectedReceipt: BillingDocument | null;
+  selectedReceipt: PosSaleHistoryItem | null;
   activeModal: "history" | "detail" | "none";
   errorMessage: string | null;
   onSearchChange: (value: string) => void;
-  onReceiptPress: (receipt: BillingDocument) => void;
-  onPrintReceipt: (receipt: BillingDocument) => Promise<void>;
-  onShareReceipt: (receipt: BillingDocument) => Promise<void>;
+  onReceiptPress: (receipt: PosSaleHistoryItem) => void;
+  onPrintReceipt: (receipt: PosSaleHistoryItem) => Promise<void>;
+  onShareReceipt: (receipt: PosSaleHistoryItem) => Promise<void>;
   onOpenHistory: () => Promise<void>;
   onCloseHistory: () => void;
   onCloseDetail: () => void;

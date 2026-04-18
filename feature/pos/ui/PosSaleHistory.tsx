@@ -1,4 +1,3 @@
-import type { BillingDocument } from "@/feature/billing/types/billing.types";
 import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
@@ -14,22 +13,23 @@ import {
   Text,
   View,
 } from "react-native";
+import type { PosSaleHistoryItem } from "../types/posSaleHistory.entity.types";
 import { PosReceiptDetail } from "./PosReceiptDetail";
 
 type PosSaleHistoryProps = {
   visible: boolean;
   activeModal: "history" | "detail" | "none";
-  receipts: readonly BillingDocument[];
+  receipts: readonly PosSaleHistoryItem[];
   isLoading: boolean;
   searchTerm: string;
-  selectedReceipt: BillingDocument | null;
+  selectedReceipt: PosSaleHistoryItem | null;
   errorMessage: string | null;
   currencyCode: string;
   countryCode: string | null;
   onSearchChange: (value: string) => void;
-  onReceiptPress: (receipt: BillingDocument) => void;
-  onPrintReceipt: (receipt: BillingDocument) => Promise<void>;
-  onShareReceipt: (receipt: BillingDocument) => Promise<void>;
+  onReceiptPress: (receipt: PosSaleHistoryItem) => void;
+  onPrintReceipt: (receipt: PosSaleHistoryItem) => Promise<void>;
+  onShareReceipt: (receipt: PosSaleHistoryItem) => Promise<void>;
   onCloseHistory: () => void;
   onCloseDetail: () => void;
 };
@@ -54,28 +54,29 @@ export function PosSaleHistory({
   onCloseHistory,
   onCloseDetail,
 }: PosSaleHistoryProps) {
-  const renderReceiptItem = ({ item }: { item: BillingDocument }) => {
-    const workflowStatus = (item as BillingDocument & { posWorkflowStatus?: string | null })
-      .posWorkflowStatus ?? null;
-    const isPartiallyPosted = workflowStatus === PARTIALLY_POSTED;
-    const isFailed = workflowStatus === FAILED;
+  const renderReceiptItem = ({ item }: { item: PosSaleHistoryItem }) => {
+    const isPartiallyPosted = item.workflowStatus === PARTIALLY_POSTED;
+    const isFailed = item.workflowStatus === FAILED;
     const hasSyncWarning = isPartiallyPosted || isFailed;
+    const receipt = item.document;
 
     return (
       <Pressable
         style={styles.receiptItem}
         onPress={() => onReceiptPress(item)}
         accessibilityRole="button"
-        accessibilityLabel={`Receipt ${item.documentNumber}`}
+        accessibilityLabel={`Receipt ${receipt.documentNumber}`}
       >
         <View style={styles.receiptHeader}>
           <View style={styles.receiptInfo}>
-            <Text style={styles.receiptNumber}>{item.documentNumber}</Text>
-            <Text style={styles.customerName}>{item.customerName || "Walk-in Customer"}</Text>
+            <Text style={styles.receiptNumber}>{receipt.documentNumber}</Text>
+            <Text style={styles.customerName}>
+              {receipt.customerName || "Walk-in Customer"}
+            </Text>
           </View>
           <Text style={styles.totalAmount}>
             {formatCurrencyAmount({
-              amount: item.totalAmount,
+              amount: receipt.totalAmount,
               currencyCode,
               countryCode,
             })}
@@ -86,9 +87,11 @@ export function PosSaleHistory({
           <View style={styles.syncWarningBanner}>
             <AlertTriangle size={12} color={colors.warning} />
             <Text style={styles.syncWarningText}>
-              {isFailed
-                ? "Posting failed - review Ledger and Billing manually."
-                : "Partial sync - some accounting entries may be missing."}
+              {item.lastErrorMessage
+                ? item.lastErrorMessage
+                : isFailed
+                  ? "Posting failed — review Ledger and Billing manually."
+                  : "Partial sync — some accounting entries may be missing."}
             </Text>
           </View>
         ) : null}
@@ -96,14 +99,16 @@ export function PosSaleHistory({
         <View style={styles.receiptFooter}>
           <View style={styles.dateContainer}>
             <Clock size={12} color={colors.mutedForeground} />
-            <Text style={styles.dateText}>{new Date(item.issuedAt).toLocaleDateString()}</Text>
+            <Text style={styles.dateText}>
+              {new Date(receipt.issuedAt).toLocaleDateString()}
+            </Text>
           </View>
           <View
             style={[
               styles.statusPill,
               hasSyncWarning
                 ? styles.statusPillWarning
-                : item.status === "paid"
+                : receipt.status === "paid"
                   ? styles.statusPillPaid
                   : styles.statusPillPending,
             ]}
@@ -113,16 +118,16 @@ export function PosSaleHistory({
                 styles.statusText,
                 hasSyncWarning
                   ? styles.statusTextWarning
-                  : item.status === "paid"
+                  : receipt.status === "paid"
                     ? styles.statusTextPaid
                     : styles.statusTextPending,
               ]}
             >
               {hasSyncWarning
                 ? "SYNC ERROR"
-                : item.status === "paid"
+                : receipt.status === "paid"
                   ? "PAID"
-                  : item.status.replace("_", " ").toUpperCase()}
+                  : receipt.status.replace("_", " ").toUpperCase()}
             </Text>
           </View>
         </View>
@@ -162,14 +167,14 @@ export function PosSaleHistory({
               </View>
 
               <PosReceiptDetail
-                receipt={selectedReceipt}
+                receipt={selectedReceipt.document}
                 currencyCode={currencyCode}
                 countryCode={countryCode}
-                onPrintReceipt={(receipt) => {
-                  void onPrintReceipt(receipt);
+                onPrintReceipt={() => {
+                  void onPrintReceipt(selectedReceipt);
                 }}
-                onShareReceipt={(receipt) => {
-                  void onShareReceipt(receipt);
+                onShareReceipt={() => {
+                  void onShareReceipt(selectedReceipt);
                 }}
                 onClose={onCloseDetail}
               />
@@ -209,7 +214,7 @@ export function PosSaleHistory({
                 <FlatList
                   data={receipts}
                   renderItem={renderReceiptItem}
-                  keyExtractor={(item) => item.remoteId}
+                  keyExtractor={(item) => item.document.remoteId}
                   style={styles.list}
                   showsVerticalScrollIndicator={false}
                   ListEmptyComponent={

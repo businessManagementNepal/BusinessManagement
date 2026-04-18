@@ -6,6 +6,7 @@ import {
 } from "@/feature/billing/types/billing.types";
 import { PosErrorType } from "../types/pos.error.types";
 import type { PosSaleRecord } from "../types/posSale.entity.types";
+import type { PosSaleHistoryItem } from "../types/posSaleHistory.entity.types";
 import type { GetPosSaleHistoryUseCase } from "./getPosSaleHistory.useCase";
 import type { GetPosSalesUseCase } from "./getPosSales.useCase";
 
@@ -133,6 +134,12 @@ const mapPosSaleToBillingDocument = (sale: PosSaleRecord): BillingDocument => {
   };
 };
 
+const mapPosSaleToHistoryItem = (sale: PosSaleRecord): PosSaleHistoryItem => ({
+  document: mapPosSaleToBillingDocument(sale),
+  workflowStatus: sale.workflowStatus,
+  lastErrorMessage: sale.lastErrorMessage,
+});
+
 export const createGetPosSaleHistoryUseCase = ({
   getPosSalesUseCase,
 }: CreateGetPosSaleHistoryUseCaseParams): GetPosSaleHistoryUseCase => ({
@@ -166,20 +173,20 @@ export const createGetPosSaleHistoryUseCase = ({
     const normalizedSearch = params.searchTerm?.trim().toLowerCase() ?? "";
 
     const receipts = result.value
-      .map(mapPosSaleToBillingDocument)
-      .filter((document) => {
+      .map(mapPosSaleToHistoryItem)
+      .filter((item) => {
         if (!normalizedSearch) {
           return true;
         }
 
-        const customerName = document.customerName.toLowerCase();
-        const documentNumber = document.documentNumber.toLowerCase();
+        const customerName = item.document.customerName.toLowerCase();
+        const documentNumber = item.document.documentNumber.toLowerCase();
         return (
           customerName.includes(normalizedSearch) ||
           documentNumber.includes(normalizedSearch)
         );
       })
-      .sort((left, right) => right.issuedAt - left.issuedAt);
+      .sort((left, right) => right.document.issuedAt - left.document.issuedAt);
 
     return {
       success: true,
