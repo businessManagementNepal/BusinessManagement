@@ -3,9 +3,7 @@ import { createMoneyAccountRepository } from "@/feature/accounts/data/repository
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
 import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
-import { createGetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase.impl";
 import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
-import { createSaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase.impl";
 import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
 import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
 import { createGetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase.impl";
@@ -20,8 +18,10 @@ import { createSaveProductUseCase } from "@/feature/products/useCase/saveProduct
 import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
 import appDatabase from "@/shared/database/appDatabase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
+import { Q } from "@nozbe/watermelondb";
 import React from "react";
 import { createPosReceiptDocumentAdapter } from "../adapter/posReceiptDocument.adapter.impl";
+import { PosSaleModel } from "../data/dataSource/db/posSale.model";
 import { createLocalPosDatasource } from "../data/dataSource/local.pos.datasource.impl";
 import { createPosRepository } from "../data/repository/pos.repository.impl";
 import { PosScreen } from "../ui/PosScreen";
@@ -32,16 +32,29 @@ import { createChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQu
 import { createClearCartUseCase } from "../useCase/clearCart.useCase.impl";
 import { createClearPosSessionUseCase } from "../useCase/clearPosSession.useCase.impl";
 import { createCommitPosSaleInventoryMutationsUseCase } from "../useCase/commitPosSaleInventoryMutations.useCase.impl";
-import { createCompletePosCheckoutUseCase } from "../useCase/completePosCheckout.useCase.impl";
+import { createCreatePosSaleDraftUseCase } from "../useCase/createPosSaleDraft.useCase.impl";
 import { createGetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase.impl";
 import { createGetPosSaleHistoryUseCase } from "../useCase/getPosSaleHistory.useCase.impl";
+import {
+  createGetPosSalesUseCase,
+} from "../useCase/getPosSales.useCase.impl";
 import { createLoadPosSessionUseCase } from "../useCase/loadPosSession.useCase.impl";
 import { createPrintPosReceiptUseCase } from "../useCase/printPosReceipt.useCase.impl";
 import { createSavePosSessionUseCase } from "../useCase/savePosSession.useCase.impl";
 import { createSearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase.impl";
 import { createSharePosReceiptUseCase } from "../useCase/sharePosReceipt.useCase.impl";
+import { createUpdatePosSaleWorkflowStateUseCase } from "../useCase/updatePosSaleWorkflowState.useCase.impl";
+import type { PosSalesReaderRepository } from "../useCase/getPosSales.useCase";
+import type { PosPaymentPartInput } from "../types/pos.dto.types";
+import type { PosCartLine, PosReceipt } from "../types/pos.entity.types";
+import type { PosSaleRecord } from "../types/posSale.entity.types";
+import { PosSaleErrorType } from "../types/posSale.error.types";
 import { usePosSaleHistoryViewModel } from "../viewModel/posSaleHistory.viewModel.impl";
 import { usePosScreenCoordinatorViewModel } from "../viewModel/posScreenCoordinator.viewModel.impl";
+import { createLocalPosSaleDatasource } from "../data/dataSource/local.posSale.datasource.impl";
+import { createPosSaleRepository } from "../data/repository/posSale.repository.impl";
+import { createPosCheckoutRepository } from "../workflow/posCheckout/repository/posCheckout.repository.impl";
+import { createRunPosCheckoutUseCase } from "../workflow/posCheckout/useCase/runPosCheckout.useCase.impl";
 
 type GetPosScreenFactoryProps = {
   activeBusinessAccountRemoteId: string | null;
@@ -52,6 +65,59 @@ type GetPosScreenFactoryProps = {
   activeAccountDefaultTaxRatePercent: number | null;
   activeAccountDefaultTaxMode: TaxModeValue | null;
 };
+
+const parseJsonValue = <T,>(value: string | null, fallback: T): T => {
+  if (!value) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+};
+
+const mapPosSaleModelToDomain = (model: PosSaleModel): PosSaleRecord => ({
+  remoteId: model.remoteId,
+  receiptNumber: model.receiptNumber,
+  businessAccountRemoteId: model.businessAccountRemoteId,
+  ownerUserRemoteId: model.ownerUserRemoteId,
+  idempotencyKey: model.idempotencyKey,
+  workflowStatus: model.workflowStatus,
+  customerRemoteId: model.customerRemoteId,
+  customerNameSnapshot: model.customerNameSnapshot,
+  customerPhoneSnapshot: model.customerPhoneSnapshot,
+  currencyCode: model.currencyCode,
+  countryCode: model.countryCode,
+  cartLinesSnapshot: parseJsonValue<readonly PosCartLine[]>(
+    model.cartLinesSnapshotJson,
+    [],
+  ),
+  totalsSnapshot: {
+    itemCount: model.itemCount,
+    gross: model.gross,
+    discountAmount: model.discountAmount,
+    surchargeAmount: model.surchargeAmount,
+    taxAmount: model.taxAmount,
+    grandTotal: model.grandTotal,
+  },
+  paymentParts: parseJsonValue<readonly PosPaymentPartInput[]>(
+    model.paymentPartsSnapshotJson,
+    [],
+  ),
+  receipt: parseJsonValue<PosReceipt | null>(model.receiptSnapshotJson, null),
+  billingDocumentRemoteId: model.billingDocumentRemoteId,
+  ledgerEntryRemoteId: model.ledgerEntryRemoteId,
+  postedTransactionRemoteIds: parseJsonValue<readonly string[]>(
+    model.postedTransactionRemoteIdsJson,
+    [],
+  ),
+  lastErrorType: model.lastErrorType,
+  lastErrorMessage: model.lastErrorMessage,
+  createdAt: model.createdAt.getTime(),
+  updatedAt: model.updatedAt.getTime(),
+});
 
 export function GetPosScreenFactory({
   activeBusinessAccountRemoteId,
@@ -127,13 +193,75 @@ export function GetPosScreenFactory({
     () => createSaveBillingDocumentUseCase(billingRepository),
     [billingRepository],
   );
-  const saveBillingDocumentAllocationsUseCase = React.useMemo(
-    () => createSaveBillingDocumentAllocationsUseCase(billingRepository),
-    [billingRepository],
+  const posSaleDatasource = React.useMemo(
+    () => createLocalPosSaleDatasource({ database: appDatabase }),
+    [],
   );
-  const getBillingOverviewUseCase = React.useMemo(
-    () => createGetBillingOverviewUseCase(billingRepository),
-    [billingRepository],
+  const posSaleRepository = React.useMemo(
+    () => createPosSaleRepository(posSaleDatasource),
+    [posSaleDatasource],
+  );
+  const createPosSaleDraftUseCase = React.useMemo(
+    () => createCreatePosSaleDraftUseCase(posSaleRepository),
+    [posSaleRepository],
+  );
+  const updatePosSaleWorkflowStateUseCase = React.useMemo(
+    () => createUpdatePosSaleWorkflowStateUseCase(posSaleRepository),
+    [posSaleRepository],
+  );
+  const posCheckoutRepository = React.useMemo(
+    () => createPosCheckoutRepository({ posSaleRepository }),
+    [posSaleRepository],
+  );
+  const posSalesReaderRepository = React.useMemo<PosSalesReaderRepository>(
+    () => ({
+      async getPosSales(params) {
+        const businessAccountRemoteId = params.businessAccountRemoteId.trim();
+        if (!businessAccountRemoteId) {
+          return {
+            success: false,
+            error: {
+              type: PosSaleErrorType.Validation,
+              message:
+                "Business account context is required to load POS sale history.",
+            },
+          };
+        }
+
+        try {
+          const collection = appDatabase.get<PosSaleModel>("pos_sales");
+          const records = await collection
+            .query(
+              Q.where("business_account_remote_id", businessAccountRemoteId),
+              Q.where("deleted_at", Q.eq(null)),
+              Q.sortBy("updated_at", Q.desc),
+              Q.sortBy("created_at", Q.desc),
+            )
+            .fetch();
+
+          return {
+            success: true,
+            value: records.map(mapPosSaleModelToDomain),
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: {
+              type: PosSaleErrorType.Unknown,
+              message:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to load POS sale records.",
+            },
+          };
+        }
+      },
+    }),
+    [],
+  );
+  const getPosSalesUseCase = React.useMemo(
+    () => createGetPosSalesUseCase(posSalesReaderRepository),
+    [posSalesReaderRepository],
   );
   const ledgerDatasource = React.useMemo(
     () => createLocalLedgerDatasource(appDatabase),
@@ -171,23 +299,25 @@ export function GetPosScreenFactory({
     () => createGetOrCreateBusinessContactUseCase(getOrCreateContactUseCase),
     [getOrCreateContactUseCase],
   );
-  const completePosCheckoutUseCase = React.useMemo(
+  const runPosCheckoutUseCase = React.useMemo(
     () =>
-      createCompletePosCheckoutUseCase({
-        commitPosSaleInventoryMutationsUseCase,
-        addLedgerEntryUseCase,
+      createRunPosCheckoutUseCase({
+        posCheckoutRepository,
+        createPosSaleDraftUseCase,
+        updatePosSaleWorkflowStateUseCase,
         saveBillingDocumentUseCase,
-        saveBillingDocumentAllocationsUseCase,
         postBusinessTransactionUseCase,
-        getOrCreateBusinessContactUseCase,
+        addLedgerEntryUseCase,
+        commitPosSaleInventoryMutationsUseCase,
       }),
     [
       addLedgerEntryUseCase,
       commitPosSaleInventoryMutationsUseCase,
+      createPosSaleDraftUseCase,
+      posCheckoutRepository,
       postBusinessTransactionUseCase,
-      saveBillingDocumentAllocationsUseCase,
       saveBillingDocumentUseCase,
-      getOrCreateBusinessContactUseCase,
+      updatePosSaleWorkflowStateUseCase,
     ],
   );
   const receiptDocumentAdapter = React.useMemo(
@@ -213,9 +343,9 @@ export function GetPosScreenFactory({
   const getPosSaleHistoryUseCase = React.useMemo(
     () =>
       createGetPosSaleHistoryUseCase({
-        getBillingOverviewUseCase,
+        getPosSalesUseCase,
       }),
-    [getBillingOverviewUseCase],
+    [getPosSalesUseCase],
   );
 
   const saleHistoryViewModel = usePosSaleHistoryViewModel({
@@ -270,7 +400,7 @@ export function GetPosScreenFactory({
     getOrCreateBusinessContactUseCase,
     getContactsUseCase,
     clearCartUseCase,
-    completePosCheckoutUseCase,
+    runPosCheckoutUseCase,
     printPosReceiptUseCase,
     sharePosReceiptUseCase,
     saveProductUseCase,

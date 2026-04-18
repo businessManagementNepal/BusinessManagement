@@ -8,7 +8,7 @@ import type {
   PosCheckoutSubmissionKind,
 } from "../types/pos.workflow.types";
 import type { ClearPosSessionUseCase } from "../useCase/clearPosSession.useCase";
-import type { CompletePosCheckoutUseCase } from "../useCase/completePosCheckout.useCase";
+import type { RunPosCheckoutUseCase } from "../workflow/posCheckout/useCase/runPosCheckout.useCase";
 import {
   EMPTY_TOTALS,
   INITIAL_POS_SCREEN_COORDINATOR_STATE,
@@ -26,7 +26,7 @@ interface UsePosCheckoutFlowControllerParams {
   activeOwnerUserRemoteId: string | null;
   currencyCode: string;
   countryCode: string | null;
-  completePosCheckoutUseCase: CompletePosCheckoutUseCase;
+  runPosCheckoutUseCase: RunPosCheckoutUseCase;
   clearPosSessionUseCase: ClearPosSessionUseCase;
 }
 
@@ -52,6 +52,17 @@ const buildNormalPaymentParts = (
       ]
     : [];
 
+const createCheckoutIdempotencyKey = (
+  submissionKind: PosCheckoutSubmissionKind,
+): string => {
+  const randomId = globalThis.crypto?.randomUUID?.();
+  if (randomId) {
+    return `pos:${submissionKind}:${randomId}`;
+  }
+
+  return `pos:${submissionKind}:${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+};
+
 export function usePosCheckoutFlowController({
   state,
   setState,
@@ -59,7 +70,7 @@ export function usePosCheckoutFlowController({
   activeOwnerUserRemoteId,
   currencyCode,
   countryCode,
-  completePosCheckoutUseCase,
+  runPosCheckoutUseCase,
   clearPosSessionUseCase,
 }: UsePosCheckoutFlowControllerParams): PosCheckoutFlowController {
   const checkoutSubmissionRef = useRef<PosCheckoutSubmissionKind | null>(null);
@@ -171,7 +182,8 @@ export function usePosCheckoutFlowController({
       }
 
       try {
-        const result = await completePosCheckoutUseCase.execute({
+        const result = await runPosCheckoutUseCase.execute({
+          idempotencyKey: createCheckoutIdempotencyKey(submissionKind),
           paymentParts,
           selectedCustomer: state.selectedCustomer,
           grandTotalSnapshot: state.totals.grandTotal,
@@ -198,7 +210,23 @@ export function usePosCheckoutFlowController({
           return false;
         }
 
-        await finalizeSuccessfulCheckout(result.value);
+        const receipt = result.value.receipt;
+        if (!receipt) {
+          setState((currentState) => ({
+            ...currentState,
+            errorMessage:
+              mode === "payment"
+                ? "Checkout did not return a receipt."
+                : currentState.errorMessage,
+            splitBillErrorMessage:
+              mode === "split-bill"
+                ? "Checkout did not return a receipt."
+                : currentState.splitBillErrorMessage,
+          }));
+          return false;
+        }
+
+        await finalizeSuccessfulCheckout(receipt);
         return true;
       } finally {
         endCheckoutSubmission();
@@ -208,11 +236,11 @@ export function usePosCheckoutFlowController({
       activeBusinessAccountRemoteId,
       activeOwnerUserRemoteId,
       beginCheckoutSubmission,
-      completePosCheckoutUseCase,
       countryCode,
       currencyCode,
       endCheckoutSubmission,
       finalizeSuccessfulCheckout,
+      runPosCheckoutUseCase,
       setState,
       state.cartLines,
       state.selectedCustomer,
@@ -235,7 +263,7 @@ interface UsePosCheckoutCoordinationParams {
   activeOwnerUserRemoteId: string | null;
   currencyCode: string;
   countryCode: string | null;
-  completePosCheckoutUseCase: CompletePosCheckoutUseCase;
+  runPosCheckoutUseCase: RunPosCheckoutUseCase;
   clearPosSessionUseCase: ClearPosSessionUseCase;
   saveCurrentSession: (
     overrides?: PosSessionStateOverrides,
@@ -254,7 +282,7 @@ export function usePosCheckoutCoordination({
   activeOwnerUserRemoteId,
   currencyCode,
   countryCode,
-  completePosCheckoutUseCase,
+  runPosCheckoutUseCase,
   clearPosSessionUseCase,
   saveCurrentSession,
 }: UsePosCheckoutCoordinationParams): PosCheckoutCoordination {
@@ -265,7 +293,7 @@ export function usePosCheckoutCoordination({
     activeOwnerUserRemoteId,
     currencyCode,
     countryCode,
-    completePosCheckoutUseCase,
+    runPosCheckoutUseCase,
     clearPosSessionUseCase,
   });
 

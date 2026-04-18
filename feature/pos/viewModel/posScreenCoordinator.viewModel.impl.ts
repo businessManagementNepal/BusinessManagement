@@ -16,13 +16,13 @@ import { ApplySurchargeUseCase } from "../useCase/applySurcharge.useCase";
 import { ChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQuantity.useCase";
 import { ClearCartUseCase } from "../useCase/clearCart.useCase";
 import { ClearPosSessionUseCase } from "../useCase/clearPosSession.useCase";
-import { CompletePosCheckoutUseCase } from "../useCase/completePosCheckout.useCase";
 import { GetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase";
 import { LoadPosSessionUseCase } from "../useCase/loadPosSession.useCase";
 import { PrintPosReceiptUseCase } from "../useCase/printPosReceipt.useCase";
 import { SavePosSessionUseCase } from "../useCase/savePosSession.useCase";
 import { SearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase";
 import { SharePosReceiptUseCase } from "../useCase/sharePosReceipt.useCase";
+import type { RunPosCheckoutUseCase } from "../workflow/posCheckout/useCase/runPosCheckout.useCase";
 import { usePosCartViewModel } from "./posCart.viewModel.impl";
 import { usePosCatalogViewModel } from "./posCatalog.viewModel.impl";
 import { usePosCheckoutCoordination } from "./posCheckout.viewModel.impl";
@@ -49,7 +49,7 @@ interface UsePosScreenCoordinatorViewModelParams {
   getOrCreateBusinessContactUseCase: GetOrCreateBusinessContactUseCase;
   getContactsUseCase: GetContactsUseCase;
   clearCartUseCase: ClearCartUseCase;
-  completePosCheckoutUseCase: CompletePosCheckoutUseCase;
+  runPosCheckoutUseCase: RunPosCheckoutUseCase;
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   printPosReceiptUseCase: PrintPosReceiptUseCase;
   sharePosReceiptUseCase: SharePosReceiptUseCase;
@@ -80,7 +80,7 @@ export function usePosScreenCoordinatorViewModel(
     getOrCreateBusinessContactUseCase,
     getContactsUseCase,
     clearCartUseCase,
-    completePosCheckoutUseCase,
+    runPosCheckoutUseCase,
     getMoneyAccountsUseCase,
     printPosReceiptUseCase,
     sharePosReceiptUseCase,
@@ -181,7 +181,7 @@ export function usePosScreenCoordinatorViewModel(
     activeOwnerUserRemoteId,
     currencyCode,
     countryCode: regionalFinancePolicy.countryCode,
-    completePosCheckoutUseCase,
+    runPosCheckoutUseCase,
     clearPosSessionUseCase,
     saveCurrentSession,
   });

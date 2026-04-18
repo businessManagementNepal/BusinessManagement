@@ -14,6 +14,8 @@ import { emiDbConfig } from "@/feature/emiLoans/data/dataSource/db/emiDbConfig";
 import { inventoryMovementDbConfig } from "@/feature/inventory/data/dataSource/db/inventoryMovementDbConfig";
 import { ledgerDbConfig } from "@/feature/ledger/data/dataSource/db/ledgerDbConfig";
 import { orderDbConfig } from "@/feature/orders/data/dataSource/db/orderDbConfig";
+import { PosSaleModel } from "@/feature/pos/data/dataSource/db/posSale.model";
+import { posSalesTable } from "@/feature/pos/data/dataSource/db/posSale.schema";
 import { productDbConfig } from "@/feature/products/data/dataSource/db/productDbConfig";
 import { businessProfileDbConfig } from "@/feature/profile/business/data/dataSource/db/businessProfileDbConfig";
 import { authCredentialDbConfig } from "@/feature/session/data/dataSource/db/authCredentialDbConfig";
@@ -31,7 +33,7 @@ const APP_SETTINGS_TABLE = "app_settings";
 const BILLING_DOCUMENTS_TABLE = "billing_documents";
 
 const schema = appSchema({
-  version: 36,
+  version: 37,
   tables: [
     ...authUserDbConfig.tables,
     ...authCredentialDbConfig.tables,
@@ -48,6 +50,7 @@ const schema = appSchema({
     ...emiDbConfig.tables,
     ...productDbConfig.tables,
     ...inventoryMovementDbConfig.tables,
+    posSalesTable,
     ...categoryDbConfig.tables,
     ...orderDbConfig.tables,
     ...budgetPlanDbConfig.tables,
@@ -74,6 +77,7 @@ export const database = createDatabase({
     ...emiDbConfig.models,
     ...productDbConfig.models,
     ...inventoryMovementDbConfig.models,
+    PosSaleModel,
     ...categoryDbConfig.models,
     ...orderDbConfig.models,
     ...budgetPlanDbConfig.models,
