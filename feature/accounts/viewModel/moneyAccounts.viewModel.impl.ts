@@ -219,6 +219,15 @@ export const useMoneyAccountsViewModel = ({
       return;
     }
 
+    const remoteIdForSave = form.remoteId ?? Crypto.randomUUID();
+
+    if (editorMode === "create" && form.remoteId !== remoteIdForSave) {
+      setForm((current) => ({
+        ...current,
+        remoteId: remoteIdForSave,
+      }));
+    }
+
     const isFirstScopeAccount = accounts.length === 0;
     const existingRecord = accounts.find(
       (account) => account.remoteId === form.remoteId,
@@ -235,7 +244,7 @@ export const useMoneyAccountsViewModel = ({
     }
 
     const result = await saveMoneyAccountUseCase.execute({
-      remoteId: form.remoteId ?? Crypto.randomUUID(),
+      remoteId: remoteIdForSave,
       ownerUserRemoteId: activeUserRemoteId,
       scopeAccountRemoteId,
       scopeAccountDisplayNameSnapshot: scopeAccountDisplayName,

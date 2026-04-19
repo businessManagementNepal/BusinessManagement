@@ -1,6 +1,7 @@
 import { MoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository";
 import {
   MONEY_ACCOUNT_TYPE_OPTIONS,
+  MoneyAccount,
   MoneyAccountErrorType,
   MoneyAccountValidationError,
   SaveMoneyAccountPayload,
@@ -23,6 +24,26 @@ const ALLOWED_TYPE_SET = new Set(
   MONEY_ACCOUNT_TYPE_OPTIONS.map((option) => option.value),
 );
 
+const shouldResumeOpeningBalanceRecovery = ({
+  existingAccount,
+  normalizedOwnerUserRemoteId,
+  normalizedScopeAccountRemoteId,
+  openingBalance,
+}: {
+  existingAccount: MoneyAccount;
+  normalizedOwnerUserRemoteId: string;
+  normalizedScopeAccountRemoteId: string;
+  openingBalance: number;
+}): boolean => {
+  return (
+    openingBalance > 0 &&
+    existingAccount.currentBalance === 0 &&
+    existingAccount.ownerUserRemoteId === normalizedOwnerUserRemoteId &&
+    existingAccount.scopeAccountRemoteId === normalizedScopeAccountRemoteId &&
+    existingAccount.isActive
+  );
+};
+
 type CreateSaveMoneyAccountUseCaseParams = {
   repository: MoneyAccountRepository;
   runMoneyAccountOpeningBalanceWorkflowUseCase: RunMoneyAccountOpeningBalanceWorkflowUseCase;
@@ -44,6 +65,9 @@ export const createSaveMoneyAccountUseCase = ({
       payload.scopeAccountDisplayNameSnapshot ?? null,
     );
     const normalizedName = normalizeRequired(payload.name);
+    const normalizedDescription = normalizeOptional(payload.description);
+    const normalizedCurrencyCode = normalizeOptional(payload.currencyCode);
+    const openingBalance = payload.currentBalance;
 
     if (!normalizedRemoteId) {
       return {
@@ -79,8 +103,6 @@ export const createSaveMoneyAccountUseCase = ({
         error: MoneyAccountValidationError("Account type is invalid."),
       };
     }
-
-    const openingBalance = payload.currentBalance;
 
     if (!Number.isFinite(openingBalance)) {
       return {
@@ -121,8 +143,32 @@ export const createSaveMoneyAccountUseCase = ({
         name: normalizedName,
         type: payload.type,
         currentBalance: openingBalance,
-        description: normalizeOptional(payload.description),
-        currencyCode: normalizeOptional(payload.currencyCode),
+        description: normalizedDescription,
+        currencyCode: normalizedCurrencyCode,
+        isPrimary: payload.isPrimary,
+        isActive: payload.isActive,
+      });
+    }
+
+    if (
+      shouldResumeOpeningBalanceRecovery({
+        existingAccount,
+        normalizedOwnerUserRemoteId,
+        normalizedScopeAccountRemoteId,
+        openingBalance,
+      })
+    ) {
+      return runMoneyAccountOpeningBalanceWorkflowUseCase.execute({
+        remoteId: normalizedRemoteId,
+        ownerUserRemoteId: normalizedOwnerUserRemoteId,
+        scopeAccountRemoteId: normalizedScopeAccountRemoteId,
+        scopeAccountDisplayNameSnapshot:
+          normalizedScopeAccountDisplayNameSnapshot,
+        name: normalizedName,
+        type: payload.type,
+        currentBalance: openingBalance,
+        description: normalizedDescription,
+        currencyCode: normalizedCurrencyCode,
         isPrimary: payload.isPrimary,
         isActive: payload.isActive,
       });
@@ -137,8 +183,8 @@ export const createSaveMoneyAccountUseCase = ({
       name: normalizedName,
       type: payload.type,
       currentBalance: existingAccount.currentBalance,
-      description: normalizeOptional(payload.description),
-      currencyCode: normalizeOptional(payload.currencyCode),
+      description: normalizedDescription,
+      currencyCode: normalizedCurrencyCode,
       isPrimary: payload.isPrimary,
       isActive: payload.isActive,
     });

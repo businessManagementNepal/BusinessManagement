@@ -179,7 +179,146 @@ describe("runMoneyAccountOpeningBalance workflow", () => {
     expect(postMoneyMovementUseCase.execute).not.toHaveBeenCalled();
   });
 
-  it("rejects running the opening-balance workflow for an already existing account", async () => {
+  it("recovers a zero-balance existing account by posting the opening balance idempotently", async () => {
+    const repository = createRepository([
+      buildAccount({
+        currentBalance: 0,
+      }),
+      buildAccount({
+        currentBalance: 750,
+      }),
+    ]);
+    const postMoneyMovementUseCase = createPostMoneyMovementUseCase();
+
+    const useCase = createRunMoneyAccountOpeningBalanceWorkflowUseCase({
+      moneyAccountRepository: repository,
+      postMoneyMovementUseCase,
+    });
+
+    const result = await useCase.execute(
+      buildPayload({
+        currentBalance: 750,
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(repository.saveMoneyAccount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        remoteId: "cash-1",
+        currentBalance: 0,
+      }),
+    );
+    expect(postMoneyMovementUseCase.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountDisplayNameSnapshot: "Main Business",
+        amount: 750,
+        categoryLabel: "Opening Balance",
+        direction: TransactionDirection.In,
+        settlementMoneyAccountRemoteId: "cash-1",
+        sourceModule: TransactionSourceModule.MoneyAccounts,
+        sourceAction: "opening_balance",
+        transactionType: TransactionType.Income,
+        idempotencyKey: "money-account:cash-1:opening-balance",
+      }),
+    );
+
+    if (result.success) {
+      expect(result.value.currentBalance).toBe(750);
+    }
+  });
+
+  it("reuses the same opening-balance idempotency key across repeated recovery retries", async () => {
+    const repository = createRepository([
+      buildAccount({
+        currentBalance: 0,
+      }),
+      buildAccount({
+        currentBalance: 0,
+      }),
+      buildAccount({
+        currentBalance: 0,
+      }),
+      buildAccount({
+        currentBalance: 0,
+      }),
+    ]);
+    const postMoneyMovementUseCase = createPostMoneyMovementUseCase();
+
+    const useCase = createRunMoneyAccountOpeningBalanceWorkflowUseCase({
+      moneyAccountRepository: repository,
+      postMoneyMovementUseCase,
+    });
+
+    await useCase.execute(
+      buildPayload({
+        currentBalance: 750,
+      }),
+    );
+    await useCase.execute(
+      buildPayload({
+        currentBalance: 750,
+      }),
+    );
+
+    const postCalls = vi.mocked(postMoneyMovementUseCase.execute).mock.calls;
+    expect(postCalls).toHaveLength(2);
+    expect(postCalls[0][0]).toEqual(
+      expect.objectContaining({
+        idempotencyKey: "money-account:cash-1:opening-balance",
+      }),
+    );
+    expect(postCalls[1][0]).toEqual(
+      expect.objectContaining({
+        idempotencyKey: "money-account:cash-1:opening-balance",
+      }),
+    );
+  });
+
+  it("keeps account upsert scoped to the same remoteId across create and recovery retries", async () => {
+    const repository = createRepository([
+      null,
+      buildAccount({
+        currentBalance: 0,
+      }),
+      buildAccount({
+        currentBalance: 0,
+      }),
+      buildAccount({
+        currentBalance: 0,
+      }),
+    ]);
+    const postMoneyMovementUseCase = createPostMoneyMovementUseCase();
+
+    const useCase = createRunMoneyAccountOpeningBalanceWorkflowUseCase({
+      moneyAccountRepository: repository,
+      postMoneyMovementUseCase,
+    });
+
+    await useCase.execute(
+      buildPayload({
+        remoteId: "cash-1",
+        currentBalance: 750,
+      }),
+    );
+    await useCase.execute(
+      buildPayload({
+        remoteId: "cash-1",
+        currentBalance: 750,
+      }),
+    );
+
+    const saveCalls = vi.mocked(repository.saveMoneyAccount).mock.calls;
+    expect(saveCalls.length).toBeGreaterThan(0);
+    for (const [payload] of saveCalls) {
+      expect(payload).toEqual(
+        expect.objectContaining({
+          remoteId: "cash-1",
+        }),
+      );
+    }
+  });
+
+  it("rejects non-recoverable existing accounts", async () => {
     const repository = createRepository([
       buildAccount({
         currentBalance: 125,

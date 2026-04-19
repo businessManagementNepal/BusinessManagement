@@ -138,6 +138,89 @@ describe("money account save use case", () => {
     expect(repository.saveMoneyAccount).not.toHaveBeenCalled();
   });
 
+  it("delegates recoverable pending opening-balance accounts back into the opening-balance workflow", async () => {
+    const repository = createRepository([
+      buildAccount({
+        currentBalance: 0,
+      }),
+    ]);
+    const runMoneyAccountOpeningBalanceWorkflowUseCase =
+      createOpeningBalanceWorkflow();
+
+    const useCase = createSaveMoneyAccountUseCase({
+      repository,
+      runMoneyAccountOpeningBalanceWorkflowUseCase,
+    });
+
+    const result = await useCase.execute(
+      buildPayload({
+        currentBalance: 750,
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(
+      runMoneyAccountOpeningBalanceWorkflowUseCase.execute,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        remoteId: "cash-1",
+        ownerUserRemoteId: "user-1",
+        scopeAccountRemoteId: "business-1",
+        currentBalance: 750,
+      }),
+    );
+    expect(repository.saveMoneyAccount).not.toHaveBeenCalled();
+  });
+
+  it("retries the same create attempt on the same remoteId without direct duplicate account save", async () => {
+    const repository = createRepository([
+      null,
+      buildAccount({
+        currentBalance: 0,
+      }),
+    ]);
+    const runMoneyAccountOpeningBalanceWorkflowUseCase =
+      createOpeningBalanceWorkflow();
+
+    const useCase = createSaveMoneyAccountUseCase({
+      repository,
+      runMoneyAccountOpeningBalanceWorkflowUseCase,
+    });
+
+    const retryPayload = buildPayload({
+      remoteId: "cash-1",
+      currentBalance: 750,
+    });
+
+    const firstResult = await useCase.execute(retryPayload);
+    const secondResult = await useCase.execute(retryPayload);
+
+    expect(firstResult.success).toBe(true);
+    expect(secondResult.success).toBe(true);
+    expect(
+      runMoneyAccountOpeningBalanceWorkflowUseCase.execute,
+    ).toHaveBeenCalledTimes(2);
+    expect(
+      runMoneyAccountOpeningBalanceWorkflowUseCase.execute,
+    ).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        remoteId: "cash-1",
+        currentBalance: 750,
+      }),
+    );
+    expect(
+      runMoneyAccountOpeningBalanceWorkflowUseCase.execute,
+    ).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        remoteId: "cash-1",
+        currentBalance: 750,
+      }),
+    );
+    expect(repository.saveMoneyAccount).not.toHaveBeenCalled();
+  });
+
   it("preserves existing current balance when account details are edited", async () => {
     const repository = createRepository([
       buildAccount({
