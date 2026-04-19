@@ -311,6 +311,40 @@ export const createLocalBillingDatasource = (database: Database): BillingDatasou
     }
   },
 
+  async getBillingDocumentByRemoteId(
+    remoteId: string,
+  ): Promise<Result<BillingDocumentRecord | null>> {
+    try {
+      const normalizedRemoteId = normalizeRequired(remoteId);
+      if (!normalizedRemoteId) {
+        throw new Error("Billing document remote id is required");
+      }
+
+      const document = await findDocumentByRemoteId(database, normalizedRemoteId);
+      if (!document) {
+        return {
+          success: true,
+          value: null,
+        };
+      }
+
+      const items = await getItemsByDocumentRemoteId(database, normalizedRemoteId);
+
+      return {
+        success: true,
+        value: {
+          document,
+          items,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
   async deleteBillingDocumentByRemoteId(remoteId: string): Promise<Result<boolean>> {
     try {
       const normalizedRemoteId = normalizeRequired(remoteId);
@@ -369,6 +403,51 @@ export const createLocalBillingDatasource = (database: Database): BillingDatasou
       });
 
       return { success: true, value: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async linkBillingDocumentLedgerEntryRemoteId(
+    documentRemoteId: string,
+    ledgerEntryRemoteId: string | null,
+  ): Promise<Result<boolean>> {
+    try {
+      const normalizedDocumentRemoteId = normalizeRequired(documentRemoteId);
+      const normalizedLedgerEntryRemoteId = normalizeOptional(ledgerEntryRemoteId);
+
+      if (!normalizedDocumentRemoteId) {
+        throw new Error("Billing document remote id is required");
+      }
+
+      const existingDocument = await findDocumentByRemoteId(
+        database,
+        normalizedDocumentRemoteId,
+      );
+
+      if (!existingDocument) {
+        throw new Error("Billing document not found");
+      }
+
+      await database.write(async () => {
+        const now = Date.now();
+        await existingDocument.update((record) => {
+          record.linkedLedgerEntryRemoteId = normalizedLedgerEntryRemoteId;
+          touchSync(record);
+          markUpdated(
+            record as unknown as { _raw: Record<string, number> },
+            now,
+          );
+        });
+      });
+
+      return {
+        success: true,
+        value: true,
+      };
     } catch (error) {
       return {
         success: false,

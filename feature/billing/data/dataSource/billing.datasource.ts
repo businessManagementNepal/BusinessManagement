@@ -33,10 +33,17 @@ export interface BillingDatasource {
   getBillingDocumentsByAccountRemoteId(
     accountRemoteId: string,
   ): Promise<Result<BillingDocumentRecord[]>>;
+  getBillingDocumentByRemoteId(
+    remoteId: string,
+  ): Promise<Result<BillingDocumentRecord | null>>;
   deleteBillingDocumentByRemoteId(remoteId: string): Promise<Result<boolean>>;
   linkBillingDocumentContactRemoteId(
     documentRemoteId: string,
     contactRemoteId: string | null,
+  ): Promise<Result<boolean>>;
+  linkBillingDocumentLedgerEntryRemoteId(
+    documentRemoteId: string,
+    ledgerEntryRemoteId: string | null,
   ): Promise<Result<boolean>>;
   saveBillPhoto(payload: SaveBillPhotoPayload): Promise<Result<BillPhotoModel>>;
   getBillPhotosByAccountRemoteId(accountRemoteId: string): Promise<Result<BillPhotoModel[]>>;

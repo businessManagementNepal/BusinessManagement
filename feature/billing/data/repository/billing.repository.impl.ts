@@ -178,6 +178,54 @@ export const createBillingRepository = (datasource: BillingDatasource): BillingR
       },
     };
   },
+  async getBillingDocumentByRemoteId(remoteId: string) {
+    const documentResult = await datasource.getBillingDocumentByRemoteId(remoteId);
+    if (!documentResult.success) {
+      return {
+        success: false,
+        error: mapDatasourceError(documentResult.error),
+      };
+    }
+
+    if (!documentResult.value) {
+      return {
+        success: false,
+        error: BillingDocumentNotFoundError,
+      };
+    }
+
+    const baseDocument = mapBillingDocumentModelToDomain(
+      documentResult.value.document,
+      documentResult.value.items,
+    );
+    const allocationsResult =
+      await datasource.getBillingDocumentAllocationsByAccountRemoteId(
+        baseDocument.accountRemoteId,
+      );
+
+    if (!allocationsResult.success) {
+      return {
+        success: false,
+        error: mapDatasourceError(allocationsResult.error),
+      };
+    }
+
+    const allocations = allocationsResult.value
+      .map(mapBillingAllocationRecordToDomain)
+      .filter(
+        (allocation) => allocation.documentRemoteId === baseDocument.remoteId,
+      );
+
+    const derivedDocument = deriveDocuments({
+      documents: [baseDocument],
+      allocations,
+    })[0];
+
+    return {
+      success: true,
+      value: derivedDocument,
+    };
+  },
   async saveBillingDocument(payload: SaveBillingDocumentPayload) {
     const result = await datasource.saveBillingDocument(payload);
     if (!result.success) return { success: false, error: mapDatasourceError(result.error) };
@@ -200,6 +248,22 @@ export const createBillingRepository = (datasource: BillingDatasource): BillingR
       contactRemoteId,
     );
     if (!result.success) return { success: false, error: mapDatasourceError(result.error) };
+    return result;
+  },
+  async linkBillingDocumentLedgerEntryRemoteId(
+    documentRemoteId: string,
+    ledgerEntryRemoteId: string | null,
+  ) {
+    const result = await datasource.linkBillingDocumentLedgerEntryRemoteId(
+      documentRemoteId,
+      ledgerEntryRemoteId,
+    );
+    if (!result.success) {
+      return {
+        success: false,
+        error: mapDatasourceError(result.error),
+      };
+    }
     return result;
   },
   async saveBillPhoto(payload: SaveBillPhotoPayload) {
