@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { PosSaleHistoryItem } from "../types/posSaleHistory.entity.types";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type {
+  PosSaleHistoryItem,
+  PosSaleReconciliation,
+} from "../types/posSaleHistory.entity.types";
+import { PosSaleWorkflowStatus } from "../types/posSale.constant";
 import type { GetPosSaleHistoryUseCase } from "../useCase/getPosSaleHistory.useCase";
 import type { PrintPosReceiptUseCase } from "../useCase/printPosReceipt.useCase";
 import type { SharePosReceiptUseCase } from "../useCase/sharePosReceipt.useCase";
 import type { PosSaleHistoryViewModel } from "./posSaleHistory.viewModel";
+import type { ReconcilePosSaleUseCase } from "../workflow/posRecovery/useCase/reconcilePosSale.useCase";
+import type { ResolvePosAbnormalSaleUseCase } from "../workflow/posRecovery/useCase/resolvePosAbnormalSale.useCase";
 
 interface UsePosSaleHistoryViewModelParams {
   accountRemoteId: string;
@@ -12,6 +18,8 @@ interface UsePosSaleHistoryViewModelParams {
   getPosSaleHistoryUseCase: GetPosSaleHistoryUseCase;
   printPosReceiptUseCase: PrintPosReceiptUseCase;
   sharePosReceiptUseCase: SharePosReceiptUseCase;
+  reconcilePosSaleUseCase: ReconcilePosSaleUseCase;
+  resolvePosAbnormalSaleUseCase: ResolvePosAbnormalSaleUseCase;
 }
 
 type PosSaleHistoryModalState = "history" | "detail" | "none";
@@ -24,6 +32,10 @@ type PosSaleHistoryViewModelState = {
   selectedReceipt: PosSaleHistoryItem | null;
   errorMessage: string | null;
   activeModal: PosSaleHistoryModalState;
+  reconciliation: PosSaleReconciliation | null;
+  isReconciling: boolean;
+  isResolving: boolean;
+  recoveryMessage: string | null;
 };
 
 const INITIAL_STATE: PosSaleHistoryViewModelState = {
@@ -34,6 +46,21 @@ const INITIAL_STATE: PosSaleHistoryViewModelState = {
   selectedReceipt: null,
   activeModal: "none",
   errorMessage: null,
+  reconciliation: null,
+  isReconciling: false,
+  isResolving: false,
+  recoveryMessage: null,
+};
+
+const isAbnormalSale = (receipt: PosSaleHistoryItem | null): boolean => {
+  if (!receipt) {
+    return false;
+  }
+
+  return (
+    receipt.workflowStatus === PosSaleWorkflowStatus.Failed ||
+    receipt.workflowStatus === PosSaleWorkflowStatus.PartiallyPosted
+  );
 };
 
 export function usePosSaleHistoryViewModel({
@@ -43,13 +70,18 @@ export function usePosSaleHistoryViewModel({
   getPosSaleHistoryUseCase,
   printPosReceiptUseCase,
   sharePosReceiptUseCase,
+  reconcilePosSaleUseCase,
+  resolvePosAbnormalSaleUseCase,
 }: UsePosSaleHistoryViewModelParams): PosSaleHistoryViewModel {
   const [state, setState] = useState<PosSaleHistoryViewModelState>(INITIAL_STATE);
   const historySearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const historySearchRequestIdRef = useRef(0);
 
   const loadReceipts = useCallback(
-    async (searchTerm: string, requestId?: number) => {
+    async (
+      searchTerm: string,
+      requestId?: number,
+    ): Promise<readonly PosSaleHistoryItem[] | null> => {
       setState((currentState) => ({
         ...currentState,
         isLoading: true,
@@ -65,7 +97,7 @@ export function usePosSaleHistoryViewModel({
         typeof requestId === "number" &&
         requestId !== historySearchRequestIdRef.current
       ) {
-        return;
+        return null;
       }
 
       if (!result.success) {
@@ -76,17 +108,74 @@ export function usePosSaleHistoryViewModel({
           receipts: [],
           filteredReceipts: [],
         }));
+        return null;
+      }
+
+      const receipts = [...result.value];
+
+      setState((currentState) => ({
+        ...currentState,
+        receipts,
+        filteredReceipts: receipts,
+        isLoading: false,
+        selectedReceipt: currentState.selectedReceipt
+          ? receipts.find(
+              (item) =>
+                item.sale.remoteId === currentState.selectedReceipt?.sale.remoteId,
+            ) ?? currentState.selectedReceipt
+          : null,
+      }));
+
+      return receipts;
+    },
+    [accountRemoteId, getPosSaleHistoryUseCase],
+  );
+
+  const loadReconciliationForReceipt = useCallback(
+    async (receipt: PosSaleHistoryItem) => {
+      if (!isAbnormalSale(receipt)) {
+        setState((currentState) => ({
+          ...currentState,
+          reconciliation: null,
+          isReconciling: false,
+        }));
         return;
       }
 
       setState((currentState) => ({
         ...currentState,
-        receipts: [...result.value],
-        filteredReceipts: [...result.value],
-        isLoading: false,
+        isReconciling: true,
+        errorMessage: null,
+        recoveryMessage: null,
       }));
+
+      const result = await reconcilePosSaleUseCase.execute({
+        sale: receipt.sale,
+      });
+
+      if (!result.success) {
+        setState((currentState) => ({
+          ...currentState,
+          isReconciling: false,
+          reconciliation: null,
+          errorMessage: result.error.message,
+        }));
+        return;
+      }
+
+      setState((currentState) => {
+        if (currentState.selectedReceipt?.sale.remoteId !== receipt.sale.remoteId) {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          reconciliation: result.value,
+          isReconciling: false,
+        };
+      });
     },
-    [accountRemoteId, getPosSaleHistoryUseCase],
+    [reconcilePosSaleUseCase],
   );
 
   const onSearchChange = useCallback(
@@ -108,13 +197,23 @@ export function usePosSaleHistoryViewModel({
     [loadReceipts],
   );
 
-  const onReceiptPress = useCallback((receipt: PosSaleHistoryItem) => {
-    setState((currentState) => ({
-      ...currentState,
-      selectedReceipt: receipt,
-      activeModal: "detail",
-    }));
-  }, []);
+  const onReceiptPress = useCallback(
+    (receipt: PosSaleHistoryItem) => {
+      setState((currentState) => ({
+        ...currentState,
+        selectedReceipt: receipt,
+        activeModal: "detail",
+        reconciliation: null,
+        recoveryMessage: null,
+        errorMessage: null,
+      }));
+
+      if (isAbnormalSale(receipt)) {
+        void loadReconciliationForReceipt(receipt);
+      }
+    },
+    [loadReconciliationForReceipt],
+  );
 
   const onPrintReceipt = useCallback(
     async (receipt: PosSaleHistoryItem) => {
@@ -161,6 +260,8 @@ export function usePosSaleHistoryViewModel({
     setState((currentState) => ({
       ...currentState,
       activeModal: "history",
+      reconciliation: null,
+      recoveryMessage: null,
     }));
 
     await loadReceipts(state.searchTerm || "", requestId);
@@ -177,6 +278,10 @@ export function usePosSaleHistoryViewModel({
       activeModal: "none",
       searchTerm: "",
       selectedReceipt: null,
+      reconciliation: null,
+      isReconciling: false,
+      isResolving: false,
+      recoveryMessage: null,
     }));
   }, []);
 
@@ -188,21 +293,77 @@ export function usePosSaleHistoryViewModel({
     };
   }, []);
 
-  const onLoadReceipts = useCallback(
-    async () => {
-      const requestId = ++historySearchRequestIdRef.current;
-      await loadReceipts(state.searchTerm, requestId);
-    },
-    [loadReceipts, state.searchTerm],
-  );
+  const onLoadReceipts = useCallback(async () => {
+    const requestId = ++historySearchRequestIdRef.current;
+    await loadReceipts(state.searchTerm, requestId);
+  }, [loadReceipts, state.searchTerm]);
 
   const onCloseDetail = useCallback(() => {
     setState((currentState) => ({
       ...currentState,
       activeModal: "history",
       selectedReceipt: null,
+      reconciliation: null,
+      isReconciling: false,
+      isResolving: false,
+      recoveryMessage: null,
     }));
   }, []);
+
+  const onRefreshReconciliation = useCallback(async () => {
+    if (!state.selectedReceipt) {
+      return;
+    }
+
+    await loadReconciliationForReceipt(state.selectedReceipt);
+  }, [loadReconciliationForReceipt, state.selectedReceipt]);
+
+  const onCleanupAbnormalSale = useCallback(async () => {
+    const selectedReceipt = state.selectedReceipt;
+    if (!selectedReceipt || !isAbnormalSale(selectedReceipt)) {
+      return;
+    }
+
+    setState((currentState) => ({
+      ...currentState,
+      isResolving: true,
+      errorMessage: null,
+      recoveryMessage: null,
+    }));
+
+    const result = await resolvePosAbnormalSaleUseCase.execute({
+      sale: selectedReceipt.sale,
+    });
+
+    const refreshedReceipts = await loadReceipts(state.searchTerm);
+    const refreshedSelectedReceipt =
+      refreshedReceipts?.find(
+        (item) => item.sale.remoteId === selectedReceipt.sale.remoteId,
+      ) ?? null;
+
+    setState((currentState) => ({
+      ...currentState,
+      isResolving: false,
+      selectedReceipt: refreshedSelectedReceipt,
+      reconciliation: null,
+      recoveryMessage: result.success
+        ? result.value.wasFullyCleaned
+          ? "Cleanup completed. Remaining linked accounting artifacts were cleared."
+          : "Cleanup updated the sale, but some linked accounting artifacts still remain."
+        : null,
+      errorMessage: result.success ? null : result.error.message,
+    }));
+
+    if (refreshedSelectedReceipt && isAbnormalSale(refreshedSelectedReceipt)) {
+      await loadReconciliationForReceipt(refreshedSelectedReceipt);
+    }
+  }, [
+    loadReceipts,
+    loadReconciliationForReceipt,
+    resolvePosAbnormalSaleUseCase,
+    state.searchTerm,
+    state.selectedReceipt,
+  ]);
 
   return useMemo(
     () => ({
@@ -212,6 +373,10 @@ export function usePosSaleHistoryViewModel({
       selectedReceipt: state.selectedReceipt,
       activeModal: state.activeModal,
       errorMessage: state.errorMessage,
+      reconciliation: state.reconciliation,
+      isReconciling: state.isReconciling,
+      isResolving: state.isResolving,
+      recoveryMessage: state.recoveryMessage,
       onSearchChange,
       onReceiptPress,
       onPrintReceipt,
@@ -220,20 +385,28 @@ export function usePosSaleHistoryViewModel({
       onCloseHistory,
       onCloseDetail,
       onLoadReceipts,
+      onRefreshReconciliation,
+      onCleanupAbnormalSale,
     }),
     [
-      onLoadReceipts,
+      onCleanupAbnormalSale,
       onCloseDetail,
       onCloseHistory,
+      onLoadReceipts,
       onOpenHistory,
       onPrintReceipt,
       onReceiptPress,
+      onRefreshReconciliation,
       onSearchChange,
       onShareReceipt,
       state.activeModal,
       state.errorMessage,
       state.filteredReceipts,
       state.isLoading,
+      state.isReconciling,
+      state.isResolving,
+      state.reconciliation,
+      state.recoveryMessage,
       state.searchTerm,
       state.selectedReceipt,
     ],

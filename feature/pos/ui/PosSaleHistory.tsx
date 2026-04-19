@@ -1,8 +1,17 @@
+﻿import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
-import { AlertTriangle, ArrowLeft, Clock, FileText, X } from "lucide-react-native";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Clock,
+  FileText,
+  RefreshCcw,
+  ShieldAlert,
+  X,
+} from "lucide-react-native";
 import React from "react";
 import {
   ActivityIndicator,
@@ -15,7 +24,11 @@ import {
   Text,
   View,
 } from "react-native";
-import type { PosSaleHistoryItem } from "../types/posSaleHistory.entity.types";
+import type {
+  PosSaleHistoryItem,
+  PosSaleReconciliation,
+} from "../types/posSaleHistory.entity.types";
+import { PosArtifactReconciliationStatus } from "../types/posSaleHistory.entity.types";
 import { PosReceiptDetail } from "./PosReceiptDetail";
 
 type PosSaleHistoryProps = {
@@ -28,16 +41,35 @@ type PosSaleHistoryProps = {
   errorMessage: string | null;
   currencyCode: string;
   countryCode: string | null;
+  reconciliation: PosSaleReconciliation | null;
+  isReconciling: boolean;
+  isResolving: boolean;
+  recoveryMessage: string | null;
   onSearchChange: (value: string) => void;
   onReceiptPress: (receipt: PosSaleHistoryItem) => void;
   onPrintReceipt: (receipt: PosSaleHistoryItem) => Promise<void>;
   onShareReceipt: (receipt: PosSaleHistoryItem) => Promise<void>;
   onCloseHistory: () => void;
   onCloseDetail: () => void;
+  onRefreshReconciliation: () => Promise<void>;
+  onCleanupAbnormalSale: () => Promise<void>;
 };
 
 const PARTIALLY_POSTED = "partially_posted";
 const FAILED = "failed";
+
+const getStatusLabel = (status: string): string => {
+  switch (status) {
+    case PosArtifactReconciliationStatus.Present:
+      return "PRESENT";
+    case PosArtifactReconciliationStatus.Missing:
+      return "MISSING";
+    case PosArtifactReconciliationStatus.RecordedOnly:
+      return "RECORDED";
+    default:
+      return "NOT RECORDED";
+  }
+};
 
 export function PosSaleHistory({
   visible,
@@ -49,12 +81,18 @@ export function PosSaleHistory({
   errorMessage,
   currencyCode,
   countryCode,
+  reconciliation,
+  isReconciling,
+  isResolving,
+  recoveryMessage,
   onSearchChange,
   onReceiptPress,
   onPrintReceipt,
   onShareReceipt,
   onCloseHistory,
   onCloseDetail,
+  onRefreshReconciliation,
+  onCleanupAbnormalSale,
 }: PosSaleHistoryProps) {
   const renderReceiptItem = ({ item }: { item: PosSaleHistoryItem }) => {
     const isPartiallyPosted = item.workflowStatus === PARTIALLY_POSTED;
@@ -92,8 +130,8 @@ export function PosSaleHistory({
               {item.lastErrorMessage
                 ? item.lastErrorMessage
                 : isFailed
-                  ? "Posting failed — review Ledger and Billing manually."
-                  : "Partial sync — some accounting entries may be missing."}
+                  ? "Posting failed - review Ledger and Billing manually."
+                  : "Partial sync - some accounting entries may be missing."}
             </Text>
           </View>
         ) : null}
@@ -136,6 +174,105 @@ export function PosSaleHistory({
       </Pressable>
     );
   };
+
+  const isAbnormalSelectedReceipt =
+    selectedReceipt?.workflowStatus === FAILED ||
+    selectedReceipt?.workflowStatus === PARTIALLY_POSTED;
+
+  const recoveryPanel =
+    isAbnormalSelectedReceipt && selectedReceipt ? (
+      <View style={styles.recoverySection}>
+        <View style={styles.recoveryHeader}>
+          <ShieldAlert size={16} color={colors.warning} />
+          <Text style={styles.recoveryTitle}>Recovery & Reconciliation</Text>
+        </View>
+
+        <Text style={styles.recoverySubtitle}>
+          Inspect linked accounting artifacts and clean up abnormal POS sales safely.
+        </Text>
+
+        {recoveryMessage ? (
+          <View style={styles.recoveryInfoBanner}>
+            <Text style={styles.recoveryInfoText}>{recoveryMessage}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.recoveryRow}>
+          <Text style={styles.recoveryLabel}>Billing document</Text>
+          <Text style={styles.recoveryValue}>
+            {reconciliation
+              ? `${getStatusLabel(reconciliation.billingDocument.status)}${
+                  reconciliation.billingDocument.remoteId
+                    ? ` | ${reconciliation.billingDocument.remoteId}`
+                    : ""
+                }`
+              : isReconciling
+                ? "Checking..."
+                : "Not checked"}
+          </Text>
+        </View>
+        <Text style={styles.recoveryDetail}>
+          {reconciliation?.billingDocument.detail ??
+            "Load reconciliation to verify the Billing receipt reference."}
+        </Text>
+
+        <View style={styles.recoveryRow}>
+          <Text style={styles.recoveryLabel}>Ledger due</Text>
+          <Text style={styles.recoveryValue}>
+            {reconciliation
+              ? `${getStatusLabel(reconciliation.ledgerEntry.status)}${
+                  reconciliation.ledgerEntry.remoteId
+                    ? ` | ${reconciliation.ledgerEntry.remoteId}`
+                    : ""
+                }`
+              : isReconciling
+                ? "Checking..."
+                : "Not checked"}
+          </Text>
+        </View>
+        <Text style={styles.recoveryDetail}>
+          {reconciliation?.ledgerEntry.detail ??
+            "Load reconciliation to verify the linked Ledger due reference."}
+        </Text>
+
+        <View style={styles.recoveryRow}>
+          <Text style={styles.recoveryLabel}>Transaction refs</Text>
+          <Text style={styles.recoveryValue}>
+            {reconciliation
+              ? `${getStatusLabel(reconciliation.transactionRefs.status)} | ${reconciliation.transactionRefs.remoteIds.length}`
+              : isReconciling
+                ? "Checking..."
+                : `${selectedReceipt.sale.postedTransactionRemoteIds.length} recorded`}
+          </Text>
+        </View>
+        <Text style={styles.recoveryDetail}>
+          {reconciliation?.transactionRefs.detail ??
+            "For v1, transaction references are shown from the POS sale record and cleanup will attempt to void them by id."}
+        </Text>
+
+        <View style={styles.recoveryActionsRow}>
+          <AppButton
+            label={isReconciling ? "Checking..." : "Refresh Status"}
+            variant="secondary"
+            style={styles.recoveryActionButton}
+            leadingIcon={<RefreshCcw size={16} color={colors.mutedForeground} />}
+            onPress={() => {
+              void onRefreshReconciliation();
+            }}
+            disabled={isReconciling || isResolving}
+          />
+          <AppButton
+            label={isResolving ? "Cleaning..." : "Clean Up Artifacts"}
+            variant="secondary"
+            style={styles.recoveryActionButton}
+            onPress={() => {
+              void onCleanupAbnormalSale();
+            }}
+            disabled={isResolving || isReconciling || !reconciliation?.canRunCleanup}
+          />
+        </View>
+      </View>
+    ) : null;
 
   return (
     <Modal
@@ -183,6 +320,7 @@ export function PosSaleHistory({
                     void onShareReceipt(selectedReceipt);
                   }}
                   onClose={onCloseDetail}
+                  extraContent={recoveryPanel}
                 />
               </>
             ) : (
@@ -220,7 +358,7 @@ export function PosSaleHistory({
                   <FlatList
                     data={receipts}
                     renderItem={renderReceiptItem}
-                    keyExtractor={(item) => item.document.remoteId}
+                    keyExtractor={(item) => item.sale.remoteId}
                     style={styles.list}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
@@ -438,5 +576,74 @@ const styles = StyleSheet.create({
     fontFamily: "InterMedium",
     textAlign: "center",
     maxWidth: 260,
+  },
+  recoverySection: {
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+    backgroundColor: colors.secondary,
+  },
+  recoveryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  recoveryTitle: {
+    color: colors.cardForeground,
+    fontSize: 14,
+    fontFamily: "InterBold",
+  },
+  recoverySubtitle: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: "InterMedium",
+  },
+  recoveryInfoBanner: {
+    backgroundColor: "#EAF6EE",
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: "#B8D7C0",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  recoveryInfoText: {
+    color: colors.success,
+    fontSize: 12,
+    fontFamily: "InterMedium",
+  },
+  recoveryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  recoveryLabel: {
+    color: colors.cardForeground,
+    fontSize: 13,
+    fontFamily: "InterSemiBold",
+    flex: 1,
+  },
+  recoveryValue: {
+    color: colors.primary,
+    fontSize: 12,
+    fontFamily: "InterBold",
+    textAlign: "right",
+  },
+  recoveryDetail: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+    fontFamily: "InterMedium",
+    lineHeight: 16,
+  },
+  recoveryActionsRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  recoveryActionButton: {
+    flex: 1,
   },
 });

@@ -495,12 +495,18 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           errorMessage={saleHistory.errorMessage}
           currencyCode={viewModel.currencyCode}
           countryCode={viewModel.countryCode}
+          reconciliation={saleHistory.reconciliation}
+          isReconciling={saleHistory.isReconciling}
+          isResolving={saleHistory.isResolving}
+          recoveryMessage={saleHistory.recoveryMessage}
           onSearchChange={saleHistory.onSearchChange}
           onReceiptPress={saleHistory.onReceiptPress}
           onPrintReceipt={saleHistory.onPrintReceipt}
           onShareReceipt={saleHistory.onShareReceipt}
           onCloseHistory={saleHistory.onCloseHistory}
           onCloseDetail={saleHistory.onCloseDetail}
+          onRefreshReconciliation={saleHistory.onRefreshReconciliation}
+          onCleanupAbnormalSale={saleHistory.onCleanupAbnormalSale}
         />
       ) : null}
     </>

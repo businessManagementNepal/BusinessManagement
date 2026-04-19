@@ -1,4 +1,4 @@
-import { BillingDocument } from "@/feature/billing/types/billing.types";
+﻿import { BillingDocument } from "@/feature/billing/types/billing.types";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
@@ -14,6 +14,7 @@ type PosReceiptDetailProps = {
   onClose: () => void;
   currencyCode: string;
   countryCode: string | null;
+  extraContent?: React.ReactNode;
 };
 
 export function PosReceiptDetail({
@@ -23,6 +24,7 @@ export function PosReceiptDetail({
   onClose,
   currencyCode,
   countryCode,
+  extraContent,
 }: PosReceiptDetailProps) {
   if (!receipt) {
     return null;
@@ -68,7 +70,7 @@ export function PosReceiptDetail({
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName}>{item.itemName}</Text>
                   <Text style={styles.itemQuantity}>
-                    {item.quantity} × {formatCurrencyAmount({
+                    {item.quantity} x {formatCurrencyAmount({
                       amount: item.unitRate,
                       currencyCode,
                       countryCode,
@@ -160,6 +162,8 @@ export function PosReceiptDetail({
             </Text>
           </View>
         </ScrollView>
+
+        {extraContent ? extraContent : null}
 
         <View style={styles.actionsRow}>
           <AppButton
@@ -335,3 +339,4 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+

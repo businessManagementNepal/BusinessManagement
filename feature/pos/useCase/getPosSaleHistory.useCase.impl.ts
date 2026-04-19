@@ -179,6 +179,7 @@ const mapPosSaleToReceipt = (sale: PosSaleRecord): PosReceipt => {
 };
 
 const mapPosSaleToHistoryItem = (sale: PosSaleRecord): PosSaleHistoryItem => ({
+  sale,
   document: mapPosSaleToBillingDocument(sale),
   receipt: mapPosSaleToReceipt(sale),
   workflowStatus: sale.workflowStatus,

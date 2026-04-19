@@ -4,6 +4,7 @@ import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMon
 import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
 import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
 import { createDeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase.impl";
+import { createGetBillingDocumentByRemoteIdUseCase } from "@/feature/billing/useCase/getBillingDocumentByRemoteId.useCase.impl";
 import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
 import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
 import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
@@ -14,6 +15,7 @@ import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/lo
 import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
 import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
 import { createDeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase.impl";
+import { createGetLedgerEntryByRemoteIdUseCase } from "@/feature/ledger/useCase/getLedgerEntryByRemoteId.useCase.impl";
 import { createLocalProductDatasource } from "@/feature/products/data/dataSource/local.product.datasource.impl";
 import { createProductRepository } from "@/feature/products/data/repository/product.repository.impl";
 import { createSaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase.impl";
@@ -58,6 +60,8 @@ import { createLocalPosSaleDatasource } from "../data/dataSource/local.posSale.d
 import { createPosSaleRepository } from "../data/repository/posSale.repository.impl";
 import { createPosCheckoutRepository } from "../workflow/posCheckout/repository/posCheckout.repository.impl";
 import { createRunPosCheckoutUseCase } from "../workflow/posCheckout/useCase/runPosCheckout.useCase.impl";
+import { createReconcilePosSaleUseCase } from "../workflow/posRecovery/useCase/reconcilePosSale.useCase.impl";
+import { createResolvePosAbnormalSaleUseCase } from "../workflow/posRecovery/useCase/resolvePosAbnormalSale.useCase.impl";
 
 type GetPosScreenFactoryProps = {
   activeBusinessAccountRemoteId: string | null;
@@ -192,6 +196,10 @@ export function GetPosScreenFactory({
     () => createBillingRepository(billingDatasource),
     [billingDatasource],
   );
+  const getBillingDocumentByRemoteIdUseCase = React.useMemo(
+    () => createGetBillingDocumentByRemoteIdUseCase(billingRepository),
+    [billingRepository],
+  );
   const saveBillingDocumentUseCase = React.useMemo(
     () => createSaveBillingDocumentUseCase(billingRepository),
     [billingRepository],
@@ -282,6 +290,10 @@ export function GetPosScreenFactory({
     () => createAddLedgerEntryUseCase(ledgerRepository),
     [ledgerRepository],
   );
+  const getLedgerEntryByRemoteIdUseCase = React.useMemo(
+    () => createGetLedgerEntryByRemoteIdUseCase(ledgerRepository),
+    [ledgerRepository],
+  );
   const deleteLedgerEntryUseCase = React.useMemo(
     () => createDeleteLedgerEntryUseCase(ledgerRepository),
     [ledgerRepository],
@@ -369,6 +381,31 @@ export function GetPosScreenFactory({
     [getPosSalesUseCase],
   );
 
+  const reconcilePosSaleUseCase = React.useMemo(
+    () =>
+      createReconcilePosSaleUseCase({
+        getBillingDocumentByRemoteIdUseCase,
+        getLedgerEntryByRemoteIdUseCase,
+      }),
+    [getBillingDocumentByRemoteIdUseCase, getLedgerEntryByRemoteIdUseCase],
+  );
+
+  const resolvePosAbnormalSaleUseCase = React.useMemo(
+    () =>
+      createResolvePosAbnormalSaleUseCase({
+        deleteBillingDocumentUseCase,
+        deleteLedgerEntryUseCase,
+        deleteBusinessTransactionUseCase,
+        updatePosSaleWorkflowStateUseCase,
+      }),
+    [
+      deleteBillingDocumentUseCase,
+      deleteBusinessTransactionUseCase,
+      deleteLedgerEntryUseCase,
+      updatePosSaleWorkflowStateUseCase,
+    ],
+  );
+
   const saleHistoryViewModel = usePosSaleHistoryViewModel({
     accountRemoteId: activeBusinessAccountRemoteId ?? "",
     currencyCode: activeAccountCurrencyCode ?? "NPR",
@@ -376,6 +413,8 @@ export function GetPosScreenFactory({
     getPosSaleHistoryUseCase,
     printPosReceiptUseCase,
     sharePosReceiptUseCase,
+    reconcilePosSaleUseCase,
+    resolvePosAbnormalSaleUseCase,
   });
 
   const productDatasource = React.useMemo(
