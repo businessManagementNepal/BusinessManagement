@@ -1,5 +1,7 @@
+import type { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import type { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import type { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
+import type { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase";
 import type { PosCartLine, PosTotals } from "@/feature/pos/types/pos.entity.types";
 import type { CreatePosSaleDraftUseCase } from "@/feature/pos/useCase/createPosSaleDraft.useCase";
 import type { UpdatePosSaleWorkflowStateUseCase } from "@/feature/pos/useCase/updatePosSaleWorkflowState.useCase";
@@ -11,6 +13,7 @@ import {
 } from "@/feature/pos/workflow/posCheckout/types/posCheckout.state.types";
 import type { RunPosCheckoutParams } from "@/feature/pos/workflow/posCheckout/types/posCheckout.types";
 import { createRunPosCheckoutUseCase } from "@/feature/pos/workflow/posCheckout/useCase/runPosCheckout.useCase.impl";
+import type { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
 import type { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import { describe, expect, it, vi } from "vitest";
 
@@ -143,12 +146,26 @@ const createCheckoutHarness = () => {
     })),
   };
 
+  const deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase = {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: true,
+    })),
+  };
+
   const postBusinessTransactionUseCase: PostBusinessTransactionUseCase = {
     execute: vi.fn(async () => ({
       success: true as const,
       value: {
         remoteId: `txn-${++postedTransactionCount}`,
       } as never,
+    })),
+  };
+
+  const deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase = {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: true,
     })),
   };
 
@@ -167,6 +184,13 @@ const createCheckoutHarness = () => {
     })),
   };
 
+  const deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase = {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: true,
+    })),
+  };
+
   const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
     execute: vi.fn(async () => ({
       success: true as const,
@@ -181,8 +205,11 @@ const createCheckoutHarness = () => {
     createPosSaleDraftUseCase,
     updatePosSaleWorkflowStateUseCase,
     saveBillingDocumentUseCase,
+    deleteBillingDocumentUseCase,
     postBusinessTransactionUseCase,
+    deleteBusinessTransactionUseCase,
     addLedgerEntryUseCase,
+    deleteLedgerEntryUseCase,
     commitPosSaleInventoryMutationsUseCase,
   });
 

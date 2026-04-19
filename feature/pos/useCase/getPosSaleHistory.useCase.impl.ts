@@ -5,6 +5,7 @@ import {
     BillingTemplateType,
 } from "@/feature/billing/types/billing.types";
 import { PosErrorType } from "../types/pos.error.types";
+import type { PosReceipt } from "../types/pos.entity.types";
 import type { PosSaleRecord } from "../types/posSale.entity.types";
 import type { PosSaleHistoryItem } from "../types/posSaleHistory.entity.types";
 import type { GetPosSaleHistoryUseCase } from "./getPosSaleHistory.useCase";
@@ -133,8 +134,53 @@ const mapPosSaleToBillingDocument = (sale: PosSaleRecord): BillingDocument => {
   };
 };
 
+const mapPosSaleToReceipt = (sale: PosSaleRecord): PosReceipt => {
+  if (sale.receipt) {
+    return sale.receipt;
+  }
+
+  const issuedAt = parseIssuedAt(sale);
+  const { paidAmount, dueAmount } = computePaidAndDueAmounts(sale);
+
+  return {
+    receiptNumber: sale.receiptNumber,
+    issuedAt: new Date(issuedAt).toISOString(),
+    lines: sale.cartLinesSnapshot.map((line) => ({ ...line })),
+    totals: {
+      ...sale.totalsSnapshot,
+    },
+    paidAmount,
+    dueAmount,
+    paymentParts: sale.paymentParts.map((part) => ({
+      paymentPartId: part.paymentPartId,
+      payerLabel: part.payerLabel,
+      amount: Number(part.amount.toFixed(2)),
+      settlementAccountRemoteId: part.settlementAccountRemoteId,
+      settlementAccountLabel: null,
+    })),
+    ledgerEffect:
+      dueAmount > 0
+        ? {
+            type: sale.ledgerEntryRemoteId
+              ? "due_balance_created"
+              : "due_balance_pending",
+            dueAmount,
+            accountRemoteId: null,
+          }
+        : {
+            type: "none",
+            dueAmount: 0,
+            accountRemoteId: null,
+          },
+    customerName: sale.customerNameSnapshot ?? "Walk-in Customer",
+    customerPhone: sale.customerPhoneSnapshot ?? null,
+    contactRemoteId: sale.customerRemoteId,
+  };
+};
+
 const mapPosSaleToHistoryItem = (sale: PosSaleRecord): PosSaleHistoryItem => ({
   document: mapPosSaleToBillingDocument(sale),
+  receipt: mapPosSaleToReceipt(sale),
   workflowStatus: sale.workflowStatus,
   lastErrorMessage: sale.lastErrorMessage,
 });

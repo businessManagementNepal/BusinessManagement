@@ -1,6 +1,4 @@
-import type { BillingDocument } from "@/feature/billing/types/billing.types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { PosReceipt } from "../types/pos.entity.types";
 import type { PosSaleHistoryItem } from "../types/posSaleHistory.entity.types";
 import type { GetPosSaleHistoryUseCase } from "../useCase/getPosSaleHistory.useCase";
 import type { PrintPosReceiptUseCase } from "../useCase/printPosReceipt.useCase";
@@ -36,66 +34,6 @@ const INITIAL_STATE: PosSaleHistoryViewModelState = {
   selectedReceipt: null,
   activeModal: "none",
   errorMessage: null,
-};
-
-const buildShortCode = (value: string): string => {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return "P";
-  }
-
-  const [firstWord, secondWord] = trimmed.split(" ").filter(Boolean);
-  if (!secondWord) {
-    return firstWord.slice(0, 1).toUpperCase();
-  }
-
-  return `${firstWord[0]}${secondWord[0]}`.toUpperCase();
-};
-
-const mapBillingDocumentToPosReceipt = (document: BillingDocument): PosReceipt => {
-  const lines = document.items.map((item) => ({
-    lineId: item.remoteId,
-    productId: item.remoteId,
-    productName: item.itemName,
-    categoryLabel: "Sale",
-    shortCode: buildShortCode(item.itemName),
-    quantity: item.quantity,
-    unitPrice: item.unitRate,
-    taxRate: 0,
-    lineSubtotal: Number((item.quantity * item.unitRate).toFixed(2)),
-  }));
-
-  return {
-    receiptNumber: document.documentNumber,
-    issuedAt: new Date(document.issuedAt).toISOString(),
-    lines,
-    totals: {
-      itemCount: lines.reduce((total, line) => total + line.quantity, 0),
-      gross: Number(document.subtotalAmount.toFixed(2)),
-      discountAmount: 0,
-      surchargeAmount: 0,
-      taxAmount: Number(document.taxAmount.toFixed(2)),
-      grandTotal: Number(document.totalAmount.toFixed(2)),
-    },
-    paidAmount: Number(document.paidAmount.toFixed(2)),
-    dueAmount: Number(document.outstandingAmount.toFixed(2)),
-    paymentParts: [],
-    ledgerEffect:
-      document.outstandingAmount > 0
-        ? {
-            type: "due_balance_pending",
-            dueAmount: Number(document.outstandingAmount.toFixed(2)),
-            accountRemoteId: document.accountRemoteId,
-          }
-        : {
-            type: "none",
-            dueAmount: 0,
-            accountRemoteId: document.accountRemoteId,
-          },
-    customerName: document.customerName,
-    customerPhone: null,
-    contactRemoteId: document.contactRemoteId,
-  };
 };
 
 export function usePosSaleHistoryViewModel({
@@ -180,9 +118,8 @@ export function usePosSaleHistoryViewModel({
 
   const onPrintReceipt = useCallback(
     async (receipt: PosSaleHistoryItem) => {
-      const mappedReceipt = mapBillingDocumentToPosReceipt(receipt.document);
       const result = await printPosReceiptUseCase.execute({
-        receipt: mappedReceipt,
+        receipt: receipt.receipt,
         currencyCode,
         countryCode,
       });
@@ -199,9 +136,8 @@ export function usePosSaleHistoryViewModel({
 
   const onShareReceipt = useCallback(
     async (receipt: PosSaleHistoryItem) => {
-      const mappedReceipt = mapBillingDocumentToPosReceipt(receipt.document);
       const result = await sharePosReceiptUseCase.execute({
-        receipt: mappedReceipt,
+        receipt: receipt.receipt,
         currencyCode,
         countryCode,
       });

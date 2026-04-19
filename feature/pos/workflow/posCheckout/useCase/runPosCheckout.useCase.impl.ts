@@ -4,11 +4,13 @@ import {
   BillingTemplateType,
 } from "@/feature/billing/types/billing.types";
 import type { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
+import type { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import {
   LedgerBalanceDirection,
   LedgerEntryType,
 } from "@/feature/ledger/types/ledger.entity.types";
 import type { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
+import type { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase";
 import type {
   SaveTransactionPayload,
 } from "@/feature/transactions/types/transaction.entity.types";
@@ -17,6 +19,7 @@ import {
   TransactionSourceModule,
   TransactionType,
 } from "@/feature/transactions/types/transaction.entity.types";
+import type { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
 import type { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 import type { CommitPosSaleInventoryMutationsUseCase } from "@/feature/pos/useCase/commitPosSaleInventoryMutations.useCase";
@@ -26,7 +29,6 @@ import type { PosPaymentPartInput } from "@/feature/pos/types/pos.dto.types";
 import type { PosSaleError } from "@/feature/pos/types/posSale.error.types";
 import { PosSaleErrorType } from "@/feature/pos/types/posSale.error.types";
 import type { PosReceipt } from "@/feature/pos/types/pos.entity.types";
-import { PosErrorType, type PosError } from "@/feature/pos/types/pos.error.types";
 import type { PosSaleRecord } from "@/feature/pos/types/posSale.entity.types";
 import type { PosCheckoutRepository } from "../repository/posCheckout.repository";
 import {
@@ -44,8 +46,11 @@ type CreateRunPosCheckoutUseCaseParams = {
   createPosSaleDraftUseCase: CreatePosSaleDraftUseCase;
   updatePosSaleWorkflowStateUseCase: UpdatePosSaleWorkflowStateUseCase;
   saveBillingDocumentUseCase: SaveBillingDocumentUseCase;
+  deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
   postBusinessTransactionUseCase: PostBusinessTransactionUseCase;
+  deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
   addLedgerEntryUseCase: AddLedgerEntryUseCase;
+  deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase;
   commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase;
 };
 
@@ -190,29 +195,6 @@ const mapSaleErrorToCheckoutError = (error: PosSaleError): PosCheckoutError => {
   };
 };
 
-const mapPosErrorToCheckoutError = (error: PosError): PosCheckoutError => {
-  if (error.type === PosErrorType.Validation) {
-    return { type: PosCheckoutErrorType.Validation, message: error.message };
-  }
-  if (error.type === PosErrorType.ContextRequired) {
-    return {
-      type: PosCheckoutErrorType.ContextRequired,
-      message: error.message,
-    };
-  }
-  if (error.type === PosErrorType.EmptyCart) {
-    return {
-      type: PosCheckoutErrorType.EmptyCart,
-      message: error.message,
-    };
-  }
-
-  return {
-    type: PosCheckoutErrorType.PostingFailed,
-    message: error.message,
-  };
-};
-
 const mapExistingSaleForIdempotency = (
   sale: PosSaleRecord,
 ): RunPosCheckoutResult => {
@@ -229,9 +211,93 @@ const mapExistingSaleForIdempotency = (
     };
   }
 
+  if (sale.workflowStatus === PosCheckoutWorkflowStatus.Posted) {
+    return {
+      success: true,
+      value: mapSaleToRunValue(sale),
+    };
+  }
+
   return {
-    success: true,
-    value: mapSaleToRunValue(sale),
+    success: false,
+    error: {
+      type: PosCheckoutErrorType.IdempotencyConflict,
+      message:
+        "Previous checkout attempt did not complete. Start a new checkout after reviewing POS sale history.",
+    },
+  };
+};
+
+type PosCheckoutArtifacts = {
+  billingDocumentRemoteId: string | null;
+  ledgerEntryRemoteId: string | null;
+  postedTransactionRemoteIds: readonly string[];
+};
+
+type PosCheckoutRollbackResult = PosCheckoutArtifacts & {
+  rollbackErrorMessage: string | null;
+};
+
+const rollbackCheckoutArtifacts = async ({
+  artifacts,
+  deleteBillingDocumentUseCase,
+  deleteBusinessTransactionUseCase,
+  deleteLedgerEntryUseCase,
+}: {
+  artifacts: PosCheckoutArtifacts;
+  deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
+  deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
+  deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase;
+}): Promise<PosCheckoutRollbackResult> => {
+  let billingDocumentRemoteId = artifacts.billingDocumentRemoteId;
+  let ledgerEntryRemoteId = artifacts.ledgerEntryRemoteId;
+  const postedTransactionRemoteIds: string[] = [];
+  const rollbackErrors: string[] = [];
+
+  if (ledgerEntryRemoteId) {
+    const deleteLedgerResult =
+      await deleteLedgerEntryUseCase.execute(ledgerEntryRemoteId);
+
+    if (deleteLedgerResult.success) {
+      ledgerEntryRemoteId = null;
+    } else {
+      rollbackErrors.push(
+        `could not remove ledger due ${ledgerEntryRemoteId}: ${deleteLedgerResult.error.message}`,
+      );
+    }
+  }
+
+  if (billingDocumentRemoteId) {
+    const deleteBillingResult =
+      await deleteBillingDocumentUseCase.execute(billingDocumentRemoteId);
+
+    if (deleteBillingResult.success) {
+      billingDocumentRemoteId = null;
+    } else {
+      rollbackErrors.push(
+        `could not remove billing document ${billingDocumentRemoteId}: ${deleteBillingResult.error.message}`,
+      );
+    }
+  }
+
+  for (const transactionRemoteId of [...artifacts.postedTransactionRemoteIds].reverse()) {
+    const deleteTransactionResult =
+      await deleteBusinessTransactionUseCase.execute(transactionRemoteId);
+
+    if (!deleteTransactionResult.success) {
+      rollbackErrors.push(
+        `could not void transaction ${transactionRemoteId}: ${deleteTransactionResult.error.message}`,
+      );
+      postedTransactionRemoteIds.unshift(transactionRemoteId);
+    }
+  }
+
+  return {
+    billingDocumentRemoteId,
+    ledgerEntryRemoteId,
+    postedTransactionRemoteIds,
+    rollbackErrorMessage:
+      rollbackErrors.length > 0 ? rollbackErrors.join(" | ") : null,
   };
 };
 
@@ -240,8 +306,11 @@ export const createRunPosCheckoutUseCase = ({
   createPosSaleDraftUseCase,
   updatePosSaleWorkflowStateUseCase,
   saveBillingDocumentUseCase,
+  deleteBillingDocumentUseCase,
   postBusinessTransactionUseCase,
+  deleteBusinessTransactionUseCase,
   addLedgerEntryUseCase,
+  deleteLedgerEntryUseCase,
   commitPosSaleInventoryMutationsUseCase,
 }: CreateRunPosCheckoutUseCaseParams): RunPosCheckoutUseCase => ({
   async execute(params): Promise<RunPosCheckoutResult> {
@@ -443,6 +512,41 @@ export const createRunPosCheckoutUseCase = ({
       };
     };
 
+    const persistFailedCheckout = async ({
+      receipt,
+      baseErrorType,
+      baseErrorMessage,
+      artifacts,
+    }: {
+      receipt: PosReceipt | null;
+      baseErrorType: string;
+      baseErrorMessage: string;
+      artifacts: PosCheckoutArtifacts;
+    }): Promise<RunPosCheckoutResult> => {
+      const rollbackResult = await rollbackCheckoutArtifacts({
+        artifacts,
+        deleteBillingDocumentUseCase,
+        deleteBusinessTransactionUseCase,
+        deleteLedgerEntryUseCase,
+      });
+
+      return persistWorkflowState({
+        workflowStatus: rollbackResult.rollbackErrorMessage
+          ? PosCheckoutWorkflowStatus.PartiallyPosted
+          : PosCheckoutWorkflowStatus.Failed,
+        receipt,
+        billingDocumentRemoteId: rollbackResult.billingDocumentRemoteId,
+        ledgerEntryRemoteId: rollbackResult.ledgerEntryRemoteId,
+        postedTransactionRemoteIds: rollbackResult.postedTransactionRemoteIds,
+        lastErrorType: rollbackResult.rollbackErrorMessage
+          ? `${baseErrorType}_rollback_failed`
+          : baseErrorType,
+        lastErrorMessage: rollbackResult.rollbackErrorMessage
+          ? `${baseErrorMessage} | Rollback: ${rollbackResult.rollbackErrorMessage}`
+          : baseErrorMessage,
+      });
+    };
+
     const pendingPostingResult = await persistWorkflowState({
       workflowStatus: PosCheckoutWorkflowStatus.PendingPosting,
       receipt: draftReceipt,
@@ -455,30 +559,6 @@ export const createRunPosCheckoutUseCase = ({
 
     if (!pendingPostingResult.success) {
       return pendingPostingResult;
-    }
-
-    const inventoryCommitResult =
-      await commitPosSaleInventoryMutationsUseCase.execute({
-        businessAccountRemoteId,
-        cartLines: params.cartLinesSnapshot,
-        saleReferenceNumber: draftReceipt.receiptNumber,
-      });
-
-    if (!inventoryCommitResult.success) {
-      await persistWorkflowState({
-        workflowStatus: PosCheckoutWorkflowStatus.Failed,
-        receipt: withPostingSyncFailed(draftReceipt),
-        billingDocumentRemoteId: null,
-        ledgerEntryRemoteId: null,
-        postedTransactionRemoteIds: [],
-        lastErrorType: "inventory_commit_failed",
-        lastErrorMessage: inventoryCommitResult.error.message,
-      });
-
-      return {
-        success: false,
-        error: mapPosErrorToCheckoutError(inventoryCommitResult.error),
-      };
     }
 
     const billingDocumentRemoteId = createBillingDocumentRemoteId();
@@ -551,18 +631,16 @@ export const createRunPosCheckoutUseCase = ({
 
     for (const paymentPart of params.paymentParts) {
       if (paymentPart.amount <= 0 || !paymentPart.settlementAccountRemoteId?.trim()) {
-        const hasPostedAny = postedTransactionRemoteIds.length > 0;
-        return persistWorkflowState({
-          workflowStatus: hasPostedAny
-            ? PosCheckoutWorkflowStatus.PartiallyPosted
-            : PosCheckoutWorkflowStatus.Failed,
+        return persistFailedCheckout({
           receipt: withPostingSyncFailed(draftReceipt),
-          billingDocumentRemoteId,
-          ledgerEntryRemoteId: null,
-          postedTransactionRemoteIds,
-          lastErrorType: "payment_part_validation_failed",
-          lastErrorMessage:
+          baseErrorType: "payment_part_validation_failed",
+          baseErrorMessage:
             "Payment part amount and settlement account must be valid for posting.",
+          artifacts: {
+            billingDocumentRemoteId,
+            ledgerEntryRemoteId: null,
+            postedTransactionRemoteIds,
+          },
         });
       }
 
@@ -592,17 +670,15 @@ export const createRunPosCheckoutUseCase = ({
       const transactionResult =
         await postBusinessTransactionUseCase.execute(payload);
       if (!transactionResult.success) {
-        const hasPostedAny = postedTransactionRemoteIds.length > 0;
-        return persistWorkflowState({
-          workflowStatus: hasPostedAny
-            ? PosCheckoutWorkflowStatus.PartiallyPosted
-            : PosCheckoutWorkflowStatus.Failed,
+        return persistFailedCheckout({
           receipt: withPostingSyncFailed(draftReceipt),
-          billingDocumentRemoteId,
-          ledgerEntryRemoteId: null,
-          postedTransactionRemoteIds,
-          lastErrorType: "transaction_post_failed",
-          lastErrorMessage: transactionResult.error.message,
+          baseErrorType: "transaction_post_failed",
+          baseErrorMessage: transactionResult.error.message,
+          artifacts: {
+            billingDocumentRemoteId,
+            ledgerEntryRemoteId: null,
+            postedTransactionRemoteIds,
+          },
         });
       }
 
@@ -610,6 +686,26 @@ export const createRunPosCheckoutUseCase = ({
     }
 
     if (dueAmount <= 0) {
+      const inventoryCommitResult =
+        await commitPosSaleInventoryMutationsUseCase.execute({
+          businessAccountRemoteId,
+          cartLines: params.cartLinesSnapshot,
+          saleReferenceNumber: draftReceipt.receiptNumber,
+        });
+
+      if (!inventoryCommitResult.success) {
+        return persistFailedCheckout({
+          receipt: withPostingSyncFailed(draftReceipt),
+          baseErrorType: "inventory_commit_failed",
+          baseErrorMessage: inventoryCommitResult.error.message,
+          artifacts: {
+            billingDocumentRemoteId,
+            ledgerEntryRemoteId: null,
+            postedTransactionRemoteIds,
+          },
+        });
+      }
+
       return persistWorkflowState({
         workflowStatus: PosCheckoutWorkflowStatus.Posted,
         receipt: draftReceipt,
@@ -620,6 +716,8 @@ export const createRunPosCheckoutUseCase = ({
         lastErrorMessage: null,
       });
     }
+
+    let createdLedgerEntryRemoteId: string | null = null;
 
     const ledgerCreateResult = await addLedgerEntryUseCase.execute({
       remoteId: dueLedgerRemoteId as string,
@@ -648,16 +746,19 @@ export const createRunPosCheckoutUseCase = ({
     });
 
     if (!ledgerCreateResult.success) {
-      return persistWorkflowState({
-        workflowStatus: PosCheckoutWorkflowStatus.PartiallyPosted,
+      return persistFailedCheckout({
         receipt: withDueBalanceCreateFailed(draftReceipt),
-        billingDocumentRemoteId,
-        ledgerEntryRemoteId: null,
-        postedTransactionRemoteIds,
-        lastErrorType: "ledger_create_failed",
-        lastErrorMessage: ledgerCreateResult.error.message,
+        baseErrorType: "ledger_create_failed",
+        baseErrorMessage: ledgerCreateResult.error.message,
+        artifacts: {
+          billingDocumentRemoteId,
+          ledgerEntryRemoteId: null,
+          postedTransactionRemoteIds,
+        },
       });
     }
+
+    createdLedgerEntryRemoteId = dueLedgerRemoteId as string;
 
     const linkageVerificationResult = await addLedgerEntryUseCase.verifyLinkedDocument(
       billingDocumentRemoteId,
@@ -665,14 +766,35 @@ export const createRunPosCheckoutUseCase = ({
     );
 
     if (!linkageVerificationResult.success) {
-      return persistWorkflowState({
-        workflowStatus: PosCheckoutWorkflowStatus.PartiallyPosted,
+      return persistFailedCheckout({
         receipt: withDueBalanceCreateFailed(draftReceipt),
-        billingDocumentRemoteId,
-        ledgerEntryRemoteId: dueLedgerRemoteId,
-        postedTransactionRemoteIds,
-        lastErrorType: "ledger_linkage_verification_failed",
-        lastErrorMessage: linkageVerificationResult.error.message,
+        baseErrorType: "ledger_linkage_verification_failed",
+        baseErrorMessage: linkageVerificationResult.error.message,
+        artifacts: {
+          billingDocumentRemoteId,
+          ledgerEntryRemoteId: createdLedgerEntryRemoteId,
+          postedTransactionRemoteIds,
+        },
+      });
+    }
+
+    const inventoryCommitResult =
+      await commitPosSaleInventoryMutationsUseCase.execute({
+        businessAccountRemoteId,
+        cartLines: params.cartLinesSnapshot,
+        saleReferenceNumber: draftReceipt.receiptNumber,
+      });
+
+    if (!inventoryCommitResult.success) {
+      return persistFailedCheckout({
+        receipt: withPostingSyncFailed(draftReceipt),
+        baseErrorType: "inventory_commit_failed",
+        baseErrorMessage: inventoryCommitResult.error.message,
+        artifacts: {
+          billingDocumentRemoteId,
+          ledgerEntryRemoteId: createdLedgerEntryRemoteId,
+          postedTransactionRemoteIds,
+        },
       });
     }
 
@@ -680,7 +802,7 @@ export const createRunPosCheckoutUseCase = ({
       workflowStatus: PosCheckoutWorkflowStatus.Posted,
       receipt: withDueBalanceCreated(draftReceipt),
       billingDocumentRemoteId,
-      ledgerEntryRemoteId: dueLedgerRemoteId,
+      ledgerEntryRemoteId: createdLedgerEntryRemoteId,
       postedTransactionRemoteIds,
       lastErrorType: null,
       lastErrorMessage: null,

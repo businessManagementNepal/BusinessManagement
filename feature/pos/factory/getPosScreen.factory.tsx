@@ -3,6 +3,7 @@ import { createMoneyAccountRepository } from "@/feature/accounts/data/repository
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
 import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
+import { createDeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase.impl";
 import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
 import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
 import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
@@ -12,9 +13,11 @@ import { createGetOrCreateContactUseCase } from "@/feature/contacts/useCase/getO
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
 import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
 import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
+import { createDeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase.impl";
 import { createLocalProductDatasource } from "@/feature/products/data/dataSource/local.product.datasource.impl";
 import { createProductRepository } from "@/feature/products/data/repository/product.repository.impl";
 import { createSaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase.impl";
+import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
 import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
 import appDatabase from "@/shared/database/appDatabase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
@@ -193,6 +196,10 @@ export function GetPosScreenFactory({
     () => createSaveBillingDocumentUseCase(billingRepository),
     [billingRepository],
   );
+  const deleteBillingDocumentUseCase = React.useMemo(
+    () => createDeleteBillingDocumentUseCase(billingRepository),
+    [billingRepository],
+  );
   const posSaleDatasource = React.useMemo(
     () => createLocalPosSaleDatasource({ database: appDatabase }),
     [],
@@ -275,8 +282,16 @@ export function GetPosScreenFactory({
     () => createAddLedgerEntryUseCase(ledgerRepository),
     [ledgerRepository],
   );
+  const deleteLedgerEntryUseCase = React.useMemo(
+    () => createDeleteLedgerEntryUseCase(ledgerRepository),
+    [ledgerRepository],
+  );
   const postBusinessTransactionUseCase = React.useMemo(
     () => createPostBusinessTransactionUseCase(appDatabase),
+    [],
+  );
+  const deleteBusinessTransactionUseCase = React.useMemo(
+    () => createDeleteBusinessTransactionUseCase(appDatabase),
     [],
   );
   const contactDatasource = React.useMemo(
@@ -306,14 +321,20 @@ export function GetPosScreenFactory({
         createPosSaleDraftUseCase,
         updatePosSaleWorkflowStateUseCase,
         saveBillingDocumentUseCase,
+        deleteBillingDocumentUseCase,
         postBusinessTransactionUseCase,
+        deleteBusinessTransactionUseCase,
         addLedgerEntryUseCase,
+        deleteLedgerEntryUseCase,
         commitPosSaleInventoryMutationsUseCase,
       }),
     [
       addLedgerEntryUseCase,
       commitPosSaleInventoryMutationsUseCase,
       createPosSaleDraftUseCase,
+      deleteBillingDocumentUseCase,
+      deleteBusinessTransactionUseCase,
+      deleteLedgerEntryUseCase,
       posCheckoutRepository,
       postBusinessTransactionUseCase,
       saveBillingDocumentUseCase,

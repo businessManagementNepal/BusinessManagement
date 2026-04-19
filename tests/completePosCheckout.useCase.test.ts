@@ -1,5 +1,7 @@
+import type { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import type { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import type { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
+import type { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase";
 import type { CreatePosSaleDraftUseCase } from "@/feature/pos/useCase/createPosSaleDraft.useCase";
 import type { UpdatePosSaleWorkflowStateUseCase } from "@/feature/pos/useCase/updatePosSaleWorkflowState.useCase";
 import type { PosSaleRecord } from "@/feature/pos/types/posSale.entity.types";
@@ -11,6 +13,7 @@ import {
 } from "@/feature/pos/workflow/posCheckout/types/posCheckout.state.types";
 import type { RunPosCheckoutParams } from "@/feature/pos/workflow/posCheckout/types/posCheckout.types";
 import { createRunPosCheckoutUseCase } from "@/feature/pos/workflow/posCheckout/useCase/runPosCheckout.useCase.impl";
+import type { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
 import type { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import { describe, expect, it, vi } from "vitest";
 
@@ -161,6 +164,13 @@ const createCheckoutHarness = (options: HarnessOptions = {}) => {
       })),
   };
 
+  const deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase = {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: true,
+    })),
+  };
+
   const postBusinessTransactionUseCase: PostBusinessTransactionUseCase = {
     execute:
       options.postBusinessTransactionExecute ??
@@ -170,6 +180,13 @@ const createCheckoutHarness = (options: HarnessOptions = {}) => {
           remoteId: `txn-${++postedTransactionCount}`,
         } as never,
       })),
+  };
+
+  const deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase = {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: true,
+    })),
   };
 
   const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
@@ -191,6 +208,13 @@ const createCheckoutHarness = (options: HarnessOptions = {}) => {
       })),
   };
 
+  const deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase = {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: true,
+    })),
+  };
+
   const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
     execute:
       options.commitInventoryExecute ??
@@ -207,8 +231,11 @@ const createCheckoutHarness = (options: HarnessOptions = {}) => {
     createPosSaleDraftUseCase,
     updatePosSaleWorkflowStateUseCase,
     saveBillingDocumentUseCase,
+    deleteBillingDocumentUseCase,
     postBusinessTransactionUseCase,
+    deleteBusinessTransactionUseCase,
     addLedgerEntryUseCase,
+    deleteLedgerEntryUseCase,
     commitPosSaleInventoryMutationsUseCase,
   });
 
@@ -321,7 +348,7 @@ describe("runPosCheckout.useCase", () => {
     expect(spies.commitInventoryExecute).not.toHaveBeenCalled();
   });
 
-  it("marks checkout as partially posted when ledger linkage verification fails", async () => {
+  it("marks checkout as failed when ledger linkage verification fails and rollback succeeds", async () => {
     const { useCase, spies } = createCheckoutHarness({
       verifyLinkedDocument: vi.fn(async () => ({
         success: false as const,
@@ -351,13 +378,11 @@ describe("runPosCheckout.useCase", () => {
     expect(spies.verifyLinkedDocument).toHaveBeenCalledTimes(1);
 
     if (result.success) {
-      expect(result.value.workflowStatus).toBe(
-        PosCheckoutWorkflowStatus.PartiallyPosted,
-      );
+      expect(result.value.workflowStatus).toBe(PosCheckoutWorkflowStatus.Failed);
       expect(result.value.receipt?.ledgerEffect.type).toBe(
         "due_balance_create_failed",
       );
-      expect(result.value.ledgerEntryRemoteId).toBeTruthy();
+      expect(result.value.ledgerEntryRemoteId).toBeNull();
     }
   });
 });
