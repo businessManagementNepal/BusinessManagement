@@ -1,11 +1,5 @@
-import { Result } from "@/shared/types/result.types";
-import {
-  OrderLegacyTransactionLinkRepairWorkflowInput,
-  OrderLegacyTransactionLinkRepairWorkflowResult,
-} from "../types/orderLegacyTransactionLinkRepairWorkflow.types";
+import { RunOrderLegacyTransactionLinkRepairUseCase } from "./runOrderLegacyTransactionLinkRepair.useCase";
 
 export interface RunOrderLegacyTransactionLinkRepairWorkflowUseCase {
-  execute(
-    params: OrderLegacyTransactionLinkRepairWorkflowInput,
-  ): Promise<Result<OrderLegacyTransactionLinkRepairWorkflowResult>>;
+  execute: RunOrderLegacyTransactionLinkRepairUseCase["execute"];
 }

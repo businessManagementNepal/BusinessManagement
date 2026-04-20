@@ -4,6 +4,7 @@ import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillin
 import { LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
 import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
 import { SaveLedgerEntryWithSettlementUseCase } from "@/feature/ledger/useCase/saveLedgerEntryWithSettlement.useCase";
+import { TransactionRepository } from "@/feature/transactions/data/repository/transaction.repository";
 import {
   OrderOperationResult,
   OrderValidationError,
@@ -15,7 +16,6 @@ import {
 } from "@/feature/orders/utils/orderCommercialEffects.util";
 import { calculateOrderCommercialSettlementSnapshot } from "@/feature/orders/utils/orderCommercialProjection.util";
 import { EnsureOrderBillingAndDueLinksUseCase } from "@/feature/orders/useCase/ensureOrderBillingAndDueLinks.useCase";
-import { GetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase";
 import * as Crypto from "expo-crypto";
 import { OrderRefundPostingWorkflowInput } from "../types/orderRefundPostingWorkflow.types";
 import { RunOrderRefundPostingWorkflowUseCase } from "./runOrderRefundPostingWorkflow.useCase";
@@ -35,7 +35,7 @@ const buildRollbackAwareValidationError = (params: {
 export const createRunOrderRefundPostingWorkflowUseCase = (params: {
   getBillingOverviewUseCase: GetBillingOverviewUseCase;
   getLedgerEntriesUseCase: GetLedgerEntriesUseCase;
-  getTransactionsUseCase: GetTransactionsUseCase;
+  transactionRepository: TransactionRepository;
   saveBillingDocumentUseCase: SaveBillingDocumentUseCase;
   deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
   saveLedgerEntryWithSettlementUseCase: SaveLedgerEntryWithSettlementUseCase;
@@ -127,9 +127,9 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
         params.getLedgerEntriesUseCase.execute({
           businessAccountRemoteId: normalizedAccountRemoteId,
         }),
-        params.getTransactionsUseCase.execute({
-          ownerUserRemoteId: normalizedOwnerUserRemoteId,
+        params.transactionRepository.getPostedOrderLinkedTransactionsByOrderRemoteIds({
           accountRemoteId: normalizedAccountRemoteId,
+          orderRemoteIds: [normalizedOrderRemoteId],
         }),
       ]);
 

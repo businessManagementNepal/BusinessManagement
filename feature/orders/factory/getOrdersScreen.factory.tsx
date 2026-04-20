@@ -40,7 +40,6 @@ import { createGetProductsUseCase } from "@/feature/products/useCase/getProducts
 import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
 import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
 import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
-import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
 import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
 import { createRunOrderCommercialLinkingWorkflowUseCase } from "@/workflow/orderCommercialLinking/useCase/runOrderCommercialLinkingWorkflow.useCase.impl";
 import { createRunOrderLegacyTransactionLinkRepairWorkflowUseCase } from "@/workflow/orderLegacyTransactionLinkRepair/useCase/runOrderLegacyTransactionLinkRepairWorkflow.useCase.impl";
@@ -237,10 +236,6 @@ export function GetOrdersScreenFactory({
       updateLedgerEntryUseCase,
     ],
   );
-  const getTransactionsUseCase = React.useMemo(
-    () => createGetTransactionsUseCase(transactionRepository),
-    [transactionRepository],
-  );
   const runOrderCommercialLinkingWorkflowUseCase = React.useMemo(
     () =>
       createRunOrderCommercialLinkingWorkflowUseCase({
@@ -275,10 +270,10 @@ export function GetOrdersScreenFactory({
     () =>
       createRunOrderLegacyTransactionLinkRepairWorkflowUseCase({
         getOrdersUseCase,
-        getTransactionsUseCase,
+        transactionRepository,
         postBusinessTransactionUseCase,
       }),
-    [getOrdersUseCase, getTransactionsUseCase, postBusinessTransactionUseCase],
+    [getOrdersUseCase, postBusinessTransactionUseCase, transactionRepository],
   );
   const getOrderSettlementSnapshotsUseCase = React.useMemo(
     () =>
@@ -354,7 +349,7 @@ export function GetOrdersScreenFactory({
       createRunOrderRefundPostingWorkflowUseCase({
         getBillingOverviewUseCase,
         getLedgerEntriesUseCase,
-        getTransactionsUseCase,
+        transactionRepository,
         saveBillingDocumentUseCase,
         deleteBillingDocumentUseCase,
         saveLedgerEntryWithSettlementUseCase,
@@ -365,7 +360,7 @@ export function GetOrdersScreenFactory({
       ensureOrderBillingAndDueLinksUseCase,
       getBillingOverviewUseCase,
       getLedgerEntriesUseCase,
-      getTransactionsUseCase,
+      transactionRepository,
       saveBillingDocumentUseCase,
       saveLedgerEntryWithSettlementUseCase,
     ],

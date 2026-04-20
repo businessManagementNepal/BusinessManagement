@@ -10,9 +10,6 @@ export const ORDER_TRANSACTION_SOURCE_ACTION = {
   Refund: "refund",
 } as const;
 
-export const ORDER_PAYMENT_TRANSACTION_TITLE_PREFIX = "Order Payment ";
-export const ORDER_REFUND_TRANSACTION_TITLE_PREFIX = "Order Refund ";
-
 type OrderTransactionSourceActionValue =
   (typeof ORDER_TRANSACTION_SOURCE_ACTION)[keyof typeof ORDER_TRANSACTION_SOURCE_ACTION];
 

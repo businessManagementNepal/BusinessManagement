@@ -1,21 +1,18 @@
 import { GetOrdersUseCase } from "@/feature/orders/useCase/getOrders.useCase";
-import {
-  ORDER_PAYMENT_TRANSACTION_TITLE_PREFIX,
-  ORDER_REFUND_TRANSACTION_TITLE_PREFIX,
-  ORDER_TRANSACTION_SOURCE_ACTION,
-} from "@/feature/orders/utils/orderSettlementFromTransactions.util";
+import { TransactionRepository } from "@/feature/transactions/data/repository/transaction.repository";
 import { TransactionSourceModule } from "@/feature/transactions/types/transaction.entity.types";
 import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
-import { GetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase";
 import { Result } from "@/shared/types/result.types";
 import {
+  ORDER_LEGACY_TITLE_PREFIX,
+  ORDER_LINKED_SOURCE_ACTION,
   OrderLegacyTransactionLinkRepairWorkflowInput,
   OrderLegacyTransactionLinkRepairWorkflowResult,
 } from "../types/orderLegacyTransactionLinkRepairWorkflow.types";
 import { RunOrderLegacyTransactionLinkRepairWorkflowUseCase } from "./runOrderLegacyTransactionLinkRepairWorkflow.useCase";
 
 type ParsedLegacyOrderTransaction = {
-  sourceAction: string;
+  sourceAction: "payment" | "refund";
   orderNumber: string;
 };
 
@@ -27,28 +24,28 @@ const parseLegacyOrderTransactionTitle = (
 ): ParsedLegacyOrderTransaction | null => {
   const normalizedTitle = safeTrim(title);
 
-  if (normalizedTitle.startsWith(ORDER_PAYMENT_TRANSACTION_TITLE_PREFIX)) {
+  if (normalizedTitle.startsWith(ORDER_LEGACY_TITLE_PREFIX.Payment)) {
     const orderNumber = safeTrim(
-      normalizedTitle.slice(ORDER_PAYMENT_TRANSACTION_TITLE_PREFIX.length),
+      normalizedTitle.slice(ORDER_LEGACY_TITLE_PREFIX.Payment.length),
     );
     if (!orderNumber) {
       return null;
     }
     return {
-      sourceAction: ORDER_TRANSACTION_SOURCE_ACTION.Payment,
+      sourceAction: ORDER_LINKED_SOURCE_ACTION.Payment,
       orderNumber,
     };
   }
 
-  if (normalizedTitle.startsWith(ORDER_REFUND_TRANSACTION_TITLE_PREFIX)) {
+  if (normalizedTitle.startsWith(ORDER_LEGACY_TITLE_PREFIX.Refund)) {
     const orderNumber = safeTrim(
-      normalizedTitle.slice(ORDER_REFUND_TRANSACTION_TITLE_PREFIX.length),
+      normalizedTitle.slice(ORDER_LEGACY_TITLE_PREFIX.Refund.length),
     );
     if (!orderNumber) {
       return null;
     }
     return {
-      sourceAction: ORDER_TRANSACTION_SOURCE_ACTION.Refund,
+      sourceAction: ORDER_LINKED_SOURCE_ACTION.Refund,
       orderNumber,
     };
   }
@@ -59,7 +56,7 @@ const parseLegacyOrderTransactionTitle = (
 export const createRunOrderLegacyTransactionLinkRepairWorkflowUseCase = (
   params: {
     getOrdersUseCase: GetOrdersUseCase;
-    getTransactionsUseCase: GetTransactionsUseCase;
+    transactionRepository: TransactionRepository;
     postBusinessTransactionUseCase: PostBusinessTransactionUseCase;
   },
 ): RunOrderLegacyTransactionLinkRepairWorkflowUseCase => ({
@@ -74,12 +71,11 @@ export const createRunOrderLegacyTransactionLinkRepairWorkflowUseCase = (
         throw new Error("Active account context is required.");
       }
 
-      const [ordersResult, transactionsResult] = await Promise.all([
+      const [ordersResult, legacyUnlinkedTransactionsResult] = await Promise.all([
         params.getOrdersUseCase.execute({
           accountRemoteId: normalizedAccountRemoteId,
         }),
-        params.getTransactionsUseCase.execute({
-          ownerUserRemoteId: normalizedOwnerUserRemoteId,
+        params.transactionRepository.getLegacyUnlinkedOrderTransactionsForRepair({
           accountRemoteId: normalizedAccountRemoteId,
         }),
       ]);
@@ -88,30 +84,32 @@ export const createRunOrderLegacyTransactionLinkRepairWorkflowUseCase = (
         throw new Error(ordersResult.error.message);
       }
 
-      if (!transactionsResult.success) {
-        throw new Error(transactionsResult.error.message);
+      if (!legacyUnlinkedTransactionsResult.success) {
+        throw new Error(legacyUnlinkedTransactionsResult.error.message);
       }
 
-      const orderByNumber = new Map<string, string>();
+      const orderRemoteIdsByNumber = new Map<string, string[]>();
       for (const order of ordersResult.value) {
         const normalizedOrderNumber = safeTrim(order.orderNumber).toUpperCase();
         if (!normalizedOrderNumber) {
           continue;
         }
-
-        if (!orderByNumber.has(normalizedOrderNumber)) {
-          orderByNumber.set(normalizedOrderNumber, order.remoteId);
-        }
+        const existing = orderRemoteIdsByNumber.get(normalizedOrderNumber) ?? [];
+        existing.push(order.remoteId);
+        orderRemoteIdsByNumber.set(normalizedOrderNumber, existing);
       }
 
       let scannedCount = 0;
       let repairedCount = 0;
+      let ambiguousCount = 0;
+      let skippedCount = 0;
 
-      for (const transaction of transactionsResult.value) {
+      for (const transaction of legacyUnlinkedTransactionsResult.value) {
         const parsedLegacyTransaction = parseLegacyOrderTransactionTitle(
           transaction.title,
         );
         if (!parsedLegacyTransaction) {
+          skippedCount += 1;
           continue;
         }
 
@@ -121,15 +119,23 @@ export const createRunOrderLegacyTransactionLinkRepairWorkflowUseCase = (
           safeTrim(transaction.sourceRemoteId).length > 0 &&
           safeTrim(transaction.sourceAction).length > 0
         ) {
+          skippedCount += 1;
           continue;
         }
 
-        const linkedOrderRemoteId = orderByNumber.get(
-          parsedLegacyTransaction.orderNumber.toUpperCase(),
-        );
-        if (!linkedOrderRemoteId) {
+        const matchedOrderRemoteIds =
+          orderRemoteIdsByNumber.get(parsedLegacyTransaction.orderNumber.toUpperCase()) ??
+          [];
+
+        if (matchedOrderRemoteIds.length !== 1) {
+          if (matchedOrderRemoteIds.length > 1) {
+            ambiguousCount += 1;
+          } else {
+            skippedCount += 1;
+          }
           continue;
         }
+        const linkedOrderRemoteId = matchedOrderRemoteIds[0];
 
         const repairResult = await params.postBusinessTransactionUseCase.execute({
           remoteId: transaction.remoteId,
@@ -170,6 +176,8 @@ export const createRunOrderLegacyTransactionLinkRepairWorkflowUseCase = (
         value: {
           scannedCount,
           repairedCount,
+          ambiguousCount,
+          skippedCount,
         },
       };
     } catch (error) {
