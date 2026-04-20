@@ -47,6 +47,7 @@ import { createRunOrderCommercialLinkingWorkflowUseCase } from "@/workflow/order
 import { createRunOrderLegacyTransactionLinkRepairWorkflowUseCase } from "@/workflow/orderLegacyTransactionLinkRepair/useCase/runOrderLegacyTransactionLinkRepairWorkflow.useCase.impl";
 import { createRunOrderPaymentPostingWorkflowUseCase } from "@/workflow/orderPaymentPosting/useCase/runOrderPaymentPostingWorkflow.useCase.impl";
 import { createRunOrderRefundPostingWorkflowUseCase } from "@/workflow/orderRefundPosting/useCase/runOrderRefundPostingWorkflow.useCase.impl";
+import { createRunOrderReturnProcessingWorkflowUseCase } from "@/workflow/orderReturnProcessing/useCase/runOrderReturnProcessingWorkflow.useCase.impl";
 import React from "react";
 
 type Props = {
@@ -92,11 +93,7 @@ export function GetOrdersScreenFactory({
     () => createCancelOrderUseCase(orderRepository),
     [orderRepository],
   );
-  const returnOrderUseCase = React.useMemo(
-    () => createReturnOrderUseCase(orderRepository),
-    [orderRepository],
-  );
-
+  
   const contactDatasource = React.useMemo(
     () => createLocalContactDatasource(appDatabase),
     [],
@@ -393,6 +390,32 @@ export function GetOrdersScreenFactory({
         runOrderRefundPostingWorkflowUseCase,
       }),
     [runOrderRefundPostingWorkflowUseCase],
+  );
+
+  const runOrderReturnProcessingWorkflowUseCase = React.useMemo(
+    () =>
+      createRunOrderReturnProcessingWorkflowUseCase({
+        orderRepository,
+        getBillingOverviewUseCase,
+        getLedgerEntriesUseCase,
+        transactionRepository,
+        ensureOrderBillingAndDueLinksUseCase,
+      }),
+    [
+      ensureOrderBillingAndDueLinksUseCase,
+      getBillingOverviewUseCase,
+      getLedgerEntriesUseCase,
+      orderRepository,
+      transactionRepository,
+    ],
+  );
+
+  const returnOrderUseCase = React.useMemo(
+    () =>
+      createReturnOrderUseCase({
+        runOrderReturnProcessingWorkflowUseCase,
+      }),
+    [runOrderReturnProcessingWorkflowUseCase],
   );
 
   const viewModel = useOrdersCoordinatorViewModel({

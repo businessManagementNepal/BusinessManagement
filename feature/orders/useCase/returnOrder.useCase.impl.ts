@@ -1,15 +1,12 @@
-import { OrderRepository } from "@/feature/orders/data/repository/order.repository";
-import { OrderStatus, OrderValidationError } from "@/feature/orders/types/order.types";
+import { RunOrderReturnProcessingWorkflowUseCase } from "@/workflow/orderReturnProcessing/useCase/runOrderReturnProcessingWorkflow.useCase";
 import { ReturnOrderUseCase } from "./returnOrder.useCase";
 
-export const createReturnOrderUseCase = (
-  repository: OrderRepository,
-): ReturnOrderUseCase => ({
+export const createReturnOrderUseCase = (params: {
+  runOrderReturnProcessingWorkflowUseCase: RunOrderReturnProcessingWorkflowUseCase;
+}): ReturnOrderUseCase => ({
   async execute(remoteId: string) {
-    const normalizedRemoteId = remoteId.trim();
-    if (!normalizedRemoteId) {
-      return { success: false, error: OrderValidationError("Order remote id is required.") };
-    }
-    return repository.updateOrderStatusByRemoteId(normalizedRemoteId, OrderStatus.Returned);
+    return params.runOrderReturnProcessingWorkflowUseCase.execute({
+      orderRemoteId: remoteId,
+    });
   },
 });
