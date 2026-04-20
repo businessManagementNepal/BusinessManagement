@@ -1,7 +1,7 @@
 import {
-  LedgerEntry,
-  LedgerEntryResult,
-  SaveLedgerEntryPayload,
+    LedgerEntry,
+    LedgerEntryResult,
+    SaveLedgerEntryPayload,
 } from "@/feature/ledger/types/ledger.entity.types";
 
 export const INVALID_LEDGER_SETTLEMENT_ACCOUNT_MESSAGE =
@@ -14,6 +14,13 @@ export type LedgerSettlementAllocationCandidate = {
   outstandingAmount: number;
 };
 
+export type ExternalSettlementTransactionContext = {
+  remoteId: string;
+  settlementMoneyAccountRemoteId: string;
+  settlementMoneyAccountDisplayNameSnapshot: string;
+  paymentMode: string;
+};
+
 export type SaveLedgerEntryWithSettlementPayload = {
   mode: SaveLedgerEntryWithSettlementMode;
   businessAccountDisplayName: string;
@@ -21,6 +28,7 @@ export type SaveLedgerEntryWithSettlementPayload = {
   ledgerEntry: SaveLedgerEntryPayload;
   existingLedgerEntries: readonly LedgerEntry[];
   settlementCandidates: readonly LedgerSettlementAllocationCandidate[];
+  externalSettlementTransaction?: ExternalSettlementTransactionContext | null;
 };
 
 export interface SaveLedgerEntryWithSettlementUseCase {

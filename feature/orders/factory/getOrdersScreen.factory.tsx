@@ -335,6 +335,9 @@ export function GetOrdersScreenFactory({
       createRunOrderPaymentPostingWorkflowUseCase({
         getBillingOverviewUseCase,
         getLedgerEntriesUseCase,
+        getMoneyAccountsUseCase,
+        postBusinessTransactionUseCase,
+        deleteBusinessTransactionUseCase,
         saveLedgerEntryWithSettlementUseCase,
         ensureOrderBillingAndDueLinksUseCase,
       }),
@@ -342,6 +345,9 @@ export function GetOrdersScreenFactory({
       ensureOrderBillingAndDueLinksUseCase,
       getBillingOverviewUseCase,
       getLedgerEntriesUseCase,
+      getMoneyAccountsUseCase,
+      postBusinessTransactionUseCase,
+      deleteBusinessTransactionUseCase,
       saveLedgerEntryWithSettlementUseCase,
     ],
   );

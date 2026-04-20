@@ -1,48 +1,48 @@
 import {
-  MoneyAccount,
-  MoneyAccountType,
+    MoneyAccount,
+    MoneyAccountType,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import {
-  BillingDocumentStatus,
-  BillingDocumentType,
-  BillingDocumentTypeValue,
-  BillingTemplateType,
-  BillingTemplateTypeValue,
+    BillingDocumentStatus,
+    BillingDocumentType,
+    BillingDocumentTypeValue,
+    BillingTemplateType,
+    BillingTemplateTypeValue,
 } from "@/feature/billing/types/billing.types";
-import { DeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase } from "@/feature/billing/useCase/deleteBillingDocumentAllocationsBySettlementEntryRemoteId.useCase";
 import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
+import { DeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase } from "@/feature/billing/useCase/deleteBillingDocumentAllocationsBySettlementEntryRemoteId.useCase";
 import { ReplaceBillingDocumentAllocationsForSettlementEntryUseCase } from "@/feature/billing/useCase/replaceBillingDocumentAllocationsForSettlementEntry.useCase";
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import {
-  LedgerEntry,
-  LedgerEntryResult,
-  LedgerEntryType,
-  LedgerEntryTypeValue,
-  LedgerPaymentMode,
-  LedgerPaymentModeValue,
-  SaveLedgerEntryPayload,
+    LedgerEntry,
+    LedgerEntryResult,
+    LedgerEntryType,
+    LedgerEntryTypeValue,
+    LedgerPaymentMode,
+    LedgerPaymentModeValue,
+    SaveLedgerEntryPayload,
 } from "@/feature/ledger/types/ledger.entity.types";
 import {
-  LedgerError,
-  LedgerErrorType,
-  LedgerValidationError,
+    LedgerError,
+    LedgerErrorType,
+    LedgerValidationError,
 } from "@/feature/ledger/types/ledger.error.types";
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
 import { UpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerEntry.useCase";
 import {
-  SaveTransactionPayload,
-  TransactionDirection,
-  TransactionSourceModule,
-  TransactionType,
+    SaveTransactionPayload,
+    TransactionDirection,
+    TransactionSourceModule,
+    TransactionType,
 } from "@/feature/transactions/types/transaction.entity.types";
 import { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
 import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import {
-  INVALID_LEDGER_SETTLEMENT_ACCOUNT_MESSAGE,
-  LedgerSettlementAllocationCandidate,
-  SaveLedgerEntryWithSettlementPayload,
-  SaveLedgerEntryWithSettlementUseCase,
+    INVALID_LEDGER_SETTLEMENT_ACCOUNT_MESSAGE,
+    LedgerSettlementAllocationCandidate,
+    SaveLedgerEntryWithSettlementPayload,
+    SaveLedgerEntryWithSettlementUseCase
 } from "./saveLedgerEntryWithSettlement.useCase";
 
 type CreateSaveLedgerEntryWithSettlementUseCaseParams = {
@@ -385,6 +385,8 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
     let transactionToDeleteAfterSave: string | null = null;
     let hasPreparedSettlementAllocations = false;
 
+    const externalSettlementTransaction = payload.externalSettlementTransaction ?? null;
+
     if (isSettlementAction) {
       if (!selectedSettlementAccountRemoteId) {
         return {
@@ -428,37 +430,44 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
     }
 
     if (isSettlementAction) {
-      const transactionRemoteId =
-        linkedTransactionRemoteId ?? createTransactionRemoteId();
-      const transactionPayload = buildSettlementTransactionPayload({
-        remoteId: transactionRemoteId,
-        ownerUserRemoteId: payload.ledgerEntry.ownerUserRemoteId,
-        businessAccountRemoteId,
-        businessAccountDisplayName: payload.businessAccountDisplayName,
-        entryType: payload.ledgerEntry.entryType,
-        partyName: payload.ledgerEntry.partyName,
-        amount: payload.ledgerEntry.amount,
-        currencyCode: payload.ledgerEntry.currencyCode,
-        note: payload.ledgerEntry.note,
-        happenedAt: payload.ledgerEntry.happenedAt,
-        sourceRemoteId: ledgerRemoteId,
-        settlementMoneyAccountRemoteId,
-        settlementMoneyAccountDisplayNameSnapshot,
-      });
+      if (externalSettlementTransaction) {
+        linkedTransactionRemoteId = externalSettlementTransaction.remoteId;
+        settlementMoneyAccountRemoteId = externalSettlementTransaction.settlementMoneyAccountRemoteId;
+        settlementMoneyAccountDisplayNameSnapshot = externalSettlementTransaction.settlementMoneyAccountDisplayNameSnapshot;
+        resolvedPaymentMode = externalSettlementTransaction.paymentMode as any;
+      } else {
+        const transactionRemoteId =
+          linkedTransactionRemoteId ?? createTransactionRemoteId();
+        const transactionPayload = buildSettlementTransactionPayload({
+          remoteId: transactionRemoteId,
+          ownerUserRemoteId: payload.ledgerEntry.ownerUserRemoteId,
+          businessAccountRemoteId,
+          businessAccountDisplayName: payload.businessAccountDisplayName,
+          entryType: payload.ledgerEntry.entryType,
+          partyName: payload.ledgerEntry.partyName,
+          amount: payload.ledgerEntry.amount,
+          currencyCode: payload.ledgerEntry.currencyCode,
+          note: payload.ledgerEntry.note,
+          happenedAt: payload.ledgerEntry.happenedAt,
+          sourceRemoteId: ledgerRemoteId,
+          settlementMoneyAccountRemoteId,
+          settlementMoneyAccountDisplayNameSnapshot,
+        });
 
-      const transactionResult =
-        await postBusinessTransactionUseCase.execute(transactionPayload);
+        const transactionResult =
+          await postBusinessTransactionUseCase.execute(transactionPayload);
 
-      if (!transactionResult.success) {
-        return {
-          success: false,
-          error: mapEffectError(transactionResult.error.message),
-        };
-      }
+        if (!transactionResult.success) {
+          return {
+            success: false,
+            error: mapEffectError(transactionResult.error.message),
+          };
+        }
 
-      if (!linkedTransactionRemoteId) {
-        linkedTransactionRemoteId = transactionRemoteId;
-        createdTransactionRemoteId = transactionRemoteId;
+        if (!linkedTransactionRemoteId) {
+          linkedTransactionRemoteId = transactionRemoteId;
+          createdTransactionRemoteId = transactionRemoteId;
+        }
       }
     } else if (linkedTransactionRemoteId) {
       transactionToDeleteAfterSave = linkedTransactionRemoteId;
