@@ -87,6 +87,64 @@ export const buildOrderBillingDocumentNumber = (orderNumber: string): string => 
   return `ORDINV-${normalizedOrderNumber || "UNKNOWN"}`;
 };
 
+export const buildOrderRefundBillingDocumentRemoteId = (params: {
+  orderRemoteId: string;
+  refundLedgerEntryRemoteId: string;
+}): string =>
+  `bill-order-refund-${safeTrim(params.orderRemoteId)}-${safeTrim(
+    params.refundLedgerEntryRemoteId,
+  )}`;
+
+export const buildOrderRefundBillingDocumentNumber = (params: {
+  orderNumber: string;
+  refundLedgerEntryRemoteId: string;
+}): string => {
+  const normalizedOrderNumber = normalizeDocumentToken(params.orderNumber);
+  const refundToken =
+    normalizeDocumentToken(params.refundLedgerEntryRemoteId).slice(-6) ||
+    "REFUND";
+
+  return `CRN-${normalizedOrderNumber || "UNKNOWN"}-${refundToken}`;
+};
+
+export const buildOrderRefundBillingDocumentPayload = (params: {
+  order: Order;
+  contact: Contact;
+  refundBillingDocumentRemoteId: string;
+  refundLedgerEntryRemoteId: string;
+  amount: number;
+  happenedAt: number;
+  note: string | null;
+}): SaveBillingDocumentPayload => ({
+  remoteId: params.refundBillingDocumentRemoteId,
+  accountRemoteId: params.order.accountRemoteId,
+  documentNumber: buildOrderRefundBillingDocumentNumber({
+    orderNumber: params.order.orderNumber,
+    refundLedgerEntryRemoteId: params.refundLedgerEntryRemoteId,
+  }),
+  documentType: BillingDocumentType.CreditNote,
+  templateType: BillingTemplateType.StandardInvoice,
+  customerName: params.contact.fullName,
+  contactRemoteId: params.contact.remoteId,
+  status: BillingDocumentStatus.Paid,
+  taxRatePercent: 0,
+  notes: params.note,
+  issuedAt: params.happenedAt,
+  dueAt: null,
+  sourceModule: TransactionSourceModule.Orders,
+  sourceRemoteId: params.order.remoteId,
+  linkedLedgerEntryRemoteId: params.refundLedgerEntryRemoteId,
+  items: [
+    {
+      remoteId: `${params.refundBillingDocumentRemoteId}-line-1`,
+      itemName: `Refund for ${safeTrim(params.order.orderNumber) || "Order"}`,
+      quantity: 1,
+      unitRate: roundMoney(params.amount),
+      lineOrder: 0,
+    },
+  ],
+});
+
 export const deriveLedgerPaymentModeFromMoneyAccount = (
   moneyAccount: MoneyAccount,
 ): LedgerPaymentModeValue => {

@@ -3,6 +3,7 @@ import {
   BillingDocument,
   BillingDocumentNotFoundError,
   BillingDocumentStatus,
+  BillingDocumentType,
   BillingError,
   BillingOverview,
   BillingUnknownError,
@@ -95,6 +96,16 @@ const deriveDocuments = ({
   const todayStart = getStartOfDayTimestamp();
 
   return documents.map((document) => {
+    if (document.documentType === BillingDocumentType.CreditNote) {
+      return {
+        ...document,
+        paidAmount: Number(document.totalAmount.toFixed(2)),
+        outstandingAmount: 0,
+        isOverdue: false,
+        status: BillingDocumentStatus.Paid,
+      };
+    }
+
     const paidAmount = Number(
       (
         paidAmountByDocumentRemoteId.get(document.remoteId) ?? 0

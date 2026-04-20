@@ -1,6 +1,13 @@
 import { BillingDocument } from "@/feature/billing/types/billing.types";
+import {
+  LedgerEntry,
+  LedgerEntryType,
+} from "@/feature/ledger/types/ledger.entity.types";
 import { Order } from "@/feature/orders/types/order.types";
-import { buildOrderBillingDocumentRemoteId } from "@/feature/orders/utils/orderCommercialEffects.util";
+import {
+  buildOrderBillingDocumentRemoteId,
+  buildOrderLedgerDueEntryRemoteId,
+} from "@/feature/orders/utils/orderCommercialEffects.util";
 import {
   getOrderNetPaidAmountFromTransactions,
   resolvePersistedOrderTotalAmount,
@@ -12,7 +19,9 @@ import {
 
 export type OrderCommercialSettlementSnapshot = {
   billingDocument: BillingDocument | null;
+  dueEntry: LedgerEntry | null;
   paidAmount: number;
+  refundedAmount: number;
   balanceDueAmount: number;
 };
 
@@ -44,9 +53,63 @@ export const findBillingDocumentForOrder = (params: {
   );
 };
 
+export const findLedgerDueEntryForOrder = (params: {
+  orderRemoteId: string;
+  ledgerEntries: readonly LedgerEntry[];
+}): LedgerEntry | null => {
+  const normalizedOrderRemoteId = safeTrim(params.orderRemoteId);
+  if (!normalizedOrderRemoteId) {
+    return null;
+  }
+
+  const deterministicDueEntryRemoteId =
+    buildOrderLedgerDueEntryRemoteId(normalizedOrderRemoteId);
+
+  return (
+    params.ledgerEntries.find(
+      (entry) => entry.remoteId === deterministicDueEntryRemoteId,
+    ) ?? null
+  );
+};
+
+const getSettlementEntriesForDue = (params: {
+  dueEntryRemoteId: string;
+  ledgerEntries: readonly LedgerEntry[];
+}): readonly LedgerEntry[] =>
+  params.ledgerEntries.filter(
+    (entry) =>
+      safeTrim(entry.settledAgainstEntryRemoteId) ===
+      safeTrim(params.dueEntryRemoteId),
+  );
+
+const calculateCollectedAmountFromLedgerSettlements = (params: {
+  dueEntryRemoteId: string;
+  ledgerEntries: readonly LedgerEntry[];
+}): number =>
+  roundMoney(
+    getSettlementEntriesForDue(params)
+      .filter((entry) => entry.entryType === LedgerEntryType.Collection)
+      .reduce((sum, entry) => sum + entry.amount, 0),
+  );
+
+export const calculateRefundedAmountFromLedgerSettlements = (params: {
+  dueEntryRemoteId: string;
+  ledgerEntries: readonly LedgerEntry[];
+}): number =>
+  roundMoney(
+    getSettlementEntriesForDue(params)
+      .filter(
+        (entry) =>
+          entry.entryType === LedgerEntryType.PaymentOut ||
+          entry.entryType === LedgerEntryType.Refund,
+      )
+      .reduce((sum, entry) => sum + entry.amount, 0),
+  );
+
 export const calculateOrderCommercialSettlementSnapshot = (params: {
   order: Order;
   billingDocuments: readonly BillingDocument[];
+  ledgerEntries: readonly LedgerEntry[];
   transactions: readonly Transaction[];
 }): OrderCommercialSettlementSnapshot => {
   const billingDocument = findBillingDocumentForOrder({
@@ -54,26 +117,67 @@ export const calculateOrderCommercialSettlementSnapshot = (params: {
     billingDocuments: params.billingDocuments,
   });
 
-  if (billingDocument) {
-    return {
-      billingDocument,
-      paidAmount: roundMoney(billingDocument.paidAmount),
-      balanceDueAmount: roundMoney(
-        Math.max(billingDocument.outstandingAmount, 0),
-      ),
-    };
-  }
+  const dueEntry = findLedgerDueEntryForOrder({
+    orderRemoteId: params.order.remoteId,
+    ledgerEntries: params.ledgerEntries,
+  });
 
-  const orderTotalAmount = resolvePersistedOrderTotalAmount(params.order) ?? 0;
-  const paidAmount = getOrderNetPaidAmountFromTransactions({
+  const legacyNetPaidAmount = getOrderNetPaidAmountFromTransactions({
     orderRemoteId: params.order.remoteId,
     orderNumber: params.order.orderNumber,
     transactions: params.transactions,
   });
 
+  const collectedAmountFromLedger = dueEntry
+    ? calculateCollectedAmountFromLedgerSettlements({
+        dueEntryRemoteId: dueEntry.remoteId,
+        ledgerEntries: params.ledgerEntries,
+      })
+    : 0;
+
+  const refundedAmountFromLedger = dueEntry
+    ? calculateRefundedAmountFromLedgerSettlements({
+        dueEntryRemoteId: dueEntry.remoteId,
+        ledgerEntries: params.ledgerEntries,
+      })
+    : 0;
+
+  const grossPaidAmount =
+    collectedAmountFromLedger > 0
+      ? collectedAmountFromLedger
+      : billingDocument
+        ? roundMoney(billingDocument.paidAmount)
+        : legacyNetPaidAmount > 0
+          ? roundMoney(legacyNetPaidAmount)
+          : 0;
+
+  const refundedAmount =
+    refundedAmountFromLedger > 0
+      ? refundedAmountFromLedger
+      : billingDocument
+        ? roundMoney(
+            Math.max(billingDocument.paidAmount - legacyNetPaidAmount, 0),
+          )
+        : 0;
+
+  const paidAmount = roundMoney(Math.max(grossPaidAmount - refundedAmount, 0));
+
+  const balanceDueAmount = billingDocument
+    ? roundMoney(Math.max(billingDocument.outstandingAmount, 0))
+    : dueEntry
+      ? roundMoney(Math.max(dueEntry.amount - collectedAmountFromLedger, 0))
+      : roundMoney(
+          Math.max(
+            (resolvePersistedOrderTotalAmount(params.order) ?? 0) - paidAmount,
+            0,
+          ),
+        );
+
   return {
-    billingDocument: null,
+    billingDocument,
+    dueEntry,
     paidAmount,
-    balanceDueAmount: roundMoney(Math.max(orderTotalAmount - paidAmount, 0)),
+    refundedAmount,
+    balanceDueAmount,
   };
 };

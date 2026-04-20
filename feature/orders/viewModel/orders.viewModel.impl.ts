@@ -7,9 +7,10 @@ import { BillingDocument } from "@/feature/billing/types/billing.types";
 import { GetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase";
 import { Contact } from "@/feature/contacts/types/contact.types";
 import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
+import { LedgerEntry } from "@/feature/ledger/types/ledger.entity.types";
+import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
 import {
   calculateOrderCommercialSettlementSnapshot,
-  findBillingDocumentForOrder,
 } from "@/feature/orders/utils/orderCommercialProjection.util";
 import {
   Order,
@@ -18,7 +19,6 @@ import {
   OrderStatus,
   OrderStatusValue,
 } from "@/feature/orders/types/order.types";
-import { getOrderNetPaidAmountFromTransactions } from "@/feature/orders/utils/orderSettlementFromTransactions.util";
 import { CreateOrderUseCase } from "@/feature/orders/useCase/createOrder.useCase";
 import { DeleteOrderUseCase } from "@/feature/orders/useCase/deleteOrder.useCase";
 import { GetOrderByIdUseCase } from "@/feature/orders/useCase/getOrderById.useCase";
@@ -262,6 +262,7 @@ const calculateOrderFinancialSnapshot = (params: {
   order: Order;
   productsByRemoteId: Map<string, Product>;
   billingDocuments: readonly BillingDocument[];
+  ledgerEntries: readonly LedgerEntry[];
   transactions: readonly Transaction[];
   fallbackTaxRatePercent: number;
 }): OrderFinancialSnapshot => {
@@ -269,6 +270,7 @@ const calculateOrderFinancialSnapshot = (params: {
     order,
     productsByRemoteId,
     billingDocuments,
+    ledgerEntries,
     transactions,
     fallbackTaxRatePercent,
   } = params;
@@ -305,6 +307,7 @@ const calculateOrderFinancialSnapshot = (params: {
     calculateOrderCommercialSettlementSnapshot({
       order,
       billingDocuments,
+      ledgerEntries,
       transactions,
     });
 
@@ -343,6 +346,7 @@ const buildOrderListItemView = (params: {
   contactsByRemoteId: Map<string, Contact>;
   productsByRemoteId: Map<string, Product>;
   billingDocuments: readonly BillingDocument[];
+  ledgerEntries: readonly LedgerEntry[];
   transactions: readonly Transaction[];
   taxRatePercent: number;
   currencyCode: string;
@@ -353,6 +357,7 @@ const buildOrderListItemView = (params: {
     contactsByRemoteId,
     productsByRemoteId,
     billingDocuments,
+    ledgerEntries,
     transactions,
     taxRatePercent,
     currencyCode,
@@ -367,6 +372,7 @@ const buildOrderListItemView = (params: {
     order,
     productsByRemoteId,
     billingDocuments,
+    ledgerEntries,
     transactions,
     fallbackTaxRatePercent: taxRatePercent,
   });
@@ -405,6 +411,7 @@ const buildOrderDetailView = (params: {
   contactsByRemoteId: Map<string, Contact>;
   productsByRemoteId: Map<string, Product>;
   billingDocuments: readonly BillingDocument[];
+  ledgerEntries: readonly LedgerEntry[];
   transactions: readonly Transaction[];
   taxRatePercent: number;
   currencyCode: string;
@@ -415,6 +422,7 @@ const buildOrderDetailView = (params: {
     contactsByRemoteId,
     productsByRemoteId,
     billingDocuments,
+    ledgerEntries,
     transactions,
     taxRatePercent,
     currencyCode,
@@ -464,6 +472,7 @@ const buildOrderDetailView = (params: {
     order,
     productsByRemoteId,
     billingDocuments,
+    ledgerEntries,
     transactions,
     fallbackTaxRatePercent: taxRatePercent,
   });
@@ -551,6 +560,7 @@ type Params = {
   getContactsUseCase: GetContactsUseCase;
   getProductsUseCase: GetProductsUseCase;
   getBillingOverviewUseCase: GetBillingOverviewUseCase;
+  getLedgerEntriesUseCase: GetLedgerEntriesUseCase;
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   getTransactionsUseCase: GetTransactionsUseCase;
 };
@@ -576,6 +586,7 @@ export const useOrdersViewModel = ({
   getContactsUseCase,
   getProductsUseCase,
   getBillingOverviewUseCase,
+  getLedgerEntriesUseCase,
   getMoneyAccountsUseCase,
   getTransactionsUseCase,
 }: Params): OrdersViewModel => {
@@ -587,6 +598,7 @@ export const useOrdersViewModel = ({
   const [billingDocuments, setBillingDocuments] = useState<BillingDocument[]>(
     [],
   );
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
@@ -679,6 +691,7 @@ export const useOrdersViewModel = ({
       setContacts([]);
       setProducts([]);
       setBillingDocuments([]);
+      setLedgerEntries([]);
       setTransactions([]);
       setErrorMessage("A business account is required to manage orders.");
       setIsLoading(false);
@@ -692,6 +705,7 @@ export const useOrdersViewModel = ({
       contactsResult,
       productsResult,
       billingOverviewResult,
+      ledgerEntriesResult,
       transactionsResult,
       moneyAccountsResult,
     ] = await Promise.all([
@@ -699,6 +713,9 @@ export const useOrdersViewModel = ({
       getContactsUseCase.execute({ accountRemoteId }),
       getProductsUseCase.execute(accountRemoteId),
       getBillingOverviewUseCase.execute(accountRemoteId),
+      getLedgerEntriesUseCase.execute({
+        businessAccountRemoteId: accountRemoteId,
+      }),
       ownerUserRemoteId
         ? getTransactionsUseCase.execute({ ownerUserRemoteId, accountRemoteId })
         : Promise.resolve({ success: true as const, value: [] as Transaction[] }),
@@ -733,6 +750,13 @@ export const useOrdersViewModel = ({
       return;
     }
 
+    if (!ledgerEntriesResult.success) {
+      setLedgerEntries([]);
+      setErrorMessage(ledgerEntriesResult.error.message);
+      setIsLoading(false);
+      return;
+    }
+
     if (!transactionsResult.success) {
       setTransactions([]);
       setErrorMessage(transactionsResult.error.message);
@@ -747,6 +771,9 @@ export const useOrdersViewModel = ({
       Array.isArray(billingOverviewResult.value.documents)
         ? billingOverviewResult.value.documents
         : [],
+    );
+    setLedgerEntries(
+      Array.isArray(ledgerEntriesResult.value) ? ledgerEntriesResult.value : [],
     );
     setTransactions(
       Array.isArray(transactionsResult.value) ? transactionsResult.value : [],
@@ -769,6 +796,7 @@ export const useOrdersViewModel = ({
     accountRemoteId,
     getContactsUseCase,
     getBillingOverviewUseCase,
+    getLedgerEntriesUseCase,
     getMoneyAccountsUseCase,
     getOrdersUseCase,
     getProductsUseCase,
@@ -782,7 +810,12 @@ export const useOrdersViewModel = ({
 
   const refreshDetail = useCallback(
     async (remoteId: string) => {
-      const [orderResult, billingOverviewResult, transactionResult] =
+      const [
+        orderResult,
+        billingOverviewResult,
+        ledgerEntriesResult,
+        transactionResult,
+      ] =
         await Promise.all([
         getOrderByIdUseCase.execute(remoteId),
         accountRemoteId
@@ -800,6 +833,11 @@ export const useOrdersViewModel = ({
                 },
               },
             }),
+        accountRemoteId
+          ? getLedgerEntriesUseCase.execute({
+              businessAccountRemoteId: accountRemoteId,
+            })
+          : Promise.resolve({ success: true as const, value: [] as LedgerEntry[] }),
         ownerUserRemoteId
           ? getTransactionsUseCase.execute({ ownerUserRemoteId, accountRemoteId })
           : Promise.resolve({ success: true as const, value: [] as Transaction[] }),
@@ -817,6 +855,12 @@ export const useOrdersViewModel = ({
         return;
       }
 
+      if (!ledgerEntriesResult.success) {
+        setErrorMessage(ledgerEntriesResult.error.message);
+        setDetail(null);
+        return;
+      }
+
       if (!transactionResult.success) {
         setErrorMessage(transactionResult.error.message);
         setDetail(null);
@@ -829,6 +873,7 @@ export const useOrdersViewModel = ({
           contactsByRemoteId,
           productsByRemoteId,
           billingDocuments: billingOverviewResult.value.documents,
+          ledgerEntries: ledgerEntriesResult.value,
           transactions: transactionResult.value,
           taxRatePercent,
           currencyCode: resolvedCurrencyCode,
@@ -842,6 +887,7 @@ export const useOrdersViewModel = ({
       accountCountryCode,
       contactsByRemoteId,
       getBillingOverviewUseCase,
+      getLedgerEntriesUseCase,
       getOrderByIdUseCase,
       getTransactionsUseCase,
       ownerUserRemoteId,
@@ -866,6 +912,7 @@ export const useOrdersViewModel = ({
           contactsByRemoteId,
           productsByRemoteId,
           billingDocuments,
+          ledgerEntries,
           transactions,
           taxRatePercent,
           currencyCode: resolvedCurrencyCode,
@@ -876,6 +923,7 @@ export const useOrdersViewModel = ({
       accountCountryCode,
       billingDocuments,
       contactsByRemoteId,
+      ledgerEntries,
       orders,
       productsByRemoteId,
       resolvedCurrencyCode,
@@ -893,18 +941,19 @@ export const useOrdersViewModel = ({
       return subtotal + quantity * salePrice;
     }, 0);
 
-    const paidAmount =
+    const editingOrder =
       editorMode === "edit" && form.remoteId
-        ? (findBillingDocumentForOrder({
-            orderRemoteId: form.remoteId,
-            billingDocuments,
-          })?.paidAmount ??
-          getOrderNetPaidAmountFromTransactions({
-            orderRemoteId: form.remoteId,
-            orderNumber: form.orderNumber,
-            transactions,
-          }))
-        : 0;
+        ? orders.find((order) => order.remoteId === form.remoteId) ?? null
+        : null;
+
+    const paidAmount = editingOrder
+      ? calculateOrderCommercialSettlementSnapshot({
+          order: editingOrder,
+          billingDocuments,
+          ledgerEntries,
+          transactions,
+        }).paidAmount
+      : 0;
 
     const financialSnapshot = toOrderFinancialSnapshot({
       subtotalAmount: roundMoney(lineSubtotalAmount),
@@ -965,7 +1014,8 @@ export const useOrdersViewModel = ({
     editorMode,
     form.items,
     form.remoteId,
-    form.orderNumber,
+    ledgerEntries,
+    orders,
     productPriceByRemoteId,
     resolvedCurrencyCode,
     taxRatePercent,

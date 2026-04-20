@@ -38,7 +38,6 @@ import { createProductRepository } from "@/feature/products/data/repository/prod
 import { createGetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase.impl";
 import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
 import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
-import { createAddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase.impl";
 import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
 import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
 import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
@@ -233,10 +232,6 @@ export function GetOrdersScreenFactory({
       updateLedgerEntryUseCase,
     ],
   );
-  const addTransactionUseCase = React.useMemo(
-    () => createAddTransactionUseCase(postBusinessTransactionUseCase),
-    [postBusinessTransactionUseCase],
-  );
   const getTransactionsUseCase = React.useMemo(
     () => createGetTransactionsUseCase(transactionRepository),
     [transactionRepository],
@@ -314,11 +309,23 @@ export function GetOrdersScreenFactory({
   const refundOrderUseCase = React.useMemo(
     () =>
       createRefundOrderUseCase({
-        orderRepository,
-        addTransactionUseCase,
+        getBillingOverviewUseCase,
+        getLedgerEntriesUseCase,
         getTransactionsUseCase,
+        saveBillingDocumentUseCase,
+        deleteBillingDocumentUseCase,
+        saveLedgerEntryWithSettlementUseCase,
+        ensureOrderBillingAndDueLinksUseCase,
       }),
-    [addTransactionUseCase, getTransactionsUseCase, orderRepository],
+    [
+      deleteBillingDocumentUseCase,
+      ensureOrderBillingAndDueLinksUseCase,
+      getBillingOverviewUseCase,
+      getLedgerEntriesUseCase,
+      getTransactionsUseCase,
+      saveBillingDocumentUseCase,
+      saveLedgerEntryWithSettlementUseCase,
+    ],
   );
 
   const viewModel = useOrdersViewModel({
@@ -342,6 +349,7 @@ export function GetOrdersScreenFactory({
     getContactsUseCase,
     getProductsUseCase,
     getBillingOverviewUseCase,
+    getLedgerEntriesUseCase,
     getMoneyAccountsUseCase,
     getTransactionsUseCase,
   });

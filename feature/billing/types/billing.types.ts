@@ -3,6 +3,7 @@ import { Result } from "@/shared/types/result.types";
 export const BillingDocumentType = {
   Invoice: "invoice",
   Receipt: "receipt",
+  CreditNote: "credit_note",
 } as const;
 export type BillingDocumentTypeValue =
   (typeof BillingDocumentType)[keyof typeof BillingDocumentType];
