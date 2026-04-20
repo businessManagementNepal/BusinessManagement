@@ -28,6 +28,7 @@ import { createDeleteOrderUseCase } from "@/feature/orders/useCase/deleteOrder.u
 import { createEnsureOrderBillingAndDueLinksUseCase } from "@/feature/orders/useCase/ensureOrderBillingAndDueLinks.useCase.impl";
 import { createGetOrderByIdUseCase } from "@/feature/orders/useCase/getOrderById.useCase.impl";
 import { createGetOrdersUseCase } from "@/feature/orders/useCase/getOrders.useCase.impl";
+import { createGetOrderSettlementSnapshotsUseCase } from "@/feature/orders/useCase/getOrderSettlementSnapshots.useCase.impl";
 import { createRecordOrderPaymentUseCase } from "@/feature/orders/useCase/recordOrderPayment.useCase.impl";
 import { createRefundOrderUseCase } from "@/feature/orders/useCase/refundOrder.useCase.impl";
 import { createReturnOrderUseCase } from "@/feature/orders/useCase/returnOrder.useCase.impl";
@@ -41,6 +42,10 @@ import { createTransactionRepository } from "@/feature/transactions/data/reposit
 import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
 import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
 import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
+import { createRunOrderCommercialLinkingWorkflowUseCase } from "@/workflow/orderCommercialLinking/useCase/runOrderCommercialLinkingWorkflow.useCase.impl";
+import { createRunOrderLegacyTransactionLinkRepairWorkflowUseCase } from "@/workflow/orderLegacyTransactionLinkRepair/useCase/runOrderLegacyTransactionLinkRepairWorkflow.useCase.impl";
+import { createRunOrderPaymentPostingWorkflowUseCase } from "@/workflow/orderPaymentPosting/useCase/runOrderPaymentPostingWorkflow.useCase.impl";
+import { createRunOrderRefundPostingWorkflowUseCase } from "@/workflow/orderRefundPosting/useCase/runOrderRefundPostingWorkflow.useCase.impl";
 import appDatabase from "@/shared/database/appDatabase";
 import React from "react";
 
@@ -236,9 +241,9 @@ export function GetOrdersScreenFactory({
     () => createGetTransactionsUseCase(transactionRepository),
     [transactionRepository],
   );
-  const ensureOrderBillingAndDueLinksUseCase = React.useMemo(
+  const runOrderCommercialLinkingWorkflowUseCase = React.useMemo(
     () =>
-      createEnsureOrderBillingAndDueLinksUseCase({
+      createRunOrderCommercialLinkingWorkflowUseCase({
         orderRepository,
         getContactsUseCase,
         getBillingDocumentByRemoteIdUseCase,
@@ -257,6 +262,37 @@ export function GetOrdersScreenFactory({
       orderRepository,
       saveBillingDocumentUseCase,
       updateLedgerEntryUseCase,
+    ],
+  );
+  const ensureOrderBillingAndDueLinksUseCase = React.useMemo(
+    () =>
+      createEnsureOrderBillingAndDueLinksUseCase({
+        runOrderCommercialLinkingWorkflowUseCase,
+      }),
+    [runOrderCommercialLinkingWorkflowUseCase],
+  );
+  const runOrderLegacyTransactionLinkRepairWorkflowUseCase = React.useMemo(
+    () =>
+      createRunOrderLegacyTransactionLinkRepairWorkflowUseCase({
+        getOrdersUseCase,
+        getTransactionsUseCase,
+        postBusinessTransactionUseCase,
+      }),
+    [getOrdersUseCase, getTransactionsUseCase, postBusinessTransactionUseCase],
+  );
+  const getOrderSettlementSnapshotsUseCase = React.useMemo(
+    () =>
+      createGetOrderSettlementSnapshotsUseCase({
+        getBillingOverviewUseCase,
+        getLedgerEntriesUseCase,
+        transactionRepository,
+        runOrderLegacyTransactionLinkRepairWorkflowUseCase,
+      }),
+    [
+      getBillingOverviewUseCase,
+      getLedgerEntriesUseCase,
+      runOrderLegacyTransactionLinkRepairWorkflowUseCase,
+      transactionRepository,
     ],
   );
   const createOrderUseCase = React.useMemo(
@@ -291,9 +327,9 @@ export function GetOrdersScreenFactory({
       }),
     [ensureOrderBillingAndDueLinksUseCase, orderRepository],
   );
-  const recordOrderPaymentUseCase = React.useMemo(
+  const runOrderPaymentPostingWorkflowUseCase = React.useMemo(
     () =>
-      createRecordOrderPaymentUseCase({
+      createRunOrderPaymentPostingWorkflowUseCase({
         getBillingOverviewUseCase,
         getLedgerEntriesUseCase,
         saveLedgerEntryWithSettlementUseCase,
@@ -306,9 +342,16 @@ export function GetOrdersScreenFactory({
       saveLedgerEntryWithSettlementUseCase,
     ],
   );
-  const refundOrderUseCase = React.useMemo(
+  const recordOrderPaymentUseCase = React.useMemo(
     () =>
-      createRefundOrderUseCase({
+      createRecordOrderPaymentUseCase({
+        runOrderPaymentPostingWorkflowUseCase,
+      }),
+    [runOrderPaymentPostingWorkflowUseCase],
+  );
+  const runOrderRefundPostingWorkflowUseCase = React.useMemo(
+    () =>
+      createRunOrderRefundPostingWorkflowUseCase({
         getBillingOverviewUseCase,
         getLedgerEntriesUseCase,
         getTransactionsUseCase,
@@ -326,6 +369,13 @@ export function GetOrdersScreenFactory({
       saveBillingDocumentUseCase,
       saveLedgerEntryWithSettlementUseCase,
     ],
+  );
+  const refundOrderUseCase = React.useMemo(
+    () =>
+      createRefundOrderUseCase({
+        runOrderRefundPostingWorkflowUseCase,
+      }),
+    [runOrderRefundPostingWorkflowUseCase],
   );
 
   const viewModel = useOrdersViewModel({
@@ -348,10 +398,8 @@ export function GetOrdersScreenFactory({
     refundOrderUseCase,
     getContactsUseCase,
     getProductsUseCase,
-    getBillingOverviewUseCase,
-    getLedgerEntriesUseCase,
     getMoneyAccountsUseCase,
-    getTransactionsUseCase,
+    getOrderSettlementSnapshotsUseCase,
   });
 
   return <OrdersScreen viewModel={viewModel} />;

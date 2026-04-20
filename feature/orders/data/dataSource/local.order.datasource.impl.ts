@@ -189,6 +189,12 @@ export const createLocalOrderDatasource = (
       const normalizedTaxRatePercent = normalizeOptionalNumber(
         payload.taxRatePercent,
       );
+      const normalizedLinkedBillingDocumentRemoteId = normalizeOptional(
+        payload.linkedBillingDocumentRemoteId ?? null,
+      );
+      const normalizedLinkedLedgerDueEntryRemoteId = normalizeOptional(
+        payload.linkedLedgerDueEntryRemoteId ?? null,
+      );
 
       if (!normalizedRemoteId) throw new Error("Order remote id is required");
       if (!normalizedOwnerUserRemoteId) throw new Error("Owner user context is required");
@@ -296,6 +302,10 @@ export const createLocalOrderDatasource = (
             record.taxAmount = normalizedTaxAmount;
             record.discountAmount = normalizedDiscountAmount;
             record.totalAmount = normalizedTotalAmount;
+            record.linkedBillingDocumentRemoteId =
+              normalizedLinkedBillingDocumentRemoteId;
+            record.linkedLedgerDueEntryRemoteId =
+              normalizedLinkedLedgerDueEntryRemoteId;
             record.deletedAt = null;
             updateSyncStatusOnMutation(record);
             setUpdatedAt(record, now);
@@ -318,6 +328,10 @@ export const createLocalOrderDatasource = (
             record.taxAmount = normalizedTaxAmount;
             record.discountAmount = normalizedDiscountAmount;
             record.totalAmount = normalizedTotalAmount;
+            record.linkedBillingDocumentRemoteId =
+              normalizedLinkedBillingDocumentRemoteId;
+            record.linkedLedgerDueEntryRemoteId =
+              normalizedLinkedLedgerDueEntryRemoteId;
             record.recordSyncStatus = RecordSyncStatus.PendingCreate;
             record.lastSyncedAt = null;
             record.deletedAt = null;
@@ -627,6 +641,52 @@ export const createLocalOrderDatasource = (
       });
 
       const updatedBundle = await getBundleByOrderRemoteId(database, normalizedOrderRemoteId);
+      if (!updatedBundle) {
+        throw new Error("Order not found");
+      }
+
+      return { success: true, value: updatedBundle };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async linkOrderCommercialAnchors(params): Promise<Result<OrderRecordBundle>> {
+    try {
+      const normalizedOrderRemoteId = normalizeRequired(params.orderRemoteId);
+      if (!normalizedOrderRemoteId) {
+        throw new Error("Order remote id is required");
+      }
+
+      const existingOrder = await findOrderByRemoteId(
+        database,
+        normalizedOrderRemoteId,
+      );
+      if (!existingOrder || existingOrder.deletedAt !== null) {
+        throw new Error("Order not found");
+      }
+
+      await database.write(async () => {
+        await existingOrder.update((record) => {
+          record.linkedBillingDocumentRemoteId = normalizeOptional(
+            params.linkedBillingDocumentRemoteId,
+          );
+          record.linkedLedgerDueEntryRemoteId = normalizeOptional(
+            params.linkedLedgerDueEntryRemoteId,
+          );
+          record.deletedAt = null;
+          updateSyncStatusOnMutation(record);
+          setUpdatedAt(record, Date.now());
+        });
+      });
+
+      const updatedBundle = await getBundleByOrderRemoteId(
+        database,
+        normalizedOrderRemoteId,
+      );
       if (!updatedBundle) {
         throw new Error("Order not found");
       }

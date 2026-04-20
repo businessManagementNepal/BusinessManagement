@@ -21,6 +21,10 @@ export class OrderModel extends Model {
   @field("tax_amount") taxAmount!: number | null;
   @field("discount_amount") discountAmount!: number | null;
   @field("total_amount") totalAmount!: number | null;
+  @field("linked_billing_document_remote_id")
+  linkedBillingDocumentRemoteId!: string | null;
+  @field("linked_ledger_due_entry_remote_id")
+  linkedLedgerDueEntryRemoteId!: string | null;
   @field("sync_status") recordSyncStatus!: string;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

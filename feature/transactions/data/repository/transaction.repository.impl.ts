@@ -18,34 +18,26 @@ export const createTransactionRepository = (
   async getTransactionsByOwnerUserRemoteId(
     ownerUserRemoteId: string,
   ): Promise<TransactionsResult> {
-    const result = await localDatasource.getTransactionsByOwnerUserRemoteId(
-      ownerUserRemoteId,
-    );
-
-    if (!result.success) {
-      return {
-        success: false,
-        error: mapTransactionError(result.error),
-      };
-    }
-
-    try {
-      const mappedTransactions = await Promise.all(
-        result.value.map((transactionModel) =>
-          mapTransactionModelToDomain(transactionModel),
-        ),
+    const result =
+      await localDatasource.getTransactionsByOwnerUserRemoteId(
+        ownerUserRemoteId,
       );
+    return mapTransactionListResult(result);
+  },
 
-      return {
-        success: true,
-        value: mappedTransactions,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: mapTransactionError(error),
-      };
-    }
+  async getPostedTransactionsByAccountRemoteId(
+    accountRemoteId: string,
+  ): Promise<TransactionsResult> {
+    const result =
+      await localDatasource.getPostedTransactionsByAccountRemoteId(
+        accountRemoteId,
+      );
+    return mapTransactionListResult(result);
+  },
+
+  async getPostedOrderTransactions(params): Promise<TransactionsResult> {
+    const result = await localDatasource.getPostedOrderTransactions(params);
+    return mapTransactionListResult(result);
   },
 
   async getTransactionByRemoteId(remoteId: string): Promise<TransactionResult> {
@@ -68,6 +60,37 @@ export const createTransactionRepository = (
     return mapTransactionModel(result.value);
   },
 });
+
+const mapTransactionListResult = async (
+  result: Awaited<
+    ReturnType<TransactionDatasource["getTransactionsByOwnerUserRemoteId"]>
+  >,
+): Promise<TransactionsResult> => {
+  if (!result.success) {
+    return {
+      success: false,
+      error: mapTransactionError(result.error),
+    };
+  }
+
+  try {
+    const mappedTransactions = await Promise.all(
+      result.value.map((transactionModel) =>
+        mapTransactionModelToDomain(transactionModel),
+      ),
+    );
+
+    return {
+      success: true,
+      value: mappedTransactions,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: mapTransactionError(error),
+    };
+  }
+};
 
 const mapTransactionModel = async (
   model: Parameters<typeof mapTransactionModelToDomain>[0],

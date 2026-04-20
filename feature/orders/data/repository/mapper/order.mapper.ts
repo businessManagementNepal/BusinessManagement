@@ -39,6 +39,8 @@ export const mapOrderRecordBundleToDomain = (bundle: OrderRecordBundle): Order =
   taxAmount: bundle.order.taxAmount,
   discountAmount: bundle.order.discountAmount,
   totalAmount: bundle.order.totalAmount,
+  linkedBillingDocumentRemoteId: bundle.order.linkedBillingDocumentRemoteId,
+  linkedLedgerDueEntryRemoteId: bundle.order.linkedLedgerDueEntryRemoteId,
   items: bundle.items.map(mapOrderLineModelToDomain),
   createdAt: bundle.order.createdAt.getTime(),
   updatedAt: bundle.order.updatedAt.getTime(),

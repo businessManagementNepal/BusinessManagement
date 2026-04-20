@@ -48,6 +48,8 @@ export const mapOrderToSaveOrderPayload = (order: Order): SaveOrderPayload => ({
   taxAmount: order.taxAmount,
   discountAmount: order.discountAmount,
   totalAmount: order.totalAmount,
+  linkedBillingDocumentRemoteId: order.linkedBillingDocumentRemoteId,
+  linkedLedgerDueEntryRemoteId: order.linkedLedgerDueEntryRemoteId,
   items: order.items.map((item) => ({
     remoteId: item.remoteId,
     orderRemoteId: item.orderRemoteId,

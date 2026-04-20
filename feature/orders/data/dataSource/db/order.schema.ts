@@ -19,6 +19,18 @@ export const ordersTable = tableSchema({
     { name: "tax_amount", type: "number", isOptional: true },
     { name: "discount_amount", type: "number", isOptional: true },
     { name: "total_amount", type: "number", isOptional: true },
+    {
+      name: "linked_billing_document_remote_id",
+      type: "string",
+      isOptional: true,
+      isIndexed: true,
+    },
+    {
+      name: "linked_ledger_due_entry_remote_id",
+      type: "string",
+      isOptional: true,
+      isIndexed: true,
+    },
     { name: "sync_status", type: "string", isIndexed: true },
     { name: "last_synced_at", type: "number", isOptional: true },
     { name: "deleted_at", type: "number", isOptional: true },

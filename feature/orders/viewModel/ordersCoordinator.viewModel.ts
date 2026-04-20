@@ -12,10 +12,8 @@ import { CancelOrderUseCase } from "@/feature/orders/useCase/cancelOrder.useCase
 import { UpdateOrderUseCase } from "@/feature/orders/useCase/updateOrder.useCase";
 import { ChangeOrderStatusUseCase } from "@/feature/orders/useCase/changeOrderStatus.useCase";
 import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
-import { useOrdersCoordinatorViewModel } from "./ordersCoordinator.viewModel.impl";
-import { OrdersViewModel } from "./orders.viewModel";
 
-type Params = {
+export type OrdersCoordinatorViewModelParams = {
   accountRemoteId: string | null;
   ownerUserRemoteId: string | null;
   accountDisplayNameSnapshot: string;
@@ -38,6 +36,3 @@ type Params = {
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   getOrderSettlementSnapshotsUseCase: GetOrderSettlementSnapshotsUseCase;
 };
-
-export const useOrdersViewModel = (params: Params): OrdersViewModel =>
-  useOrdersCoordinatorViewModel(params);

@@ -7,5 +7,12 @@ export interface TransactionRepository {
   getTransactionsByOwnerUserRemoteId(
     ownerUserRemoteId: string,
   ): Promise<TransactionsResult>;
+  getPostedTransactionsByAccountRemoteId(
+    accountRemoteId: string,
+  ): Promise<TransactionsResult>;
+  getPostedOrderTransactions(params: {
+    accountRemoteId: string;
+    orderRemoteId: string;
+  }): Promise<TransactionsResult>;
   getTransactionByRemoteId(remoteId: string): Promise<TransactionResult>;
 }

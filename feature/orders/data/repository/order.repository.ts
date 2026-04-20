@@ -19,4 +19,9 @@ export interface OrderRepository {
     orderRemoteId: string,
     customerRemoteId: string | null,
   ): Promise<OrderResult>;
+  linkOrderCommercialAnchors(params: {
+    orderRemoteId: string;
+    linkedBillingDocumentRemoteId: string | null;
+    linkedLedgerDueEntryRemoteId: string | null;
+  }): Promise<OrderResult>;
 }

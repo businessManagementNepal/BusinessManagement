@@ -56,51 +56,6 @@ const getStableLinkedTransactions = (params: {
       safeTrim(transaction.sourceAction) === params.sourceAction,
   );
 
-const getLegacyLinkedTransactions = (params: {
-  transactions: readonly Transaction[];
-  orderNumber: string;
-  expectedTitlePrefix: string;
-}): Transaction[] => {
-  const normalizedOrderNumber = params.orderNumber.trim();
-  if (!normalizedOrderNumber) {
-    return [];
-  }
-
-  const expectedTitle = `${params.expectedTitlePrefix}${normalizedOrderNumber}`;
-
-  return params.transactions.filter(
-    (transaction) =>
-      isPostedTransaction(transaction) &&
-      safeTrim(transaction.title) === expectedTitle &&
-      safeTrim(transaction.sourceRemoteId).length === 0 &&
-      safeTrim(transaction.sourceAction).length === 0,
-  );
-};
-
-const resolveLinkedTransactions = (params: {
-  transactions: readonly Transaction[];
-  orderRemoteId: string;
-  orderNumber: string;
-  sourceAction: OrderTransactionSourceActionValue;
-  expectedTitlePrefix: string;
-}): Transaction[] => {
-  const stableLinkedTransactions = getStableLinkedTransactions({
-    transactions: params.transactions,
-    orderRemoteId: params.orderRemoteId,
-    sourceAction: params.sourceAction,
-  });
-
-  if (stableLinkedTransactions.length > 0) {
-    return stableLinkedTransactions;
-  }
-
-  return getLegacyLinkedTransactions({
-    transactions: params.transactions,
-    orderNumber: params.orderNumber,
-    expectedTitlePrefix: params.expectedTitlePrefix,
-  });
-};
-
 const resolveOrderLineTotalAmount = (line: OrderLine): number | null => {
   if (hasValidMoneyValue(line.lineTotalAmount)) {
     return line.lineTotalAmount;
@@ -158,20 +113,16 @@ export const getOrderNetPaidAmountFromTransactions = (params: {
   orderNumber: string;
   transactions: readonly Transaction[];
 }): number => {
-  const paymentTransactions = resolveLinkedTransactions({
+  const paymentTransactions = getStableLinkedTransactions({
     transactions: params.transactions,
     orderRemoteId: params.orderRemoteId.trim(),
-    orderNumber: params.orderNumber.trim(),
     sourceAction: ORDER_TRANSACTION_SOURCE_ACTION.Payment,
-    expectedTitlePrefix: ORDER_PAYMENT_TRANSACTION_TITLE_PREFIX,
   });
 
-  const refundTransactions = resolveLinkedTransactions({
+  const refundTransactions = getStableLinkedTransactions({
     transactions: params.transactions,
     orderRemoteId: params.orderRemoteId.trim(),
-    orderNumber: params.orderNumber.trim(),
     sourceAction: ORDER_TRANSACTION_SOURCE_ACTION.Refund,
-    expectedTitlePrefix: ORDER_REFUND_TRANSACTION_TITLE_PREFIX,
   });
 
   const netPaidAmount = roundMoney(
@@ -187,22 +138,18 @@ export const calculateOrderSettlementSnapshot = (params: {
   transactions: readonly Transaction[];
 }): OrderSettlementSnapshot => {
   const grossPaidAmount = sumTransactionAmounts(
-    resolveLinkedTransactions({
+    getStableLinkedTransactions({
       transactions: params.transactions,
       orderRemoteId: params.order.remoteId.trim(),
-      orderNumber: params.order.orderNumber.trim(),
       sourceAction: ORDER_TRANSACTION_SOURCE_ACTION.Payment,
-      expectedTitlePrefix: ORDER_PAYMENT_TRANSACTION_TITLE_PREFIX,
     }),
   );
 
   const grossRefundedAmount = sumTransactionAmounts(
-    resolveLinkedTransactions({
+    getStableLinkedTransactions({
       transactions: params.transactions,
       orderRemoteId: params.order.remoteId.trim(),
-      orderNumber: params.order.orderNumber.trim(),
       sourceAction: ORDER_TRANSACTION_SOURCE_ACTION.Refund,
-      expectedTitlePrefix: ORDER_REFUND_TRANSACTION_TITLE_PREFIX,
     }),
   );
 

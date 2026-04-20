@@ -66,6 +66,8 @@ export type Order = {
   taxAmount: number | null;
   discountAmount: number | null;
   totalAmount: number | null;
+  linkedBillingDocumentRemoteId: string | null;
+  linkedLedgerDueEntryRemoteId: string | null;
   items: OrderLine[];
   createdAt: number;
   updatedAt: number;
@@ -106,6 +108,8 @@ export type SaveOrderPayload = {
   taxAmount?: number | null;
   discountAmount?: number | null;
   totalAmount?: number | null;
+  linkedBillingDocumentRemoteId?: string | null;
+  linkedLedgerDueEntryRemoteId?: string | null;
   items: SaveOrderLinePayload[];
 };
 

@@ -109,4 +109,12 @@ export const createOrderRepository = (
     }
     return { success: true, value: mapOrderRecordBundleToDomain(result.value) };
   },
+
+  async linkOrderCommercialAnchors(params) {
+    const result = await datasource.linkOrderCommercialAnchors(params);
+    if (!result.success) {
+      return { success: false, error: mapDatasourceError(result.error) };
+    }
+    return { success: true, value: mapOrderRecordBundleToDomain(result.value) };
+  },
 });

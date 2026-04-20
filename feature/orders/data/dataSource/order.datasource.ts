@@ -26,4 +26,11 @@ export interface OrderDatasource {
     orderRemoteId: string,
     customerRemoteId: string | null,
   ): Promise<Result<OrderRecordBundle>>;
+  linkOrderCommercialAnchors(
+    params: {
+      orderRemoteId: string;
+      linkedBillingDocumentRemoteId: string | null;
+      linkedLedgerDueEntryRemoteId: string | null;
+    },
+  ): Promise<Result<OrderRecordBundle>>;
 }

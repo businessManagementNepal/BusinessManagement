@@ -1049,5 +1049,27 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 41,
+      steps: [
+        addColumns({
+          table: "orders",
+          columns: [
+            {
+              name: "linked_billing_document_remote_id",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
+            {
+              name: "linked_ledger_due_entry_remote_id",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
+          ],
+        }),
+      ],
+    },
     ],
 });
