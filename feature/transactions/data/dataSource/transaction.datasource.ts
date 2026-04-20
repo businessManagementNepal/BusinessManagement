@@ -12,6 +12,13 @@ export interface TransactionDatasource {
     accountRemoteId: string;
     orderRemoteId: string;
   }): Promise<Result<TransactionModel[]>>;
+  getPostedOrderLinkedTransactionsByOrderRemoteIds(params: {
+    accountRemoteId: string;
+    orderRemoteIds: readonly string[];
+  }): Promise<Result<TransactionModel[]>>;
+  getLegacyUnlinkedOrderTransactionsForRepair(params: {
+    accountRemoteId: string;
+  }): Promise<Result<TransactionModel[]>>;
   getTransactionByRemoteId(
     remoteId: string,
   ): Promise<Result<TransactionModel | null>>;

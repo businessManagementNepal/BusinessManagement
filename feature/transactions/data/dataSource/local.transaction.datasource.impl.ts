@@ -5,6 +5,7 @@ import { TransactionDatasource } from "./transaction.datasource";
 import { TransactionModel } from "./db/transaction.model";
 
 const TRANSACTIONS_TABLE = "transactions";
+const ORDER_SOURCE_ACTIONS = ["payment", "refund"] as const;
 
 const isVisibleTransaction = (transaction: TransactionModel): boolean => {
   return (
@@ -82,6 +83,84 @@ export const createLocalTransactionDatasource = (
           Q.where("account_remote_id", params.accountRemoteId),
           Q.where("source_module", "orders"),
           Q.where("source_remote_id", params.orderRemoteId),
+          Q.sortBy("happened_at", Q.desc),
+        )
+        .fetch();
+
+      return {
+        success: true,
+        value: transactions.filter(isPostedLikeTransaction),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async getPostedOrderLinkedTransactionsByOrderRemoteIds(
+    params,
+  ): Promise<Result<TransactionModel[]>> {
+    try {
+      const normalizedOrderRemoteIds = Array.from(
+        new Set(
+          params.orderRemoteIds
+            .map((orderRemoteId) => orderRemoteId.trim())
+            .filter((orderRemoteId) => orderRemoteId.length > 0),
+        ),
+      );
+
+      if (normalizedOrderRemoteIds.length === 0) {
+        return {
+          success: true,
+          value: [],
+        };
+      }
+
+      const transactionsCollection =
+        database.get<TransactionModel>(TRANSACTIONS_TABLE);
+      const transactions = await transactionsCollection
+        .query(
+          Q.where("account_remote_id", params.accountRemoteId),
+          Q.where("source_module", "orders"),
+          Q.where("source_remote_id", Q.oneOf(normalizedOrderRemoteIds)),
+          Q.where("source_action", Q.oneOf([...ORDER_SOURCE_ACTIONS])),
+          Q.where("posting_status", TransactionPostingStatus.Posted),
+          Q.where("deleted_at", Q.eq(null)),
+          Q.sortBy("happened_at", Q.desc),
+        )
+        .fetch();
+
+      return {
+        success: true,
+        value: transactions.filter(isPostedLikeTransaction),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async getLegacyUnlinkedOrderTransactionsForRepair(
+    params,
+  ): Promise<Result<TransactionModel[]>> {
+    try {
+      const transactionsCollection =
+        database.get<TransactionModel>(TRANSACTIONS_TABLE);
+      const transactions = await transactionsCollection
+        .query(
+          Q.where("account_remote_id", params.accountRemoteId),
+          Q.where("source_module", "orders"),
+          Q.where("source_action", Q.oneOf([...ORDER_SOURCE_ACTIONS])),
+          Q.or(
+            Q.where("source_remote_id", Q.eq(null)),
+            Q.where("source_remote_id", ""),
+          ),
+          Q.where("posting_status", TransactionPostingStatus.Posted),
+          Q.where("deleted_at", Q.eq(null)),
           Q.sortBy("happened_at", Q.desc),
         )
         .fetch();

@@ -14,5 +14,12 @@ export interface TransactionRepository {
     accountRemoteId: string;
     orderRemoteId: string;
   }): Promise<TransactionsResult>;
+  getPostedOrderLinkedTransactionsByOrderRemoteIds(params: {
+    accountRemoteId: string;
+    orderRemoteIds: readonly string[];
+  }): Promise<TransactionsResult>;
+  getLegacyUnlinkedOrderTransactionsForRepair(params: {
+    accountRemoteId: string;
+  }): Promise<TransactionsResult>;
   getTransactionByRemoteId(remoteId: string): Promise<TransactionResult>;
 }

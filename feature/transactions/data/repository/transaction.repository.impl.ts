@@ -40,6 +40,24 @@ export const createTransactionRepository = (
     return mapTransactionListResult(result);
   },
 
+  async getPostedOrderLinkedTransactionsByOrderRemoteIds(
+    params,
+  ): Promise<TransactionsResult> {
+    const result =
+      await localDatasource.getPostedOrderLinkedTransactionsByOrderRemoteIds(
+        params,
+      );
+    return mapTransactionListResult(result);
+  },
+
+  async getLegacyUnlinkedOrderTransactionsForRepair(
+    params,
+  ): Promise<TransactionsResult> {
+    const result =
+      await localDatasource.getLegacyUnlinkedOrderTransactionsForRepair(params);
+    return mapTransactionListResult(result);
+  },
+
   async getTransactionByRemoteId(remoteId: string): Promise<TransactionResult> {
     const result = await localDatasource.getTransactionByRemoteId(remoteId);
 

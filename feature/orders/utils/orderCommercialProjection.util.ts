@@ -124,7 +124,6 @@ export const calculateOrderCommercialSettlementSnapshot = (params: {
 
   const legacyNetPaidAmount = getOrderNetPaidAmountFromTransactions({
     orderRemoteId: params.order.remoteId,
-    orderNumber: params.order.orderNumber,
     transactions: params.transactions,
   });
 

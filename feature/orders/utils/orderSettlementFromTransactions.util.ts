@@ -110,7 +110,6 @@ export const resolvePersistedOrderTotalAmount = (order: Order): number | null =>
 
 export const getOrderNetPaidAmountFromTransactions = (params: {
   orderRemoteId: string;
-  orderNumber: string;
   transactions: readonly Transaction[];
 }): number => {
   const paymentTransactions = getStableLinkedTransactions({

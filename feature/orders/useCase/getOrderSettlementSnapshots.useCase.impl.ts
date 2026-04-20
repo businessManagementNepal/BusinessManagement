@@ -1,6 +1,7 @@
 import { GetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase";
 import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
 import { TransactionRepository } from "@/feature/transactions/data/repository/transaction.repository";
+import { Transaction } from "@/feature/transactions/types/transaction.entity.types";
 import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
 import {
   OrderValidationError,
@@ -14,6 +15,24 @@ import {
 
 const safeTrim = (value: string | null | undefined): string =>
   typeof value === "string" ? value.trim() : "";
+
+const buildTransactionsByOrderRemoteId = (params: {
+  transactions: readonly Transaction[];
+}): Readonly<Record<string, readonly Transaction[]>> => {
+  const grouped: Record<string, Transaction[]> = {};
+
+  for (const transaction of params.transactions) {
+    const orderRemoteId = safeTrim(transaction.sourceRemoteId);
+    if (!orderRemoteId) {
+      continue;
+    }
+    const existing = grouped[orderRemoteId] ?? [];
+    existing.push(transaction);
+    grouped[orderRemoteId] = existing;
+  }
+
+  return grouped;
+};
 
 export const createGetOrderSettlementSnapshotsUseCase = (params: {
   getBillingOverviewUseCase: GetBillingOverviewUseCase;
@@ -42,21 +61,32 @@ export const createGetOrderSettlementSnapshotsUseCase = (params: {
 
     const normalizedOwnerUserRemoteId = safeTrim(input.ownerUserRemoteId);
 
-    if (
-      (input.attemptLegacyRepair ?? true) &&
-      normalizedOwnerUserRemoteId.length > 0
-    ) {
-      const repairResult =
-        await params.runOrderLegacyTransactionLinkRepairWorkflowUseCase.execute({
-          ownerUserRemoteId: normalizedOwnerUserRemoteId,
+    if ((input.attemptLegacyRepair ?? true) && normalizedOwnerUserRemoteId.length > 0) {
+      const legacyUnlinkedResult =
+        await params.transactionRepository.getLegacyUnlinkedOrderTransactionsForRepair({
           accountRemoteId: normalizedAccountRemoteId,
         });
 
-      if (!repairResult.success) {
+      if (!legacyUnlinkedResult.success) {
         return {
           success: false,
-          error: OrderValidationError(repairResult.error.message),
+          error: OrderValidationError(legacyUnlinkedResult.error.message),
         };
+      }
+
+      if (legacyUnlinkedResult.value.length > 0) {
+        const repairResult =
+          await params.runOrderLegacyTransactionLinkRepairWorkflowUseCase.execute({
+            ownerUserRemoteId: normalizedOwnerUserRemoteId,
+            accountRemoteId: normalizedAccountRemoteId,
+          });
+
+        if (!repairResult.success) {
+          return {
+            success: false,
+            error: OrderValidationError(repairResult.error.message),
+          };
+        }
       }
     }
 
@@ -82,37 +112,34 @@ export const createGetOrderSettlementSnapshotsUseCase = (params: {
       };
     }
 
-    const postedOrderTransactionsResults = await Promise.all(
-      normalizedOrders.map((order) =>
-        params.transactionRepository.getPostedOrderTransactions({
+    const postedOrderTransactionsResult =
+      await params.transactionRepository.getPostedOrderLinkedTransactionsByOrderRemoteIds(
+        {
           accountRemoteId: normalizedAccountRemoteId,
-          orderRemoteId: order.remoteId,
-        }),
-      ),
-    );
+          orderRemoteIds: normalizedOrders.map((order) => order.remoteId),
+        },
+      );
 
-    for (const transactionResult of postedOrderTransactionsResults) {
-      if (!transactionResult.success) {
-        return {
-          success: false,
-          error: OrderValidationError(transactionResult.error.message),
-        };
-      }
+    if (!postedOrderTransactionsResult.success) {
+      return {
+        success: false,
+        error: OrderValidationError(postedOrderTransactionsResult.error.message),
+      };
     }
+
+    const transactionsByOrderRemoteId = buildTransactionsByOrderRemoteId({
+      transactions: postedOrderTransactionsResult.value,
+    });
 
     const snapshotsByOrderRemoteId: Record<string, OrderSettlementSnapshot> = {};
 
     for (let index = 0; index < normalizedOrders.length; index += 1) {
       const order = normalizedOrders[index];
-      const orderTransactionsResult = postedOrderTransactionsResults[index];
-      if (!orderTransactionsResult?.success) {
-        continue;
-      }
       const snapshot = calculateOrderCommercialSettlementSnapshot({
         order,
         billingDocuments: billingOverviewResult.value.documents,
         ledgerEntries: ledgerEntriesResult.value,
-        transactions: orderTransactionsResult.value,
+        transactions: transactionsByOrderRemoteId[order.remoteId] ?? [],
       });
 
       snapshotsByOrderRemoteId[order.remoteId] = {
