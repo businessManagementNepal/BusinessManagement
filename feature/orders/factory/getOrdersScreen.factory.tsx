@@ -1,9 +1,22 @@
 import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
 import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
+import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
+import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
+import { createDeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase } from "@/feature/billing/useCase/deleteBillingDocumentAllocationsBySettlementEntryRemoteId.useCase.impl";
+import { createDeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase.impl";
+import { createGetBillingDocumentByRemoteIdUseCase } from "@/feature/billing/useCase/getBillingDocumentByRemoteId.useCase.impl";
+import { createReplaceBillingDocumentAllocationsForSettlementEntryUseCase } from "@/feature/billing/useCase/replaceBillingDocumentAllocationsForSettlementEntry.useCase.impl";
+import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
 import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
 import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
 import { createGetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase.impl";
+import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
+import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
+import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
+import { createDeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase.impl";
+import { createGetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase.impl";
+import { createUpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerEntry.useCase.impl";
 import { createLocalOrderDatasource } from "@/feature/orders/data/dataSource/local.order.datasource.impl";
 import { createOrderRepository } from "@/feature/orders/data/repository/order.repository.impl";
 import { OrdersScreen } from "@/feature/orders/ui/OrdersScreen";
@@ -11,6 +24,7 @@ import { createCancelOrderUseCase } from "@/feature/orders/useCase/cancelOrder.u
 import { createChangeOrderStatusUseCase } from "@/feature/orders/useCase/changeOrderStatus.useCase.impl";
 import { createCreateOrderUseCase } from "@/feature/orders/useCase/createOrder.useCase.impl";
 import { createDeleteOrderUseCase } from "@/feature/orders/useCase/deleteOrder.useCase.impl";
+import { createEnsureOrderBillingAndDueLinksUseCase } from "@/feature/orders/useCase/ensureOrderBillingAndDueLinks.useCase.impl";
 import { createGetOrderByIdUseCase } from "@/feature/orders/useCase/getOrderById.useCase.impl";
 import { createGetOrdersUseCase } from "@/feature/orders/useCase/getOrders.useCase.impl";
 import { createRecordOrderPaymentUseCase } from "@/feature/orders/useCase/recordOrderPayment.useCase.impl";
@@ -24,6 +38,7 @@ import { createGetProductsUseCase } from "@/feature/products/useCase/getProducts
 import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
 import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
 import { createAddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase.impl";
+import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
 import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
 import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
 import appDatabase from "@/shared/database/appDatabase";
@@ -66,10 +81,6 @@ export function GetOrdersScreenFactory({
   );
   const deleteOrderUseCase = React.useMemo(
     () => createDeleteOrderUseCase(orderRepository),
-    [orderRepository],
-  );
-  const changeOrderStatusUseCase = React.useMemo(
-    () => createChangeOrderStatusUseCase(orderRepository),
     [orderRepository],
   );
   const cancelOrderUseCase = React.useMemo(
@@ -134,6 +145,67 @@ export function GetOrdersScreenFactory({
     () => createGetMoneyAccountsUseCase(moneyAccountRepository),
     [moneyAccountRepository],
   );
+  const billingDatasource = React.useMemo(
+    () => createLocalBillingDatasource(appDatabase),
+    [],
+  );
+  const billingRepository = React.useMemo(
+    () => createBillingRepository(billingDatasource),
+    [billingDatasource],
+  );
+  const getBillingDocumentByRemoteIdUseCase = React.useMemo(
+    () => createGetBillingDocumentByRemoteIdUseCase(billingRepository),
+    [billingRepository],
+  );
+  const saveBillingDocumentUseCase = React.useMemo(
+    () => createSaveBillingDocumentUseCase(billingRepository),
+    [billingRepository],
+  );
+  const deleteBillingDocumentUseCase = React.useMemo(
+    () => createDeleteBillingDocumentUseCase(billingRepository),
+    [billingRepository],
+  );
+  const replaceBillingDocumentAllocationsForSettlementEntryUseCase =
+    React.useMemo(
+      () =>
+        createReplaceBillingDocumentAllocationsForSettlementEntryUseCase(
+          billingRepository,
+        ),
+      [billingRepository],
+    );
+  const deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase =
+    React.useMemo(
+      () =>
+        createDeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase(
+          billingRepository,
+        ),
+      [billingRepository],
+    );
+
+  const ledgerDatasource = React.useMemo(
+    () => createLocalLedgerDatasource(appDatabase),
+    [],
+  );
+  const ledgerRepository = React.useMemo(
+    () => createLedgerRepository(ledgerDatasource),
+    [ledgerDatasource],
+  );
+  const getLedgerEntriesUseCase = React.useMemo(
+    () => createGetLedgerEntriesUseCase(ledgerRepository),
+    [ledgerRepository],
+  );
+  const addLedgerEntryUseCase = React.useMemo(
+    () => createAddLedgerEntryUseCase(ledgerRepository),
+    [ledgerRepository],
+  );
+  const updateLedgerEntryUseCase = React.useMemo(
+    () => createUpdateLedgerEntryUseCase(ledgerRepository),
+    [ledgerRepository],
+  );
+  const deleteLedgerEntryUseCase = React.useMemo(
+    () => createDeleteLedgerEntryUseCase(ledgerRepository),
+    [ledgerRepository],
+  );
 
   const transactionDatasource = React.useMemo(
     () => createLocalTransactionDatasource(appDatabase),
@@ -147,6 +219,10 @@ export function GetOrdersScreenFactory({
     () => createPostBusinessTransactionUseCase(appDatabase),
     [],
   );
+  const deleteBusinessTransactionUseCase = React.useMemo(
+    () => createDeleteBusinessTransactionUseCase(appDatabase),
+    [],
+  );
   const addTransactionUseCase = React.useMemo(
     () => createAddTransactionUseCase(postBusinessTransactionUseCase),
     [postBusinessTransactionUseCase],
@@ -155,14 +231,63 @@ export function GetOrdersScreenFactory({
     () => createGetTransactionsUseCase(transactionRepository),
     [transactionRepository],
   );
+  const ensureOrderBillingAndDueLinksUseCase = React.useMemo(
+    () =>
+      createEnsureOrderBillingAndDueLinksUseCase({
+        orderRepository,
+        getContactsUseCase,
+        getBillingDocumentByRemoteIdUseCase,
+        saveBillingDocumentUseCase,
+        deleteBillingDocumentUseCase,
+        getLedgerEntriesUseCase,
+        addLedgerEntryUseCase,
+        updateLedgerEntryUseCase,
+      }),
+    [
+      addLedgerEntryUseCase,
+      deleteBillingDocumentUseCase,
+      getBillingDocumentByRemoteIdUseCase,
+      getContactsUseCase,
+      getLedgerEntriesUseCase,
+      orderRepository,
+      saveBillingDocumentUseCase,
+      updateLedgerEntryUseCase,
+    ],
+  );
+  const changeOrderStatusUseCase = React.useMemo(
+    () =>
+      createChangeOrderStatusUseCase({
+        repository: orderRepository,
+        ensureOrderBillingAndDueLinksUseCase,
+      }),
+    [ensureOrderBillingAndDueLinksUseCase, orderRepository],
+  );
   const recordOrderPaymentUseCase = React.useMemo(
     () =>
       createRecordOrderPaymentUseCase({
         orderRepository,
         addTransactionUseCase,
+        deleteBusinessTransactionUseCase,
         getTransactionsUseCase,
+        getMoneyAccountsUseCase,
+        addLedgerEntryUseCase,
+        deleteLedgerEntryUseCase,
+        replaceBillingDocumentAllocationsForSettlementEntryUseCase,
+        deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+        ensureOrderBillingAndDueLinksUseCase,
       }),
-    [addTransactionUseCase, getTransactionsUseCase, orderRepository],
+    [
+      addLedgerEntryUseCase,
+      addTransactionUseCase,
+      deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+      deleteBusinessTransactionUseCase,
+      deleteLedgerEntryUseCase,
+      ensureOrderBillingAndDueLinksUseCase,
+      getMoneyAccountsUseCase,
+      getTransactionsUseCase,
+      orderRepository,
+      replaceBillingDocumentAllocationsForSettlementEntryUseCase,
+    ],
   );
   const refundOrderUseCase = React.useMemo(
     () =>
