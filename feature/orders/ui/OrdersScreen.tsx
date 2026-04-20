@@ -10,7 +10,7 @@ import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Download, Plus, Search, Upload } from "lucide-react-native";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -43,14 +43,6 @@ const STATUS_FILTER_OPTIONS: readonly {
   { label: "Draft", value: OrderStatus.Draft },
 ];
 
-const isActiveOrderStatus = (status: OrderStatusValue): boolean => {
-  return (
-    status !== OrderStatus.Delivered &&
-    status !== OrderStatus.Cancelled &&
-    status !== OrderStatus.Returned
-  );
-};
-
 const formatStatusLabel = (status: OrderStatusValue): string => {
   return status.replace(/(^|\s)\w/g, (match) => match.toUpperCase());
 };
@@ -72,53 +64,7 @@ const getStatusPillTone = (
 };
 
 export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all");
-
-  const orderItems = useMemo(
-    () => (Array.isArray(viewModel.orders) ? viewModel.orders : []),
-    [viewModel.orders],
-  );
-
-  const filteredOrders = useMemo(() => {
-    const normalizedSearch = searchQuery.trim().toLowerCase();
-
-    return orderItems.filter((order) => {
-      if (statusFilter !== "all" && order.status !== statusFilter) {
-        return false;
-      }
-
-      if (!normalizedSearch) {
-        return true;
-      }
-
-      const searchTarget = [
-        order.orderNumber,
-        order.customerName,
-        order.itemsPreview,
-        order.paymentMethodLabel,
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return searchTarget.includes(normalizedSearch);
-    });
-  }, [orderItems, searchQuery, statusFilter]);
-
-  const summary = useMemo(
-    () => ({
-      activeCount: orderItems.filter((order) =>
-        isActiveOrderStatus(order.status),
-      ).length,
-      deliveredCount: orderItems.filter(
-        (order) => order.status === OrderStatus.Delivered,
-      ).length,
-      cancelledCount: orderItems.filter(
-        (order) => order.status === OrderStatus.Cancelled,
-      ).length,
-    }),
-    [orderItems],
-  );
+  const filteredOrders = Array.isArray(viewModel.orders) ? viewModel.orders : [];
 
   const showDataToolsHint = useCallback(() => {
     Alert.alert(
@@ -155,8 +101,8 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
           <View style={styles.searchInputWrap}>
             <Search size={17} color={colors.mutedForeground} />
             <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
+              value={viewModel.searchQuery}
+              onChangeText={viewModel.onSearchQueryChange}
               placeholder="Search orders..."
               placeholderTextColor={colors.mutedForeground}
               style={styles.searchInput}
@@ -180,26 +126,26 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
 
         <FilterChipGroup
           options={STATUS_FILTER_OPTIONS}
-          selectedValue={statusFilter}
-          onSelect={setStatusFilter}
+          selectedValue={viewModel.statusFilter}
+          onSelect={(value) => viewModel.onStatusFilterChange(value as StatusFilterValue)}
           scrollStyle={styles.filterRow}
           contentContainerStyle={styles.filterRowContent}
         />
 
         <View style={styles.summaryGrid}>
           <View style={styles.summaryCard}>
-            <Text style={styles.activeSummaryValue}>{summary.activeCount}</Text>
+            <Text style={styles.activeSummaryValue}>{viewModel.summary.activeCount}</Text>
             <Text style={styles.summaryLabel}>Active</Text>
           </View>
           <View style={styles.summaryCard}>
             <Text style={styles.deliveredSummaryValue}>
-              {summary.deliveredCount}
+              {viewModel.summary.deliveredCount}
             </Text>
             <Text style={styles.summaryLabel}>Delivered</Text>
           </View>
           <View style={styles.summaryCard}>
             <Text style={styles.cancelledSummaryValue}>
-              {summary.cancelledCount}
+              {viewModel.summary.cancelledCount}
             </Text>
             <Text style={styles.summaryLabel}>Cancelled</Text>
           </View>

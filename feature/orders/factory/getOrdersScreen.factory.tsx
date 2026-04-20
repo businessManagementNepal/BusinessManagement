@@ -33,7 +33,7 @@ import { createRecordOrderPaymentUseCase } from "@/feature/orders/useCase/record
 import { createRefundOrderUseCase } from "@/feature/orders/useCase/refundOrder.useCase.impl";
 import { createReturnOrderUseCase } from "@/feature/orders/useCase/returnOrder.useCase.impl";
 import { createUpdateOrderUseCase } from "@/feature/orders/useCase/updateOrder.useCase.impl";
-import { useOrdersViewModel } from "@/feature/orders/viewModel/orders.viewModel.impl";
+import { useOrdersCoordinatorViewModel } from "@/feature/orders/viewModel/ordersCoordinator.viewModel.impl";
 import { createLocalProductDatasource } from "@/feature/products/data/dataSource/local.product.datasource.impl";
 import { createProductRepository } from "@/feature/products/data/repository/product.repository.impl";
 import { createGetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase.impl";
@@ -378,7 +378,7 @@ export function GetOrdersScreenFactory({
     [runOrderRefundPostingWorkflowUseCase],
   );
 
-  const viewModel = useOrdersViewModel({
+  const viewModel = useOrdersCoordinatorViewModel({
     accountRemoteId: activeAccountRemoteId,
     ownerUserRemoteId: activeUserRemoteId,
     accountDisplayNameSnapshot: activeAccountDisplayName,

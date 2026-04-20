@@ -1,7 +1,7 @@
 import { MoneyAccount } from "@/feature/accounts/types/moneyAccount.types";
 import { Contact } from "@/feature/contacts/types/contact.types";
 import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
-import { Order } from "@/feature/orders/types/order.types";
+import { Order, OrderStatus } from "@/feature/orders/types/order.types";
 import { Product } from "@/feature/products/types/product.types";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import {
@@ -53,6 +53,8 @@ export const useOrdersListViewModel = ({
   getMoneyAccountsUseCase,
   getOrderSettlementSnapshotsUseCase,
 }: OrdersListViewModelParams): OrdersListViewModelState => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | Order["status"]>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessageState] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -199,7 +201,53 @@ export const useOrdersListViewModel = ({
     ],
   );
 
+  const filteredOrderList = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+    return orderList.filter((order) => {
+      if (statusFilter !== "all" && order.status !== statusFilter) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const searchTarget = [
+        order.orderNumber,
+        order.customerName,
+        order.itemsPreview,
+        order.paymentMethodLabel,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return searchTarget.includes(normalizedSearch);
+    });
+  }, [orderList, searchQuery, statusFilter]);
+
+  const screenSummary = useMemo(
+    () => ({
+      activeCount: orderList.filter(
+        (order) =>
+          order.status !== OrderStatus.Delivered &&
+          order.status !== OrderStatus.Cancelled &&
+          order.status !== OrderStatus.Returned,
+      ).length,
+      deliveredCount: orderList.filter(
+        (order) => order.status === OrderStatus.Delivered,
+      ).length,
+      cancelledCount: orderList.filter(
+        (order) => order.status === OrderStatus.Cancelled,
+      ).length,
+    }),
+    [orderList],
+  );
+
   return {
+    searchQuery,
+    statusFilter,
+    onSearchQueryChange: setSearchQuery,
+    onStatusFilterChange: setStatusFilter,
     isLoading,
     errorMessage,
     setErrorMessage,
@@ -208,6 +256,8 @@ export const useOrdersListViewModel = ({
     productsByRemoteId,
     settlementSnapshotsByOrderRemoteId,
     orderList,
+    filteredOrderList,
+    screenSummary,
     summary: buildOrderSummary(orders),
     customerOptions: buildCustomerOptions(contacts),
     customerPhoneByRemoteId: buildCustomerPhoneByRemoteId(contacts),

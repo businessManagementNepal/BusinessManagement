@@ -1,6 +1,7 @@
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import { Contact } from "@/feature/contacts/types/contact.types";
 import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
+import { OrderStatusValue } from "@/feature/orders/types/order.types";
 import { OrderSummaryState } from "@/feature/orders/types/order.state.types";
 import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
 import { OrderListItemView } from "@/feature/orders/types/order.view.types";
@@ -27,6 +28,10 @@ export type OrdersListViewModelParams = {
 };
 
 export type OrdersListViewModelState = {
+  searchQuery: string;
+  statusFilter: "all" | OrderStatusValue;
+  onSearchQueryChange: (value: string) => void;
+  onStatusFilterChange: (value: "all" | OrderStatusValue) => void;
   isLoading: boolean;
   errorMessage: string | null;
   setErrorMessage: (message: string | null) => void;
@@ -37,6 +42,12 @@ export type OrdersListViewModelState = {
     Record<string, OrderSettlementSnapshot>
   >;
   orderList: OrderListItemView[];
+  filteredOrderList: OrderListItemView[];
+  screenSummary: {
+    activeCount: number;
+    deliveredCount: number;
+    cancelledCount: number;
+  };
   summary: OrderSummaryState;
   customerOptions: DropdownOption[];
   customerPhoneByRemoteId: Readonly<Record<string, string | null>>;
