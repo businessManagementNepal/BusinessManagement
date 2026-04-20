@@ -1,0 +1,68 @@
+import {
+  BillingDocument,
+  SaveBillingDocumentPayload,
+} from "@/feature/billing/types/billing.types";
+import { Order, SaveOrderPayload } from "@/feature/orders/types/order.types";
+
+export const mapBillingDocumentToSaveBillingDocumentPayload = (
+  document: BillingDocument,
+): SaveBillingDocumentPayload => ({
+  remoteId: document.remoteId,
+  accountRemoteId: document.accountRemoteId,
+  documentNumber: document.documentNumber,
+  documentType: document.documentType,
+  templateType: document.templateType,
+  customerName: document.customerName,
+  contactRemoteId: document.contactRemoteId,
+  status: document.status,
+  taxRatePercent: document.taxRatePercent,
+  notes: document.notes,
+  issuedAt: document.issuedAt,
+  dueAt: document.dueAt,
+  sourceModule: document.sourceModule,
+  sourceRemoteId: document.sourceRemoteId,
+  linkedLedgerEntryRemoteId: document.linkedLedgerEntryRemoteId,
+  items: document.items.map((item) => ({
+    remoteId: item.remoteId,
+    itemName: item.itemName,
+    quantity: item.quantity,
+    unitRate: item.unitRate,
+    lineOrder: item.lineOrder,
+  })),
+});
+
+export const mapOrderToSaveOrderPayload = (order: Order): SaveOrderPayload => ({
+  remoteId: order.remoteId,
+  ownerUserRemoteId: order.ownerUserRemoteId,
+  accountRemoteId: order.accountRemoteId,
+  orderNumber: order.orderNumber,
+  orderDate: order.orderDate,
+  customerRemoteId: order.customerRemoteId,
+  deliveryOrPickupDetails: order.deliveryOrPickupDetails,
+  notes: order.notes,
+  tags: order.tags,
+  internalRemarks: order.internalRemarks,
+  status: order.status,
+  taxRatePercent: order.taxRatePercent,
+  subtotalAmount: order.subtotalAmount,
+  taxAmount: order.taxAmount,
+  discountAmount: order.discountAmount,
+  totalAmount: order.totalAmount,
+  items: order.items.map((item) => ({
+    remoteId: item.remoteId,
+    orderRemoteId: item.orderRemoteId,
+    productRemoteId: item.productRemoteId,
+    productNameSnapshot: item.productNameSnapshot,
+    unitLabelSnapshot: item.unitLabelSnapshot,
+    skuOrBarcodeSnapshot: item.skuOrBarcodeSnapshot,
+    categoryNameSnapshot: item.categoryNameSnapshot,
+    taxRateLabelSnapshot: item.taxRateLabelSnapshot,
+    unitPriceSnapshot: item.unitPriceSnapshot,
+    taxRatePercentSnapshot: item.taxRatePercentSnapshot,
+    quantity: item.quantity,
+    lineSubtotalAmount: item.lineSubtotalAmount,
+    lineTaxAmount: item.lineTaxAmount,
+    lineTotalAmount: item.lineTotalAmount,
+    lineOrder: item.lineOrder,
+  })),
+});

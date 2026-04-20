@@ -117,22 +117,6 @@ export function GetOrdersScreenFactory({
     () => createGetProductsUseCase(productRepository),
     [productRepository],
   );
-  const createOrderUseCase = React.useMemo(
-    () =>
-      createCreateOrderUseCase({
-        repository: orderRepository,
-        getProductsUseCase,
-      }),
-    [getProductsUseCase, orderRepository],
-  );
-  const updateOrderUseCase = React.useMemo(
-    () =>
-      createUpdateOrderUseCase({
-        repository: orderRepository,
-        getProductsUseCase,
-      }),
-    [getProductsUseCase, orderRepository],
-  );
   const moneyAccountDatasource = React.useMemo(
     () => createLocalMoneyAccountDatasource(appDatabase),
     [],
@@ -253,6 +237,30 @@ export function GetOrdersScreenFactory({
       saveBillingDocumentUseCase,
       updateLedgerEntryUseCase,
     ],
+  );
+  const createOrderUseCase = React.useMemo(
+    () =>
+      createCreateOrderUseCase({
+        repository: orderRepository,
+        getProductsUseCase,
+        deleteOrderUseCase,
+        ensureOrderBillingAndDueLinksUseCase,
+      }),
+    [
+      deleteOrderUseCase,
+      ensureOrderBillingAndDueLinksUseCase,
+      getProductsUseCase,
+      orderRepository,
+    ],
+  );
+  const updateOrderUseCase = React.useMemo(
+    () =>
+      createUpdateOrderUseCase({
+        repository: orderRepository,
+        getProductsUseCase,
+        ensureOrderBillingAndDueLinksUseCase,
+      }),
+    [ensureOrderBillingAndDueLinksUseCase, getProductsUseCase, orderRepository],
   );
   const changeOrderStatusUseCase = React.useMemo(
     () =>

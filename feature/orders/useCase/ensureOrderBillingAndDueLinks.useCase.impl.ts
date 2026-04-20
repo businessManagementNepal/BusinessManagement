@@ -1,4 +1,7 @@
-import { BillingErrorType } from "@/feature/billing/types/billing.types";
+import {
+  BillingDocument,
+  BillingErrorType,
+} from "@/feature/billing/types/billing.types";
 import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { GetBillingDocumentByRemoteIdUseCase } from "@/feature/billing/useCase/getBillingDocumentByRemoteId.useCase";
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
@@ -15,6 +18,7 @@ import {
   buildOrderLedgerDueEntryRemoteId,
   isOrderFinancialStatus,
 } from "@/feature/orders/utils/orderCommercialEffects.util";
+import { mapBillingDocumentToSaveBillingDocumentPayload } from "@/feature/orders/utils/orderCommercialSyncRollback.util";
 import { resolvePersistedOrderTotalAmount } from "@/feature/orders/utils/orderSettlementFromTransactions.util";
 import {
   EnsureOrderBillingAndDueLinksResult,
@@ -31,24 +35,35 @@ const buildRollbackAwareValidationError = (params: {
       : params.primaryMessage,
   );
 
-const rollbackCreatedBillingDocument = async (params: {
-  shouldRollback: boolean;
+const rollbackBillingDocumentState = async (params: {
+  previousBillingDocument: BillingDocument | null;
   billingDocumentRemoteId: string;
+  saveBillingDocumentUseCase: SaveBillingDocumentUseCase;
   deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
 }): Promise<string | null> => {
-  if (!params.shouldRollback) {
-    return null;
+  if (params.previousBillingDocument) {
+    const restoreResult = await params.saveBillingDocumentUseCase.execute(
+      mapBillingDocumentToSaveBillingDocumentPayload(
+        params.previousBillingDocument,
+      ),
+    );
+
+    if (restoreResult.success) {
+      return null;
+    }
+
+    return restoreResult.error.message;
   }
 
-  const rollbackResult = await params.deleteBillingDocumentUseCase.execute(
+  const deleteResult = await params.deleteBillingDocumentUseCase.execute(
     params.billingDocumentRemoteId,
   );
 
-  if (rollbackResult.success) {
+  if (deleteResult.success) {
     return null;
   }
 
-  return rollbackResult.error.message;
+  return deleteResult.error.message;
 };
 
 export const createEnsureOrderBillingAndDueLinksUseCase = (params: {
@@ -130,17 +145,20 @@ export const createEnsureOrderBillingAndDueLinksUseCase = (params: {
       };
     }
 
-    const billingDocumentRemoteId = buildOrderBillingDocumentRemoteId(order.remoteId);
-    const ledgerDueEntryRemoteId = buildOrderLedgerDueEntryRemoteId(order.remoteId);
+    const billingDocumentRemoteId =
+      buildOrderBillingDocumentRemoteId(order.remoteId);
+    const ledgerDueEntryRemoteId =
+      buildOrderLedgerDueEntryRemoteId(order.remoteId);
 
     const existingBillingDocumentResult =
       await params.getBillingDocumentByRemoteIdUseCase.execute(
         billingDocumentRemoteId,
       );
 
-    let hadExistingBillingDocument = false;
+    let previousBillingDocument: BillingDocument | null = null;
+
     if (existingBillingDocumentResult.success) {
-      hadExistingBillingDocument = true;
+      previousBillingDocument = existingBillingDocumentResult.value;
     } else if (
       existingBillingDocumentResult.error.type !== BillingErrorType.DocumentNotFound
     ) {
@@ -150,14 +168,15 @@ export const createEnsureOrderBillingAndDueLinksUseCase = (params: {
       };
     }
 
-    const saveBillingDocumentResult = await params.saveBillingDocumentUseCase.execute(
-      buildBillingDocumentPayloadFromOrder({
-        order,
-        contact,
-        billingDocumentRemoteId,
-        linkedLedgerEntryRemoteId: ledgerDueEntryRemoteId,
-      }),
-    );
+    const saveBillingDocumentResult =
+      await params.saveBillingDocumentUseCase.execute(
+        buildBillingDocumentPayloadFromOrder({
+          order,
+          contact,
+          billingDocumentRemoteId,
+          linkedLedgerEntryRemoteId: ledgerDueEntryRemoteId,
+        }),
+      );
 
     if (!saveBillingDocumentResult.success) {
       return {
@@ -170,9 +189,10 @@ export const createEnsureOrderBillingAndDueLinksUseCase = (params: {
       businessAccountRemoteId: order.accountRemoteId,
     });
     if (!ledgerEntriesResult.success) {
-      const rollbackMessage = await rollbackCreatedBillingDocument({
-        shouldRollback: !hadExistingBillingDocument,
+      const rollbackMessage = await rollbackBillingDocumentState({
+        previousBillingDocument,
         billingDocumentRemoteId,
+        saveBillingDocumentUseCase: params.saveBillingDocumentUseCase,
         deleteBillingDocumentUseCase: params.deleteBillingDocumentUseCase,
       });
 
@@ -201,9 +221,10 @@ export const createEnsureOrderBillingAndDueLinksUseCase = (params: {
       : await params.addLedgerEntryUseCase.execute(ledgerDuePayload);
 
     if (!saveLedgerResult.success) {
-      const rollbackMessage = await rollbackCreatedBillingDocument({
-        shouldRollback: !hadExistingBillingDocument,
+      const rollbackMessage = await rollbackBillingDocumentState({
+        previousBillingDocument,
         billingDocumentRemoteId,
+        saveBillingDocumentUseCase: params.saveBillingDocumentUseCase,
         deleteBillingDocumentUseCase: params.deleteBillingDocumentUseCase,
       });
 

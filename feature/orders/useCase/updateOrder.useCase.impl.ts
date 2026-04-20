@@ -4,16 +4,32 @@ import {
   OrderValidationError,
   SaveOrderPayload,
 } from "@/feature/orders/types/order.types";
+import {
+  isOrderFinancialStatus,
+} from "@/feature/orders/utils/orderCommercialEffects.util";
+import { mapOrderToSaveOrderPayload } from "@/feature/orders/utils/orderCommercialSyncRollback.util";
 import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
 import {
   buildOrderSnapshotPayload,
   validateOrderDraftPayload,
 } from "./buildOrderSnapshotPayload.util";
+import { EnsureOrderBillingAndDueLinksUseCase } from "./ensureOrderBillingAndDueLinks.useCase";
 import { UpdateOrderUseCase } from "./updateOrder.useCase";
+
+const buildRollbackAwareValidationError = (params: {
+  primaryMessage: string;
+  rollbackMessage: string | null;
+}) =>
+  OrderValidationError(
+    params.rollbackMessage
+      ? `${params.primaryMessage} Rollback failed: ${params.rollbackMessage}`
+      : params.primaryMessage,
+  );
 
 export const createUpdateOrderUseCase = (params: {
   repository: OrderRepository;
   getProductsUseCase: GetProductsUseCase;
+  ensureOrderBillingAndDueLinksUseCase: EnsureOrderBillingAndDueLinksUseCase;
 }): UpdateOrderUseCase => ({
   async execute(payload: SaveOrderPayload): Promise<OrderResult> {
     const validationError = validateOrderDraftPayload(payload);
@@ -28,6 +44,8 @@ export const createUpdateOrderUseCase = (params: {
       return { success: false, error: existingOrderResult.error };
     }
 
+    const previousOrder = existingOrderResult.value;
+
     const productsResult = await params.getProductsUseCase.execute(
       payload.accountRemoteId.trim(),
     );
@@ -41,7 +59,7 @@ export const createUpdateOrderUseCase = (params: {
     const snapshotPayloadResult = buildOrderSnapshotPayload({
       payload,
       products: productsResult.value,
-      existingOrder: existingOrderResult.value,
+      existingOrder: previousOrder,
     });
 
     if (!snapshotPayloadResult.success) {
@@ -51,6 +69,38 @@ export const createUpdateOrderUseCase = (params: {
       };
     }
 
-    return params.repository.saveOrder(snapshotPayloadResult.value);
+    const saveResult = await params.repository.saveOrder(
+      snapshotPayloadResult.value,
+    );
+    if (!saveResult.success) {
+      return saveResult;
+    }
+
+    if (!isOrderFinancialStatus(saveResult.value.status)) {
+      return saveResult;
+    }
+
+    const ensureResult =
+      await params.ensureOrderBillingAndDueLinksUseCase.execute(
+        saveResult.value.remoteId,
+      );
+
+    if (ensureResult.success) {
+      return saveResult;
+    }
+
+    const rollbackResult = await params.repository.saveOrder(
+      mapOrderToSaveOrderPayload(previousOrder),
+    );
+
+    return {
+      success: false,
+      error: buildRollbackAwareValidationError({
+        primaryMessage: ensureResult.error.message,
+        rollbackMessage: rollbackResult.success
+          ? null
+          : rollbackResult.error.message,
+      }),
+    };
   },
 });
