@@ -156,18 +156,22 @@ export function GetOrdersScreenFactory({
     [transactionRepository],
   );
   const recordOrderPaymentUseCase = React.useMemo(
-    () => createRecordOrderPaymentUseCase({
-      orderRepository,
-      addTransactionUseCase,
-    }),
-    [addTransactionUseCase, orderRepository],
+    () =>
+      createRecordOrderPaymentUseCase({
+        orderRepository,
+        addTransactionUseCase,
+        getTransactionsUseCase,
+      }),
+    [addTransactionUseCase, getTransactionsUseCase, orderRepository],
   );
   const refundOrderUseCase = React.useMemo(
-    () => createRefundOrderUseCase({
-      orderRepository,
-      addTransactionUseCase,
-    }),
-    [addTransactionUseCase, orderRepository],
+    () =>
+      createRefundOrderUseCase({
+        orderRepository,
+        addTransactionUseCase,
+        getTransactionsUseCase,
+      }),
+    [addTransactionUseCase, getTransactionsUseCase, orderRepository],
   );
 
   const viewModel = useOrdersViewModel({

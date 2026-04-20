@@ -12,6 +12,7 @@ import {
   OrderStatus,
   OrderStatusValue,
 } from "@/feature/orders/types/order.types";
+import { getOrderNetPaidAmountFromTransactions } from "@/feature/orders/utils/orderSettlementFromTransactions.util";
 import { CreateOrderUseCase } from "@/feature/orders/useCase/createOrder.useCase";
 import { DeleteOrderUseCase } from "@/feature/orders/useCase/deleteOrder.useCase";
 import { GetOrderByIdUseCase } from "@/feature/orders/useCase/getOrderById.useCase";
@@ -77,8 +78,6 @@ const EMPTY_MONEY_FORM: OrderMoneyFormState = {
 };
 
 const DEFAULT_ORDER_TAX_RATE_PERCENT = 13;
-const ORDER_PAYMENT_TITLE_PREFIX = "Order Payment ";
-const ORDER_REFUND_TITLE_PREFIX = "Order Refund ";
 const FALLBACK_PAYMENT_METHOD = "Cash";
 
 const ORDER_PAYMENT_METHOD_OPTIONS: readonly DropdownOption[] = [
@@ -290,7 +289,11 @@ const calculateOrderFinancialSnapshot = (params: {
     ? order.discountAmount
     : 0;
 
-  const paidAmount = calculatePaidAmount(order.orderNumber, transactions);
+  const paidAmount = getOrderNetPaidAmountFromTransactions({
+    orderRemoteId: order.remoteId,
+    orderNumber: order.orderNumber,
+    transactions,
+  });
 
   return toOrderFinancialSnapshot({
     subtotalAmount,
@@ -298,29 +301,6 @@ const calculateOrderFinancialSnapshot = (params: {
     discountAmount,
     paidAmount,
   });
-};
-
-const calculatePaidAmount = (
-  orderNumber: string,
-  transactions: readonly Transaction[],
-): number => {
-  const trimmedOrderNumber = orderNumber.trim();
-  if (!trimmedOrderNumber) {
-    return 0;
-  }
-
-  return transactions.reduce((totalPaidAmount, transaction) => {
-    const transactionTitle = safeTrim(transaction.title);
-    if (transactionTitle === `${ORDER_PAYMENT_TITLE_PREFIX}${trimmedOrderNumber}`) {
-      return totalPaidAmount + transaction.amount;
-    }
-
-    if (transactionTitle === `${ORDER_REFUND_TITLE_PREFIX}${trimmedOrderNumber}`) {
-      return totalPaidAmount - transaction.amount;
-    }
-
-    return totalPaidAmount;
-  }, 0);
 };
 
 const buildItemsPreview = (
@@ -846,7 +826,13 @@ export const useOrdersViewModel = ({
     }, 0);
 
     const paidAmount =
-      editorMode === "edit" ? calculatePaidAmount(form.orderNumber, transactions) : 0;
+      editorMode === "edit" && form.remoteId
+        ? getOrderNetPaidAmountFromTransactions({
+            orderRemoteId: form.remoteId,
+            orderNumber: form.orderNumber,
+            transactions,
+          })
+        : 0;
 
     const financialSnapshot = toOrderFinancialSnapshot({
       subtotalAmount: roundMoney(lineSubtotalAmount),
@@ -905,6 +891,7 @@ export const useOrdersViewModel = ({
     accountCountryCode,
     editorMode,
     form.items,
+    form.remoteId,
     form.orderNumber,
     productPriceByRemoteId,
     resolvedCurrencyCode,
