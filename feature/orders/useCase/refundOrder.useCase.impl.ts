@@ -5,6 +5,19 @@ export const createRefundOrderUseCase = (params: {
   runOrderRefundPostingWorkflowUseCase: RunOrderRefundPostingWorkflowUseCase;
 }): RefundOrderUseCase => ({
   async execute(input) {
-    return params.runOrderRefundPostingWorkflowUseCase.execute(input);
+    const workflowResult =
+      await params.runOrderRefundPostingWorkflowUseCase.execute(input);
+
+    if (!workflowResult.success) {
+      return {
+        success: false,
+        error: workflowResult.error,
+      };
+    }
+
+    return {
+      success: true,
+      value: true,
+    };
   },
 });

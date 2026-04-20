@@ -1,23 +1,42 @@
+import {
+    MoneyAccount,
+    MoneyAccountType,
+} from "@/feature/accounts/types/moneyAccount.types";
+import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { GetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase";
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
-import { LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
+import {
+    LedgerEntryType,
+    LedgerPaymentMode,
+    LedgerPaymentModeValue,
+} from "@/feature/ledger/types/ledger.entity.types";
 import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
 import { SaveLedgerEntryWithSettlementUseCase } from "@/feature/ledger/useCase/saveLedgerEntryWithSettlement.useCase";
-import { TransactionRepository } from "@/feature/transactions/data/repository/transaction.repository";
+import { OrderValidationError } from "@/feature/orders/types/order.types";
+import { EnsureOrderBillingAndDueLinksUseCase } from "@/feature/orders/useCase/ensureOrderBillingAndDueLinks.useCase";
 import {
-  OrderOperationResult,
-  OrderValidationError,
-} from "@/feature/orders/types/order.types";
-import {
-  buildOrderRefundBillingDocumentNumber,
-  buildOrderRefundBillingDocumentPayload,
-  buildOrderRefundBillingDocumentRemoteId,
+    buildOrderRefundBillingDocumentNumber,
+    buildOrderRefundBillingDocumentPayload,
+    buildOrderRefundBillingDocumentRemoteId,
+    buildOrderRefundIdempotencyKey,
+    buildOrderRefundSettlementLedgerEntryRemoteId,
+    buildOrderRefundTransactionRemoteId,
 } from "@/feature/orders/utils/orderCommercialEffects.util";
 import { calculateOrderCommercialSettlementSnapshot } from "@/feature/orders/utils/orderCommercialProjection.util";
-import { EnsureOrderBillingAndDueLinksUseCase } from "@/feature/orders/useCase/ensureOrderBillingAndDueLinks.useCase";
-import * as Crypto from "expo-crypto";
-import { OrderRefundPostingWorkflowInput } from "../types/orderRefundPostingWorkflow.types";
+import { TransactionRepository } from "@/feature/transactions/data/repository/transaction.repository";
+import {
+    SaveTransactionPayload,
+    TransactionDirection,
+    TransactionSourceModule,
+    TransactionType,
+} from "@/feature/transactions/types/transaction.entity.types";
+import { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
+import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
+import {
+    OrderRefundPostingWorkflowInput,
+    OrderRefundPostingWorkflowResult,
+} from "../types/orderRefundPostingWorkflow.types";
 import { RunOrderRefundPostingWorkflowUseCase } from "./runOrderRefundPostingWorkflow.useCase";
 
 const MONEY_EPSILON = 0.0001;
@@ -28,14 +47,137 @@ const buildRollbackAwareValidationError = (params: {
 }) =>
   OrderValidationError(
     params.rollbackMessage
-      ? `${params.primaryMessage} Rollback failed: ${params.rollbackMessage}`
+      ? `${params.primaryMessage} Rollback failed: ${params.rollbackMessage}` 
       : params.primaryMessage,
   );
+
+const derivePaymentModeFromMoneyAccount = (
+  moneyAccount: MoneyAccount,
+): LedgerPaymentModeValue => {
+  if (moneyAccount.type === MoneyAccountType.Cash) {
+    return LedgerPaymentMode.Cash;
+  }
+
+  if (moneyAccount.type === MoneyAccountType.Wallet) {
+    return LedgerPaymentMode.MobileWallet;
+  }
+
+  return LedgerPaymentMode.BankTransfer;
+};
+
+const buildOrderRefundTransactionPayload = (params: {
+  remoteId: string;
+  orderRemoteId: string;
+  orderNumber: string;
+  ownerUserRemoteId: string;
+  accountRemoteId: string;
+  accountDisplayNameSnapshot: string;
+  currencyCode: string | null;
+  amount: number;
+  happenedAt: number;
+  settlementMoneyAccountRemoteId: string;
+  settlementMoneyAccountDisplayNameSnapshot: string;
+  note: string | null;
+  contactRemoteId: string | null;
+  refundAttemptRemoteId: string;
+}): SaveTransactionPayload => ({
+  remoteId: params.remoteId,
+  ownerUserRemoteId: params.ownerUserRemoteId,
+  accountRemoteId: params.accountRemoteId,
+  accountDisplayNameSnapshot: params.accountDisplayNameSnapshot,
+  transactionType: TransactionType.Expense,
+  direction: TransactionDirection.Out,
+  title: `Order Refund ${params.orderNumber}`,
+  amount: params.amount,
+  currencyCode: params.currencyCode,
+  categoryLabel: "Orders",
+  note: params.note,
+  happenedAt: params.happenedAt,
+  settlementMoneyAccountRemoteId: params.settlementMoneyAccountRemoteId,
+  settlementMoneyAccountDisplayNameSnapshot:
+    params.settlementMoneyAccountDisplayNameSnapshot,
+  sourceModule: TransactionSourceModule.Orders,
+  sourceRemoteId: params.orderRemoteId,
+  sourceAction: "refund",
+  idempotencyKey: buildOrderRefundIdempotencyKey(params.refundAttemptRemoteId),
+  contactRemoteId: params.contactRemoteId,
+});
+
+const rollbackCreatedOrderRefundTransaction = async (params: {
+  refundTransactionRemoteId: string;
+  deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
+}): Promise<string | null> => {
+  const deleteResult = await params.deleteBusinessTransactionUseCase.execute(
+    params.refundTransactionRemoteId,
+  );
+
+  if (deleteResult.success) {
+    return null;
+  }
+
+  return deleteResult.error.message;
+};
+
+const rollbackCreatedRefundBillingDocument = async (params: {
+  refundBillingDocumentRemoteId: string;
+  deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
+}): Promise<string | null> => {
+  const deleteResult = await params.deleteBillingDocumentUseCase.execute(
+    params.refundBillingDocumentRemoteId,
+  );
+
+  if (deleteResult.success) {
+    return null;
+  }
+
+  return deleteResult.error.message;
+};
+
+const rollbackRefundArtifacts = async (params: {
+  refundTransactionRemoteId: string | null;
+  refundBillingDocumentRemoteId: string | null;
+  deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
+  deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
+}): Promise<string | null> => {
+  const rollbackMessages: string[] = [];
+
+  if (params.refundTransactionRemoteId) {
+    const transactionRollback = await rollbackCreatedOrderRefundTransaction({
+      refundTransactionRemoteId: params.refundTransactionRemoteId,
+      deleteBusinessTransactionUseCase:
+        params.deleteBusinessTransactionUseCase,
+    });
+
+    if (transactionRollback) {
+      rollbackMessages.push(
+        `refund transaction rollback failed: ${transactionRollback}`,
+      );
+    }
+  }
+
+  if (params.refundBillingDocumentRemoteId) {
+    const billingRollback = await rollbackCreatedRefundBillingDocument({
+      refundBillingDocumentRemoteId: params.refundBillingDocumentRemoteId,
+      deleteBillingDocumentUseCase: params.deleteBillingDocumentUseCase,
+    });
+
+    if (billingRollback) {
+      rollbackMessages.push(
+        `refund billing rollback failed: ${billingRollback}`,
+      );
+    }
+  }
+
+  return rollbackMessages.length > 0 ? rollbackMessages.join(" | ") : null;
+};
 
 export const createRunOrderRefundPostingWorkflowUseCase = (params: {
   getBillingOverviewUseCase: GetBillingOverviewUseCase;
   getLedgerEntriesUseCase: GetLedgerEntriesUseCase;
+  getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   transactionRepository: TransactionRepository;
+  postBusinessTransactionUseCase: PostBusinessTransactionUseCase;
+  deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
   saveBillingDocumentUseCase: SaveBillingDocumentUseCase;
   deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
   saveLedgerEntryWithSettlementUseCase: SaveLedgerEntryWithSettlementUseCase;
@@ -43,18 +185,27 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
 }): RunOrderRefundPostingWorkflowUseCase => ({
   async execute(
     input: OrderRefundPostingWorkflowInput,
-  ): Promise<OrderOperationResult> {
+  ): Promise<OrderRefundPostingWorkflowResult> {
     const normalizedOrderRemoteId = input.orderRemoteId.trim();
     const normalizedOrderNumber = input.orderNumber.trim();
+    const normalizedRefundAttemptRemoteId = input.refundAttemptRemoteId.trim();
     const normalizedOwnerUserRemoteId = input.ownerUserRemoteId.trim();
     const normalizedAccountRemoteId = input.accountRemoteId.trim();
     const normalizedAccountDisplayNameSnapshot =
       input.accountDisplayNameSnapshot.trim();
-    const normalizedCurrencyCode = input.currencyCode?.trim().toUpperCase() ?? null;
+    const normalizedCurrencyCode =
+      input.currencyCode?.trim().toUpperCase() ?? null;
     const normalizedSettlementMoneyAccountRemoteId =
       input.settlementMoneyAccountRemoteId.trim();
     const normalizedSettlementMoneyAccountLabel =
       input.settlementMoneyAccountDisplayNameSnapshot.trim();
+
+    if (!normalizedRefundAttemptRemoteId) {
+      return {
+        success: false,
+        error: OrderValidationError("Refund attempt id is required."),
+      };
+    }
 
     if (!normalizedOrderRemoteId) {
       return {
@@ -70,6 +221,13 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
       };
     }
 
+    if (!normalizedRefundAttemptRemoteId) {
+      return {
+        success: false,
+        error: OrderValidationError("Refund attempt id is required."),
+      };
+    }
+
     if (!normalizedOwnerUserRemoteId || !normalizedAccountRemoteId) {
       return {
         success: false,
@@ -81,6 +239,58 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
       return {
         success: false,
         error: OrderValidationError("Account label is required."),
+      };
+    }
+
+    if (!Number.isFinite(input.amount) || input.amount <= 0) {
+      return {
+        success: false,
+        error: OrderValidationError("Amount must be greater than zero."),
+      };
+    }
+
+    if (!Number.isFinite(input.happenedAt) || input.happenedAt <= 0) {
+      return {
+        success: false,
+        error: OrderValidationError("Refund date is required."),
+      };
+    }
+
+    if (!normalizedSettlementMoneyAccountRemoteId) {
+      return {
+        success: false,
+        error: OrderValidationError("Money account is required."),
+      };
+    }
+
+    if (!normalizedSettlementMoneyAccountLabel) {
+      return {
+        success: false,
+        error: OrderValidationError("Money account label is required."),
+      };
+    }
+
+    const moneyAccountsResult =
+      await params.getMoneyAccountsUseCase.execute(normalizedAccountRemoteId);
+
+    if (!moneyAccountsResult.success) {
+      return {
+        success: false,
+        error: OrderValidationError(moneyAccountsResult.error.message),
+      };
+    }
+
+    const settlementMoneyAccount = moneyAccountsResult.value
+      .filter((moneyAccount) => moneyAccount.isActive)
+      .find(
+        (moneyAccount) =>
+          moneyAccount.remoteId === normalizedSettlementMoneyAccountRemoteId,
+      );
+
+    if (!settlementMoneyAccount) {
+      return {
+        success: false,
+        error: OrderValidationError("Choose a valid active money account."),
       };
     }
 
@@ -188,13 +398,56 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
       };
     }
 
-    const refundLedgerEntryRemoteId = Crypto.randomUUID();
+    const refundTransactionRemoteId = buildOrderRefundTransactionRemoteId(
+      normalizedRefundAttemptRemoteId,
+    );
+
+    const refundSettlementLedgerEntryRemoteId =
+      buildOrderRefundSettlementLedgerEntryRemoteId(
+        normalizedRefundAttemptRemoteId,
+      );
+
+    const existingRefundSettlementEntry =
+      ledgerEntriesResult.value.find(
+        (entry) => entry.remoteId === refundSettlementLedgerEntryRemoteId,
+      ) ?? null;
+
     const refundBillingDocumentRemoteId = buildOrderRefundBillingDocumentRemoteId(
       {
         orderRemoteId: ensureResult.value.order.remoteId,
-        refundLedgerEntryRemoteId,
+        refundLedgerEntryRemoteId: refundSettlementLedgerEntryRemoteId,
       },
     );
+
+    const refundTransactionResult =
+      await params.postBusinessTransactionUseCase.execute(
+        buildOrderRefundTransactionPayload({
+          remoteId: refundTransactionRemoteId,
+          orderRemoteId: ensureResult.value.order.remoteId,
+          orderNumber: normalizedOrderNumber,
+          ownerUserRemoteId: normalizedOwnerUserRemoteId,
+          accountRemoteId: normalizedAccountRemoteId,
+          accountDisplayNameSnapshot: normalizedAccountDisplayNameSnapshot,
+          currencyCode:
+            normalizedCurrencyCode && normalizedCurrencyCode.length === 3
+              ? normalizedCurrencyCode
+              : null,
+          amount: input.amount,
+          happenedAt: input.happenedAt,
+          settlementMoneyAccountRemoteId: settlementMoneyAccount.remoteId,
+          settlementMoneyAccountDisplayNameSnapshot: settlementMoneyAccount.name,
+          note: input.note?.trim() || null,
+          contactRemoteId: ensureResult.value.contact.remoteId,
+          refundAttemptRemoteId: normalizedRefundAttemptRemoteId,
+        }),
+      );
+
+    if (!refundTransactionResult.success) {
+      return {
+        success: false,
+        error: OrderValidationError(refundTransactionResult.error.message),
+      };
+    }
 
     const saveRefundDocumentResult =
       await params.saveBillingDocumentUseCase.execute(
@@ -202,7 +455,7 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
           order: ensureResult.value.order,
           contact: ensureResult.value.contact,
           refundBillingDocumentRemoteId,
-          refundLedgerEntryRemoteId,
+          refundLedgerEntryRemoteId: refundSettlementLedgerEntryRemoteId,
           amount: input.amount,
           happenedAt: input.happenedAt,
           note: input.note?.trim() || null,
@@ -210,20 +463,38 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
       );
 
     if (!saveRefundDocumentResult.success) {
+      const rollbackMessage =
+        existingRefundSettlementEntry === null
+          ? await rollbackCreatedOrderRefundTransaction({
+              refundTransactionRemoteId,
+              deleteBusinessTransactionUseCase:
+                params.deleteBusinessTransactionUseCase,
+            })
+          : null;
+
       return {
         success: false,
-        error: OrderValidationError(saveRefundDocumentResult.error.message),
+        error: buildRollbackAwareValidationError({
+          primaryMessage: saveRefundDocumentResult.error.message,
+          rollbackMessage,
+        }),
       };
     }
 
     const settlementResult =
       await params.saveLedgerEntryWithSettlementUseCase.execute({
-        mode: "create",
+        mode: existingRefundSettlementEntry ? "update" : "create",
         businessAccountDisplayName: normalizedAccountDisplayNameSnapshot,
         selectedSettlementAccountRemoteId:
           normalizedSettlementMoneyAccountRemoteId,
+        externalSettlementTransaction: {
+          remoteId: refundTransactionRemoteId,
+          settlementMoneyAccountRemoteId: settlementMoneyAccount.remoteId,
+          settlementMoneyAccountDisplayNameSnapshot: settlementMoneyAccount.name,
+          paymentMode: derivePaymentModeFromMoneyAccount(settlementMoneyAccount),
+        },
         ledgerEntry: {
-          remoteId: refundLedgerEntryRemoteId,
+          remoteId: refundSettlementLedgerEntryRemoteId,
           businessAccountRemoteId: normalizedAccountRemoteId,
           ownerUserRemoteId: normalizedOwnerUserRemoteId,
           partyName: ensureResult.value.contact.fullName,
@@ -243,7 +514,7 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
           paymentMode: null,
           referenceNumber: buildOrderRefundBillingDocumentNumber({
             orderNumber: normalizedOrderNumber,
-            refundLedgerEntryRemoteId,
+            refundLedgerEntryRemoteId: refundSettlementLedgerEntryRemoteId,
           }),
           reminderAt: null,
           attachmentUri: null,
@@ -258,21 +529,35 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
       });
 
     if (!settlementResult.success) {
-      const rollbackResult = await params.deleteBillingDocumentUseCase.execute(
-        refundBillingDocumentRemoteId,
-      );
+      const rollbackMessage =
+        existingRefundSettlementEntry === null
+          ? await rollbackRefundArtifacts({
+              refundTransactionRemoteId,
+              refundBillingDocumentRemoteId,
+              deleteBusinessTransactionUseCase:
+                params.deleteBusinessTransactionUseCase,
+              deleteBillingDocumentUseCase: params.deleteBillingDocumentUseCase,
+            })
+          : null;
 
       return {
         success: false,
         error: buildRollbackAwareValidationError({
           primaryMessage: settlementResult.error.message,
-          rollbackMessage: rollbackResult.success
-            ? null
-            : rollbackResult.error.message,
+          rollbackMessage,
         }),
       };
     }
 
-    return { success: true, value: true };
+    return {
+      success: true,
+      value: {
+        orderRemoteId: ensureResult.value.order.remoteId,
+        refundTransactionRemoteId,
+        refundSettlementLedgerEntryRemoteId: settlementResult.value.remoteId,
+        refundBillingDocumentRemoteId,
+        originalDueEntryRemoteId: settlementSnapshot.dueEntry.remoteId,
+      },
+    };
   },
 });

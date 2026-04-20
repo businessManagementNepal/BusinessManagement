@@ -1,4 +1,10 @@
-import { RunOrderRefundPostingUseCase } from "./runOrderRefundPosting.useCase";
+import {
+    OrderRefundPostingWorkflowInput,
+    OrderRefundPostingWorkflowResult,
+} from "../types/orderRefundPostingWorkflow.types";
 
-export interface RunOrderRefundPostingWorkflowUseCase
-  extends RunOrderRefundPostingUseCase {}
+export interface RunOrderRefundPostingWorkflowUseCase {
+  execute(
+    params: OrderRefundPostingWorkflowInput,
+  ): Promise<OrderRefundPostingWorkflowResult>;
+}

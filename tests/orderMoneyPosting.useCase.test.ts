@@ -53,7 +53,16 @@ describe("order payment/refund use-case delegates", () => {
   it("forwards refund payload to the refund-posting workflow", async () => {
     const runOrderRefundPostingWorkflowUseCase: RunOrderRefundPostingWorkflowUseCase =
       {
-      execute: vi.fn(async () => ({ success: true as const, value: true })),
+      execute: vi.fn(async () => ({ 
+        success: true as const, 
+        value: {
+          orderRemoteId: "order-2",
+          refundTransactionRemoteId: "refund-txn-1",
+          refundSettlementLedgerEntryRemoteId: "refund-ledger-1",
+          refundBillingDocumentRemoteId: "refund-bill-1",
+          originalDueEntryRemoteId: "due-1",
+        }
+      })),
       };
 
     const useCase = createRefundOrderUseCase({
@@ -72,6 +81,7 @@ describe("order payment/refund use-case delegates", () => {
       settlementMoneyAccountRemoteId: "bank-1",
       settlementMoneyAccountDisplayNameSnapshot: "Main Bank",
       note: "customer refund",
+      refundAttemptRemoteId: "refund-attempt-1",
     };
 
     const result = await useCase.execute(input);

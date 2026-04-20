@@ -1,5 +1,5 @@
-import { createRunOrderRefundPostingWorkflowUseCase } from "@/workflow/orderRefundPosting/useCase/runOrderRefundPostingWorkflow.useCase.impl";
 import { buildOrderLedgerDueEntryRemoteId } from "@/feature/orders/utils/orderCommercialEffects.util";
+import { createRunOrderRefundPostingWorkflowUseCase } from "@/workflow/orderRefundPosting/useCase/runOrderRefundPostingWorkflow.useCase.impl";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("expo-crypto", () => ({
@@ -18,6 +18,7 @@ const baseInput = {
   settlementMoneyAccountRemoteId: "cash-1",
   settlementMoneyAccountDisplayNameSnapshot: "Cash Drawer",
   note: "refund",
+  refundAttemptRemoteId: "refund-attempt-1",
 };
 
 const dueEntryRemoteId = buildOrderLedgerDueEntryRemoteId("order-1");
@@ -38,6 +39,31 @@ const buildDeps = (overrides: Partial<any> = {}) => ({
           balanceDirection: "receive",
         },
       ],
+    })),
+  },
+  getMoneyAccountsUseCase: {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: [
+        {
+          remoteId: "cash-1",
+          name: "Cash Drawer",
+          type: "Cash",
+          isActive: true,
+        },
+      ],
+    })),
+  },
+  postBusinessTransactionUseCase: {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: true,
+    })),
+  },
+  deleteBusinessTransactionUseCase: {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: true,
     })),
   },
   transactionRepository: {

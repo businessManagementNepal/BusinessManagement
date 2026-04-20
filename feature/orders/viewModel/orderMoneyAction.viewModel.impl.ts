@@ -200,7 +200,7 @@ export const useOrderMoneyActionViewModel = ({
       return;
     }
 
-    const basePayload = {
+    const paymentPayload = {
       orderRemoteId: moneyForm.orderRemoteId,
       orderNumber: moneyForm.orderNumber,
       ownerUserRemoteId,
@@ -215,10 +215,25 @@ export const useOrderMoneyActionViewModel = ({
       paymentAttemptRemoteId: moneyForm.attemptRemoteId,
     };
 
+    const refundPayload = {
+      orderRemoteId: moneyForm.orderRemoteId,
+      orderNumber: moneyForm.orderNumber,
+      ownerUserRemoteId,
+      accountRemoteId,
+      accountDisplayNameSnapshot,
+      currencyCode: resolvedCurrencyCode,
+      amount,
+      happenedAt,
+      settlementMoneyAccountRemoteId: selectedMoneyAccount.value,
+      settlementMoneyAccountDisplayNameSnapshot: selectedMoneyAccount.label,
+      note: moneyForm.note.trim() || null,
+      refundAttemptRemoteId: moneyForm.attemptRemoteId,
+    };
+
     const result =
       moneyForm.action === "payment"
-        ? await recordOrderPaymentUseCase.execute(basePayload)
-        : await refundOrderUseCase.execute(basePayload);
+        ? await recordOrderPaymentUseCase.execute(paymentPayload)
+        : await refundOrderUseCase.execute(refundPayload);
 
     if (!result.success) {
       setErrorMessage(result.error.message);

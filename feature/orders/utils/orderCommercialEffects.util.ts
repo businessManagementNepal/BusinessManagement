@@ -86,6 +86,18 @@ export const buildOrderPaymentIdempotencyKey = (
   paymentAttemptRemoteId: string,
 ): string => `orders:payment:${paymentAttemptRemoteId.trim()}`;
 
+export const buildOrderRefundTransactionRemoteId = (
+  refundAttemptRemoteId: string,
+): string => `txn-order-refund-${refundAttemptRemoteId.trim()}`;
+
+export const buildOrderRefundSettlementLedgerEntryRemoteId = (
+  refundAttemptRemoteId: string,
+): string => `ledger-order-refund-${refundAttemptRemoteId.trim()}`;
+
+export const buildOrderRefundIdempotencyKey = (
+  refundAttemptRemoteId: string,
+): string => `orders:refund:${refundAttemptRemoteId.trim()}`;
+
 
 export const buildOrderBillingDocumentNumber = (orderNumber: string): string => {
   const normalizedOrderNumber = normalizeDocumentToken(orderNumber);

@@ -363,7 +363,10 @@ export function GetOrdersScreenFactory({
       createRunOrderRefundPostingWorkflowUseCase({
         getBillingOverviewUseCase,
         getLedgerEntriesUseCase,
+        getMoneyAccountsUseCase,
         transactionRepository,
+        postBusinessTransactionUseCase,
+        deleteBusinessTransactionUseCase,
         saveBillingDocumentUseCase,
         deleteBillingDocumentUseCase,
         saveLedgerEntryWithSettlementUseCase,
@@ -371,12 +374,17 @@ export function GetOrdersScreenFactory({
       }),
     [
       deleteBillingDocumentUseCase,
+      deleteBusinessTransactionUseCase,
       ensureOrderBillingAndDueLinksUseCase,
       getBillingOverviewUseCase,
       getLedgerEntriesUseCase,
-      transactionRepository,
+      getMoneyAccountsUseCase,
+      postBusinessTransactionUseCase,
       saveBillingDocumentUseCase,
+      deleteBillingDocumentUseCase,
       saveLedgerEntryWithSettlementUseCase,
+      ensureOrderBillingAndDueLinksUseCase,
+      transactionRepository,
     ],
   );
   const refundOrderUseCase = React.useMemo(
