@@ -2,11 +2,11 @@ import { useCallback, useMemo } from "react";
 import { useOrderDetailsViewModel } from "./orderDetails.viewModel.impl";
 import { useOrderEditorViewModel } from "./orderEditor.viewModel.impl";
 import { useOrderMoneyActionViewModel } from "./orderMoneyAction.viewModel.impl";
-import { useOrdersListViewModel } from "./ordersList.viewModel.impl";
-import {
-  OrdersCoordinatorViewModelParams,
-} from "./ordersCoordinator.viewModel";
 import { OrdersViewModel } from "./orders.viewModel";
+import {
+    OrdersCoordinatorViewModelParams,
+} from "./ordersCoordinator.viewModel";
+import { useOrdersListViewModel } from "./ordersList.viewModel.impl";
 
 export const useOrdersCoordinatorViewModel = (
   params: OrdersCoordinatorViewModelParams,
@@ -111,47 +111,60 @@ export const useOrdersCoordinatorViewModel = (
     () => ({
       isLoading: listViewModel.isLoading,
       errorMessage: listViewModel.errorMessage,
+      canManage: params.canManage,
+
       searchQuery: listViewModel.searchQuery,
       statusFilter: listViewModel.statusFilter,
       onSearchQueryChange: listViewModel.onSearchQueryChange,
       onStatusFilterChange: listViewModel.onStatusFilterChange,
-      canManage: params.canManage,
+
       summary: listViewModel.screenSummary,
       orders: listViewModel.filteredOrderList,
+
       customerOptions: listViewModel.customerOptions,
       customerPhoneByRemoteId: listViewModel.customerPhoneByRemoteId,
       productOptions: listViewModel.productOptions,
       productPriceByRemoteId: listViewModel.productPriceByRemoteId,
       statusOptions: listViewModel.statusOptions,
       paymentMethodOptions: listViewModel.paymentMethodOptions,
+      moneyAccountOptions: listViewModel.moneyAccountOptions,
+
       isEditorVisible: editorViewModel.isEditorVisible,
       editorMode: editorViewModel.editorMode,
       form: editorViewModel.form,
       formPricingPreview: editorViewModel.formPricingPreview,
+
       isDetailVisible: detailsViewModel.isDetailVisible,
       detail: detailsViewModel.detail,
+
       isStatusModalVisible: moneyActionViewModel.isStatusModalVisible,
       statusDraft: moneyActionViewModel.statusDraft,
+
       moneyForm: moneyActionViewModel.moneyForm,
-      moneyAccountOptions: listViewModel.moneyAccountOptions,
+
       onRefresh: listViewModel.loadAll,
       onOpenCreate: editorViewModel.onOpenCreate,
       onOpenEdit: editorViewModel.onOpenEdit,
       onOpenDetail: detailsViewModel.onOpenDetail,
       onCloseEditor: editorViewModel.onCloseEditor,
       onCloseDetail,
+
       onFormChange: editorViewModel.onFormChange,
       onLineItemChange: editorViewModel.onLineItemChange,
       onAddLineItem: editorViewModel.onAddLineItem,
       onRemoveLineItem: editorViewModel.onRemoveLineItem,
       onSubmit: editorViewModel.onSubmit,
+
       onDelete,
+
       onOpenStatusModal: moneyActionViewModel.onOpenStatusModal,
       onCloseStatusModal: moneyActionViewModel.onCloseStatusModal,
       onStatusDraftChange: moneyActionViewModel.onStatusDraftChange,
       onSubmitStatus: moneyActionViewModel.onSubmitStatus,
+
       onCancelOrder: moneyActionViewModel.onCancelOrder,
       onReturnOrder: moneyActionViewModel.onReturnOrder,
+
       onOpenMoneyAction: moneyActionViewModel.onOpenMoneyAction,
       onCloseMoneyAction: moneyActionViewModel.onCloseMoneyAction,
       onMoneyFormChange: moneyActionViewModel.onMoneyFormChange,

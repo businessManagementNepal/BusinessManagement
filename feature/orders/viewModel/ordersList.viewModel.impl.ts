@@ -1,29 +1,29 @@
 import { MoneyAccount } from "@/feature/accounts/types/moneyAccount.types";
 import { Contact } from "@/feature/contacts/types/contact.types";
-import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
 import { Order, OrderStatus } from "@/feature/orders/types/order.types";
+import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
 import { Product } from "@/feature/products/types/product.types";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import {
-  resolveCurrencyCode,
+    resolveCurrencyCode,
 } from "@/shared/utils/currency/accountCurrency";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  buildCustomerOptions,
-  buildCustomerPhoneByRemoteId,
-  buildOrderListItemView,
-  buildOrderSummary,
-  buildProductOptions,
-  buildProductPriceByRemoteId,
-  buildStatusOptions,
-  mapMoneyAccountToOption,
-  ORDER_PAYMENT_METHOD_OPTIONS,
-  resolveTaxRatePercent,
-} from "./ordersPresentation.helpers";
-import {
-  OrdersListViewModelParams,
-  OrdersListViewModelState,
+    OrdersListViewModelParams,
+    OrdersListViewModelState,
 } from "./ordersList.viewModel";
+import {
+    buildCustomerOptions,
+    buildCustomerPhoneByRemoteId,
+    buildOrderListItemView,
+    buildOrderSummary,
+    buildProductOptions,
+    buildProductPriceByRemoteId,
+    buildStatusOptions,
+    mapMoneyAccountToOption,
+    ORDER_PAYMENT_METHOD_OPTIONS,
+    resolveTaxRatePercent,
+} from "./ordersPresentation.helpers";
 
 const toSortedMoneyAccountOptions = (
   moneyAccounts: readonly MoneyAccount[],
@@ -40,6 +40,11 @@ const toSortedMoneyAccountOptions = (
       return left.name.localeCompare(right.name);
     })
     .map(mapMoneyAccountToOption);
+
+const isActiveOrderStatus = (status: string): boolean =>
+  status !== OrderStatus.Delivered &&
+  status !== OrderStatus.Cancelled &&
+  status !== OrderStatus.Returned;
 
 export const useOrdersListViewModel = ({
   accountRemoteId,
@@ -227,20 +232,17 @@ export const useOrdersListViewModel = ({
 
   const screenSummary = useMemo(
     () => ({
-      activeCount: orderList.filter(
-        (order) =>
-          order.status !== OrderStatus.Delivered &&
-          order.status !== OrderStatus.Cancelled &&
-          order.status !== OrderStatus.Returned,
+      activeCount: filteredOrderList.filter((order) =>
+        isActiveOrderStatus(order.status),
       ).length,
-      deliveredCount: orderList.filter(
+      deliveredCount: filteredOrderList.filter(
         (order) => order.status === OrderStatus.Delivered,
       ).length,
-      cancelledCount: orderList.filter(
+      cancelledCount: filteredOrderList.filter(
         (order) => order.status === OrderStatus.Cancelled,
       ).length,
     }),
-    [orderList],
+    [filteredOrderList],
   );
 
   return {
