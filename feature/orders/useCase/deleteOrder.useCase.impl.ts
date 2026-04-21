@@ -16,7 +16,10 @@ export const createDeleteOrderUseCase = (params: {
 
     const orderResult = await params.repository.getOrderByRemoteId(normalizedRemoteId);
     if (!orderResult.success) {
-      return orderResult;
+      return {
+        success: false,
+        error: orderResult.error,
+      };
     }
 
     const order = orderResult.value;

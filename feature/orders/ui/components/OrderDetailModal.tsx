@@ -14,10 +14,6 @@ import {
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
-const isTerminalOrderStatus = (status: string): boolean =>
-  status === OrderStatus.Delivered ||
-  status === OrderStatus.Cancelled ||
-  status === OrderStatus.Returned;
 
 const getStatusChipStyles = (status: string) => {
   switch (status) {

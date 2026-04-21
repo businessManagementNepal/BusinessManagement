@@ -41,6 +41,7 @@ import { createRecordOrderPaymentUseCase } from "@/feature/orders/useCase/record
 import { createRefundOrderUseCase } from "@/feature/orders/useCase/refundOrder.useCase.impl";
 import { createRemoveOrderItemUseCase } from "@/feature/orders/useCase/removeOrderItem.useCase.impl";
 import { createReturnOrderUseCase } from "@/feature/orders/useCase/returnOrder.useCase.impl";
+import { createRollbackOrderDraftCreateUseCase } from "@/feature/orders/useCase/rollbackOrderDraftCreate.useCase.impl";
 import { createUpdateOrderUseCase } from "@/feature/orders/useCase/updateOrder.useCase.impl";
 import { useOrdersCoordinatorViewModel } from "@/feature/orders/viewModel/ordersCoordinator.viewModel.impl";
 import { createLocalProductDatasource } from "@/feature/products/data/dataSource/local.product.datasource.impl";
@@ -329,22 +330,30 @@ export function GetOrdersScreenFactory({
     ],
   );
   const deleteOrderUseCase = React.useMemo(
-    () => createDeleteOrderUseCase({
-      repository: orderRepository,
-      getOrderSettlementSnapshotsUseCase,
-    }),
+    () =>
+      createDeleteOrderUseCase({
+        repository: orderRepository,
+        getOrderSettlementSnapshotsUseCase,
+      }),
     [orderRepository, getOrderSettlementSnapshotsUseCase],
+  );
+  const rollbackOrderDraftCreateUseCase = React.useMemo(
+    () =>
+      createRollbackOrderDraftCreateUseCase({
+        repository: orderRepository,
+      }),
+    [orderRepository],
   );
   const createOrderUseCase = React.useMemo(
     () =>
       createCreateOrderUseCase({
         repository: orderRepository,
         getProductsUseCase,
-        deleteOrderUseCase,
+        rollbackOrderDraftCreateUseCase,
         ensureOrderBillingAndDueLinksUseCase,
       }),
     [
-      deleteOrderUseCase,
+      rollbackOrderDraftCreateUseCase,
       ensureOrderBillingAndDueLinksUseCase,
       getProductsUseCase,
       orderRepository,

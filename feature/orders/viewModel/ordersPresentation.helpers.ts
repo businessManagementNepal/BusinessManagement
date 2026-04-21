@@ -25,6 +25,8 @@ import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.
 import {
     canDeleteOrder,
     canEditOrderStructure,
+    getOrderDeleteBlockedReason,
+    getOrderEditBlockedReason,
     isOrderTerminalStatus,
 } from "@/feature/orders/utils/orderLifecyclePolicy.util";
 import { Product } from "@/feature/products/types/product.types";
@@ -513,8 +515,14 @@ export const buildOrderDetailView = (params: {
     canEdit,
     canDelete,
     canChangeStatus,
-    editBlockedReason: canEdit ? null : "Only draft or pending orders with no commercial or settlement activity can be edited.",
-    deleteBlockedReason: canDelete ? null : "Only draft or pending orders with no commercial or settlement activity can be deleted.",
+    editBlockedReason: getOrderEditBlockedReason({
+      order,
+      settlementSnapshot,
+    }),
+    deleteBlockedReason: getOrderDeleteBlockedReason({
+      order,
+      settlementSnapshot,
+    }),
   };
 };
 

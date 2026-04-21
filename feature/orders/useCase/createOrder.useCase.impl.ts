@@ -1,18 +1,18 @@
 import { OrderRepository } from "@/feature/orders/data/repository/order.repository";
 import {
-  OrderResult,
-  OrderValidationError,
-  SaveOrderPayload,
+    OrderResult,
+    OrderValidationError,
+    SaveOrderPayload,
 } from "@/feature/orders/types/order.types";
 import { isOrderFinancialStatus } from "@/feature/orders/utils/orderCommercialEffects.util";
 import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
 import {
-  buildOrderSnapshotPayload,
-  validateOrderDraftPayload,
+    buildOrderSnapshotPayload,
+    validateOrderDraftPayload,
 } from "./buildOrderSnapshotPayload.util";
 import { CreateOrderUseCase } from "./createOrder.useCase";
-import { DeleteOrderUseCase } from "./deleteOrder.useCase";
 import { EnsureOrderBillingAndDueLinksUseCase } from "./ensureOrderBillingAndDueLinks.useCase";
+import { RollbackOrderDraftCreateUseCase } from "./rollbackOrderDraftCreate.useCase";
 
 const buildRollbackAwareValidationError = (params: {
   primaryMessage: string;
@@ -27,7 +27,7 @@ const buildRollbackAwareValidationError = (params: {
 export const createCreateOrderUseCase = (params: {
   repository: OrderRepository;
   getProductsUseCase: GetProductsUseCase;
-  deleteOrderUseCase: DeleteOrderUseCase;
+  rollbackOrderDraftCreateUseCase: RollbackOrderDraftCreateUseCase;
   ensureOrderBillingAndDueLinksUseCase: EnsureOrderBillingAndDueLinksUseCase;
 }): CreateOrderUseCase => ({
   async execute(payload: SaveOrderPayload): Promise<OrderResult> {
@@ -79,7 +79,7 @@ export const createCreateOrderUseCase = (params: {
       return saveResult;
     }
 
-    const rollbackResult = await params.deleteOrderUseCase.execute(
+    const rollbackResult = await params.rollbackOrderDraftCreateUseCase.execute(
       saveResult.value.remoteId,
     );
 
