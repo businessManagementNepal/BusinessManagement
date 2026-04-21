@@ -1,18 +1,17 @@
-import React from "react";
 import {
-  StyleProp,
-  StyleSheet,
-  Text,
-  TextStyle,
-  View,
-  ViewStyle,
-} from "react-native";
-import {
-  Dropdown,
-  DropdownOption,
+    Dropdown,
+    DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
 import { colors } from "@/shared/components/theme/colors";
-import { spacing } from "@/shared/components/theme/spacing";
+import React from "react";
+import {
+    StyleProp,
+    StyleSheet,
+    Text,
+    TextStyle,
+    View,
+    ViewStyle,
+} from "react-native";
 
 type LabeledDropdownFieldProps = {
   label: string;

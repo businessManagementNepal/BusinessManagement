@@ -55,6 +55,7 @@ export function TransactionEditorModal({
       subtitle="Save personal money movement"
       onClose={viewModel.close}
       closeAccessibilityLabel="Close transaction editor"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.content}
       footer={
         <FormModalActionFooter>

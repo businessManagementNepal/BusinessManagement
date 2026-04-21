@@ -38,7 +38,7 @@ export function BudgetEditorModal({
       onClose={viewModel.onCloseEditor}
       closeAccessibilityLabel="Close budget editor"
       contentContainerStyle={styles.content}
-      presentation="dialog"
+      presentation="bottom-sheet"
       footer={
         <FormModalActionFooter>
           <AppButton

@@ -50,7 +50,7 @@ export function ContactEditorModal({
       subtitle="Manage customer and supplier details"
       onClose={onClose}
       closeAccessibilityLabel="Close contact editor"
-      presentation="dialog"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.formWrap}
       footer={
         <FormModalActionFooter>

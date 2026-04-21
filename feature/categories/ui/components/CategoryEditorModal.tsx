@@ -52,7 +52,7 @@ export function CategoryEditorModal({
       onClose={onClose}
       closeAccessibilityLabel="Close category editor"
       contentContainerStyle={styles.content}
-      presentation="dialog"
+      presentation="bottom-sheet"
       footer={
         <FormModalActionFooter>
           {isEditMode ? (

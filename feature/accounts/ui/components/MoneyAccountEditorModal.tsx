@@ -39,6 +39,7 @@ export function MoneyAccountEditorModal({
       title={title}
       onClose={viewModel.onCloseEditor}
       closeAccessibilityLabel="Close account editor"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.content}
       footer={
         <FormModalActionFooter>

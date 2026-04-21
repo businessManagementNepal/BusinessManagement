@@ -47,7 +47,7 @@ export function InventoryMovementModal({
       subtitle="Record stock movement details"
       onClose={onClose}
       closeAccessibilityLabel="Close inventory movement editor"
-      presentation="dialog"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.content}
       footer={
         <FormModalActionFooter>
