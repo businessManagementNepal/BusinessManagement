@@ -40,13 +40,11 @@ export function RateELekhaModal({
       presentation="bottom-sheet"
       contentContainerStyle={styles.content}
     >
-      <LabeledTextInput
-        label="Rating"
-        value={"How would you rate your experience?"}
-        editable={false}
-      />
+      <View style={styles.fieldWrap}>
+        <Text style={styles.fieldLabel}>Rating</Text>
+        <Text style={styles.helperText}>How would you rate your experience?</Text>
 
-      <View style={styles.starRow}>
+        <View style={styles.starRow}>
         {[1, 2, 3, 4, 5].map((value) => {
           const isActive = value <= ratingValue;
 
@@ -65,6 +63,7 @@ export function RateELekhaModal({
             </Pressable>
           );
         })}
+        </View>
       </View>
 
       <LabeledTextInput
@@ -94,6 +93,14 @@ export function RateELekhaModal({
 const styles = StyleSheet.create({
   content: {
     gap: spacing.md,
+  },
+  fieldWrap: {
+    gap: spacing.xs,
+  },
+  fieldLabel: {
+    color: colors.cardForeground,
+    fontFamily: "InterSemiBold",
+    fontSize: 14,
   },
   helperText: {
     color: colors.mutedForeground,
