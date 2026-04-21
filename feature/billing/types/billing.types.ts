@@ -1,4 +1,4 @@
-import { Result } from "@/shared/types/result.types";
+import { Result } from "../../../shared/types/result.types";
 
 export const BillingDocumentType = {
   Invoice: "invoice",

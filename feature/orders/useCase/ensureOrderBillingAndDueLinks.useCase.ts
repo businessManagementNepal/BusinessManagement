@@ -1,6 +1,6 @@
-import { Contact } from "@/feature/contacts/types/contact.types";
-import { Order, OrderError } from "@/feature/orders/types/order.types";
-import { Result } from "@/shared/types/result.types";
+import { Result } from "../../../shared/types/result.types";
+import { Contact } from "../../contacts/types/contact.types";
+import { Order, OrderError } from "../types/order.types";
 
 export type EnsuredOrderBillingAndDueLinks = {
   order: Order;

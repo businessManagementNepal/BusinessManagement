@@ -1,9 +1,9 @@
 import {
-  OrderOperationResult,
-  OrderResult,
-  OrdersResult,
-  SaveOrderPayload,
-} from "@/feature/orders/types/order.types";
+    OrderOperationResult,
+    OrderResult,
+    OrdersResult,
+    SaveOrderPayload,
+} from "../../types/order.types";
 
 export interface OrderRepository {
   saveOrder(payload: SaveOrderPayload): Promise<OrderResult>;

@@ -1,24 +1,24 @@
 import {
     MoneyAccount,
     MoneyAccountType,
-} from "@/feature/accounts/types/moneyAccount.types";
+} from "../../accounts/types/moneyAccount.types";
 import {
     BillingDocumentStatus,
     BillingDocumentType,
     BillingTemplateType,
     SaveBillingDocumentPayload,
-} from "@/feature/billing/types/billing.types";
-import { Contact } from "@/feature/contacts/types/contact.types";
+} from "../../billing/types/billing.types";
+import { Contact } from "../../contacts/types/contact.types";
 import {
     LedgerBalanceDirection,
     LedgerEntryType,
     LedgerPaymentMode,
     LedgerPaymentModeValue,
     SaveLedgerEntryPayload,
-} from "@/feature/ledger/types/ledger.entity.types";
-import { Order, OrderLine, OrderStatus } from "@/feature/orders/types/order.types";
-import { resolvePersistedOrderTotalAmount } from "@/feature/orders/utils/orderSettlementFromTransactions.util";
-import { TransactionSourceModule } from "@/feature/transactions/types/transaction.entity.types";
+} from "../../ledger/types/ledger.entity.types";
+import { TransactionSourceModule } from "../../transactions/types/transaction.entity.types";
+import { Order, OrderLine, OrderStatus } from "../types/order.types";
+import { resolvePersistedOrderTotalAmount } from "./orderSettlementFromTransactions.util";
 
 const roundMoney = (value: number): number =>
   Math.round((value + Number.EPSILON) * 100) / 100;

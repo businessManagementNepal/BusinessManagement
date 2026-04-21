@@ -1,5 +1,5 @@
-import { Order, OrderStatus, OrderStatusValue } from "@/feature/orders/types/order.types";
-import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
+import { Order, OrderStatus, OrderStatusValue } from "../types/order.types";
+import { OrderSettlementSnapshot } from "../types/orderSettlement.dto.types";
 
 export const isOrderTerminalStatus = (status: OrderStatusValue): boolean =>
   status === OrderStatus.Delivered ||

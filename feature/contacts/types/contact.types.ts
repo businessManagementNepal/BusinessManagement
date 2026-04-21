@@ -1,5 +1,5 @@
-import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
-import { Result } from "@/shared/types/result.types";
+import { Result } from "../../../shared/types/result.types";
+import { AccountTypeValue } from "../../auth/accountSelection/types/accountSelection.types";
 
 export const ContactType = {
   Customer: "customer",

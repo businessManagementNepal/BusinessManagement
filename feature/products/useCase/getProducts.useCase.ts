@@ -1,4 +1,4 @@
-import { ProductsResult } from "@/feature/products/types/product.types";
+import { ProductsResult } from "../types/product.types";
 
 export interface GetProductsUseCase {
   execute(accountRemoteId: string): Promise<ProductsResult>;

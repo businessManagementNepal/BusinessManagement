@@ -1,9 +1,9 @@
-import { Order, OrderLine } from "@/feature/orders/types/order.types";
 import {
-  Transaction,
-  TransactionPostingStatus,
-  TransactionSourceModule,
-} from "@/feature/transactions/types/transaction.entity.types";
+    Transaction,
+    TransactionPostingStatus,
+    TransactionSourceModule,
+} from "../../transactions/types/transaction.entity.types";
+import { Order, OrderLine } from "../types/order.types";
 
 export const ORDER_TRANSACTION_SOURCE_ACTION = {
   Payment: "payment",

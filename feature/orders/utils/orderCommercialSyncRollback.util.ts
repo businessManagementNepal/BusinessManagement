@@ -1,8 +1,8 @@
 import {
-  BillingDocument,
-  SaveBillingDocumentPayload,
-} from "@/feature/billing/types/billing.types";
-import { Order, SaveOrderPayload } from "@/feature/orders/types/order.types";
+    BillingDocument,
+    SaveBillingDocumentPayload,
+} from "../../billing/types/billing.types";
+import { Order, SaveOrderPayload } from "../types/order.types";
 
 export const mapBillingDocumentToSaveBillingDocumentPayload = (
   document: BillingDocument,

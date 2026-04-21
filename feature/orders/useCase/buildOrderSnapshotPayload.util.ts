@@ -1,10 +1,10 @@
+import { Product } from "../../products/types/product.types";
 import {
     Order,
     OrderStatus,
     SaveOrderLinePayload,
     SaveOrderPayload,
-} from "@/feature/orders/types/order.types";
-import { Product } from "@/feature/products/types/product.types";
+} from "../types/order.types";
 
 type BuildOrderSnapshotPayloadParams = {
   payload: SaveOrderPayload;

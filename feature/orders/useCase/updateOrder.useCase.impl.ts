@@ -1,15 +1,15 @@
-import { OrderRepository } from "@/feature/orders/data/repository/order.repository";
+import { GetProductsUseCase } from "../../products/useCase/getProducts.useCase";
+import { OrderRepository } from "../data/repository/order.repository";
 import {
     OrderResult,
     OrderValidationError,
     SaveOrderPayload,
-} from "@/feature/orders/types/order.types";
+} from "../types/order.types";
 import {
     isOrderFinancialStatus,
-} from "@/feature/orders/utils/orderCommercialEffects.util";
-import { mapOrderToSaveOrderPayload } from "@/feature/orders/utils/orderCommercialSyncRollback.util";
-import { getOrderEditBlockedReason } from "@/feature/orders/utils/orderLifecyclePolicy.util";
-import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
+} from "../utils/orderCommercialEffects.util";
+import { mapOrderToSaveOrderPayload } from "../utils/orderCommercialSyncRollback.util";
+import { getOrderEditBlockedReason } from "../utils/orderLifecyclePolicy.util";
 import {
     buildOrderSnapshotPayload,
     validateOrderDraftPayload,
@@ -17,6 +17,7 @@ import {
 import { EnsureOrderBillingAndDueLinksUseCase } from "./ensureOrderBillingAndDueLinks.useCase";
 import { GetOrderSettlementSnapshotsUseCase } from "./getOrderSettlementSnapshots.useCase";
 import { UpdateOrderUseCase } from "./updateOrder.useCase";
+import { validateOrderPersistenceReadyPayload } from "./validateOrderPersistenceReadyPayload.util";
 
 const buildRollbackAwareValidationError = (params: {
   primaryMessage: string;

@@ -1,6 +1,6 @@
-import { Result } from "@/shared/types/result.types";
-import { BusinessTypeValue } from "@/shared/constants/businessType.constants";
-import { TaxModeValue } from "@/shared/types/regionalFinance.types";
+import { BusinessTypeValue } from "../../../../shared/constants/businessType.constants";
+import { TaxModeValue } from "../../../../shared/types/regionalFinance.types";
+import { Result } from "../../../../shared/types/result.types";
 
 export const AccountType = {
   Personal: "personal",
