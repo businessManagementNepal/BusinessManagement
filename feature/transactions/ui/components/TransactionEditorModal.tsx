@@ -1,19 +1,18 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import {
-  Dropdown,
-  DropdownOption,
-} from "@/shared/components/reusable/DropDown/Dropdown";
+    TransactionDirection,
+    TransactionType,
+} from "@/feature/transactions/types/transaction.entity.types";
+import { TransactionEditorViewModel } from "@/feature/transactions/viewModel/transactionEditor.viewModel";
+import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
+import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
-import { TransactionEditorViewModel } from "@/feature/transactions/viewModel/transactionEditor.viewModel";
-import {
-  TransactionDirection,
-  TransactionType,
-} from "@/feature/transactions/types/transaction.entity.types";
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type TransactionEditorModalProps = {
   viewModel: TransactionEditorViewModel;
@@ -78,124 +77,117 @@ export function TransactionEditorModal({
         </FormModalActionFooter>
       }
     >
-      <Text style={styles.sectionLabel}>Type</Text>
-      <View style={styles.typeChipRow}>
-        {viewModel.availableTypes.map((typeOption) => {
-          const isSelected = typeOption.value === state.type;
+      <View style={styles.fieldWrap}>
+        <Text style={styles.fieldLabel}>Type</Text>
+        <View style={styles.typeChipRow}>
+          {viewModel.availableTypes.map((typeOption) => {
+            const isSelected = typeOption.value === state.type;
 
-          return (
-            <Pressable
-              key={typeOption.value}
-              style={[styles.typeChip, isSelected ? styles.typeChipSelected : null]}
-              onPress={() => viewModel.onChangeType(typeOption.value)}
-              disabled={state.isSaving}
-            >
-              <Text
+            return (
+              <Pressable
+                key={typeOption.value}
                 style={[
-                  styles.typeChipText,
-                  isSelected ? styles.typeChipTextSelected : null,
+                  styles.typeChip,
+                  isSelected ? styles.typeChipSelected : null,
                 ]}
+                onPress={() => viewModel.onChangeType(typeOption.value)}
+                disabled={state.isSaving}
               >
-                {typeOption.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <Text
+                  style={[
+                    styles.typeChipText,
+                    isSelected ? styles.typeChipTextSelected : null,
+                  ]}
+                >
+                  {typeOption.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       {showDirectionControl ? (
-        <>
-          <Text style={styles.inputLabel}>Direction</Text>
-          <Dropdown
-            value={state.direction}
-            options={directionOptions}
-            onChange={(value) => {
-              if (
-                value === TransactionDirection.In ||
-                value === TransactionDirection.Out
-              ) {
-                viewModel.onChangeDirection(value);
-              }
-            }}
-            placeholder="Select direction"
-            modalTitle="Select direction"
-            showLeadingIcon={false}
-          />
-        </>
+        <LabeledDropdownField
+          label="Direction"
+          value={state.direction}
+          options={directionOptions}
+          onChange={(value) => {
+            if (
+              value === TransactionDirection.In ||
+              value === TransactionDirection.Out
+            ) {
+              viewModel.onChangeDirection(value);
+            }
+          }}
+          placeholder="Select direction"
+          modalTitle="Select direction"
+          disabled={state.isSaving}
+        />
       ) : null}
 
-      <Text style={styles.inputLabel}>Title</Text>
-      <TextInput
+      <LabeledTextInput
+        label="Title"
         value={state.title}
         onChangeText={viewModel.onChangeTitle}
         placeholder="Example: Salary, House Rent, Grocery"
-        placeholderTextColor={colors.mutedForeground}
-        style={styles.input}
         editable={!state.isSaving}
       />
 
-      <Text style={styles.inputLabel}>Amount</Text>
-      <TextInput
+      <LabeledTextInput
+        label="Amount"
         value={state.amount}
         onChangeText={viewModel.onChangeAmount}
         placeholder="0"
-        placeholderTextColor={colors.mutedForeground}
-        style={styles.input}
         keyboardType="decimal-pad"
         editable={!state.isSaving}
       />
 
-      <Text style={styles.inputLabel}>Account</Text>
-      <Dropdown
+      <LabeledDropdownField
+        label="Account"
         value={state.accountRemoteId}
         options={accountOptions}
         onChange={viewModel.onChangeAccountRemoteId}
         placeholder="Select account"
         modalTitle="Select account"
-        showLeadingIcon={false}
+        disabled={state.isSaving}
       />
 
-      <Text style={styles.inputLabel}>Money Account</Text>
-      <Dropdown
+      <LabeledDropdownField
+        label="Money Account"
         value={state.settlementMoneyAccountRemoteId}
         options={moneyAccountOptions}
         onChange={viewModel.onChangeSettlementMoneyAccountRemoteId}
         placeholder="Select money account"
         modalTitle="Select money account"
-        showLeadingIcon={false}
+        disabled={state.isSaving}
       />
 
-      <Text style={styles.inputLabel}>Category (optional)</Text>
-      <TextInput
+      <LabeledTextInput
+        label="Category (optional)"
         value={state.categoryLabel}
         onChangeText={viewModel.onChangeCategoryLabel}
         placeholder="Example: Food, Salary, Transport"
-        placeholderTextColor={colors.mutedForeground}
-        style={styles.input}
         editable={!state.isSaving}
       />
 
-      <Text style={styles.inputLabel}>Date</Text>
-      <TextInput
+      <LabeledTextInput
+        label="Date"
         value={state.happenedAt}
         onChangeText={viewModel.onChangeHappenedAt}
         placeholder="YYYY-MM-DD"
-        placeholderTextColor={colors.mutedForeground}
-        style={styles.input}
         autoCapitalize="none"
         editable={!state.isSaving}
       />
 
-      <Text style={styles.inputLabel}>Note (optional)</Text>
-      <TextInput
+      <LabeledTextInput
+        label="Note (optional)"
         value={state.note}
         onChangeText={viewModel.onChangeNote}
         placeholder="Add a short note"
-        placeholderTextColor={colors.mutedForeground}
-        style={[styles.input, styles.noteInput]}
         editable={!state.isSaving}
         multiline={true}
-        textAlignVertical="top"
+        numberOfLines={4}
       />
 
       {state.errorMessage ? (
@@ -207,19 +199,23 @@ export function TransactionEditorModal({
 
 const styles = StyleSheet.create({
   content: {
-    gap: spacing.xs,
+    gap: spacing.sm,
+    paddingBottom: spacing.xl,
   },
-  sectionLabel: {
+  fieldWrap: {
+    gap: 6,
+  },
+  fieldLabel: {
     color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-    marginBottom: 6,
+    fontSize: 11,
+    fontFamily: "InterBold",
+    textTransform: "uppercase",
+    letterSpacing: 0.45,
   },
   typeChipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.xs,
-    marginBottom: spacing.xs,
   },
   typeChip: {
     paddingHorizontal: 12,
@@ -241,33 +237,11 @@ const styles = StyleSheet.create({
   typeChipTextSelected: {
     color: colors.primaryForeground,
   },
-  inputLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-    marginBottom: 6,
-    marginTop: spacing.xs,
-  },
-  input: {
-    minHeight: 50,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-    paddingHorizontal: 12,
-    color: colors.cardForeground,
-    fontSize: 14,
-  },
-  noteInput: {
-    minHeight: 100,
-    paddingTop: 12,
-    paddingBottom: 12,
-  },
   errorText: {
     color: colors.destructive,
     fontSize: 12,
-    fontFamily: "InterMedium",
-    marginTop: spacing.sm,
+    lineHeight: 16,
+    fontFamily: "InterSemiBold",
   },
   actionButton: {
     flex: 1,

@@ -1,15 +1,14 @@
 import {
-  BUSINESS_CONTACT_TYPE_OPTIONS,
-  PERSONAL_CONTACT_TYPE_OPTIONS,
+    BUSINESS_CONTACT_TYPE_OPTIONS,
+    PERSONAL_CONTACT_TYPE_OPTIONS,
 } from "@/feature/contacts/types/contact.types";
 import { ContactFormState } from "@/feature/contacts/viewModel/contacts.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
-import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
-import { colors } from "@/shared/components/theme/colors";
-import { radius, spacing } from "@/shared/components/theme/spacing";
+import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
+import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
+import { spacing } from "@/shared/components/theme/spacing";
 import React from "react";
 import { StyleSheet } from "react-native";
 
@@ -84,14 +83,16 @@ export function ContactEditorModal({
         </FormModalActionFooter>
       }
     >
-      <AppTextInput
+      <LabeledTextInput
+        label="Full Name *"
         value={form.fullName}
-        placeholder="Full Name *"
+        placeholder="Full Name"
         onChangeText={(value) => onChange("fullName", value)}
         autoCapitalize="words"
       />
 
-      <Dropdown
+      <LabeledDropdownField
+        label="Contact Type"
         value={form.contactType}
         options={typeOptions.map((item) => ({
           label: item.label,
@@ -100,47 +101,54 @@ export function ContactEditorModal({
         onChange={(value) => onChange("contactType", value)}
         placeholder="Select contact type"
         modalTitle="Select contact type"
-        showLeadingIcon={false}
-        triggerStyle={styles.dropdownTrigger}
-        triggerTextStyle={styles.dropdownText}
       />
 
-      <AppTextInput
+      <LabeledTextInput
+        label="Phone Number *"
         value={form.phoneNumber}
-        placeholder="Phone Number *"
+        placeholder="Phone Number"
         keyboardType="phone-pad"
         onChangeText={(value) => onChange("phoneNumber", value)}
       />
-      <AppTextInput
+
+      <LabeledTextInput
+        label="Email Address"
         value={form.emailAddress}
         placeholder="Email Address"
         keyboardType="email-address"
         autoCapitalize="none"
         onChangeText={(value) => onChange("emailAddress", value)}
       />
-      <AppTextInput
+
+      <LabeledTextInput
+        label="Address"
         value={form.address}
         placeholder="Address"
         onChangeText={(value) => onChange("address", value)}
       />
-      <AppTextInput
+
+      <LabeledTextInput
+        label="PAN / Tax ID"
         value={form.taxId}
         placeholder="PAN / Tax ID"
         onChangeText={(value) => onChange("taxId", value)}
       />
-      <AppTextInput
+
+      <LabeledTextInput
+        label="Opening Balance"
         value={form.openingBalance}
         placeholder={openingBalancePlaceholder}
         keyboardType="decimal-pad"
         onChangeText={(value) => onChange("openingBalance", value)}
       />
-      <AppTextInput
+
+      <LabeledTextInput
+        label="Notes"
         value={form.notes}
         placeholder="Notes"
         multiline={true}
         numberOfLines={4}
         onChangeText={(value) => onChange("notes", value)}
-        style={styles.multilineInput}
       />
     </FormSheetModal>
   );
@@ -148,22 +156,8 @@ export function ContactEditorModal({
 
 const styles = StyleSheet.create({
   formWrap: {
-    gap: spacing.md,
-  },
-  dropdownTrigger: {
-    minHeight: 54,
-    borderRadius: radius.lg,
-    paddingHorizontal: 12,
-    backgroundColor: colors.card,
-  },
-  dropdownText: {
-    fontSize: 14,
-    fontFamily: "InterMedium",
-    color: colors.cardForeground,
-  },
-  multilineInput: {
-    minHeight: 90,
-    textAlignVertical: "top",
+    gap: spacing.sm,
+    paddingBottom: spacing.xl,
   },
   actionButton: {
     flex: 1,

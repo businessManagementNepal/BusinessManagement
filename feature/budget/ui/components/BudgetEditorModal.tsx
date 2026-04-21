@@ -1,16 +1,14 @@
 import { BudgetViewModel } from "@/feature/budget/viewModel/budget.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import {
-  Dropdown,
-  DropdownOption,
-} from "@/shared/components/reusable/DropDown/Dropdown";
+import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { spacing } from "@/shared/components/theme/spacing";
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
 
 type BudgetEditorModalProps = {
   viewModel: BudgetViewModel;
@@ -72,19 +70,17 @@ export function BudgetEditorModal({
         editable={!editorState.isSaving}
       />
 
-      <View style={styles.fieldWrap}>
-        <Text style={styles.label}>Category</Text>
-        <Dropdown
-          value={editorState.categoryRemoteId}
-          options={categoryOptions}
-          onChange={(value) =>
-            viewModel.onEditorFieldChange("categoryRemoteId", String(value))
-          }
-          placeholder="Choose category"
-          modalTitle="Select budget category"
-          showLeadingIcon={false}
-        />
-      </View>
+      <LabeledDropdownField
+        label="Category"
+        value={editorState.categoryRemoteId}
+        options={categoryOptions}
+        onChange={(value) =>
+          viewModel.onEditorFieldChange("categoryRemoteId", String(value))
+        }
+        placeholder="Choose category"
+        modalTitle="Select budget category"
+        disabled={editorState.isSaving}
+      />
 
       <LabeledTextInput
         label="Planned Amount *"
@@ -118,16 +114,6 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.sm,
     paddingBottom: spacing.xl,
-  },
-  fieldWrap: {
-    gap: 6,
-  },
-  label: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
   },
   errorText: {
     color: colors.destructive,

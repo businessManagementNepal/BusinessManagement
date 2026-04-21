@@ -1,19 +1,19 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
 import {
-  Dropdown,
-  DropdownOption,
+    MONEY_ACCOUNT_TYPE_OPTIONS,
+} from "@/feature/accounts/types/moneyAccount.types";
+import { MoneyAccountsViewModel } from "@/feature/accounts/viewModel/moneyAccounts.viewModel";
+import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import {
+    DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { colors } from "@/shared/components/theme/colors";
 import { spacing } from "@/shared/components/theme/spacing";
-import {
-  MONEY_ACCOUNT_TYPE_OPTIONS,
-} from "@/feature/accounts/types/moneyAccount.types";
-import { MoneyAccountsViewModel } from "@/feature/accounts/viewModel/moneyAccounts.viewModel";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 type MoneyAccountEditorModalProps = {
   viewModel: MoneyAccountsViewModel;
@@ -78,25 +78,22 @@ export function MoneyAccountEditorModal({
         placeholder="Account Name"
       />
 
-      <View style={styles.fieldWrap}>
-        <Text style={styles.label}>Account Type</Text>
-        <Dropdown
-          value={viewModel.form.type}
-          options={accountTypeOptions}
-          onChange={(value) => {
-            if (
-              value === "cash" ||
-              value === "bank" ||
-              value === "wallet"
-            ) {
-              viewModel.onFormChange("type", value);
-            }
-          }}
-          placeholder="Select type"
-          modalTitle="Choose account type"
-          showLeadingIcon={false}
-        />
-      </View>
+      <LabeledDropdownField
+        label="Account Type"
+        value={viewModel.form.type}
+        options={accountTypeOptions}
+        onChange={(value) => {
+          if (
+            value === "cash" ||
+            value === "bank" ||
+            value === "wallet"
+          ) {
+            viewModel.onFormChange("type", value);
+          }
+        }}
+        placeholder="Select type"
+        modalTitle="Choose account type"
+      />
 
       <LabeledTextInput
         label={`${
@@ -155,16 +152,6 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.sm,
     paddingBottom: spacing.xl,
-  },
-  fieldWrap: {
-    gap: 6,
-  },
-  label: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
   },
   errorText: {
     color: colors.destructive,
