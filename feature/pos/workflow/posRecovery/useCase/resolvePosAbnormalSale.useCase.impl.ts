@@ -1,4 +1,6 @@
-﻿import type { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
+import { InventoryMovementSourceModule } from "@/feature/inventory/types/inventory.types";
+import type { DeleteInventoryMovementsBySourceUseCase } from "@/feature/inventory/useCase/deleteInventoryMovementsBySource.useCase";
+import type { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import type { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase";
 import { PosErrorType } from "@/feature/pos/types/pos.error.types";
 import { PosSaleWorkflowStatus } from "@/feature/pos/types/posSale.constant";
@@ -7,6 +9,7 @@ import type { DeleteBusinessTransactionUseCase } from "@/feature/transactions/us
 import type { ResolvePosAbnormalSaleUseCase } from "./resolvePosAbnormalSale.useCase";
 
 type CreateResolvePosAbnormalSaleUseCaseParams = {
+  deleteInventoryMovementsBySourceUseCase: DeleteInventoryMovementsBySourceUseCase;
   deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
   deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase;
   deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
@@ -21,6 +24,7 @@ const isAbnormalSaleStatus = (workflowStatus: string): boolean => {
 };
 
 export const createResolvePosAbnormalSaleUseCase = ({
+  deleteInventoryMovementsBySourceUseCase,
   deleteBillingDocumentUseCase,
   deleteLedgerEntryUseCase,
   deleteBusinessTransactionUseCase,
@@ -28,6 +32,7 @@ export const createResolvePosAbnormalSaleUseCase = ({
 }: CreateResolvePosAbnormalSaleUseCaseParams): ResolvePosAbnormalSaleUseCase => ({
   async execute({ sale }) {
     const saleRemoteId = sale.remoteId.trim();
+    const businessAccountRemoteId = sale.businessAccountRemoteId.trim();
 
     if (!saleRemoteId) {
       return {
@@ -35,6 +40,16 @@ export const createResolvePosAbnormalSaleUseCase = ({
         error: {
           type: PosErrorType.Validation,
           message: "POS sale id is required.",
+        },
+      };
+    }
+
+    if (!businessAccountRemoteId) {
+      return {
+        success: false,
+        error: {
+          type: PosErrorType.Validation,
+          message: "Business account context is required.",
         },
       };
     }
@@ -54,6 +69,19 @@ export const createResolvePosAbnormalSaleUseCase = ({
     let remainingLedgerEntryRemoteId = sale.ledgerEntryRemoteId;
     const remainingTransactionRemoteIds: string[] = [];
     const cleanupErrors: string[] = [];
+
+    const deleteInventoryResult =
+      await deleteInventoryMovementsBySourceUseCase.execute({
+        accountRemoteId: businessAccountRemoteId,
+        sourceModule: InventoryMovementSourceModule.Pos,
+        sourceRemoteId: saleRemoteId,
+      });
+
+    if (!deleteInventoryResult.success) {
+      cleanupErrors.push(
+        `could not reverse inventory for POS sale ${saleRemoteId}: ${deleteInventoryResult.error.message}`,
+      );
+    }
 
     if (remainingLedgerEntryRemoteId) {
       const deleteLedgerResult = await deleteLedgerEntryUseCase.execute(
@@ -117,8 +145,8 @@ export const createResolvePosAbnormalSaleUseCase = ({
           : "manual_cleanup_partial",
       lastErrorMessage:
         cleanupErrors.length === 0
-          ? "POS abnormal sale cleanup completed. Linked accounting artifacts were cleared."
-          : `POS abnormal sale cleanup could not clear all linked accounting artifacts: ${cleanupErrors.join(
+          ? "POS abnormal sale cleanup completed. Linked inventory and accounting artifacts were cleared."
+          : `POS abnormal sale cleanup could not clear all linked inventory/accounting artifacts: ${cleanupErrors.join(
               " | ",
             )}`,
     });

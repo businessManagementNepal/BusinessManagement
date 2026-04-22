@@ -317,21 +317,84 @@ export const createLocalInventoryDatasource = (
         throw new Error("At least one valid remote id is required");
       }
 
-      const collection = database.get<InventoryMovementModel>(
+      const movementCollection = database.get<InventoryMovementModel>(
         INVENTORY_MOVEMENTS_TABLE,
       );
+      const productCollection = database.get<ProductModel>(PRODUCTS_TABLE);
 
       await database.write(async () => {
-        const movements = await collection
+        const now = Date.now();
+
+        const movements = await movementCollection
           .query(
             Q.where("remote_id", Q.oneOf(normalizedRemoteIds)),
             Q.where("deleted_at", Q.eq(null)),
           )
           .fetch();
 
+        if (movements.length === 0) {
+          return;
+        }
+
+        const uniqueProductRemoteIds = Array.from(
+          new Set(movements.map((movement) => movement.productRemoteId)),
+        );
+
+        const products = await productCollection
+          .query(
+            Q.where("remote_id", Q.oneOf(uniqueProductRemoteIds)),
+            Q.where("deleted_at", Q.eq(null)),
+          )
+          .fetch();
+
+        const productByRemoteId = new Map(
+          products.map((product) => [product.remoteId, product]),
+        );
+
+        const nextStockByProductRemoteId = new Map<string, number>();
+
         for (const movement of movements) {
-          await movement.markAsDeleted();
-          updateSyncStatusOnMutation(movement);
+          const product = productByRemoteId.get(movement.productRemoteId);
+          if (!product) {
+            throw new Error(
+              `Product with remote id ${movement.productRemoteId} not found`,
+            );
+          }
+
+          const currentStock =
+            nextStockByProductRemoteId.get(product.remoteId) ??
+            (product.stockQuantity ?? 0);
+
+          const nextStock = currentStock - movement.deltaQuantity;
+
+          if (nextStock < 0) {
+            throw new Error(
+              `Deleting inventory movement ${movement.remoteId} would reduce ${product.name} below zero`,
+            );
+          }
+
+          nextStockByProductRemoteId.set(product.remoteId, nextStock);
+        }
+
+        for (const [productRemoteId, nextStock] of nextStockByProductRemoteId) {
+          const product = productByRemoteId.get(productRemoteId);
+          if (!product) {
+            continue;
+          }
+
+          await product.update((record) => {
+            record.stockQuantity = nextStock;
+            updateSyncStatusOnMutation(record);
+            setUpdatedAt(record, now);
+          });
+        }
+
+        for (const movement of movements) {
+          await movement.update((record) => {
+            record.deletedAt = now;
+            updateSyncStatusOnMutation(record);
+            setUpdatedAt(record, now);
+          });
         }
       });
 

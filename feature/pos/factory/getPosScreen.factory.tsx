@@ -14,6 +14,7 @@ import { createGetOrCreateContactUseCase } from "@/feature/contacts/useCase/getO
 import { createLocalInventoryDatasource } from "@/feature/inventory/data/dataSource/local.inventory.datasource.impl";
 import { createInventoryRepository } from "@/feature/inventory/data/repository/inventory.repository.impl";
 import { createCreateOpeningStockForProductUseCase } from "@/feature/inventory/useCase/createOpeningStockForProduct.useCase.impl";
+import { createDeleteInventoryMovementsBySourceUseCase } from "@/feature/inventory/useCase/deleteInventoryMovementsBySource.useCase.impl";
 import { createSaveInventoryMovementUseCase } from "@/feature/inventory/useCase/saveInventoryMovement.useCase.impl";
 import { createSaveInventoryMovementsUseCase } from "@/feature/inventory/useCase/saveInventoryMovements.useCase.impl";
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
@@ -349,50 +350,6 @@ export function GetPosScreenFactory({
     [receiptDocumentAdapter],
   );
 
-  const getPosSaleHistoryUseCase = React.useMemo(
-    () =>
-      createGetPosSaleHistoryUseCase({
-        getPosSalesUseCase,
-      }),
-    [getPosSalesUseCase],
-  );
-
-  const reconcilePosSaleUseCase = React.useMemo(
-    () =>
-      createReconcilePosSaleUseCase({
-        getBillingDocumentByRemoteIdUseCase,
-        getLedgerEntryByRemoteIdUseCase,
-      }),
-    [getBillingDocumentByRemoteIdUseCase, getLedgerEntryByRemoteIdUseCase],
-  );
-
-  const resolvePosAbnormalSaleUseCase = React.useMemo(
-    () =>
-      createResolvePosAbnormalSaleUseCase({
-        deleteBillingDocumentUseCase,
-        deleteLedgerEntryUseCase,
-        deleteBusinessTransactionUseCase,
-        updatePosSaleWorkflowStateUseCase,
-      }),
-    [
-      deleteBillingDocumentUseCase,
-      deleteBusinessTransactionUseCase,
-      deleteLedgerEntryUseCase,
-      updatePosSaleWorkflowStateUseCase,
-    ],
-  );
-
-  const saleHistoryViewModel = usePosSaleHistoryViewModel({
-    accountRemoteId: activeBusinessAccountRemoteId ?? "",
-    currencyCode: activeAccountCurrencyCode ?? "NPR",
-    countryCode: activeAccountCountryCode,
-    getPosSaleHistoryUseCase,
-    printPosReceiptUseCase,
-    sharePosReceiptUseCase,
-    reconcilePosSaleUseCase,
-    resolvePosAbnormalSaleUseCase,
-  });
-
   const productDatasource = React.useMemo(
     () => createLocalProductDatasource(appDatabase),
     [],
@@ -408,6 +365,13 @@ export function GetPosScreenFactory({
   const inventoryRepository = React.useMemo(
     () => createInventoryRepository(inventoryDatasource),
     [inventoryDatasource],
+  );
+  const deleteInventoryMovementsBySourceUseCase = React.useMemo(
+    () =>
+      createDeleteInventoryMovementsBySourceUseCase({
+        inventoryRepository,
+      }),
+    [inventoryRepository],
   );
   const saveInventoryMovementsUseCase = React.useMemo(
     () =>
@@ -461,6 +425,52 @@ export function GetPosScreenFactory({
       saveProductUseCase,
     ],
   );
+
+  const getPosSaleHistoryUseCase = React.useMemo(
+    () =>
+      createGetPosSaleHistoryUseCase({
+        getPosSalesUseCase,
+      }),
+    [getPosSalesUseCase],
+  );
+
+  const reconcilePosSaleUseCase = React.useMemo(
+    () =>
+      createReconcilePosSaleUseCase({
+        getBillingDocumentByRemoteIdUseCase,
+        getLedgerEntryByRemoteIdUseCase,
+      }),
+    [getBillingDocumentByRemoteIdUseCase, getLedgerEntryByRemoteIdUseCase],
+  );
+
+  const resolvePosAbnormalSaleUseCase = React.useMemo(
+    () =>
+      createResolvePosAbnormalSaleUseCase({
+        deleteInventoryMovementsBySourceUseCase,
+        deleteBillingDocumentUseCase,
+        deleteLedgerEntryUseCase,
+        deleteBusinessTransactionUseCase,
+        updatePosSaleWorkflowStateUseCase,
+      }),
+    [
+      deleteInventoryMovementsBySourceUseCase,
+      deleteBillingDocumentUseCase,
+      deleteBusinessTransactionUseCase,
+      deleteLedgerEntryUseCase,
+      updatePosSaleWorkflowStateUseCase,
+    ],
+  );
+
+  const saleHistoryViewModel = usePosSaleHistoryViewModel({
+    accountRemoteId: activeBusinessAccountRemoteId ?? "",
+    currencyCode: activeAccountCurrencyCode ?? "NPR",
+    countryCode: activeAccountCountryCode,
+    getPosSaleHistoryUseCase,
+    printPosReceiptUseCase,
+    sharePosReceiptUseCase,
+    reconcilePosSaleUseCase,
+    resolvePosAbnormalSaleUseCase,
+  });
 
   const moneyAccountDatasource = React.useMemo(
     () => createLocalMoneyAccountDatasource(appDatabase),
