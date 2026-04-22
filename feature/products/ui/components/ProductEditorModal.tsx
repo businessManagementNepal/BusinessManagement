@@ -193,6 +193,16 @@ export function ProductEditorModal({
         onChangeText={(value) => onChange("costPrice", value)}
       />
 
+      {mode === "create" && isItemKind ? (
+        <LabeledTextInput
+          label="Opening Stock"
+          value={form.openingStockQuantity}
+          placeholder="0"
+          keyboardType="number-pad"
+          onChangeText={(value) => onChange("openingStockQuantity", value)}
+        />
+      ) : null}
+
       <LabeledDropdownField
         label="Unit"
         value={form.unitLabel}

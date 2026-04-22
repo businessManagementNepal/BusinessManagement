@@ -8,6 +8,7 @@ import {
 } from "@/feature/products/types/product.types";
 import { DeleteProductUseCase } from "@/feature/products/useCase/deleteProduct.useCase";
 import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
+import { CreateProductWithOpeningStockUseCase } from "@/feature/products/useCase/createProductWithOpeningStock.useCase";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
 import {
   buildTaxRateLabel,
@@ -34,6 +35,7 @@ const createEmptyForm = (defaultTaxRateLabel: string): ProductFormState => ({
   taxRateLabel: defaultTaxRateLabel,
   description: "",
   imageUrl: "",
+  openingStockQuantity: "",
 });
 
 const mapProductToForm = (
@@ -51,6 +53,7 @@ const mapProductToForm = (
   taxRateLabel: product.taxRateLabel ?? defaultTaxRateLabel,
   description: product.description ?? "",
   imageUrl: product.imageUrl ?? "",
+  openingStockQuantity: "",
 });
 
 const parseNumber = (value: string): number | null => {
@@ -95,6 +98,7 @@ type Params = {
   canManage: boolean;
   getProductsUseCase: GetProductsUseCase;
   saveProductUseCase: SaveProductUseCase;
+  createProductWithOpeningStockUseCase: CreateProductWithOpeningStockUseCase;
   deleteProductUseCase: DeleteProductUseCase;
 };
 
@@ -106,6 +110,7 @@ export const useProductsViewModel = ({
   canManage,
   getProductsUseCase,
   saveProductUseCase,
+  createProductWithOpeningStockUseCase,
   deleteProductUseCase,
 }: Params): ProductsViewModel => {
   const regionalFinancePolicy = useMemo(
@@ -315,16 +320,28 @@ export const useProductsViewModel = ({
 
     const salePrice = parseNumber(form.salePrice);
     const costPrice = parseNumber(form.costPrice);
+    const normalizedOpeningStock = form.openingStockQuantity.trim();
+    const openingStockQuantity = parseNumber(form.openingStockQuantity);
 
     if (salePrice === null) {
       setErrorMessage("Sale price is required.");
       return;
     }
 
+    if (normalizedOpeningStock.length > 0 && openingStockQuantity === null) {
+      setErrorMessage("Opening stock must be a valid number.");
+      return;
+    }
+
+    if (openingStockQuantity !== null && openingStockQuantity < 0) {
+      setErrorMessage("Opening stock cannot be negative.");
+      return;
+    }
+
     setFieldErrors({});
     setErrorMessage(null);
 
-    const result = await saveProductUseCase.execute({
+    const productPayload = {
       remoteId: form.remoteId ?? Crypto.randomUUID(),
       accountRemoteId,
       name: form.name,
@@ -338,7 +355,15 @@ export const useProductsViewModel = ({
       description: form.description || null,
       imageUrl: form.imageUrl || null,
       status: ProductStatus.Active,
-    });
+    };
+
+    const result =
+      editorMode === "create"
+        ? await createProductWithOpeningStockUseCase.execute({
+            product: productPayload,
+            openingStockQuantity,
+          })
+        : await saveProductUseCase.execute(productPayload);
 
     if (!result.success) {
       setErrorMessage(result.error.message);
@@ -367,7 +392,9 @@ export const useProductsViewModel = ({
   }, [
     accountRemoteId,
     canManage,
+    createProductWithOpeningStockUseCase,
     defaultTaxRateLabel,
+    editorMode,
     form,
     loadProducts,
     saveProductUseCase,

@@ -49,6 +49,10 @@ const formatMovementDate = (timestamp: number): string => {
 };
 
 const formatMovementTypeLabel = (movementType: string, reason: string | null): string => {
+  if (movementType === InventoryMovementType.OpeningStock) {
+    return "Opening Stock";
+  }
+
   if (movementType === InventoryMovementType.StockIn) {
     return "Purchase";
   }

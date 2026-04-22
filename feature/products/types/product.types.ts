@@ -50,6 +50,11 @@ export type SaveProductPayload = {
   status: ProductStatusValue;
 };
 
+export type CreateProductWithOpeningStockPayload = {
+  product: SaveProductPayload;
+  openingStockQuantity: number | null;
+};
+
 export const ProductErrorType = {
   DatabaseError: "DATABASE_ERROR",
   ValidationError: "VALIDATION_ERROR",
@@ -115,4 +120,5 @@ export type ProductFormState = {
   taxRateLabel: string;
   description: string;
   imageUrl: string;
+  openingStockQuantity: string;
 };

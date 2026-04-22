@@ -1,6 +1,11 @@
+import { createLocalInventoryDatasource } from "@/feature/inventory/data/dataSource/local.inventory.datasource.impl";
+import { createInventoryRepository } from "@/feature/inventory/data/repository/inventory.repository.impl";
+import { createCreateOpeningStockForProductUseCase } from "@/feature/inventory/useCase/createOpeningStockForProduct.useCase.impl";
+import { createSaveInventoryMovementUseCase } from "@/feature/inventory/useCase/saveInventoryMovement.useCase.impl";
 import { createLocalProductDatasource } from "@/feature/products/data/dataSource/local.product.datasource.impl";
 import { createProductRepository } from "@/feature/products/data/repository/product.repository.impl";
 import { ProductsScreen } from "@/feature/products/ui/ProductsScreen";
+import { createCreateProductWithOpeningStockUseCase } from "@/feature/products/useCase/createProductWithOpeningStock.useCase.impl";
 import { createDeleteProductUseCase } from "@/feature/products/useCase/deleteProduct.useCase.impl";
 import { createGetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase.impl";
 import { createSaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase.impl";
@@ -47,9 +52,42 @@ export function GetProductsScreenFactory({
     () => createSaveProductUseCase(repository),
     [repository],
   );
+  const inventoryDatasource = React.useMemo(
+    () => createLocalInventoryDatasource(appDatabase),
+    [],
+  );
+  const inventoryRepository = React.useMemo(
+    () => createInventoryRepository(inventoryDatasource),
+    [inventoryDatasource],
+  );
+  const saveInventoryMovementUseCase = React.useMemo(
+    () => createSaveInventoryMovementUseCase(inventoryRepository),
+    [inventoryRepository],
+  );
+  const createOpeningStockForProductUseCase = React.useMemo(
+    () =>
+      createCreateOpeningStockForProductUseCase({
+        productRepository: repository,
+        saveInventoryMovementUseCase,
+      }),
+    [repository, saveInventoryMovementUseCase],
+  );
   const deleteProductUseCase = React.useMemo(
     () => createDeleteProductUseCase(repository),
     [repository],
+  );
+  const createProductWithOpeningStockUseCase = React.useMemo(
+    () =>
+      createCreateProductWithOpeningStockUseCase({
+        saveProductUseCase,
+        deleteProductUseCase,
+        createOpeningStockForProductUseCase,
+      }),
+    [
+      createOpeningStockForProductUseCase,
+      deleteProductUseCase,
+      saveProductUseCase,
+    ],
   );
 
   const viewModel = useProductsViewModel({
@@ -60,6 +98,7 @@ export function GetProductsScreenFactory({
     canManage: permissionAccess.hasPermission(PRODUCTS_MANAGE_PERMISSION_CODE),
     getProductsUseCase,
     saveProductUseCase,
+    createProductWithOpeningStockUseCase,
     deleteProductUseCase,
   });
 

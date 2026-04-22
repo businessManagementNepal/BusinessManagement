@@ -1,6 +1,7 @@
 import { Result } from "@/shared/types/result.types";
 
 export const InventoryMovementType = {
+  OpeningStock: "opening_stock",
   StockIn: "stock_in",
   SaleOut: "sale_out",
   Adjustment: "adjustment",
@@ -13,6 +14,7 @@ export const InventoryMovementSourceModule = {
   Orders: "orders",
   Pos: "pos",
   Manual: "manual",
+  Products: "products",
 } as const;
 
 export type InventoryMovementSourceModuleValue =
