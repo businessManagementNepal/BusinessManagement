@@ -119,11 +119,9 @@ const rollbackLedgerDueState = async (params: {
     return restoreResult.error.message;
   }
 
-  const deleteResult = params.previousLedgerDueEntry
-    ? await params.deleteLedgerEntryUseCase.execute(
-        params.ledgerDueEntryRemoteId,
-      )
-    : { success: true as const, value: true };
+  const deleteResult = await params.deleteLedgerEntryUseCase.execute(
+    params.ledgerDueEntryRemoteId,
+  );
 
   if (deleteResult.success) {
     return null;

@@ -626,7 +626,7 @@ describe("runOrderCommercialLinkingWorkflowUseCase existing-state rollback", () 
           value: buildLedgerDueEntry(),
         })),
       } as any,
-      deleteLedgerEntryUseCase: { execute: vi.fn() } as any,
+      deleteLedgerEntryUseCase: { execute: vi.fn(async () => ({ success: true as const, value: true, })) } as any,
     });
 
     const result = await useCase.execute({ orderRemoteId: "order-1" });
@@ -704,5 +704,88 @@ describe("runOrderCommercialLinkingWorkflowUseCase existing-state rollback", () 
 
     expect(result.success).toBe(false);
     expect(updateLedgerEntryUseCase.execute).toHaveBeenCalledTimes(2);
+  });
+
+  it("deletes newly created ledger due entry when anchor linking fails and no previous due existed", async () => {
+    const deleteLedgerEntryUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: true,
+      })),
+    };
+
+    const saveBillingDocumentUseCase = {
+      execute: vi
+        .fn()
+        .mockResolvedValueOnce({
+          success: true as const,
+          value: buildBillingDocument({ remoteId: "bill-new" }),
+        })
+        .mockResolvedValueOnce({
+          success: true as const,
+          value: buildBillingDocument({ remoteId: "bill-restore" }),
+        }),
+    };
+
+    const addLedgerEntryUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: buildLedgerDueEntry({ remoteId: "due-new" }),
+      })),
+    };
+
+    const useCase = createRunOrderCommercialLinkingWorkflowUseCase({
+      orderRepository: {
+        getOrderByRemoteId: vi.fn(async () => ({
+          success: true as const,
+          value: buildOrder(OrderStatus.Confirmed),
+        })),
+        linkOrderCommercialAnchors: vi.fn(async () => ({
+          success: false as const,
+          error: {
+            type: "VALIDATION_ERROR",
+            message: "Unable to link anchors.",
+          },
+        })),
+      } as any,
+      getContactsUseCase: {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: [buildContact()],
+        })),
+      } as any,
+      getBillingDocumentByRemoteIdUseCase: {
+        execute: vi.fn(async () => ({
+          success: false as const,
+          error: {
+            type: BillingErrorType.DocumentNotFound,
+            message: "not found",
+          },
+        })),
+      } as any,
+      saveBillingDocumentUseCase: saveBillingDocumentUseCase as any,
+      deleteBillingDocumentUseCase: {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: true,
+        })),
+      } as any,
+      getLedgerEntriesUseCase: {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: [],
+        })),
+      } as any,
+      addLedgerEntryUseCase: addLedgerEntryUseCase as any,
+      updateLedgerEntryUseCase: { execute: vi.fn() } as any,
+      deleteLedgerEntryUseCase: deleteLedgerEntryUseCase as any,
+    });
+
+    const result = await useCase.execute({ orderRemoteId: "order-1" });
+
+    expect(result.success).toBe(false);
+    expect(addLedgerEntryUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(deleteLedgerEntryUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(deleteLedgerEntryUseCase.execute).toHaveBeenCalledWith("led-order-due-order-1");
   });
 });
