@@ -221,13 +221,6 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
       };
     }
 
-    if (!normalizedRefundAttemptRemoteId) {
-      return {
-        success: false,
-        error: OrderValidationError("Refund attempt id is required."),
-      };
-    }
-
     if (!normalizedOwnerUserRemoteId || !normalizedAccountRemoteId) {
       return {
         success: false,
@@ -291,34 +284,6 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
       return {
         success: false,
         error: OrderValidationError("Choose a valid active money account."),
-      };
-    }
-
-    if (!Number.isFinite(input.amount) || input.amount <= 0) {
-      return {
-        success: false,
-        error: OrderValidationError("Amount must be greater than zero."),
-      };
-    }
-
-    if (!Number.isFinite(input.happenedAt) || input.happenedAt <= 0) {
-      return {
-        success: false,
-        error: OrderValidationError("Refund date is required."),
-      };
-    }
-
-    if (!normalizedSettlementMoneyAccountRemoteId) {
-      return {
-        success: false,
-        error: OrderValidationError("Money account is required."),
-      };
-    }
-
-    if (!normalizedSettlementMoneyAccountLabel) {
-      return {
-        success: false,
-        error: OrderValidationError("Money account label is required."),
       };
     }
 
