@@ -6,6 +6,7 @@ import type { PosCartLine, PosTotals } from "@/feature/pos/types/pos.entity.type
 import type { CreatePosSaleDraftUseCase } from "@/feature/pos/useCase/createPosSaleDraft.useCase";
 import type { UpdatePosSaleWorkflowStateUseCase } from "@/feature/pos/useCase/updatePosSaleWorkflowState.useCase";
 import type { PosSaleRecord } from "@/feature/pos/types/posSale.entity.types";
+import { ProductKind } from "@/feature/products/types/product.types";
 import type { CommitPosCheckoutInventoryUseCase } from "@/feature/pos/workflow/posCheckout/useCase/commitPosCheckoutInventory.useCase";
 import type { PosCheckoutRepository } from "@/feature/pos/workflow/posCheckout/repository/posCheckout.repository";
 import {
@@ -15,29 +16,29 @@ import type { RunPosCheckoutParams } from "@/feature/pos/workflow/posCheckout/ty
 import { createRunPosCheckoutUseCase } from "@/feature/pos/workflow/posCheckout/useCase/runPosCheckout.useCase.impl";
 import type { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
 import type { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
+import { buildPosCartLine, buildPosTotals } from "./helpers/posTestBuilders";
 import { describe, expect, it, vi } from "vitest";
 
-const BASE_TOTALS: PosTotals = {
+const BASE_TOTALS: PosTotals = buildPosTotals({
   itemCount: 1,
   gross: 1000,
-  discountAmount: 0,
-  surchargeAmount: 0,
   taxAmount: 130,
   grandTotal: 1130,
-};
+});
 
 const BASE_CART_LINES: readonly PosCartLine[] = [
-  {
+  buildPosCartLine({
     lineId: "line-1",
     productId: "product-1",
     productName: "Test Product",
     categoryLabel: "General",
     shortCode: "TP",
+    kind: ProductKind.Item,
     quantity: 1,
     unitPrice: 1000,
     taxRate: 0.13,
     lineSubtotal: 1000,
-  },
+  }),
 ];
 
 const createRunParams = (
@@ -384,3 +385,5 @@ describe("POS split payment checkout", () => {
     }
   });
 });
+
+

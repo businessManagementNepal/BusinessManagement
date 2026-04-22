@@ -35,6 +35,17 @@ export type EmiPlanListItemState = {
   isClosed: boolean;
 };
 
+export type EmiPlanEditorFieldName =
+  | "title"
+  | "totalAmount"
+  | "installmentCount"
+  | "firstDueAt"
+  | "reminderDaysBefore";
+
+export type EmiPlanEditorFieldErrors = Partial<
+  Record<EmiPlanEditorFieldName, string>
+>;
+
 export type EmiPlanEditorState = {
   visible: boolean;
   planMode: EmiPlanModeValue;
@@ -48,6 +59,7 @@ export type EmiPlanEditorState = {
   reminderEnabled: boolean;
   reminderDaysBefore: string;
   note: string;
+  fieldErrors: EmiPlanEditorFieldErrors;
   errorMessage: string | null;
   isSaving: boolean;
 };

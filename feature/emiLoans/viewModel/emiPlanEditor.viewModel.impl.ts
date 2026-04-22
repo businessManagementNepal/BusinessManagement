@@ -6,8 +6,12 @@ import {
   EmiPlanType,
   EmiPlanTypeValue,
 } from "@/feature/emiLoans/types/emi.entity.types";
-import { EmiPlanEditorState } from "@/feature/emiLoans/types/emi.state.types";
+import {
+  EmiPlanEditorFieldErrors,
+  EmiPlanEditorState,
+} from "@/feature/emiLoans/types/emi.state.types";
 import { parseDateInput } from "./emi.shared";
+import { validateEmiPlanEditorState } from "@/feature/emiLoans/validation/validateEmiPlanEditorState";
 import { EmiPlanEditorViewModel } from "./emiPlanEditor.viewModel";
 
 type UseEmiPlanEditorViewModelParams = {
@@ -42,9 +46,32 @@ const getInitialState = (planMode: EmiPlanModeValue): EmiPlanEditorState => ({
   reminderEnabled: true,
   reminderDaysBefore: "1",
   note: "",
+  fieldErrors: {},
   errorMessage: null,
   isSaving: false,
 });
+
+const clearFieldError = (
+  fieldErrors: EmiPlanEditorFieldErrors,
+  field: keyof EmiPlanEditorFieldErrors,
+): EmiPlanEditorFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
+};
+
+const parseDecimalInput = (value: string): number => {
+  return Number(value.trim().replace(/,/g, ""));
+};
+
+const parseIntegerInput = (value: string): number => {
+  return Number(value.trim());
+};
 
 export const useEmiPlanEditorViewModel = ({
   planMode,
@@ -77,8 +104,10 @@ export const useEmiPlanEditorViewModel = ({
   }, [planMode]);
 
   const openCreate = useCallback(() => {
-    setState(getInitialState(planMode));
-    setState((currentState) => ({ ...currentState, visible: true }));
+    setState({
+      ...getInitialState(planMode),
+      visible: true,
+    });
   }, [planMode]);
 
   const close = useCallback(() => {
@@ -86,10 +115,6 @@ export const useEmiPlanEditorViewModel = ({
   }, [resetState]);
 
   const submit = useCallback(async () => {
-    const parsedTotalAmount = Number(state.totalAmount.trim());
-    const parsedInstallmentCount = Number(state.installmentCount.trim());
-    const firstDueAt = parseDateInput(state.firstDueAt);
-
     if (!ownerUserRemoteId?.trim()) {
       setState((currentState) => ({
         ...currentState,
@@ -106,10 +131,37 @@ export const useEmiPlanEditorViewModel = ({
       return;
     }
 
+    const nextFieldErrors = validateEmiPlanEditorState({
+      title: state.title,
+      totalAmount: state.totalAmount,
+      installmentCount: state.installmentCount,
+      firstDueAt: state.firstDueAt,
+      reminderEnabled: state.reminderEnabled,
+      reminderDaysBefore: state.reminderDaysBefore,
+    });
+
+    if (Object.values(nextFieldErrors).some(Boolean)) {
+      setState((currentState) => ({
+        ...currentState,
+        fieldErrors: nextFieldErrors,
+        errorMessage: null,
+      }));
+      return;
+    }
+
+    const parsedTotalAmount = parseDecimalInput(state.totalAmount);
+    const parsedInstallmentCount = parseIntegerInput(state.installmentCount);
+    const firstDueAt = parseDateInput(state.firstDueAt);
+
     if (firstDueAt === null) {
       setState((currentState) => ({
         ...currentState,
-        errorMessage: "Please enter the first due date in YYYY-MM-DD format.",
+        fieldErrors: {
+          ...currentState.fieldErrors,
+          firstDueAt:
+            "Please enter the first due date in YYYY-MM-DD format.",
+        },
+        errorMessage: null,
       }));
       return;
     }
@@ -117,28 +169,29 @@ export const useEmiPlanEditorViewModel = ({
     setState((currentState) => ({
       ...currentState,
       isSaving: true,
+      fieldErrors: {},
       errorMessage: null,
     }));
 
     const result = await addEmiPlanUseCase.execute({
-      ownerUserRemoteId,
-      businessAccountRemoteId,
-      linkedAccountRemoteId,
+      ownerUserRemoteId: ownerUserRemoteId.trim(),
+      businessAccountRemoteId: businessAccountRemoteId?.trim() || null,
+      linkedAccountRemoteId: linkedAccountRemoteId.trim(),
       linkedAccountDisplayNameSnapshot: linkedAccountDisplayName,
       currencyCode,
       planMode,
       planType: state.planType,
-      title: state.title,
-      counterpartyName: state.counterpartyName || null,
-      counterpartyPhone: state.counterpartyPhone || null,
+      title: state.title.trim(),
+      counterpartyName: state.counterpartyName.trim() || null,
+      counterpartyPhone: state.counterpartyPhone.trim() || null,
       totalAmount: parsedTotalAmount,
       installmentCount: parsedInstallmentCount,
       firstDueAt,
       reminderEnabled: state.reminderEnabled,
       reminderDaysBefore: state.reminderEnabled
-        ? Number(state.reminderDaysBefore || "1")
+        ? parseIntegerInput(state.reminderDaysBefore)
         : null,
-      note: state.note || null,
+      note: state.note.trim() || null,
     });
 
     if (!result.success) {
@@ -181,9 +234,18 @@ export const useEmiPlanEditorViewModel = ({
     openCreate,
     close,
     onChangePlanType: (value) =>
-      setState((currentState) => ({ ...currentState, planType: value, errorMessage: null })),
+      setState((currentState) => ({
+        ...currentState,
+        planType: value,
+        errorMessage: null,
+      })),
     onChangeTitle: (value) =>
-      setState((currentState) => ({ ...currentState, title: value, errorMessage: null })),
+      setState((currentState) => ({
+        ...currentState,
+        title: value,
+        fieldErrors: clearFieldError(currentState.fieldErrors, "title"),
+        errorMessage: null,
+      })),
     onChangeCounterpartyName: (value) =>
       setState((currentState) => ({
         ...currentState,
@@ -197,33 +259,55 @@ export const useEmiPlanEditorViewModel = ({
         errorMessage: null,
       })),
     onChangeTotalAmount: (value) =>
-      setState((currentState) => ({ ...currentState, totalAmount: value, errorMessage: null })),
+      setState((currentState) => ({
+        ...currentState,
+        totalAmount: value,
+        fieldErrors: clearFieldError(currentState.fieldErrors, "totalAmount"),
+        errorMessage: null,
+      })),
     onChangeInstallmentCount: (value) =>
       setState((currentState) => ({
         ...currentState,
         installmentCount: value,
+        fieldErrors: clearFieldError(
+          currentState.fieldErrors,
+          "installmentCount",
+        ),
         errorMessage: null,
       })),
     onChangeFirstDueAt: (value) =>
       setState((currentState) => ({
         ...currentState,
         firstDueAt: value,
+        fieldErrors: clearFieldError(currentState.fieldErrors, "firstDueAt"),
         errorMessage: null,
       })),
     onToggleReminder: () =>
       setState((currentState) => ({
         ...currentState,
         reminderEnabled: !currentState.reminderEnabled,
+        fieldErrors: {
+          ...currentState.fieldErrors,
+          reminderDaysBefore: undefined,
+        },
         errorMessage: null,
       })),
     onChangeReminderDaysBefore: (value) =>
       setState((currentState) => ({
         ...currentState,
         reminderDaysBefore: value,
+        fieldErrors: clearFieldError(
+          currentState.fieldErrors,
+          "reminderDaysBefore",
+        ),
         errorMessage: null,
       })),
     onChangeNote: (value) =>
-      setState((currentState) => ({ ...currentState, note: value, errorMessage: null })),
+      setState((currentState) => ({
+        ...currentState,
+        note: value,
+        errorMessage: null,
+      })),
     submit,
   };
 };

@@ -5,6 +5,7 @@ import type {
   PosCustomer,
   PosProduct,
 } from "@/feature/pos/types/pos.entity.types";
+import { ProductKind } from "@/feature/products/types/product.types";
 import type { PosScreenCoordinatorViewModel } from "@/feature/pos/viewModel/posScreenCoordinator.viewModel";
 import { usePosScreenCoordinatorViewModel } from "@/feature/pos/viewModel/posScreenCoordinator.viewModel.impl";
 import React, { useEffect } from "react";
@@ -17,6 +18,7 @@ const mockProduct: PosProduct = {
   name: "Test Product",
   categoryLabel: "General",
   unitLabel: "pcs",
+  kind: ProductKind.Item,
   price: 10,
   taxRate: 0,
   shortCode: "T",
@@ -28,6 +30,7 @@ const mockCartLine: PosCartLine = {
   productName: mockProduct.name,
   categoryLabel: mockProduct.categoryLabel,
   shortCode: mockProduct.shortCode,
+  kind: ProductKind.Item,
   quantity: 1,
   unitPrice: mockProduct.price,
   taxRate: mockProduct.taxRate,
@@ -445,6 +448,7 @@ describe("PosScreenViewModel session persistence", () => {
           productId: "new-product-1",
           productName: "New Product",
           shortCode: "N",
+          kind: ProductKind.Item,
           quantity: 1,
           unitPrice: 15,
           lineSubtotal: 15,
@@ -629,4 +633,6 @@ describe("PosScreenViewModel restored search term behavior", () => {
     container.remove();
   });
 });
+
+
 

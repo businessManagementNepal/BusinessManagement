@@ -2,30 +2,34 @@ import { PosProduct } from "@/feature/pos/types/pos.entity.types";
 import { PosErrorType } from "@/feature/pos/types/pos.error.types";
 import { createLocalPosDatasource } from "@/feature/pos/data/dataSource/local.pos.datasource.impl";
 import { ProductModel } from "@/feature/products/data/dataSource/db/product.model";
+import { ProductKind } from "@/feature/products/types/product.types";
 import type { Database } from "@nozbe/watermelondb";
 import { createAddProductToCartUseCase } from "@/feature/pos/useCase/addProductToCart.useCase.impl";
+import { buildPosProduct } from "./helpers/posTestBuilders";
 import { describe, expect, it, vi } from "vitest";
 
 // Mock products for testing
 const mockProducts: PosProduct[] = [
-  {
+  buildPosProduct({
     id: "product-1",
     name: "Test Product 1",
     categoryLabel: "Test Category",
     unitLabel: "pcs",
+    kind: ProductKind.Item,
     price: 10.99,
     taxRate: 0.1,
     shortCode: "TP1",
-  },
-  {
+  }),
+  buildPosProduct({
     id: "product-2",
     name: "Test Product 2",
     categoryLabel: "Test Category",
     unitLabel: "pcs",
+    kind: ProductKind.Item,
     price: 5.99,
     taxRate: 0.1,
     shortCode: "TP2",
-  },
+  }),
 ];
 
 describe("POS Direct Sell Functionality", () => {
@@ -148,6 +152,7 @@ describe("POS Direct Sell Functionality", () => {
               productName: "Test Product 1",
               categoryLabel: "Test Category",
               shortCode: "TP1",
+              kind: ProductKind.Item,
               quantity: 1,
               unitPrice: 10.99,
               taxRate: 0.1,
@@ -192,6 +197,7 @@ describe("POS Direct Sell Functionality", () => {
               productName: "Test Product 1",
               categoryLabel: "Test Category",
               shortCode: "TP1",
+              kind: ProductKind.Item,
               quantity: 2,
               unitPrice: 10.99,
               taxRate: 0.1,
@@ -358,6 +364,7 @@ describe("POS Direct Sell Functionality", () => {
               productName: "Consultation",
               categoryLabel: "Services",
               shortCode: "CO",
+              kind: ProductKind.Service,
               quantity: 1,
               unitPrice: 50.0,
               taxRate: 0,
@@ -416,6 +423,7 @@ describe("POS Direct Sell Functionality", () => {
           productName: "Test Product 1",
           categoryLabel: "Test Category",
           shortCode: "TP1",
+          kind: ProductKind.Item,
           quantity: 1,
           unitPrice: 10.99,
           taxRate: 0.1,
@@ -438,6 +446,7 @@ describe("POS Direct Sell Functionality", () => {
           productName: "Test Product 1",
           categoryLabel: "Test Category",
           shortCode: "TP1",
+          kind: ProductKind.Item,
           quantity: 1,
           unitPrice: 10.99,
           taxRate: 0.1,
@@ -519,6 +528,7 @@ describe("POS Direct Sell Functionality", () => {
         name: `Product ${i}`,
         categoryLabel: "Test Category",
         unitLabel: "pcs",
+        kind: ProductKind.Item,
         price: 10.99,
         taxRate: 0.1,
         shortCode: `P${i}`,
@@ -530,6 +540,7 @@ describe("POS Direct Sell Functionality", () => {
         name: "New Product",
         categoryLabel: "Test Category",
         unitLabel: "pcs",
+        kind: ProductKind.Item,
         price: 15.99,
         taxRate: 0.1,
         shortCode: "NP",
@@ -559,6 +570,7 @@ describe("POS Direct Sell Functionality", () => {
               productName: "New Product",
               categoryLabel: "General",
               shortCode: "NP",
+              kind: ProductKind.Item,
               quantity: 1,
               unitPrice: 15.99,
               taxRate: 0,
@@ -716,6 +728,7 @@ describe("POS Direct Sell Functionality", () => {
           productName: "Test Product 1",
           categoryLabel: "Test Category",
           shortCode: "TP1",
+          kind: ProductKind.Item,
           quantity: 2,
           unitPrice: 10.99,
           taxRate: 0.1,
@@ -726,6 +739,7 @@ describe("POS Direct Sell Functionality", () => {
           productName: "Test Product 2",
           categoryLabel: "Test Category",
           shortCode: "TP2",
+          kind: ProductKind.Item,
           quantity: 1,
           unitPrice: 5.99,
           taxRate: 0.1,
@@ -741,3 +755,5 @@ describe("POS Direct Sell Functionality", () => {
     });
   });
 });
+
+

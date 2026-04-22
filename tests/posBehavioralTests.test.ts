@@ -1,30 +1,34 @@
 import { PosCustomer, PosProduct } from "@/feature/pos/types/pos.entity.types";
+import { ProductKind } from "@/feature/products/types/product.types";
 import { createAddProductToCartUseCase } from "@/feature/pos/useCase/addProductToCart.useCase.impl";
 import { createClearPosSessionUseCase } from "@/feature/pos/useCase/clearPosSession.useCase.impl";
 import { createLoadPosSessionUseCase } from "@/feature/pos/useCase/loadPosSession.useCase.impl";
 import { createSavePosSessionUseCase } from "@/feature/pos/useCase/savePosSession.useCase.impl";
+import { buildPosProduct } from "./helpers/posTestBuilders";
 import { describe, expect, it, vi } from "vitest";
 
 // Mock data for testing
 const mockProducts: PosProduct[] = [
-  {
+  buildPosProduct({
     id: "product-1",
     name: "Test Product 1",
     categoryLabel: "Test Category",
     unitLabel: "pcs",
+    kind: ProductKind.Item,
     price: 10.99,
     taxRate: 0.1,
     shortCode: "TP1",
-  },
-  {
+  }),
+  buildPosProduct({
     id: "product-2",
     name: "Test Product 2",
     categoryLabel: "Test Category",
     unitLabel: "pcs",
+    kind: ProductKind.Item,
     price: 5.99,
     taxRate: 0.1,
     shortCode: "TP2",
-  },
+  }),
 ];
 
 const mockCustomer: PosCustomer = {
@@ -47,6 +51,7 @@ describe("POS Behavioral Tests", () => {
               productName: "Test Product 1",
               categoryLabel: "Test Category",
               shortCode: "TP1",
+              kind: ProductKind.Item,
               quantity: 1,
               unitPrice: 10.99,
               taxRate: 0.1,
@@ -91,6 +96,7 @@ describe("POS Behavioral Tests", () => {
               productName: "Test Product 1",
               categoryLabel: "Test Category",
               shortCode: "TP1",
+              kind: ProductKind.Item,
               quantity: 2,
               unitPrice: 10.99,
               taxRate: 0.1,
@@ -132,6 +138,7 @@ describe("POS Behavioral Tests", () => {
             productName: "Test Product 1",
             categoryLabel: "Test Category",
             shortCode: "TP1",
+            kind: ProductKind.Item,
             quantity: 2,
             unitPrice: 10.99,
             taxRate: 0.1,
@@ -381,6 +388,7 @@ describe("POS Behavioral Tests", () => {
         name: `Product ${i}`,
         categoryLabel: "Test Category",
         unitLabel: "pcs",
+        kind: ProductKind.Item,
         price: 10.99,
         taxRate: 0.1,
         shortCode: `P${i}`,
@@ -412,6 +420,7 @@ describe("POS Behavioral Tests", () => {
             productName: "Test Product 1",
             categoryLabel: "Test Category",
             shortCode: "TP1",
+            kind: ProductKind.Item,
             quantity: 2,
             unitPrice: 10.99,
             taxRate: 0.1,
@@ -470,3 +479,5 @@ describe("POS Behavioral Tests", () => {
     });
   });
 });
+
+

@@ -70,7 +70,7 @@ export function EmiPlanEditorModal({
       />
 
       <LabeledTextInput
-        label="Title"
+        label="Title *"
         value={state.title}
         onChangeText={viewModel.onChangeTitle}
         placeholder={
@@ -79,6 +79,7 @@ export function EmiPlanEditorModal({
             : "For example: Phone EMI"
         }
         editable={!state.isSaving}
+        errorText={state.fieldErrors.title}
       />
 
       <LabeledTextInput
@@ -99,29 +100,32 @@ export function EmiPlanEditorModal({
       />
 
       <LabeledTextInput
-        label="Total Amount"
+        label="Total Amount *"
         value={state.totalAmount}
         onChangeText={viewModel.onChangeTotalAmount}
         placeholder="0"
-        keyboardType="numeric"
+        keyboardType="decimal-pad"
         editable={!state.isSaving}
+        errorText={state.fieldErrors.totalAmount}
       />
 
       <LabeledTextInput
-        label="Installments"
+        label="Installments *"
         value={state.installmentCount}
         onChangeText={viewModel.onChangeInstallmentCount}
         placeholder="6"
-        keyboardType="numeric"
+        keyboardType="number-pad"
         editable={!state.isSaving}
+        errorText={state.fieldErrors.installmentCount}
       />
 
       <LabeledTextInput
-        label="First Due"
+        label="First Due *"
         value={state.firstDueAt}
         onChangeText={viewModel.onChangeFirstDueAt}
         placeholder="YYYY-MM-DD"
         editable={!state.isSaving}
+        errorText={state.fieldErrors.firstDueAt}
       />
 
       <Card style={styles.switchCard}>
@@ -142,12 +146,13 @@ export function EmiPlanEditorModal({
 
       {state.reminderEnabled ? (
         <LabeledTextInput
-          label="Remind Before (days)"
+          label="Remind Before (days) *"
           value={state.reminderDaysBefore}
           onChangeText={viewModel.onChangeReminderDaysBefore}
           placeholder="1"
-          keyboardType="numeric"
+          keyboardType="number-pad"
           editable={!state.isSaving}
+          errorText={state.fieldErrors.reminderDaysBefore}
         />
       ) : null}
 

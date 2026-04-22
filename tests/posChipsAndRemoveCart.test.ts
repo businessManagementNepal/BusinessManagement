@@ -1,35 +1,40 @@
 import { PosProduct } from "@/feature/pos/types/pos.entity.types";
+import { ProductKind } from "@/feature/products/types/product.types";
+import { buildPosProduct } from "./helpers/posTestBuilders";
 import { describe, expect, it, vi } from "vitest";
 
 // Mock products for testing
 const mockProducts: PosProduct[] = [
-  {
+  buildPosProduct({
     id: "product-1",
     name: "Test Product 1",
     categoryLabel: "Test Category",
     unitLabel: "pcs",
+    kind: ProductKind.Item,
     price: 10.99,
     taxRate: 0.1,
     shortCode: "TP1",
-  },
-  {
+  }),
+  buildPosProduct({
     id: "product-2",
     name: "Test Product 2",
     categoryLabel: "Test Category",
     unitLabel: "pcs",
+    kind: ProductKind.Item,
     price: 5.99,
     taxRate: 0.1,
     shortCode: "TP2",
-  },
-  {
+  }),
+  buildPosProduct({
     id: "product-3",
     name: "Test Product 3",
     categoryLabel: "Other Category",
     unitLabel: "pcs",
+    kind: ProductKind.Item,
     price: 15.99,
     taxRate: 0.1,
     shortCode: "TP3",
-  },
+  }),
 ];
 
 describe("POS Chips and Remove Cart Behavior", () => {
@@ -67,6 +72,7 @@ describe("POS Chips and Remove Cart Behavior", () => {
         name: `Product ${i}`,
         categoryLabel: "Test Category",
         unitLabel: "pcs",
+        kind: ProductKind.Item,
         price: 10.99,
         taxRate: 0.1,
         shortCode: `P${i}`,
@@ -100,6 +106,7 @@ describe("POS Chips and Remove Cart Behavior", () => {
         productName: "Test Product 1",
         categoryLabel: "Test Category",
         shortCode: "TP1",
+        kind: ProductKind.Item,
         quantity: 2,
         unitPrice: 10.99,
         taxRate: 0.1,
@@ -132,6 +139,7 @@ describe("POS Chips and Remove Cart Behavior", () => {
         productName: "Test Product 1",
         categoryLabel: "Test Category",
         shortCode: "TP1",
+        kind: ProductKind.Item,
         quantity: 1,
         unitPrice: 10.99,
         taxRate: 0.1,
@@ -150,6 +158,7 @@ describe("POS Chips and Remove Cart Behavior", () => {
         productName: "Test Product 1",
         categoryLabel: "Test Category",
         shortCode: "TP1",
+        kind: ProductKind.Item,
         quantity: 1,
         unitPrice: 10.99,
         taxRate: 0.1,
@@ -169,6 +178,7 @@ describe("POS Chips and Remove Cart Behavior", () => {
         name: "New Product",
         categoryLabel: "General",
         unitLabel: "pcs",
+        kind: ProductKind.Item,
         price: 25.99,
         taxRate: 0,
         shortCode: "NP",
@@ -192,3 +202,5 @@ function updateRecentProducts(recentProducts: PosProduct[], product: PosProduct)
   const filteredRecent = recentProducts.filter((item) => item.id !== product.id);
   return [product, ...filteredRecent]; // No limit - session-only tracking
 }
+
+
