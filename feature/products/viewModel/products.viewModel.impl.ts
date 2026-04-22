@@ -9,14 +9,14 @@ import {
 import { DeleteProductUseCase } from "@/feature/products/useCase/deleteProduct.useCase";
 import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
+import {
+    buildTaxRateLabel,
+    resolveRegionalFinancePolicy,
+} from "@/shared/utils/finance/regionalFinancePolicy";
+import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
 import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ProductFormState, ProductsViewModel } from "./products.viewModel";
-import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
-import {
-  buildTaxRateLabel,
-  resolveRegionalFinancePolicy,
-} from "@/shared/utils/finance/regionalFinancePolicy";
+import { ProductFormFieldErrors, ProductFormState, ProductsViewModel } from "./products.viewModel";
 
 const createEmptyForm = (defaultTaxRateLabel: string): ProductFormState => ({
   remoteId: null,
@@ -57,6 +57,33 @@ const parseNumber = (value: string): number | null => {
   if (!normalized) return null;
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : null;
+};
+
+const validateProductForm = ({
+  name,
+  salePrice,
+}: {
+  name: string;
+  salePrice: string;
+}): ProductFormFieldErrors => {
+  const nextFieldErrors: ProductFormFieldErrors = {};
+  const normalizedName = name.trim();
+  const normalizedSalePrice = salePrice.trim();
+
+  if (!normalizedName) {
+    nextFieldErrors.name = "Product name is required.";
+  }
+
+  if (normalizedSalePrice.length > 0) {
+    const parsedSalePrice = Number(normalizedSalePrice.replace(/,/g, ""));
+    if (!Number.isFinite(parsedSalePrice)) {
+      nextFieldErrors.salePrice = "Sale price must be a valid number.";
+    } else if (parsedSalePrice < 0) {
+      nextFieldErrors.salePrice = "Sale price cannot be negative.";
+    }
+  }
+
+  return nextFieldErrors;
 };
 
 type Params = {
@@ -116,6 +143,7 @@ export const useProductsViewModel = ({
   const [form, setForm] = useState<ProductFormState>(
     createEmptyForm(defaultTaxRateLabel),
   );
+  const [fieldErrors, setFieldErrors] = useState<ProductFormFieldErrors>({});
   const currencyCode = regionalFinancePolicy.currencyCode;
 
   const loadProducts = useCallback(async () => {
@@ -209,11 +237,19 @@ export const useProductsViewModel = ({
   const onCloseEditor = useCallback(() => {
     setIsEditorVisible(false);
     setForm(createEmptyForm(defaultTaxRateLabel));
+    setFieldErrors({});
   }, [defaultTaxRateLabel]);
 
   const onFormChange = useCallback(
     (field: keyof ProductFormState, value: string) => {
       setForm((current) => ({ ...current, [field]: value }));
+      
+      // Clear field errors when validated fields change
+      if (field === "name") {
+        setFieldErrors((current) => ({ ...current, name: undefined }));
+      } else if (field === "salePrice") {
+        setFieldErrors((current) => ({ ...current, salePrice: undefined }));
+      }
     },
     [],
   );
@@ -250,6 +286,18 @@ export const useProductsViewModel = ({
       setErrorMessage("A business account is required to manage products.");
       return;
     }
+
+    const nextFieldErrors = validateProductForm({
+      name: form.name,
+      salePrice: form.salePrice,
+    });
+
+    if (Object.values(nextFieldErrors).some(Boolean)) {
+      setFieldErrors(nextFieldErrors);
+      setErrorMessage(null);
+      return;
+    }
+
     const salePrice = parseNumber(form.salePrice);
     const costPrice = parseNumber(form.costPrice);
     const stockQuantity =
@@ -258,6 +306,9 @@ export const useProductsViewModel = ({
       setErrorMessage("Sale price is required.");
       return;
     }
+    setFieldErrors({});
+    setErrorMessage(null);
+
     const result = await saveProductUseCase.execute({
       remoteId: form.remoteId ?? Crypto.randomUUID(),
       accountRemoteId,
@@ -297,6 +348,7 @@ export const useProductsViewModel = ({
     accountRemoteId,
     canManage,
     defaultTaxRateLabel,
+    fieldErrors,
     form,
     loadProducts,
     saveProductUseCase,
@@ -336,6 +388,7 @@ export const useProductsViewModel = ({
       isEditorVisible,
       editorMode,
       form,
+      fieldErrors,
       categoryOptions: PRODUCT_CATEGORY_OPTIONS,
       unitOptions: PRODUCT_UNIT_OPTIONS,
       taxRateOptions,
@@ -356,6 +409,7 @@ export const useProductsViewModel = ({
       canManage,
       currencyCode,
       errorMessage,
+      fieldErrors,
       filteredProducts,
       form,
       regionalFinancePolicy.countryCode,

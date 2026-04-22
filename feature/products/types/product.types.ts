@@ -97,3 +97,23 @@ export const PRODUCT_CATEGORY_OPTIONS = [
 ] as const;
 
 export const PRODUCT_UNIT_OPTIONS = ["pcs", "kg", "bag", "bottle", "box", "ltr"] as const;
+export type ProductFormFieldName = "name" | "salePrice";
+
+export type ProductFormFieldErrors = Partial<
+  Record<ProductFormFieldName, string>
+>;
+
+export type ProductFormState = {
+  remoteId: string | null;
+  name: string;
+  kind: ProductKindValue;
+  categoryName: string;
+  salePrice: string;
+  costPrice: string;
+  stockQuantity: string;
+  unitLabel: string;
+  skuOrBarcode: string;
+  taxRateLabel: string;
+  description: string;
+  imageUrl: string;
+};

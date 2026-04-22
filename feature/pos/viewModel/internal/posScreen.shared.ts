@@ -1,25 +1,25 @@
 import type {
-  MoneyAccount,
-  MoneyAccountTypeValue,
+    MoneyAccount,
+    MoneyAccountTypeValue,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { Status } from "@/shared/types/status.types";
+import {
+    POS_DEFAULT_QUICK_PRODUCT_PRICE_INPUT,
+    POS_MIN_SPLIT_PARTS,
+} from "../../types/pos.constant";
 import type {
-  PosSaveSessionParams,
-  PosSessionData,
+    PosSaveSessionParams,
+    PosSessionData,
 } from "../../types/pos.dto.types";
 import type {
-  PosCartLine,
-  PosCustomer,
-  PosProduct,
-  PosSplitDraftPart,
-  PosTotals,
+    PosCartLine,
+    PosCustomer,
+    PosProduct,
+    PosSplitDraftPart,
+    PosTotals,
 } from "../../types/pos.entity.types";
 import type { PosScreenCoordinatorState } from "../../types/pos.state.types";
 import type { PosMoneyAccountOption } from "../../types/pos.ui.types";
-import {
-  POS_DEFAULT_QUICK_PRODUCT_PRICE_INPUT,
-  POS_MIN_SPLIT_PARTS,
-} from "../../types/pos.constant";
 
 export const EMPTY_TOTALS: PosTotals = {
   itemCount: 0,
@@ -46,6 +46,7 @@ export const INITIAL_POS_SCREEN_COORDINATOR_STATE: PosScreenCoordinatorState = {
   quickProductNameInput: "",
   quickProductPriceInput: POS_DEFAULT_QUICK_PRODUCT_PRICE_INPUT,
   quickProductCategoryInput: "",
+  quickProductFieldErrors: {},
   receipt: null,
   infoMessage: null,
   errorMessage: null,

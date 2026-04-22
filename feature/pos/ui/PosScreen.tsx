@@ -5,24 +5,24 @@ import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/Scre
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
-  History,
-  Minus,
-  Percent,
-  Plus,
-  PlusCircle,
-  ShoppingCart,
-  Trash2,
-  WalletCards,
+    History,
+    Minus,
+    Percent,
+    Plus,
+    PlusCircle,
+    ShoppingCart,
+    Trash2,
+    WalletCards,
 } from "lucide-react-native";
 import React from "react";
 import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { PosProduct } from "../types/pos.entity.types";
 import type { PosScreenCoordinatorViewModel } from "../viewModel/posScreenCoordinator.viewModel";
@@ -394,6 +394,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         name={catalog.quickProductNameInput}
         salePrice={catalog.quickProductPriceInput}
         categoryName={catalog.quickProductCategoryInput}
+        fieldErrors={catalog.quickProductFieldErrors}
         onNameChange={catalog.onQuickProductNameInputChange}
         onSalePriceChange={catalog.onQuickProductPriceInputChange}
         onCategoryNameChange={catalog.onQuickProductCategoryInputChange}

@@ -1,8 +1,8 @@
 import { DashboardTabScaffold } from "@/feature/dashboard/shared/ui/DashboardTabScaffold";
 import {
-  Product,
-  ProductKind,
-  ProductKindValue,
+    Product,
+    ProductKind,
+    ProductKindValue,
 } from "@/feature/products/types/product.types";
 import { ProductsViewModel } from "@/feature/products/viewModel/products.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
@@ -13,19 +13,19 @@ import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts
 import { InlineSectionHeader } from "@/shared/components/reusable/ScreenLayouts/InlineSectionHeader";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import { Box, Plus } from "lucide-react-native";
 import React, { useCallback } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  GestureResponderEvent,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    GestureResponderEvent,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { ProductEditorModal } from "./components/ProductEditorModal";
-import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 
 type ProductsScreenProps = {
   viewModel: ProductsViewModel;
@@ -220,6 +220,7 @@ export function ProductsScreen({ viewModel }: ProductsScreenProps) {
         visible={viewModel.isEditorVisible}
         mode={viewModel.editorMode}
         form={viewModel.form}
+        fieldErrors={viewModel.fieldErrors}
         categoryOptions={viewModel.categoryOptions}
         unitOptions={viewModel.unitOptions}
         taxRateOptions={viewModel.taxRateOptions}

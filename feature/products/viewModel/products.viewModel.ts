@@ -1,22 +1,11 @@
 import {
-    Product,
-    ProductKindValue,
+  Product,
+  ProductFormFieldErrors,
+  ProductFormState,
+  ProductKindValue,
 } from "@/feature/products/types/product.types";
 
-export type ProductFormState = {
-  remoteId: string | null;
-  name: string;
-  kind: ProductKindValue;
-  categoryName: string;
-  salePrice: string;
-  costPrice: string;
-  stockQuantity: string;
-  unitLabel: string;
-  skuOrBarcode: string;
-  taxRateLabel: string;
-  description: string;
-  imageUrl: string;
-};
+export type { ProductFormFieldErrors, ProductFormState };
 
 export interface ProductsViewModel {
   isLoading: boolean;
@@ -36,6 +25,7 @@ export interface ProductsViewModel {
   isEditorVisible: boolean;
   editorMode: "create" | "edit";
   form: ProductFormState;
+  fieldErrors: ProductFormFieldErrors;
   categoryOptions: readonly string[];
   unitOptions: readonly string[];
   taxRateOptions: readonly string[];
@@ -51,4 +41,3 @@ export interface ProductsViewModel {
   onSubmit: () => Promise<void>;
   onDelete: (product: Product) => Promise<void>;
 }
-

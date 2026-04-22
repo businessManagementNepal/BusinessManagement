@@ -1,4 +1,5 @@
 import type { PosProduct } from "../types/pos.entity.types";
+import type { PosQuickProductFieldErrors } from "../types/pos.state.types";
 
 export interface PosCatalogViewModel {
   filteredProducts: readonly PosProduct[];
@@ -7,6 +8,7 @@ export interface PosCatalogViewModel {
   quickProductNameInput: string;
   quickProductPriceInput: string;
   quickProductCategoryInput: string;
+  quickProductFieldErrors: PosQuickProductFieldErrors;
   isCreateProductModalVisible: boolean;
   onProductSearchChange: (value: string) => Promise<void>;
   onAddProductToCart: (productId: string) => Promise<void>;

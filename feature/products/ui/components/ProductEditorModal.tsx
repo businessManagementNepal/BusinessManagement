@@ -1,5 +1,5 @@
 import { ProductKind } from "@/feature/products/types/product.types";
-import { ProductFormState } from "@/feature/products/viewModel/products.viewModel";
+import { ProductFormFieldErrors, ProductFormState } from "@/feature/products/viewModel/products.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
@@ -15,6 +15,7 @@ type ProductEditorModalProps = {
   visible: boolean;
   mode: "create" | "edit";
   form: ProductFormState;
+  fieldErrors: ProductFormFieldErrors;
   categoryOptions: readonly string[];
   unitOptions: readonly string[];
   taxRateOptions: readonly string[];
@@ -29,6 +30,7 @@ export function ProductEditorModal({
   visible,
   mode,
   form,
+  fieldErrors,
   categoryOptions,
   unitOptions,
   taxRateOptions,
@@ -145,6 +147,7 @@ export function ProductEditorModal({
         placeholder="Enter product name"
         onChangeText={(value) => onChange("name", value)}
         autoCapitalize="words"
+        errorText={fieldErrors.name}
       />
 
       <LabeledDropdownField
@@ -174,6 +177,7 @@ export function ProductEditorModal({
         placeholder="0"
         keyboardType="decimal-pad"
         onChangeText={(value) => onChange("salePrice", value)}
+        errorText={fieldErrors.salePrice}
       />
 
       <LabeledTextInput

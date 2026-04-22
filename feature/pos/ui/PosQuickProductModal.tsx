@@ -11,6 +11,10 @@ type PosQuickProductModalProps = {
   name: string;
   salePrice: string;
   categoryName: string;
+  fieldErrors: {
+    name?: string;
+    salePrice?: string;
+  };
   onNameChange: (value: string) => void;
   onSalePriceChange: (value: string) => void;
   onCategoryNameChange: (value: string) => void;
@@ -23,6 +27,7 @@ export function PosQuickProductModal({
   name,
   salePrice,
   categoryName,
+  fieldErrors,
   onNameChange,
   onSalePriceChange,
   onCategoryNameChange,
@@ -62,6 +67,7 @@ export function PosQuickProductModal({
         placeholder="Product name *"
         onChangeText={onNameChange}
         autoCapitalize="words"
+        errorText={fieldErrors.name}
       />
 
       <LabeledTextInput
@@ -70,6 +76,7 @@ export function PosQuickProductModal({
         placeholder="Sale price"
         keyboardType="decimal-pad"
         onChangeText={onSalePriceChange}
+        errorText={fieldErrors.salePrice}
       />
 
       <LabeledTextInput
