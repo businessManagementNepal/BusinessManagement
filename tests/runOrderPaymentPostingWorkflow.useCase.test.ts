@@ -1,17 +1,36 @@
-import { MoneyAccountType } from "@/feature/accounts/types/moneyAccount.types";
-import { LedgerBalanceDirection, LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
-import { OrderStatus } from "@/feature/orders/types/order.types";
+import {
+  MoneyAccountType,
+  type MoneyAccount,
+} from "@/feature/accounts/types/moneyAccount.types";
+import {
+  BillingDocumentStatus,
+  BillingDocumentType,
+  BillingTemplateType,
+  type BillingDocument,
+} from "@/feature/billing/types/billing.types";
+import {
+  LedgerBalanceDirection,
+  LedgerEntryType,
+  type LedgerEntry,
+} from "@/feature/ledger/types/ledger.entity.types";
 import { createRunOrderPaymentPostingWorkflowUseCase } from "@/feature/orders/workflow/orderPaymentPosting/useCase/runOrderPaymentPostingWorkflow.useCase.impl";
+import type { OrderPaymentPostingWorkflowInput } from "@/feature/orders/workflow/orderPaymentPosting/types/orderPaymentPostingWorkflow.types";
+import { OrderStatus } from "@/feature/orders/types/order.types";
 import { describe, expect, it, vi } from "vitest";
 
-// Minimal deterministic builders for workflow testing
-const buildMoneyAccount = (overrides: Record<string, unknown> = {}) => ({
+const buildMoneyAccount = (
+  overrides: Partial<MoneyAccount> = {},
+): MoneyAccount => ({
   remoteId: "account-1",
+  ownerUserRemoteId: "user-1",
+  scopeAccountRemoteId: "business-1",
   name: "Cash Account",
   type: MoneyAccountType.Cash,
-  isActive: true,
-  balance: 1000,
+  currentBalance: 1000,
+  description: null,
   currencyCode: "NPR",
+  isPrimary: true,
+  isActive: true,
   createdAt: 1_710_000_000_000,
   updatedAt: 1_710_000_000_000,
   ...overrides,
@@ -56,36 +75,39 @@ const buildContact = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-const buildBillingDocument = (overrides: Record<string, unknown> = {}) => ({
+const buildBillingDocument = (
+  overrides: Partial<BillingDocument> = {},
+): BillingDocument => ({
   remoteId: "bill-1",
-  ownerUserRemoteId: "user-1",
   accountRemoteId: "business-1",
   documentNumber: "INV-001",
-  documentDate: 1_710_000_000_000,
-  dueDate: null,
-  documentType: "invoice",
-  partyName: "Kapil Customer",
-  partyPhone: "9800000000",
+  documentType: BillingDocumentType.Invoice,
+  templateType: BillingTemplateType.StandardInvoice,
+  customerName: "Kapil Customer",
   contactRemoteId: "contact-1",
-  linkedLedgerEntryRemoteId: "due-1",
-  linkedOrderRemoteId: "order-1",
+  status: BillingDocumentStatus.Pending,
+  taxRatePercent: 13,
+  notes: null,
   subtotalAmount: 100,
   taxAmount: 13,
-  discountAmount: 0,
   totalAmount: 113,
-  outstandingAmount: 113,
   paidAmount: 0,
-  status: "issued",
-  currencyCode: "NPR",
-  note: null,
-  lineItems: [],
+  outstandingAmount: 113,
+  isOverdue: false,
+  issuedAt: 1_710_000_000_000,
+  dueAt: null,
+  sourceModule: "orders",
+  sourceRemoteId: "order-1",
+  linkedLedgerEntryRemoteId: "due-1",
   items: [],
   createdAt: 1_710_000_000_000,
   updatedAt: 1_710_000_000_000,
   ...overrides,
 });
 
-const buildLedgerEntry = (overrides: Record<string, unknown> = {}) => ({
+const buildLedgerEntry = (
+  overrides: Partial<LedgerEntry> = {},
+): LedgerEntry => ({
   remoteId: "due-1",
   businessAccountRemoteId: "business-1",
   ownerUserRemoteId: "user-1",
@@ -114,6 +136,24 @@ const buildLedgerEntry = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const buildInput = (
+  overrides: Partial<OrderPaymentPostingWorkflowInput> = {},
+): OrderPaymentPostingWorkflowInput => ({
+  paymentAttemptRemoteId: "attempt-1",
+  orderRemoteId: "order-1",
+  orderNumber: "ORD-001",
+  ownerUserRemoteId: "user-1",
+  accountRemoteId: "business-1",
+  accountDisplayNameSnapshot: "Business Name",
+  amount: 100,
+  currencyCode: "NPR",
+  happenedAt: 1_710_000_000_000,
+  settlementMoneyAccountRemoteId: "account-1",
+  settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
+  note: null,
+  ...overrides,
+});
+
 describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
   it("rejects blank payment attempt id", async () => {
     const useCase = createRunOrderPaymentPostingWorkflowUseCase({
@@ -126,20 +166,9 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
       ensureOrderBillingAndDueLinksUseCase: { execute: vi.fn() } as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "   ",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
+    const result = await useCase.execute(
+      buildInput({ paymentAttemptRemoteId: "   " }),
+    );
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -158,20 +187,7 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
       ensureOrderBillingAndDueLinksUseCase: { execute: vi.fn() } as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
+    const result = await useCase.execute(buildInput({ orderRemoteId: "" }));
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -190,20 +206,7 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
       ensureOrderBillingAndDueLinksUseCase: { execute: vi.fn() } as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "   ",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
+    const result = await useCase.execute(buildInput({ orderNumber: "   " }));
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -222,24 +225,15 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
       ensureOrderBillingAndDueLinksUseCase: { execute: vi.fn() } as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "",
-      accountRemoteId: "",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
+    const result = await useCase.execute(
+      buildInput({ ownerUserRemoteId: "", accountRemoteId: "" }),
+    );
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.message).toContain("Active account context is required");
+      expect(result.error.message).toContain(
+        "Active account context is required",
+      );
     }
   });
 
@@ -254,20 +248,9 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
       ensureOrderBillingAndDueLinksUseCase: { execute: vi.fn() } as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "   ",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
+    const result = await useCase.execute(
+      buildInput({ accountDisplayNameSnapshot: "   " }),
+    );
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -286,20 +269,7 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
       ensureOrderBillingAndDueLinksUseCase: { execute: vi.fn() } as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 0,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
+    const result = await useCase.execute(buildInput({ amount: 0 }));
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -318,20 +288,7 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
       ensureOrderBillingAndDueLinksUseCase: { execute: vi.fn() } as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 0,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
+    const result = await useCase.execute(buildInput({ happenedAt: 0 }));
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -350,20 +307,9 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
       ensureOrderBillingAndDueLinksUseCase: { execute: vi.fn() } as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
+    const result = await useCase.execute(
+      buildInput({ settlementMoneyAccountRemoteId: "" }),
+    );
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -382,20 +328,9 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
       ensureOrderBillingAndDueLinksUseCase: { execute: vi.fn() } as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "   ",
-      note: null,
-    });
+    const result = await useCase.execute(
+      buildInput({ settlementMoneyAccountDisplayNameSnapshot: "   " }),
+    );
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -424,200 +359,178 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
       ensureOrderBillingAndDueLinksUseCase: { execute: vi.fn() } as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1", // inactive account
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
+    const result = await useCase.execute(buildInput());
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.message).toContain("Choose a valid active money account");
+      expect(result.error.message).toContain(
+        "Choose a valid active money account",
+      );
     }
   });
+});
 
-describe("runOrderPaymentPostingWorkflowUseCase commercial/billing/due dependencies", () => {
-  it("fails safely when ensureOrderBillingAndDueLinksUseCase fails", async () => {
-    const ensureOrderBillingAndDueLinksUseCase = {
-      execute: vi.fn(async () => ({
-        success: false as const,
-        error: {
-          type: "VALIDATION_ERROR",
-          message: "Unable to ensure billing and due links",
-        },
-      })),
-    };
+describe(
+  "runOrderPaymentPostingWorkflowUseCase commercial/billing/due dependencies",
+  () => {
+    it("fails safely when ensureOrderBillingAndDueLinksUseCase fails", async () => {
+      const ensureOrderBillingAndDueLinksUseCase = {
+        execute: vi.fn(async () => ({
+          success: false as const,
+          error: {
+            type: "VALIDATION_ERROR",
+            message: "Unable to ensure billing and due links",
+          },
+        })),
+      };
 
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
-      getBillingOverviewUseCase: { execute: vi.fn() } as any,
-      getLedgerEntriesUseCase: { execute: vi.fn() } as any,
-      getMoneyAccountsUseCase: {
+      const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+        getBillingOverviewUseCase: { execute: vi.fn() } as any,
+        getLedgerEntriesUseCase: { execute: vi.fn() } as any,
+        getMoneyAccountsUseCase: {
+          execute: vi.fn(async () => ({
+            success: true as const,
+            value: [buildMoneyAccount()],
+          })),
+        } as any,
+        postBusinessTransactionUseCase: { execute: vi.fn() } as any,
+        deleteBusinessTransactionUseCase: { execute: vi.fn() } as any,
+        saveLedgerEntryWithSettlementUseCase: { execute: vi.fn() } as any,
+        ensureOrderBillingAndDueLinksUseCase:
+          ensureOrderBillingAndDueLinksUseCase as any,
+      });
+
+      const result = await useCase.execute(buildInput());
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain(
+          "Unable to ensure billing and due links",
+        );
+      }
+      expect(ensureOrderBillingAndDueLinksUseCase.execute).toHaveBeenCalledWith(
+        "order-1",
+      );
+    });
+
+    it("fails safely when linked billing document cannot be found", async () => {
+      const ensureOrderBillingAndDueLinksUseCase = {
         execute: vi.fn(async () => ({
           success: true as const,
-          value: [buildMoneyAccount()],
+          value: {
+            order: buildOrder(),
+            contact: buildContact(),
+            billingDocumentRemoteId: "bill-missing",
+            ledgerDueEntryRemoteId: "due-1",
+          },
         })),
-      } as any,
-      postBusinessTransactionUseCase: { execute: vi.fn() } as any,
-      deleteBusinessTransactionUseCase: { execute: vi.fn() } as any,
-      saveLedgerEntryWithSettlementUseCase: { execute: vi.fn() } as any,
-      ensureOrderBillingAndDueLinksUseCase: ensureOrderBillingAndDueLinksUseCase as any,
-    });
+      };
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.message).toContain("Unable to ensure billing and due links");
-    }
-    expect(ensureOrderBillingAndDueLinksUseCase.execute).toHaveBeenCalledWith("order-1");
-  });
-
-  it("fails safely when linked billing document cannot be found", async () => {
-    const ensureOrderBillingAndDueLinksUseCase = {
-      execute: vi.fn(async () => ({
-        success: true as const,
-        value: {
-          order: buildOrder(),
-          contact: buildContact(),
-          billingDocumentRemoteId: "bill-missing",
-          ledgerDueEntryRemoteId: "due-1",
-        },
-      })),
-    };
-
-    const getBillingOverviewUseCase = {
-      execute: vi.fn(async () => ({
-        success: true as const,
-        value: {
-          documents: [buildBillingDocument({ remoteId: "bill-other" })],
-          summary: { totalOutstanding: 100 },
-        },
-      })),
-    };
-
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
-      getBillingOverviewUseCase: getBillingOverviewUseCase as any,
-      getLedgerEntriesUseCase: { execute: vi.fn() } as any,
-      getMoneyAccountsUseCase: {
+      const getBillingOverviewUseCase = {
         execute: vi.fn(async () => ({
           success: true as const,
-          value: [buildMoneyAccount()],
+          value: {
+            documents: [buildBillingDocument({ remoteId: "bill-other" })],
+            allocations: [],
+            billPhotos: [],
+            summary: {
+              totalDocuments: 1,
+              pendingAmount: 100,
+              overdueAmount: 0,
+            },
+          },
         })),
-      } as any,
-      postBusinessTransactionUseCase: { execute: vi.fn() } as any,
-      deleteBusinessTransactionUseCase: { execute: vi.fn() } as any,
-      saveLedgerEntryWithSettlementUseCase: { execute: vi.fn() } as any,
-      ensureOrderBillingAndDueLinksUseCase: ensureOrderBillingAndDueLinksUseCase as any,
+      };
+
+      const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+        getBillingOverviewUseCase: getBillingOverviewUseCase as any,
+        getLedgerEntriesUseCase: { execute: vi.fn() } as any,
+        getMoneyAccountsUseCase: {
+          execute: vi.fn(async () => ({
+            success: true as const,
+            value: [buildMoneyAccount()],
+          })),
+        } as any,
+        postBusinessTransactionUseCase: { execute: vi.fn() } as any,
+        deleteBusinessTransactionUseCase: { execute: vi.fn() } as any,
+        saveLedgerEntryWithSettlementUseCase: { execute: vi.fn() } as any,
+        ensureOrderBillingAndDueLinksUseCase:
+          ensureOrderBillingAndDueLinksUseCase as any,
+      });
+
+      const result = await useCase.execute(buildInput());
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain(
+          "The linked billing document for this order could not be found",
+        );
+      }
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.message).toContain("The linked billing document for this order could not be found");
-    }
-  });
-
-  it("fails safely when linked ledger due entry cannot be found", async () => {
-    const ensureOrderBillingAndDueLinksUseCase = {
-      execute: vi.fn(async () => ({
-        success: true as const,
-        value: {
-          order: buildOrder(),
-          contact: buildContact(),
-          billingDocumentRemoteId: "bill-1",
-          ledgerDueEntryRemoteId: "due-missing",
-        },
-      })),
-    };
-
-    const getBillingOverviewUseCase = {
-      execute: vi.fn(async () => ({
-        success: true as const,
-        value: {
-          documents: [buildBillingDocument({ remoteId: "bill-1", outstandingAmount: 113 })],
-          summary: { totalOutstanding: 113 },
-        },
-      })),
-    };
-
-    const getLedgerEntriesUseCase = {
-      execute: vi.fn(async () => ({
-        success: true as const,
-        value: [buildLedgerEntry({ remoteId: "due-other" })],
-      })),
-    };
-
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
-      getBillingOverviewUseCase: getBillingOverviewUseCase as any,
-      getLedgerEntriesUseCase: getLedgerEntriesUseCase as any,
-      getMoneyAccountsUseCase: {
+    it("fails safely when linked ledger due entry cannot be found", async () => {
+      const ensureOrderBillingAndDueLinksUseCase = {
         execute: vi.fn(async () => ({
           success: true as const,
-          value: [buildMoneyAccount()],
+          value: {
+            order: buildOrder(),
+            contact: buildContact(),
+            billingDocumentRemoteId: "bill-1",
+            ledgerDueEntryRemoteId: "due-missing",
+          },
         })),
-      } as any,
-      postBusinessTransactionUseCase: { execute: vi.fn() } as any,
-      deleteBusinessTransactionUseCase: { execute: vi.fn() } as any,
-      saveLedgerEntryWithSettlementUseCase: { execute: vi.fn() } as any,
-      ensureOrderBillingAndDueLinksUseCase: ensureOrderBillingAndDueLinksUseCase as any,
-    });
+      };
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
+      const getBillingOverviewUseCase = {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: {
+            documents: [buildBillingDocument({ remoteId: "bill-1" })],
+            allocations: [],
+            billPhotos: [],
+            summary: {
+              totalDocuments: 1,
+              pendingAmount: 113,
+              overdueAmount: 0,
+            },
+          },
+        })),
+      };
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.message).toContain("The linked ledger due entry for this order could not be found");
-    }
-  });
+      const getLedgerEntriesUseCase = {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: [buildLedgerEntry({ remoteId: "due-other" })],
+        })),
+      };
+
+      const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+        getBillingOverviewUseCase: getBillingOverviewUseCase as any,
+        getLedgerEntriesUseCase: getLedgerEntriesUseCase as any,
+        getMoneyAccountsUseCase: {
+          execute: vi.fn(async () => ({
+            success: true as const,
+            value: [buildMoneyAccount()],
+          })),
+        } as any,
+        postBusinessTransactionUseCase: { execute: vi.fn() } as any,
+        deleteBusinessTransactionUseCase: { execute: vi.fn() } as any,
+        saveLedgerEntryWithSettlementUseCase: { execute: vi.fn() } as any,
+        ensureOrderBillingAndDueLinksUseCase:
+          ensureOrderBillingAndDueLinksUseCase as any,
+      });
+
+      const result = await useCase.execute(buildInput());
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain(
+          "The linked ledger due entry for this order could not be found",
+        );
+      }
+    });
+  },
+);
 
 describe("runOrderPaymentPostingWorkflowUseCase success path", () => {
   it("posts payment transaction and settlement successfully", async () => {
@@ -637,8 +550,14 @@ describe("runOrderPaymentPostingWorkflowUseCase success path", () => {
       execute: vi.fn(async () => ({
         success: true as const,
         value: {
-          documents: [buildBillingDocument({ remoteId: "bill-1", outstandingAmount: 113 })],
-          summary: { totalOutstanding: 113 },
+          documents: [buildBillingDocument({ remoteId: "bill-1" })],
+          allocations: [],
+          billPhotos: [],
+          summary: {
+            totalDocuments: 1,
+            pendingAmount: 113,
+            overdueAmount: 0,
+          },
         },
       })),
     };
@@ -702,27 +621,18 @@ describe("runOrderPaymentPostingWorkflowUseCase success path", () => {
       } as any,
       postBusinessTransactionUseCase: postBusinessTransactionUseCase as any,
       deleteBusinessTransactionUseCase: { execute: vi.fn() } as any,
-      saveLedgerEntryWithSettlementUseCase: saveLedgerEntryWithSettlementUseCase as any,
-      ensureOrderBillingAndDueLinksUseCase: ensureOrderBillingAndDueLinksUseCase as any,
+      saveLedgerEntryWithSettlementUseCase:
+        saveLedgerEntryWithSettlementUseCase as any,
+      ensureOrderBillingAndDueLinksUseCase:
+        ensureOrderBillingAndDueLinksUseCase as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: "Payment note",
-    });
+    const result = await useCase.execute(buildInput({ note: "Payment note" }));
 
     expect(result.success).toBe(true);
-    expect(ensureOrderBillingAndDueLinksUseCase.execute).toHaveBeenCalledWith("order-1");
+    expect(ensureOrderBillingAndDueLinksUseCase.execute).toHaveBeenCalledWith(
+      "order-1",
+    );
     expect(postBusinessTransactionUseCase.execute).toHaveBeenCalledWith(
       expect.objectContaining({
         remoteId: "txn-order-payment-attempt-1",
@@ -730,7 +640,7 @@ describe("runOrderPaymentPostingWorkflowUseCase success path", () => {
         sourceModule: "orders",
         amount: 100,
         title: "Order Payment ORD-001",
-      })
+      }),
     );
     expect(saveLedgerEntryWithSettlementUseCase.execute).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -744,13 +654,17 @@ describe("runOrderPaymentPostingWorkflowUseCase success path", () => {
             outstandingAmount: 113,
           }),
         ]),
-      })
+      }),
     );
 
     if (result.success) {
       expect(result.value.orderRemoteId).toBe("order-1");
-      expect(result.value.paymentTransactionRemoteId).toBe("txn-order-payment-attempt-1");
-      expect(result.value.settlementLedgerEntryRemoteId).toBe("led-settlement-attempt-1");
+      expect(result.value.paymentTransactionRemoteId).toBe(
+        "txn-order-payment-attempt-1",
+      );
+      expect(result.value.settlementLedgerEntryRemoteId).toBe(
+        "led-settlement-attempt-1",
+      );
       expect(result.value.billingDocumentRemoteId).toBe("bill-1");
       expect(result.value.ledgerDueEntryRemoteId).toBe("due-1");
     }
@@ -775,8 +689,14 @@ describe("runOrderPaymentPostingWorkflowUseCase rollback", () => {
       execute: vi.fn(async () => ({
         success: true as const,
         value: {
-          documents: [buildBillingDocument({ remoteId: "bill-1", outstandingAmount: 113 })],
-          summary: { totalOutstanding: 113 },
+          documents: [buildBillingDocument({ remoteId: "bill-1" })],
+          allocations: [],
+          billPhotos: [],
+          summary: {
+            totalDocuments: 1,
+            pendingAmount: 113,
+            overdueAmount: 0,
+          },
         },
       })),
     };
@@ -845,30 +765,23 @@ describe("runOrderPaymentPostingWorkflowUseCase rollback", () => {
       } as any,
       postBusinessTransactionUseCase: postBusinessTransactionUseCase as any,
       deleteBusinessTransactionUseCase: deleteBusinessTransactionUseCase as any,
-      saveLedgerEntryWithSettlementUseCase: saveLedgerEntryWithSettlementUseCase as any,
-      ensureOrderBillingAndDueLinksUseCase: ensureOrderBillingAndDueLinksUseCase as any,
+      saveLedgerEntryWithSettlementUseCase:
+        saveLedgerEntryWithSettlementUseCase as any,
+      ensureOrderBillingAndDueLinksUseCase:
+        ensureOrderBillingAndDueLinksUseCase as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
+    const result = await useCase.execute(buildInput());
 
     expect(result.success).toBe(false);
     expect(postBusinessTransactionUseCase.execute).toHaveBeenCalledTimes(1);
-    expect(saveLedgerEntryWithSettlementUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(saveLedgerEntryWithSettlementUseCase.execute).toHaveBeenCalledTimes(
+      1,
+    );
     expect(deleteBusinessTransactionUseCase.execute).toHaveBeenCalledTimes(1);
-    expect(deleteBusinessTransactionUseCase.execute).toHaveBeenCalledWith("txn-order-payment-attempt-1");
+    expect(deleteBusinessTransactionUseCase.execute).toHaveBeenCalledWith(
+      "txn-order-payment-attempt-1",
+    );
 
     if (!result.success) {
       expect(result.error.message).toContain("Settlement save failed");
@@ -895,8 +808,16 @@ describe("runOrderPaymentPostingWorkflowUseCase business-rule rejections", () =>
       execute: vi.fn(async () => ({
         success: true as const,
         value: {
-          documents: [buildBillingDocument({ remoteId: "bill-1", outstandingAmount: 0 })],
-          summary: { totalOutstanding: 0 },
+          documents: [
+            buildBillingDocument({ remoteId: "bill-1", outstandingAmount: 0 }),
+          ],
+          allocations: [],
+          billPhotos: [],
+          summary: {
+            totalDocuments: 1,
+            pendingAmount: 0,
+            overdueAmount: 0,
+          },
         },
       })),
     };
@@ -920,23 +841,11 @@ describe("runOrderPaymentPostingWorkflowUseCase business-rule rejections", () =>
       postBusinessTransactionUseCase: { execute: vi.fn() } as any,
       deleteBusinessTransactionUseCase: { execute: vi.fn() } as any,
       saveLedgerEntryWithSettlementUseCase: { execute: vi.fn() } as any,
-      ensureOrderBillingAndDueLinksUseCase: ensureOrderBillingAndDueLinksUseCase as any,
+      ensureOrderBillingAndDueLinksUseCase:
+        ensureOrderBillingAndDueLinksUseCase as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100,
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
+    const result = await useCase.execute(buildInput());
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -961,8 +870,16 @@ describe("runOrderPaymentPostingWorkflowUseCase business-rule rejections", () =>
       execute: vi.fn(async () => ({
         success: true as const,
         value: {
-          documents: [buildBillingDocument({ remoteId: "bill-1", outstandingAmount: 50 })],
-          summary: { totalOutstanding: 50 },
+          documents: [
+            buildBillingDocument({ remoteId: "bill-1", outstandingAmount: 50 }),
+          ],
+          allocations: [],
+          billPhotos: [],
+          summary: {
+            totalDocuments: 1,
+            pendingAmount: 50,
+            overdueAmount: 0,
+          },
         },
       })),
     };
@@ -986,29 +903,17 @@ describe("runOrderPaymentPostingWorkflowUseCase business-rule rejections", () =>
       postBusinessTransactionUseCase: { execute: vi.fn() } as any,
       deleteBusinessTransactionUseCase: { execute: vi.fn() } as any,
       saveLedgerEntryWithSettlementUseCase: { execute: vi.fn() } as any,
-      ensureOrderBillingAndDueLinksUseCase: ensureOrderBillingAndDueLinksUseCase as any,
+      ensureOrderBillingAndDueLinksUseCase:
+        ensureOrderBillingAndDueLinksUseCase as any,
     });
 
-    const result = await useCase.execute({
-      paymentAttemptRemoteId: "attempt-1",
-      orderRemoteId: "order-1",
-      orderNumber: "ORD-001",
-      ownerUserRemoteId: "user-1",
-      accountRemoteId: "business-1",
-      accountDisplayNameSnapshot: "Business Name",
-      amount: 100, // More than outstanding amount (50)
-      currencyCode: "NPR",
-      happenedAt: 1_710_000_000_000,
-      settlementMoneyAccountRemoteId: "account-1",
-      settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
-      note: null,
-    });
+    const result = await useCase.execute(buildInput({ amount: 100 }));
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.message).toContain("exceeds the remaining balance due");
+      expect(result.error.message).toContain(
+        "exceeds the remaining balance due",
+      );
     }
-  });
-  });
   });
 });
