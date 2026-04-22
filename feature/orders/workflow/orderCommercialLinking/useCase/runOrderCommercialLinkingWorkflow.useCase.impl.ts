@@ -1,14 +1,14 @@
 import {
-  BillingDocument,
-  BillingErrorType,
+    BillingDocument,
+    BillingErrorType,
 } from "@/feature/billing/types/billing.types";
 import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { GetBillingDocumentByRemoteIdUseCase } from "@/feature/billing/useCase/getBillingDocumentByRemoteId.useCase";
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import {
-  LedgerEntry,
-  SaveLedgerEntryPayload,
+    LedgerEntry,
+    SaveLedgerEntryPayload,
 } from "@/feature/ledger/types/ledger.entity.types";
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
 import { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase";
@@ -17,17 +17,17 @@ import { UpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerE
 import { OrderRepository } from "@/feature/orders/data/repository/order.repository";
 import { OrderValidationError } from "@/feature/orders/types/order.types";
 import {
-  buildBillingDocumentPayloadFromOrder,
-  buildLedgerDuePayloadFromOrder,
-  buildOrderBillingDocumentRemoteId,
-  buildOrderLedgerDueEntryRemoteId,
-  isOrderFinancialStatus,
+    buildBillingDocumentPayloadFromOrder,
+    buildLedgerDuePayloadFromOrder,
+    buildOrderBillingDocumentRemoteId,
+    buildOrderLedgerDueEntryRemoteId,
+    isOrderFinancialStatus,
 } from "@/feature/orders/utils/orderCommercialEffects.util";
 import { mapBillingDocumentToSaveBillingDocumentPayload } from "@/feature/orders/utils/orderCommercialSyncRollback.util";
 import { resolvePersistedOrderTotalAmount } from "@/feature/orders/utils/orderSettlementFromTransactions.util";
 import {
-  OrderCommercialLinkingWorkflowInput,
-  OrderCommercialLinkingWorkflowResult,
+    OrderCommercialLinkingWorkflowInput,
+    OrderCommercialLinkingWorkflowResult,
 } from "../types/orderCommercialLinkingWorkflow.types";
 import { RunOrderCommercialLinkingWorkflowUseCase } from "./runOrderCommercialLinkingWorkflow.useCase";
 
@@ -119,9 +119,11 @@ const rollbackLedgerDueState = async (params: {
     return restoreResult.error.message;
   }
 
-  const deleteResult = await params.deleteLedgerEntryUseCase.execute(
-    params.ledgerDueEntryRemoteId,
-  );
+  const deleteResult = params.previousLedgerDueEntry
+    ? await params.deleteLedgerEntryUseCase.execute(
+        params.ledgerDueEntryRemoteId,
+      )
+    : { success: true as const, value: true };
 
   if (deleteResult.success) {
     return null;
