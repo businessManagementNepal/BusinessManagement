@@ -164,6 +164,7 @@ export function ProductEditorModal({
         onChange={(value) => onChange("kind", value)}
         placeholder="Select type"
         modalTitle="Select product type"
+        disabled={mode === "edit"}
       />
 
       <LabeledDropdownField

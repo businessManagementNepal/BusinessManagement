@@ -9,21 +9,25 @@ export const createSaveProductUseCase = (
   repository: ProductRepository,
 ): SaveProductUseCase => ({
   async execute(payload) {
-    if (!payload.remoteId.trim()) {
+    const normalizedRemoteId = payload.remoteId.trim();
+    const normalizedAccountRemoteId = payload.accountRemoteId.trim();
+    const normalizedName = payload.name.trim();
+
+    if (!normalizedRemoteId) {
       return {
         success: false,
         error: ProductValidationError("Product remote id is required."),
       };
     }
 
-    if (!payload.accountRemoteId.trim()) {
+    if (!normalizedAccountRemoteId) {
       return {
         success: false,
         error: ProductValidationError("Account remote id is required."),
       };
     }
 
-    if (!payload.name.trim()) {
+    if (!normalizedName) {
       return {
         success: false,
         error: ProductValidationError("Product name is required."),
@@ -67,7 +71,35 @@ export const createSaveProductUseCase = (
       };
     }
 
-    return repository.saveProduct(payload);
+    const existingProductsResult = await repository.getProductsByAccountRemoteId(
+      normalizedAccountRemoteId,
+    );
+
+    if (!existingProductsResult.success) {
+      return {
+        success: false,
+        error: existingProductsResult.error,
+      };
+    }
+
+    const existingProduct = existingProductsResult.value.find(
+      (product) => product.remoteId === normalizedRemoteId,
+    );
+
+    if (existingProduct && existingProduct.kind !== payload.kind) {
+      return {
+        success: false,
+        error: ProductValidationError(
+          "Product type cannot be changed after creation.",
+        ),
+      };
+    }
+
+    return repository.saveProduct({
+      ...payload,
+      remoteId: normalizedRemoteId,
+      accountRemoteId: normalizedAccountRemoteId,
+      name: normalizedName,
+    });
   },
 });
-
