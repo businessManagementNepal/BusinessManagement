@@ -26,7 +26,10 @@ type Props = {
   isDeleting: boolean;
   canDelete: boolean;
   onClose: () => void;
-  onChange: (field: keyof CategoryFormState, value: string) => void;
+  onChange: (
+    field: keyof Omit<CategoryFormState, "fieldErrors">,
+    value: string,
+  ) => void;
   onSubmit: () => Promise<void>;
   onDelete: () => void;
 };
@@ -84,19 +87,21 @@ export function CategoryEditorModal({
       }
     >
       <LabeledTextInput
-        label="Category Name"
+        label="Category Name *"
         value={form.name}
         onChangeText={(value) => onChange("name", value)}
         placeholder="Category Name"
+        errorText={form.fieldErrors.name}
       />
 
       <LabeledDropdownField
-        label="Type"
+        label="Type *"
         value={form.kind}
         options={CATEGORY_KIND_OPTIONS.filter((item) => allowedKinds.includes(item.value))}
         onChange={(value) => onChange("kind", value)}
         placeholder="Choose category type"
         modalTitle="Choose category type"
+        errorText={form.fieldErrors.kind}
       />
 
       <LabeledTextInput

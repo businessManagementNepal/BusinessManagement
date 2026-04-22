@@ -42,14 +42,6 @@ export function CategoriesScreen({
 }: {
   viewModel: CategoriesViewModel;
 }): React.ReactElement {
-  const hasBusinessKinds =
-    viewModel.categories.some((category) => category.kind === CategoryKind.Business) ||
-    viewModel.categories.some((category) => category.kind === CategoryKind.Product);
-
-  const allowedKinds = hasBusinessKinds
-    ? [CategoryKind.Income, CategoryKind.Expense, CategoryKind.Business, CategoryKind.Product]
-    : [CategoryKind.Income, CategoryKind.Expense];
-
   return (
     <>
       <DashboardTabScaffold
@@ -131,7 +123,7 @@ export function CategoriesScreen({
         visible={viewModel.isEditorVisible}
         title={viewModel.editorTitle}
         form={viewModel.form}
-        allowedKinds={allowedKinds}
+        allowedKinds={viewModel.allowedKinds}
         isEditMode={viewModel.editorMode === "edit"}
         isDeleting={viewModel.isDeleting}
         canDelete={viewModel.canCreate && viewModel.editorMode === "edit"}

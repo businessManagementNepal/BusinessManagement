@@ -5,19 +5,28 @@ import {
   CategoryKindValue,
   CategoryScope,
 } from "@/feature/categories/types/category.types";
+import { validateCategoryForm } from "@/feature/categories/validation/validateCategoryForm";
+import { ArchiveCategoryUseCase } from "@/feature/categories/useCase/archiveCategory.useCase";
 import { GetCategoriesUseCase } from "@/feature/categories/useCase/getCategories.useCase";
 import { SaveCategoryUseCase } from "@/feature/categories/useCase/saveCategory.useCase";
-import { ArchiveCategoryUseCase } from "@/feature/categories/useCase/archiveCategory.useCase";
-import { AccountType, AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import {
+  AccountType,
+  AccountTypeValue,
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
 import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CategoriesViewModel, CategoryFormState } from "./categories.viewModel";
+import {
+  CategoriesViewModel,
+  CategoryFormFieldErrors,
+  CategoryFormState,
+} from "./categories.viewModel";
 
 const EMPTY_FORM: CategoryFormState = {
   remoteId: null,
   name: "",
   kind: CategoryKind.Income,
   description: "",
+  fieldErrors: {},
 };
 
 const mapCategoryToForm = (category: Category): CategoryFormState => ({
@@ -25,7 +34,22 @@ const mapCategoryToForm = (category: Category): CategoryFormState => ({
   name: category.name,
   kind: category.kind,
   description: category.description ?? "",
+  fieldErrors: {},
 });
+
+const clearFieldError = (
+  fieldErrors: CategoryFormFieldErrors,
+  field: keyof CategoryFormFieldErrors,
+): CategoryFormFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
+};
 
 type Params = {
   ownerUserRemoteId: string | null;
@@ -49,13 +73,19 @@ export const useCategoriesViewModel = ({
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedKind, setSelectedKind] = useState<"all" | CategoryKindValue>("all");
+  const [selectedKind, setSelectedKind] = useState<"all" | CategoryKindValue>(
+    "all",
+  );
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
   const [form, setForm] = useState<CategoryFormState>(EMPTY_FORM);
-  const [pendingDeleteRemoteId, setPendingDeleteRemoteId] = useState<string | null>(null);
+  const [pendingDeleteRemoteId, setPendingDeleteRemoteId] = useState<
+    string | null
+  >(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null);
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(
+    null,
+  );
 
   const allowedKinds = useMemo<readonly CategoryKindValue[]>(() => {
     if (accountType === AccountType.Business) {
@@ -79,6 +109,7 @@ export const useCategoriesViewModel = ({
     }
 
     setIsLoading(true);
+
     const result = await getCategoriesUseCase.execute({
       ownerUserRemoteId,
       accountRemoteId,
@@ -99,7 +130,13 @@ export const useCategoriesViewModel = ({
     setCategories(nextCategories);
     setErrorMessage(null);
     setIsLoading(false);
-  }, [accountRemoteId, accountType, allowedKinds, getCategoriesUseCase, ownerUserRemoteId]);
+  }, [
+    accountRemoteId,
+    accountType,
+    allowedKinds,
+    getCategoriesUseCase,
+    ownerUserRemoteId,
+  ]);
 
   useEffect(() => {
     void loadCategories();
@@ -126,39 +163,68 @@ export const useCategoriesViewModel = ({
     }
 
     setEditorMode("create");
-    setForm({ ...EMPTY_FORM, kind: allowedKinds[0] ?? CategoryKind.Income });
+    setForm({
+      ...EMPTY_FORM,
+      kind: allowedKinds[0] ?? CategoryKind.Income,
+      fieldErrors: {},
+    });
     setErrorMessage(null);
     setDeleteErrorMessage(null);
     setIsEditorVisible(true);
   }, [allowedKinds, canManage]);
 
-  const onOpenEdit = useCallback((category: Category) => {
-    if (!canManage) {
-      setErrorMessage("You do not have permission to manage categories.");
-      return;
-    }
+  const onOpenEdit = useCallback(
+    (category: Category) => {
+      if (!canManage) {
+        setErrorMessage("You do not have permission to manage categories.");
+        return;
+      }
 
-    if (category.isSystem) {
-      setErrorMessage("System categories are locked to preserve report stability.");
-      return;
-    }
+      if (category.isSystem) {
+        setErrorMessage(
+          "System categories are locked to preserve report stability.",
+        );
+        return;
+      }
 
-    setEditorMode("edit");
-    setForm(mapCategoryToForm(category));
-    setErrorMessage(null);
-    setDeleteErrorMessage(null);
-    setIsEditorVisible(true);
-  }, [canManage]);
+      setEditorMode("edit");
+      setForm(mapCategoryToForm(category));
+      setErrorMessage(null);
+      setDeleteErrorMessage(null);
+      setIsEditorVisible(true);
+    },
+    [canManage],
+  );
 
   const onCloseEditor = useCallback(() => {
     setIsEditorVisible(false);
     setForm(EMPTY_FORM);
     setDeleteErrorMessage(null);
+    setErrorMessage(null);
   }, []);
 
-  const onFormChange = useCallback((field: keyof CategoryFormState, value: string) => {
-    setForm((current) => ({ ...current, [field]: value }));
-  }, []);
+  const onFormChange = useCallback(
+    (field: keyof Omit<CategoryFormState, "fieldErrors">, value: string) => {
+      setErrorMessage(null);
+
+      setForm((current) => {
+        let nextFieldErrors = current.fieldErrors;
+
+        if (field === "name") {
+          nextFieldErrors = clearFieldError(current.fieldErrors, "name");
+        } else if (field === "kind") {
+          nextFieldErrors = clearFieldError(current.fieldErrors, "kind");
+        }
+
+        return {
+          ...current,
+          [field]: value,
+          fieldErrors: nextFieldErrors,
+        };
+      });
+    },
+    [],
+  );
 
   const onSubmit = useCallback(async () => {
     if (!canManage) {
@@ -171,15 +237,33 @@ export const useCategoriesViewModel = ({
       return;
     }
 
+    const nextFieldErrors = validateCategoryForm({
+      name: form.name,
+      kind: form.kind,
+      allowedKinds,
+    });
+
+    if (Object.values(nextFieldErrors).some(Boolean)) {
+      setForm((current) => ({
+        ...current,
+        fieldErrors: nextFieldErrors,
+      }));
+      setErrorMessage(null);
+      return;
+    }
+
     const result = await saveCategoryUseCase.execute({
       remoteId: form.remoteId ?? Crypto.randomUUID(),
       ownerUserRemoteId,
       accountRemoteId,
       accountType,
-      scope: accountType === AccountType.Business ? CategoryScope.Business : CategoryScope.Personal,
+      scope:
+        accountType === AccountType.Business
+          ? CategoryScope.Business
+          : CategoryScope.Personal,
       kind: form.kind,
-      name: form.name,
-      description: form.description || null,
+      name: form.name.trim(),
+      description: form.description.trim() || null,
       isSystem: false,
     });
 
@@ -199,11 +283,21 @@ export const useCategoriesViewModel = ({
         index === existingIndex ? result.value : category,
       );
     });
+
     setErrorMessage(null);
     setIsEditorVisible(false);
     setForm(EMPTY_FORM);
     void loadCategories();
-  }, [accountRemoteId, accountType, canManage, form, loadCategories, ownerUserRemoteId, saveCategoryUseCase]);
+  }, [
+    accountRemoteId,
+    accountType,
+    allowedKinds,
+    canManage,
+    form,
+    loadCategories,
+    ownerUserRemoteId,
+    saveCategoryUseCase,
+  ]);
 
   const onRequestDeleteFromEditor = useCallback((): void => {
     if (!canManage) {
@@ -215,7 +309,9 @@ export const useCategoriesViewModel = ({
       return;
     }
 
-    const targetCategory = categories.find((category) => category.remoteId === form.remoteId);
+    const targetCategory = categories.find(
+      (category) => category.remoteId === form.remoteId,
+    );
     if (!targetCategory) {
       setErrorMessage("Category not found.");
       return;
@@ -260,7 +356,9 @@ export const useCategoriesViewModel = ({
     }
 
     setCategories((currentCategories) =>
-      currentCategories.filter((category) => category.remoteId !== pendingDeleteRemoteId),
+      currentCategories.filter(
+        (category) => category.remoteId !== pendingDeleteRemoteId,
+      ),
     );
     setPendingDeleteRemoteId(null);
     setDeleteErrorMessage(null);
@@ -298,7 +396,10 @@ export const useCategoriesViewModel = ({
       categories,
       filteredCategories,
       selectedKind,
-      canCreate: Boolean(ownerUserRemoteId && accountRemoteId && accountType && canManage),
+      allowedKinds,
+      canCreate: Boolean(
+        ownerUserRemoteId && accountRemoteId && accountType && canManage,
+      ),
       isEditorVisible,
       editorMode,
       editorTitle: editorMode === "create" ? "New Category" : "Edit Category",
@@ -321,6 +422,7 @@ export const useCategoriesViewModel = ({
     [
       accountRemoteId,
       accountType,
+      allowedKinds,
       canManage,
       categories,
       deleteErrorMessage,
