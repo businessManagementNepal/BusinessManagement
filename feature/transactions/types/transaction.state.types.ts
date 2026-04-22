@@ -89,6 +89,16 @@ export type TransactionFilterOption = {
 
 export type TransactionEditorMode = "create" | "edit";
 
+export type TransactionEditorFieldName =
+  | "accountRemoteId"
+  | "settlementMoneyAccountRemoteId"
+  | "amount"
+  | "happenedAt";
+
+export type TransactionEditorFieldErrors = Partial<
+  Record<TransactionEditorFieldName, string>
+>;
+
 export type TransactionEditorState = {
   visible: boolean;
   mode: TransactionEditorMode;
@@ -102,6 +112,7 @@ export type TransactionEditorState = {
   categoryLabel: string;
   note: string;
   happenedAt: string;
+  fieldErrors: TransactionEditorFieldErrors;
   errorMessage: string | null;
   isSaving: boolean;
 };

@@ -142,6 +142,7 @@ export function TransactionEditorModal({
         placeholder="0"
         keyboardType="decimal-pad"
         editable={!state.isSaving}
+        errorText={state.fieldErrors.amount}
       />
 
       <LabeledDropdownField
@@ -152,6 +153,7 @@ export function TransactionEditorModal({
         placeholder="Select account"
         modalTitle="Select account"
         disabled={state.isSaving}
+        errorText={state.fieldErrors.accountRemoteId}
       />
 
       <LabeledDropdownField
@@ -162,6 +164,7 @@ export function TransactionEditorModal({
         placeholder="Select money account"
         modalTitle="Select money account"
         disabled={state.isSaving}
+        errorText={state.fieldErrors.settlementMoneyAccountRemoteId}
       />
 
       <LabeledTextInput
@@ -179,6 +182,7 @@ export function TransactionEditorModal({
         placeholder="YYYY-MM-DD"
         autoCapitalize="none"
         editable={!state.isSaving}
+        errorText={state.fieldErrors.happenedAt}
       />
 
       <LabeledTextInput

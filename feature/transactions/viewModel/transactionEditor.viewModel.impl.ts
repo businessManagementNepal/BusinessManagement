@@ -1,20 +1,21 @@
 import {
-  MoneyAccount,
-  MoneyAccountType,
+    MoneyAccount,
+    MoneyAccountType,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import { Account } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
-  SaveTransactionPayload,
-  TransactionDirection,
-  TransactionDirectionValue,
-  TransactionType,
-  TransactionTypeValue,
+    SaveTransactionPayload,
+    TransactionDirection,
+    TransactionDirectionValue,
+    TransactionType,
+    TransactionTypeValue,
 } from "@/feature/transactions/types/transaction.entity.types";
 import {
-  TransactionAccountOption,
-  TransactionEditorState,
-  TransactionMoneyAccountOption,
+    TransactionAccountOption,
+    TransactionEditorFieldErrors,
+    TransactionEditorState,
+    TransactionMoneyAccountOption
 } from "@/feature/transactions/types/transaction.state.types";
 import { AddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase";
 import { GetTransactionByIdUseCase } from "@/feature/transactions/useCase/getTransactionById.useCase";
@@ -35,6 +36,7 @@ const DEFAULT_EDITOR_STATE: TransactionEditorState = {
   categoryLabel: "",
   note: "",
   happenedAt: new Date().toISOString().slice(0, 10),
+  fieldErrors: {},
   errorMessage: null,
   isSaving: false,
 };
@@ -93,6 +95,70 @@ const mapMoneyAccountToOption = (
     remoteId: moneyAccount.remoteId,
     label: `${moneyAccount.name} | ${accountTypeLabel}${primaryLabel}`,
   };
+};
+
+const clearFieldError = (
+  fieldErrors: TransactionEditorFieldErrors,
+  field: keyof TransactionEditorFieldErrors,
+): TransactionEditorFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
+};
+
+const validateTransactionEditorState = ({
+  mode,
+  accountRemoteId,
+  settlementMoneyAccountRemoteId,
+  selectedAccountExists,
+  selectedMoneyAccountExists,
+  amount,
+  happenedAt,
+}: {
+  mode: "create" | "edit";
+  accountRemoteId: string;
+  settlementMoneyAccountRemoteId: string;
+  selectedAccountExists: boolean;
+  selectedMoneyAccountExists: boolean;
+  amount: string;
+  happenedAt: string;
+}): TransactionEditorFieldErrors => {
+  const nextFieldErrors: TransactionEditorFieldErrors = {};
+  const parsedAmount = Number(amount.replace(/,/g, "").trim());
+  const parsedDate = parseDateInput(happenedAt);
+
+  if (!selectedAccountExists) {
+    nextFieldErrors.accountRemoteId = "Please select an account.";
+  }
+
+  if (mode === "create" && settlementMoneyAccountRemoteId.trim().length === 0) {
+    nextFieldErrors.settlementMoneyAccountRemoteId =
+      "Please select a money account.";
+  }
+
+  if (
+    settlementMoneyAccountRemoteId.trim().length > 0 &&
+    !selectedMoneyAccountExists
+  ) {
+    nextFieldErrors.settlementMoneyAccountRemoteId =
+      "Please select a valid money account.";
+  }
+
+  if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    nextFieldErrors.amount = "Amount must be greater than zero.";
+  }
+
+  if (parsedDate === null) {
+    nextFieldErrors.happenedAt =
+      "Please enter a valid date in YYYY-MM-DD format.";
+  }
+
+  return nextFieldErrors;
 };
 
 type UseTransactionEditorViewModelParams = {
@@ -270,6 +336,7 @@ export const useTransactionEditorViewModel = ({
         categoryLabel: result.value.categoryLabel ?? "",
         note: result.value.note ?? "",
         happenedAt: formatDateInput(result.value.happenedAt),
+        fieldErrors: {},
         errorMessage: null,
         isSaving: false,
       });
@@ -321,6 +388,7 @@ export const useTransactionEditorViewModel = ({
     setState((currentState) => ({
       ...currentState,
       amount,
+      fieldErrors: clearFieldError(currentState.fieldErrors, "amount"),
       errorMessage: null,
     }));
   }, []);
@@ -331,6 +399,10 @@ export const useTransactionEditorViewModel = ({
         ...currentState,
         accountRemoteId,
         settlementMoneyAccountRemoteId: "",
+        fieldErrors: {
+          ...clearFieldError(currentState.fieldErrors, "accountRemoteId"),
+          settlementMoneyAccountRemoteId: undefined,
+        },
         errorMessage: null,
       }));
       void loadMoneyAccountOptions({
@@ -346,6 +418,10 @@ export const useTransactionEditorViewModel = ({
       setState((currentState) => ({
         ...currentState,
         settlementMoneyAccountRemoteId,
+        fieldErrors: clearFieldError(
+          currentState.fieldErrors,
+          "settlementMoneyAccountRemoteId",
+        ),
         errorMessage: null,
       }));
     },
@@ -372,6 +448,7 @@ export const useTransactionEditorViewModel = ({
     setState((currentState) => ({
       ...currentState,
       happenedAt,
+      fieldErrors: clearFieldError(currentState.fieldErrors, "happenedAt"),
       errorMessage: null,
     }));
   }, []);
@@ -386,65 +463,42 @@ export const useTransactionEditorViewModel = ({
     const parsedAmount = Number(state.amount.replace(/,/g, "").trim());
     const parsedDate = parseDateInput(state.happenedAt);
 
-    if (!selectedAccount) {
+    const nextFieldErrors = validateTransactionEditorState({
+      mode: state.mode,
+      accountRemoteId: state.accountRemoteId,
+      settlementMoneyAccountRemoteId: state.settlementMoneyAccountRemoteId,
+      selectedAccountExists: Boolean(selectedAccount),
+      selectedMoneyAccountExists:
+        state.settlementMoneyAccountRemoteId.trim().length === 0
+          ? true
+          : Boolean(selectedMoneyAccount),
+      amount: state.amount,
+      happenedAt: state.happenedAt,
+    });
+
+    if (Object.values(nextFieldErrors).some(Boolean)) {
       setState((currentState) => ({
         ...currentState,
-        errorMessage: "Please select an account.",
+        fieldErrors: nextFieldErrors,
+        errorMessage: null,
       }));
       return;
     }
 
-    if (
-      state.mode === "create" &&
-      state.settlementMoneyAccountRemoteId.trim().length === 0
-    ) {
-      setState((currentState) => ({
-        ...currentState,
-        errorMessage: "Please select a money account.",
-      }));
-      return;
-    }
-
-    if (
-      state.settlementMoneyAccountRemoteId.trim().length > 0 &&
-      !selectedMoneyAccount
-    ) {
-      setState((currentState) => ({
-        ...currentState,
-        errorMessage: "Please select a valid money account.",
-      }));
-      return;
-    }
-
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      setState((currentState) => ({
-        ...currentState,
-        errorMessage: "Amount must be greater than zero.",
-      }));
-      return;
-    }
-
-    if (!parsedDate) {
-      setState((currentState) => ({
-        ...currentState,
-        errorMessage: "Please enter a valid date in YYYY-MM-DD format.",
-      }));
-      return;
-    }
-
+    // At this point, selectedAccount is guaranteed to exist due to validation
     const payload: SaveTransactionPayload = {
       remoteId: state.remoteId ?? createTransactionRemoteId(),
       ownerUserRemoteId,
-      accountRemoteId: selectedAccount.remoteId,
-      accountDisplayNameSnapshot: selectedAccount.label,
+      accountRemoteId: selectedAccount!.remoteId,
+      accountDisplayNameSnapshot: selectedAccount!.label,
       transactionType: state.type,
       direction: state.direction,
       title: state.title,
       amount: parsedAmount,
-      currencyCode: selectedAccount.currencyCode,
+      currencyCode: selectedAccount!.currencyCode,
       categoryLabel: state.categoryLabel,
       note: state.note,
-      happenedAt: parsedDate,
+      happenedAt: parsedDate!,
       settlementMoneyAccountRemoteId: selectedMoneyAccount?.remoteId ?? null,
       settlementMoneyAccountDisplayNameSnapshot:
         selectedMoneyAccount?.label ?? null,
@@ -453,6 +507,7 @@ export const useTransactionEditorViewModel = ({
     setState((currentState) => ({
       ...currentState,
       isSaving: true,
+      fieldErrors: {},
       errorMessage: null,
     }));
 
