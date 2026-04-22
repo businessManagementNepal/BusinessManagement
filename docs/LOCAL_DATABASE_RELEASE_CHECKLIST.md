@@ -61,6 +61,7 @@ This checklist is mandatory for any release that changes:
 - [ ] Verify startup error UI shows a safe message plus support code
 - [ ] Verify retry does not create overlapping startup bootstrap runs
 - [ ] Verify the session app shell does not mount before startup bootstrap reaches Ready
+- [ ] Verify retry after a startup failure shows a startup loading surface and never falls to a blank screen
 
 ## Release evidence to record
 

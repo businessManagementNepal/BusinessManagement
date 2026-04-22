@@ -17,8 +17,11 @@ import { StartupBootstrapStatus } from "@/feature/startup/types/startup.types";
 import { useStartupBootstrapFactory } from "@/feature/startup/factory/useStartupBootstrap.factory";
 import { useStartupSplashGateViewModel } from "@/feature/startup/viewModel/startupSplashGate.viewModel.impl";
 import { AnimatedSplashScreen } from "@/feature/startup/ui/AnimatedSplashScreen";
-import { StartupErrorScreen } from "@/feature/startup/ui/StartupErrorScreen";
-import { resolveStartupPresentationState } from "@/feature/startup/utils/resolveStartupPresentationState.util";
+import { StartupBootstrapBoundary } from "@/feature/startup/ui/StartupBootstrapBoundary";
+import {
+  resolveStartupPresentationState,
+  StartupPresentationMode,
+} from "@/feature/startup/utils/resolveStartupPresentationState.util";
 
 applyGlobalTypographyDefaults();
 
@@ -35,14 +38,6 @@ type SessionStartupOverlayControllerProps = {
 
 type SessionRootNavigatorProps = {
   languageCode: string;
-};
-
-type StartupFailureBoundaryProps = {
-  fontsLoaded: boolean;
-  message: string;
-  onRetry: (() => Promise<void>) | null;
-  reasonCode: string | null;
-  failedTaskKey: string | null;
 };
 
 function SessionStartupOverlayController({
@@ -107,29 +102,6 @@ function SessionRootNavigator({ languageCode }: SessionRootNavigatorProps) {
   );
 }
 
-function StartupFailureBoundary({
-  fontsLoaded,
-  message,
-  onRetry,
-  reasonCode,
-  failedTaskKey,
-}: StartupFailureBoundaryProps) {
-  useStartupSplashGateViewModel({
-    fontsLoaded,
-    startupStatus: StartupBootstrapStatus.Failed,
-    isSessionLoading: false,
-  });
-
-  return (
-    <StartupErrorScreen
-      message={message}
-      onRetry={onRetry}
-      reasonCode={reasonCode}
-      failedTaskKey={failedTaskKey}
-    />
-  );
-}
-
 export default function RootLayout() {
   const [fontsLoaded, fontsError] = useFonts({
     InterRegular: require("../assets/fonts/Inter_18pt-Regular.ttf"),
@@ -191,9 +163,10 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider style={styles.rootSafeArea}>
       <View style={styles.rootContainer}>
-        {startupPresentationState.shouldRenderFailureScreen ? (
-          <StartupFailureBoundary
+        {startupPresentationState.mode !== StartupPresentationMode.Session ? (
+          <StartupBootstrapBoundary
             fontsLoaded={fontsLoaded}
+            startupStatus={startupStatus}
             message={startupErrorMessage ?? "Unable to initialize app startup."}
             onRetry={onRetryStartup}
             reasonCode={startupReasonCode}
