@@ -6,11 +6,9 @@ import { appRatingDbConfig } from "@/feature/appSettings/settings/data/dataSourc
 import { bugReportDbConfig } from "@/feature/appSettings/settings/data/dataSource/db/bugReportDbConfig";
 import { accountDbConfig } from "@/feature/auth/accountSelection/data/dataSource/db/accountDbConfig";
 import { billingDbConfig } from "@/feature/billing/data/dataSource/db/billingDbConfig";
-import { BILLING_DOCUMENT_ACTIVE_NUMBER_UNIQUE_INDEX_NAME } from "@/feature/billing/data/dataSource/db/billingDocument.uniqueIndex";
 import { budgetPlanDbConfig } from "@/feature/budget/data/dataSource/db/budgetPlanDbConfig";
 import { categoryDbConfig } from "@/feature/categories/data/dataSource/db/categoryDbConfig";
 import { contactDbConfig } from "@/feature/contacts/data/dataSource/db/contactDbConfig";
-import { CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_NAME } from "@/feature/contacts/data/dataSource/db/contactPhone.uniqueIndex";
 import { emiDbConfig } from "@/feature/emiLoans/data/dataSource/db/emiDbConfig";
 import { inventoryMovementDbConfig } from "@/feature/inventory/data/dataSource/db/inventoryMovementDbConfig";
 import { ledgerDbConfig } from "@/feature/ledger/data/dataSource/db/ledgerDbConfig";
@@ -27,15 +25,14 @@ import {
   assertDatabaseSetupHealthy,
   createDatabase,
 } from "@/shared/database/createDatabase";
+import { runDatabaseIntegrityChecks } from "@/shared/database/databaseIntegrity";
 import { migrations } from "@/shared/database/migration";
-import { appSchema, Q } from "@nozbe/watermelondb";
+import { appSchema, Collection, Q } from "@nozbe/watermelondb";
 
 const APP_SETTINGS_TABLE = "app_settings";
-const BILLING_DOCUMENTS_TABLE = "billing_documents";
-const CONTACTS_TABLE = "contacts";
 
 const schema = appSchema({
-  version: 41,
+  version: 42,
   tables: [
     ...authUserDbConfig.tables,
     ...authCredentialDbConfig.tables,
@@ -89,6 +86,16 @@ export const database = createDatabase({
   migrations,
 });
 
+const createDatabaseIntegritySqlRunner = (
+  appSettingsCollection: Collection<AppSettingsModel>,
+) => ({
+  async fetchRaw(sql: string, args: readonly (string | number | null)[] = []) {
+    return appSettingsCollection
+      .query(Q.unsafeSqlQuery(sql, [...args]))
+      .unsafeFetchRaw();
+  },
+});
+
 export const ensureDatabaseReady = async (): Promise<void> => {
   assertDatabaseSetupHealthy();
 
@@ -97,80 +104,9 @@ export const ensureDatabaseReady = async (): Promise<void> => {
 
   await appSettingsCollection.query().fetchCount();
 
-  const uniqueIndexRows = await appSettingsCollection
-    .query(
-      Q.unsafeSqlQuery(
-        "SELECT name, sql FROM sqlite_master WHERE type = ? AND name = ?;",
-        ["index", BILLING_DOCUMENT_ACTIVE_NUMBER_UNIQUE_INDEX_NAME],
-      ),
-    )
-    .unsafeFetchRaw();
-
-  if (uniqueIndexRows.length === 0) {
-    throw new Error(
-      `Database integrity check failed: missing unique index ${BILLING_DOCUMENT_ACTIVE_NUMBER_UNIQUE_INDEX_NAME}.`,
-    );
-  }
-
-  const duplicateRows = await appSettingsCollection
-    .query(
-      Q.unsafeSqlQuery(
-        `
-          SELECT account_remote_id, document_number, COUNT(*) AS duplicate_count
-          FROM ${BILLING_DOCUMENTS_TABLE}
-          WHERE deleted_at IS NULL
-          GROUP BY account_remote_id, document_number COLLATE NOCASE
-          HAVING COUNT(*) > 1
-          LIMIT 1;
-        `,
-      ),
-    )
-    .unsafeFetchRaw();
-
-  if (duplicateRows.length > 0) {
-    throw new Error(
-      "Database integrity check failed: duplicate active billing document numbers detected.",
-    );
-  }
-
-  const contactUniqueIndexRows = await appSettingsCollection
-    .query(
-      Q.unsafeSqlQuery(
-        "SELECT name, sql FROM sqlite_master WHERE type = ? AND name = ?;",
-        ["index", CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_NAME],
-      ),
-    )
-    .unsafeFetchRaw();
-
-  if (contactUniqueIndexRows.length === 0) {
-    throw new Error(
-      `Database integrity check failed: missing unique index ${CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_NAME}.`,
-    );
-  }
-
-  const duplicateContactPhoneRows = await appSettingsCollection
-    .query(
-      Q.unsafeSqlQuery(
-        `
-          SELECT account_remote_id, contact_type, normalized_phone_number, COUNT(*) AS duplicate_count
-          FROM ${CONTACTS_TABLE}
-          WHERE deleted_at IS NULL
-            AND is_archived = 0
-            AND normalized_phone_number IS NOT NULL
-            AND LENGTH(TRIM(normalized_phone_number)) > 0
-          GROUP BY account_remote_id, contact_type, normalized_phone_number
-          HAVING COUNT(*) > 1
-          LIMIT 1;
-        `,
-      ),
-    )
-    .unsafeFetchRaw();
-
-  if (duplicateContactPhoneRows.length > 0) {
-    throw new Error(
-      "Database integrity check failed: duplicate active contact identity phone numbers detected.",
-    );
-  }
+  await runDatabaseIntegrityChecks(
+    createDatabaseIntegritySqlRunner(appSettingsCollection),
+  );
 
   assertDatabaseSetupHealthy();
 };

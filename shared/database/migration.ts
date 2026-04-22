@@ -1071,5 +1071,14 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 42,
+      steps: [
+        unsafeExecuteSql(BACKFILL_CONTACT_NORMALIZED_PHONE_SQL),
+        unsafeExecuteSql(DEDUPE_CONTACT_NORMALIZED_PHONE_SQL),
+        unsafeExecuteSql(DROP_CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL),
+        unsafeExecuteSql(CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL),
+      ],
+    },
     ],
 });

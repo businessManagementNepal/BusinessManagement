@@ -12,6 +12,7 @@
     "ios:dev": "expo run:ios",
     "lint": "expo lint",
     "test": "vitest run",
+    "test:database": "vitest run tests/databaseIntegrity.test.ts",
     "typecheck": "tsc --noEmit",
     "export:mobile": "expo export --platform ios && expo export --platform android"
   },

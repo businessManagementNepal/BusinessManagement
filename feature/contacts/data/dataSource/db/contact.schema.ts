@@ -1,4 +1,5 @@
 import { tableSchema } from "@nozbe/watermelondb";
+import { CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL } from "./contactPhone.uniqueIndex";
 
 export const contactsTable = tableSchema({
   name: "contacts",
@@ -29,4 +30,6 @@ export const contactsTable = tableSchema({
     { name: "created_at", type: "number" },
     { name: "updated_at", type: "number" },
   ],
+  unsafeSql: (sql) =>
+    `${sql}\n${CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL}`,
 });
