@@ -1,21 +1,21 @@
 import {
-    MoneyAccount,
-    MoneyAccountType,
+  MoneyAccount,
+  MoneyAccountType,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import { Account } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
-    SaveTransactionPayload,
-    TransactionDirection,
-    TransactionDirectionValue,
-    TransactionType,
-    TransactionTypeValue,
+  SaveTransactionPayload,
+  TransactionDirection,
+  TransactionDirectionValue,
+  TransactionType,
+  TransactionTypeValue,
 } from "@/feature/transactions/types/transaction.entity.types";
 import {
-    TransactionAccountOption,
-    TransactionEditorFieldErrors,
-    TransactionEditorState,
-    TransactionMoneyAccountOption
+  TransactionAccountOption,
+  TransactionEditorFieldErrors,
+  TransactionEditorState,
+  TransactionMoneyAccountOption
 } from "@/feature/transactions/types/transaction.state.types";
 import { AddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase";
 import { GetTransactionByIdUseCase } from "@/feature/transactions/useCase/getTransactionById.useCase";
@@ -113,6 +113,7 @@ const clearFieldError = (
 
 const validateTransactionEditorState = ({
   mode,
+  title,
   accountRemoteId,
   settlementMoneyAccountRemoteId,
   selectedAccountExists,
@@ -121,6 +122,7 @@ const validateTransactionEditorState = ({
   happenedAt,
 }: {
   mode: "create" | "edit";
+  title: string;
   accountRemoteId: string;
   settlementMoneyAccountRemoteId: string;
   selectedAccountExists: boolean;
@@ -131,6 +133,10 @@ const validateTransactionEditorState = ({
   const nextFieldErrors: TransactionEditorFieldErrors = {};
   const parsedAmount = Number(amount.replace(/,/g, "").trim());
   const parsedDate = parseDateInput(happenedAt);
+
+  if (!title.trim()) {
+    nextFieldErrors.title = "Please enter a title.";
+  }
 
   if (!selectedAccountExists) {
     nextFieldErrors.accountRemoteId = "Please select an account.";
@@ -380,6 +386,7 @@ export const useTransactionEditorViewModel = ({
     setState((currentState) => ({
       ...currentState,
       title,
+      fieldErrors: clearFieldError(currentState.fieldErrors, "title"),
       errorMessage: null,
     }));
   }, []);
@@ -465,6 +472,7 @@ export const useTransactionEditorViewModel = ({
 
     const nextFieldErrors = validateTransactionEditorState({
       mode: state.mode,
+      title: state.title,
       accountRemoteId: state.accountRemoteId,
       settlementMoneyAccountRemoteId: state.settlementMoneyAccountRemoteId,
       selectedAccountExists: Boolean(selectedAccount),

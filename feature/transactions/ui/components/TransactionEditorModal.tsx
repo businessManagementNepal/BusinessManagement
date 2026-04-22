@@ -1,6 +1,6 @@
 import {
-    TransactionDirection,
-    TransactionType,
+  TransactionDirection,
+  TransactionType,
 } from "@/feature/transactions/types/transaction.entity.types";
 import { TransactionEditorViewModel } from "@/feature/transactions/viewModel/transactionEditor.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
@@ -133,6 +133,7 @@ export function TransactionEditorModal({
         onChangeText={viewModel.onChangeTitle}
         placeholder="Example: Salary, House Rent, Grocery"
         editable={!state.isSaving}
+        errorText={state.fieldErrors.title}
       />
 
       <LabeledTextInput

@@ -90,6 +90,7 @@ export type TransactionFilterOption = {
 export type TransactionEditorMode = "create" | "edit";
 
 export type TransactionEditorFieldName =
+  | "title"
   | "accountRemoteId"
   | "settlementMoneyAccountRemoteId"
   | "amount"
