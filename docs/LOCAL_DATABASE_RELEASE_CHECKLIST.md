@@ -25,6 +25,11 @@ This checklist is mandatory for any release that changes:
 - [ ] `npm run test`
 - [ ] `npm run test:database`
 
+`test:database` must cover:
+- integrity invariant tests
+- migration contract tests
+- startup orchestration tests
+
 ## Required manual verification
 
 ### Fresh install
@@ -45,6 +50,9 @@ This checklist is mandatory for any release that changes:
 - [ ] Verify every required custom index exists after upgrade
 - [ ] Verify duplicate cleanup logic ran successfully before unique index creation
 - [ ] Verify startup integrity checks pass after migration
+- [ ] Verify app schema version matches the latest migration version
+- [ ] Verify any repair migration preserves the required SQL step order
+- [ ] Verify startup orchestration still runs database health check -> fetchCount -> integrity checks -> health check
 
 ## Release evidence to record
 

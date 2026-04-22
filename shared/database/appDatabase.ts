@@ -31,8 +31,10 @@ import { appSchema, Collection, Q } from "@nozbe/watermelondb";
 
 const APP_SETTINGS_TABLE = "app_settings";
 
+export const APP_DATABASE_SCHEMA_VERSION = 42;
+
 const schema = appSchema({
-  version: 42,
+  version: APP_DATABASE_SCHEMA_VERSION,
   tables: [
     ...authUserDbConfig.tables,
     ...authCredentialDbConfig.tables,

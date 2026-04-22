@@ -12,7 +12,9 @@
     "ios:dev": "expo run:ios",
     "lint": "expo lint",
     "test": "vitest run",
-    "test:database": "vitest run tests/databaseIntegrity.test.ts",
+    "test:database": "vitest run tests/databaseIntegrity.test.ts tests/databaseMigrationContract.test.ts tests/appDatabaseStartup.test.ts",
+    "test:database:migration": "vitest run tests/databaseMigrationContract.test.ts",
+    "test:database:startup": "vitest run tests/appDatabaseStartup.test.ts",
     "typecheck": "tsc --noEmit",
     "export:mobile": "expo export --platform ios && expo export --platform android"
   },
