@@ -486,6 +486,7 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
           password={viewModel.memberEditor.password}
           roleRemoteId={viewModel.memberEditor.roleRemoteId}
           roleOptions={roleOptions}
+          fieldErrors={viewModel.memberEditor.fieldErrors}
           canAssignRoles={viewModel.canAssignRoles}
           canManageRolePermissions={viewModel.canManageRoles}
           isSaving={viewModel.isSavingMember}
@@ -532,6 +533,7 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
           roleName={viewModel.roleEditor.roleName}
           selectedPermissionCodes={viewModel.roleEditor.selectedPermissionCodes}
           permissionGroups={permissionGroups}
+          fieldErrors={viewModel.roleEditor.fieldErrors}
           isSaving={viewModel.isSavingRole}
           onRoleNameChange={viewModel.onChangeRoleName}
           onTogglePermission={viewModel.onToggleRolePermission}

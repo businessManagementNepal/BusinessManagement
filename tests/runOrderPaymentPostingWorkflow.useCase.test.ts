@@ -105,6 +105,16 @@ const buildBillingDocument = (
   ...overrides,
 });
 
+const buildUnlinkedBillingDocument = (
+  overrides: Partial<BillingDocument> = {},
+): BillingDocument =>
+  buildBillingDocument({
+    sourceModule: null,
+    sourceRemoteId: null,
+    linkedLedgerEntryRemoteId: null,
+    ...overrides,
+  });
+
 const buildLedgerEntry = (
   overrides: Partial<LedgerEntry> = {},
 ): LedgerEntry => ({
@@ -430,7 +440,11 @@ describe(
         execute: vi.fn(async () => ({
           success: true as const,
           value: {
-            documents: [buildBillingDocument({ remoteId: "bill-other" })],
+            documents: [
+              buildUnlinkedBillingDocument({
+                remoteId: "bill-other",
+              }),
+            ],
             allocations: [],
             billPhotos: [],
             summary: {
@@ -442,18 +456,34 @@ describe(
         })),
       };
 
+      const getLedgerEntriesUseCase = {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: [buildLedgerEntry()],
+        })),
+      };
+
+      const postBusinessTransactionUseCase = {
+        execute: vi.fn(),
+      };
+
+      const saveLedgerEntryWithSettlementUseCase = {
+        execute: vi.fn(),
+      };
+
       const useCase = createRunOrderPaymentPostingWorkflowUseCase({
         getBillingOverviewUseCase: getBillingOverviewUseCase as any,
-        getLedgerEntriesUseCase: { execute: vi.fn() } as any,
+        getLedgerEntriesUseCase: getLedgerEntriesUseCase as any,
         getMoneyAccountsUseCase: {
           execute: vi.fn(async () => ({
             success: true as const,
             value: [buildMoneyAccount()],
           })),
         } as any,
-        postBusinessTransactionUseCase: { execute: vi.fn() } as any,
+        postBusinessTransactionUseCase: postBusinessTransactionUseCase as any,
         deleteBusinessTransactionUseCase: { execute: vi.fn() } as any,
-        saveLedgerEntryWithSettlementUseCase: { execute: vi.fn() } as any,
+        saveLedgerEntryWithSettlementUseCase:
+          saveLedgerEntryWithSettlementUseCase as any,
         ensureOrderBillingAndDueLinksUseCase:
           ensureOrderBillingAndDueLinksUseCase as any,
       });
@@ -466,6 +496,10 @@ describe(
           "The linked billing document for this order could not be found",
         );
       }
+
+      expect(getLedgerEntriesUseCase.execute).not.toHaveBeenCalled();
+      expect(postBusinessTransactionUseCase.execute).not.toHaveBeenCalled();
+      expect(saveLedgerEntryWithSettlementUseCase.execute).not.toHaveBeenCalled();
     });
 
     it("fails safely when linked ledger due entry cannot be found", async () => {

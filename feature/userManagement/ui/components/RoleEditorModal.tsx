@@ -8,13 +8,14 @@ import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Check, CircleDashed } from "lucide-react-native";
 import React from "react";
 import {
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { UserManagementPermission } from "../../types/userManagement.types";
+import { UserManagementRoleEditorFieldErrors } from "@/feature/userManagement/viewModel/userManagement.state";
 
 export type RoleEditorPermissionGroup = {
   module: string;
@@ -27,6 +28,7 @@ type RoleEditorModalProps = {
   roleName: string;
   selectedPermissionCodes: readonly string[];
   permissionGroups: readonly RoleEditorPermissionGroup[];
+  fieldErrors: UserManagementRoleEditorFieldErrors;
   isSaving: boolean;
   onRoleNameChange: (roleName: string) => void;
   onTogglePermission: (permissionCode: string) => void;
@@ -40,6 +42,7 @@ export function RoleEditorModal({
   roleName,
   selectedPermissionCodes,
   permissionGroups,
+  fieldErrors,
   isSaving,
   onRoleNameChange,
   onTogglePermission,
@@ -84,6 +87,7 @@ export function RoleEditorModal({
         onChangeText={onRoleNameChange}
         placeholder="Enter role name"
         editable={!isSaving}
+        errorText={fieldErrors.roleName}
       />
 
       <Text style={styles.permissionSelectorTitle}>Permissions</Text>
@@ -131,7 +135,6 @@ export function RoleEditorModal({
           </Card>
         ))}
       </ScrollView>
-
     </FormSheetModal>
   );
 }

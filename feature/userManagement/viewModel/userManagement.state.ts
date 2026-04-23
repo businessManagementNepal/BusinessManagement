@@ -17,14 +17,30 @@ export type UserManagementRoleEditorPresentation =
   | "role_form"
   | "permission_manager";
 
+export type UserManagementRoleEditorFieldName = "roleName";
+export type UserManagementRoleEditorFieldErrors = Partial<
+  Record<UserManagementRoleEditorFieldName, string>
+>;
+
 export type UserManagementRoleEditorState = {
   mode: UserManagementRoleEditorMode;
   editingRoleRemoteId: string | null;
   roleName: string;
   selectedPermissionCodes: string[];
+  fieldErrors: UserManagementRoleEditorFieldErrors;
 };
 
 export type UserManagementMemberEditorMode = "create" | "edit" | null;
+
+export type UserManagementMemberEditorFieldName =
+  | "fullName"
+  | "phone"
+  | "password"
+  | "roleRemoteId";
+
+export type UserManagementMemberEditorFieldErrors = Partial<
+  Record<UserManagementMemberEditorFieldName, string>
+>;
 
 export type UserManagementMemberEditorState = {
   mode: UserManagementMemberEditorMode;
@@ -35,6 +51,7 @@ export type UserManagementMemberEditorState = {
   email: string;
   password: string;
   roleRemoteId: string | null;
+  fieldErrors: UserManagementMemberEditorFieldErrors;
 };
 
 export type UserManagementState = {
@@ -87,6 +104,7 @@ const INITIAL_ROLE_EDITOR_STATE: UserManagementRoleEditorState = {
   editingRoleRemoteId: null,
   roleName: "",
   selectedPermissionCodes: [],
+  fieldErrors: {},
 };
 const INITIAL_ROLE_EDITOR_PRESENTATION: UserManagementRoleEditorPresentation =
   "role_form";
@@ -100,6 +118,7 @@ const INITIAL_MEMBER_EDITOR_STATE: UserManagementMemberEditorState = {
   email: "",
   password: "",
   roleRemoteId: null,
+  fieldErrors: {},
 };
 
 const INITIAL_ROLE_FILTER_KEY = "all";
@@ -217,11 +236,13 @@ export const createInitialRoleEditorState = (): UserManagementRoleEditorState =>
   return {
     ...INITIAL_ROLE_EDITOR_STATE,
     selectedPermissionCodes: [],
+    fieldErrors: {},
   };
 };
 
 export const createInitialMemberEditorState = (): UserManagementMemberEditorState => {
   return {
     ...INITIAL_MEMBER_EDITOR_STATE,
+    fieldErrors: {},
   };
 };

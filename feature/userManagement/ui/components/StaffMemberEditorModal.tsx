@@ -1,24 +1,25 @@
 import {
-    SignUpPhoneCountryCode,
-    SignUpPhoneCountryOption,
+  SignUpPhoneCountryCode,
+  SignUpPhoneCountryOption,
 } from "@/feature/auth/signUp/types/signUp.types";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import {
-    ChipSelectorField,
-    ChipSelectorOption,
+  ChipSelectorField,
+  ChipSelectorOption,
 } from "@/shared/components/reusable/Form/ChipSelectorField";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import {
-    RoleOptionGrid,
-    RoleOptionGridItem,
+  RoleOptionGrid,
+  RoleOptionGridItem,
 } from "@/shared/components/reusable/Form/RoleOptionGrid";
 import { colors } from "@/shared/components/theme/colors";
 import { spacing } from "@/shared/components/theme/spacing";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { UserManagementMemberEditorFieldErrors } from "@/feature/userManagement/viewModel/userManagement.state";
 
 export type StaffMemberRoleOption = {
   remoteId: string;
@@ -37,6 +38,7 @@ type StaffMemberEditorModalProps = {
   password: string;
   roleRemoteId: string | null;
   roleOptions: readonly StaffMemberRoleOption[];
+  fieldErrors: UserManagementMemberEditorFieldErrors;
   canAssignRoles: boolean;
   canManageRolePermissions: boolean;
   isSaving: boolean;
@@ -64,6 +66,7 @@ export function StaffMemberEditorModal({
   password,
   roleRemoteId,
   roleOptions,
+  fieldErrors,
   canAssignRoles,
   canManageRolePermissions,
   isSaving,
@@ -132,6 +135,7 @@ export function StaffMemberEditorModal({
         onChangeText={onChangeFullName}
         placeholder="Enter full name"
         editable={!isSaving}
+        errorText={fieldErrors.fullName}
       />
 
       <ChipSelectorField
@@ -149,6 +153,7 @@ export function StaffMemberEditorModal({
         placeholder="Enter local phone number"
         keyboardType="phone-pad"
         editable={!isSaving}
+        errorText={fieldErrors.phone}
       />
 
       <LabeledTextInput
@@ -170,6 +175,7 @@ export function StaffMemberEditorModal({
         }
         secureTextEntry={true}
         editable={!isSaving}
+        errorText={fieldErrors.password}
       />
 
       <View style={styles.roleSectionWrap}>
@@ -199,6 +205,10 @@ export function StaffMemberEditorModal({
             isOptionDisabled={() => !canAssignRoles}
           />
         )}
+
+        {fieldErrors.roleRemoteId ? (
+          <Text style={styles.inlineErrorText}>{fieldErrors.roleRemoteId}</Text>
+        ) : null}
       </View>
 
       <Card style={styles.permissionCard}>
@@ -218,7 +228,6 @@ export function StaffMemberEditorModal({
           disabled={isSaving || isSavingRole || !canManageSelectedRolePermissions}
         />
       </Card>
-
     </FormSheetModal>
   );
 }
@@ -247,6 +256,12 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
     fontSize: 12,
     lineHeight: 17,
+    fontFamily: "InterMedium",
+  },
+  inlineErrorText: {
+    color: colors.destructive,
+    fontSize: 12,
+    lineHeight: 16,
     fontFamily: "InterMedium",
   },
   permissionCard: {

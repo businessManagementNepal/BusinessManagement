@@ -23,8 +23,12 @@ import {
   createInitialMemberEditorState,
   createInitialRoleEditorState,
   useUserManagementState,
+  UserManagementMemberEditorFieldErrors,
+  UserManagementRoleEditorFieldErrors,
   UserManagementRoleEditorState,
 } from "./userManagement.state";
+import { validateUserManagementMemberEditor } from "../validation/validateUserManagementMemberEditor";
+import { validateUserManagementRoleEditor } from "../validation/validateUserManagementRoleEditor";
 import {
   UseUserManagementViewModelParams,
   UserManagementMemberListItem,
@@ -130,7 +134,36 @@ const buildRoleEditorStateFromRole = (
   selectedPermissionCodes: [...role.permissionCodes].sort((left, right) =>
     left.localeCompare(right),
   ),
+  fieldErrors: {},
 });
+
+const clearMemberFieldError = (
+  fieldErrors: UserManagementMemberEditorFieldErrors,
+  field: keyof UserManagementMemberEditorFieldErrors,
+): UserManagementMemberEditorFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
+};
+
+const clearRoleFieldError = (
+  fieldErrors: UserManagementRoleEditorFieldErrors,
+  field: keyof UserManagementRoleEditorFieldErrors,
+): UserManagementRoleEditorFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
+};
 
 const buildMemberListItem = (
   member: AccountMemberWithRole,
@@ -492,6 +525,7 @@ export const useUserManagementViewModel = (
       email: "",
       password: "",
       roleRemoteId: preferredRoleOption?.remoteId ?? null,
+      fieldErrors: {},
     });
   }, [
     actions,
@@ -529,6 +563,7 @@ export const useUserManagementViewModel = (
         email: targetMember.email ?? "",
         password: "",
         roleRemoteId: targetMember.roleRemoteId,
+        fieldErrors: {},
       });
     },
     [actions, canManageStaff, state.members],
@@ -544,6 +579,10 @@ export const useUserManagementViewModel = (
       actions.setMemberEditor((previousEditorState) => ({
         ...previousEditorState,
         fullName,
+        fieldErrors: clearMemberFieldError(
+          previousEditorState.fieldErrors,
+          "fullName",
+        ),
       }));
       actions.clearFeedback();
     },
@@ -561,6 +600,10 @@ export const useUserManagementViewModel = (
           0,
           nextPhoneMaxLength,
         ),
+        fieldErrors: clearMemberFieldError(
+          previousEditorState.fieldErrors,
+          "phone",
+        ),
       }));
       actions.clearFeedback();
     },
@@ -574,6 +617,10 @@ export const useUserManagementViewModel = (
         phone: sanitizeSignUpPhoneDigits(phone).slice(
           0,
           getSignUpPhoneLengthForCountry(previousEditorState.phoneCountryCode),
+        ),
+        fieldErrors: clearMemberFieldError(
+          previousEditorState.fieldErrors,
+          "phone",
         ),
       }));
       actions.clearFeedback();
@@ -597,6 +644,10 @@ export const useUserManagementViewModel = (
       actions.setMemberEditor((previousEditorState) => ({
         ...previousEditorState,
         password,
+        fieldErrors: clearMemberFieldError(
+          previousEditorState.fieldErrors,
+          "password",
+        ),
       }));
       actions.clearFeedback();
     },
@@ -608,6 +659,10 @@ export const useUserManagementViewModel = (
       actions.setMemberEditor((previousEditorState) => ({
         ...previousEditorState,
         roleRemoteId,
+        fieldErrors: clearMemberFieldError(
+          previousEditorState.fieldErrors,
+          "roleRemoteId",
+        ),
       }));
       actions.clearFeedback();
     },
@@ -629,6 +684,7 @@ export const useUserManagementViewModel = (
       editingRoleRemoteId: null,
       roleName: "",
       selectedPermissionCodes: [],
+      fieldErrors: {},
     });
   }, [actions, canManageRoles]);
 
@@ -679,6 +735,24 @@ export const useUserManagementViewModel = (
 
     if (!state.memberEditor.mode) {
       actions.setScreenError("Select create or edit mode before saving a staff member.");
+      return;
+    }
+
+    const memberFieldErrors = validateUserManagementMemberEditor({
+      mode: state.memberEditor.mode,
+      fullName: state.memberEditor.fullName,
+      phoneCountryCode: state.memberEditor.phoneCountryCode,
+      phone: state.memberEditor.phone,
+      password: state.memberEditor.password,
+      roleRemoteId: state.memberEditor.roleRemoteId,
+    });
+
+    if (Object.values(memberFieldErrors).some(Boolean)) {
+      actions.setMemberEditor((previousEditorState) => ({
+        ...previousEditorState,
+        fieldErrors: memberFieldErrors,
+      }));
+      actions.clearFeedback();
       return;
     }
 
@@ -886,6 +960,7 @@ export const useUserManagementViewModel = (
       editingRoleRemoteId: null,
       roleName: "",
       selectedPermissionCodes: [],
+      fieldErrors: {},
     });
   }, [actions, canManageRoles]);
 
@@ -927,6 +1002,10 @@ export const useUserManagementViewModel = (
       actions.setRoleEditor((previousEditorState) => ({
         ...previousEditorState,
         roleName,
+        fieldErrors: clearRoleFieldError(
+          previousEditorState.fieldErrors,
+          "roleName",
+        ),
       }));
       actions.clearFeedback();
     },
@@ -996,6 +1075,19 @@ export const useUserManagementViewModel = (
       return;
     }
 
+    const roleFieldErrors = validateUserManagementRoleEditor({
+      roleName: state.roleEditor.roleName,
+    });
+
+    if (Object.values(roleFieldErrors).some(Boolean)) {
+      actions.setRoleEditor((previousEditorState) => ({
+        ...previousEditorState,
+        fieldErrors: roleFieldErrors,
+      }));
+      actions.clearFeedback();
+      return;
+    }
+
     actions.setIsSavingRole(true);
     actions.clearFeedback();
 
@@ -1025,6 +1117,10 @@ export const useUserManagementViewModel = (
           return {
             ...previousEditorState,
             roleRemoteId: saveRoleResult.value.remoteId,
+            fieldErrors: {
+              ...previousEditorState.fieldErrors,
+              roleRemoteId: undefined,
+            },
           };
         });
       }
