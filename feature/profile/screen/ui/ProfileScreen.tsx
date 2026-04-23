@@ -134,6 +134,9 @@ export function ProfileScreen({ viewModel }: ProfileScreenProps) {
       {!viewModel.isLoading ? (
         <CreateBusinessProfileSection
           createBusinessProfileForm={viewModel.createBusinessProfileForm}
+          createBusinessProfileFieldErrors={
+            viewModel.createBusinessProfileFieldErrors
+          }
           isCreateBusinessExpanded={viewModel.isCreateBusinessExpanded}
           isCreatingBusinessProfile={viewModel.isCreatingBusinessProfile}
           businessTypeOptions={viewModel.businessTypeOptions}

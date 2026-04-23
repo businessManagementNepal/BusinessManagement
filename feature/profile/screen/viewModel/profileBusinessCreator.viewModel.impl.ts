@@ -1,11 +1,56 @@
 import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import {
+  BusinessProfileFieldErrors,
+  BusinessProfileFieldName,
+} from "@/feature/profile/business/types/businessProfile.types";
+import {
+  getFirstBusinessProfileFieldErrorMessage,
+  validateBusinessProfileFields,
+} from "@/feature/profile/business/validation/validateBusinessProfileFields";
 import { EditableBusinessProfile } from "@/feature/profile/screen/types/profileScreen.types";
 import { createDefaultBusinessProfileForm } from "@/feature/profile/screen/viewModel/profileScreen.shared";
 import { useCallback, useState } from "react";
 import {
-    ProfileBusinessCreatorViewModel,
-    UseProfileBusinessCreatorViewModelParams,
+  ProfileBusinessCreatorViewModel,
+  UseProfileBusinessCreatorViewModelParams,
 } from "./profileBusinessCreator.viewModel";
+
+const clearCreateBusinessFieldError = (
+  fieldErrors: BusinessProfileFieldErrors,
+  field: BusinessProfileFieldName,
+): BusinessProfileFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
+};
+
+const resolveBusinessFieldName = (
+  field: keyof EditableBusinessProfile,
+): BusinessProfileFieldName | null => {
+  switch (field) {
+    case "legalBusinessName":
+      return "legalBusinessName";
+    case "businessType":
+      return "businessType";
+    case "businessPhone":
+      return "businessPhone";
+    case "businessEmail":
+      return "businessEmail";
+    case "registeredAddress":
+      return "registeredAddress";
+    case "currencyCode":
+      return "currencyCode";
+    case "country":
+      return "country";
+    default:
+      return null;
+  }
+};
 
 export const useProfileBusinessCreatorViewModel = (
   params: UseProfileBusinessCreatorViewModelParams,
@@ -22,6 +67,8 @@ export const useProfileBusinessCreatorViewModel = (
 
   const [createBusinessProfileForm, setCreateBusinessProfileForm] =
     useState<EditableBusinessProfile>(createDefaultBusinessProfileForm());
+  const [createBusinessProfileFieldErrors, setCreateBusinessProfileFieldErrors] =
+    useState<BusinessProfileFieldErrors>({});
   const [isCreateBusinessExpanded, setIsCreateBusinessExpanded] =
     useState(false);
   const [isCreatingBusinessProfile, setIsCreatingBusinessProfile] =
@@ -29,6 +76,7 @@ export const useProfileBusinessCreatorViewModel = (
 
   const onToggleCreateBusinessExpanded = useCallback(() => {
     setIsCreateBusinessExpanded((previousValue) => !previousValue);
+    setCreateBusinessProfileFieldErrors({});
     setLoadError(null);
     setSuccessMessage(null);
   }, [setLoadError, setSuccessMessage]);
@@ -39,6 +87,14 @@ export const useProfileBusinessCreatorViewModel = (
         ...previousValue,
         [field]: value,
       }));
+
+      const businessFieldName = resolveBusinessFieldName(field);
+      if (businessFieldName) {
+        setCreateBusinessProfileFieldErrors((previousFieldErrors) =>
+          clearCreateBusinessFieldError(previousFieldErrors, businessFieldName),
+        );
+      }
+
       setLoadError(null);
       setSuccessMessage(null);
     },
@@ -48,6 +104,23 @@ export const useProfileBusinessCreatorViewModel = (
   const onCreateBusinessProfile = useCallback(async (): Promise<void> => {
     setLoadError(null);
     setSuccessMessage(null);
+
+    const fieldErrors = validateBusinessProfileFields({
+      legalBusinessName: createBusinessProfileForm.legalBusinessName,
+      businessType: createBusinessProfileForm.businessType,
+      businessPhone: createBusinessProfileForm.businessPhone,
+      businessEmail: createBusinessProfileForm.businessEmail,
+      registeredAddress: createBusinessProfileForm.registeredAddress,
+      currencyCode: createBusinessProfileForm.currencyCode,
+      country: createBusinessProfileForm.country,
+    });
+
+    if (Object.values(fieldErrors).some(Boolean)) {
+      setCreateBusinessProfileFieldErrors(fieldErrors);
+      return;
+    }
+
+    setCreateBusinessProfileFieldErrors({});
 
     if (!activeUserRemoteId) {
       setLoadError("Active user session not found.");
@@ -74,7 +147,37 @@ export const useProfileBusinessCreatorViewModel = (
       });
 
       if (!createResult.success) {
-        setLoadError(createResult.error.message);
+        const firstFieldErrorMessage =
+          getFirstBusinessProfileFieldErrorMessage(
+            validateBusinessProfileFields({
+              legalBusinessName: createBusinessProfileForm.legalBusinessName,
+              businessType: createBusinessProfileForm.businessType,
+              businessPhone: createBusinessProfileForm.businessPhone,
+              businessEmail: createBusinessProfileForm.businessEmail,
+              registeredAddress: createBusinessProfileForm.registeredAddress,
+              currencyCode: createBusinessProfileForm.currencyCode,
+              country: createBusinessProfileForm.country,
+            }),
+          );
+
+        if (
+          firstFieldErrorMessage &&
+          createResult.error.message === firstFieldErrorMessage
+        ) {
+          setCreateBusinessProfileFieldErrors(
+            validateBusinessProfileFields({
+              legalBusinessName: createBusinessProfileForm.legalBusinessName,
+              businessType: createBusinessProfileForm.businessType,
+              businessPhone: createBusinessProfileForm.businessPhone,
+              businessEmail: createBusinessProfileForm.businessEmail,
+              registeredAddress: createBusinessProfileForm.registeredAddress,
+              currencyCode: createBusinessProfileForm.currencyCode,
+              country: createBusinessProfileForm.country,
+            }),
+          );
+        } else {
+          setLoadError(createResult.error.message);
+        }
         return;
       }
 
@@ -119,7 +222,8 @@ export const useProfileBusinessCreatorViewModel = (
           currencyCode: createResult.value.businessProfile.currencyCode,
           country: createResult.value.businessProfile.country,
           city: createResult.value.businessProfile.city,
-          stateOrDistrict: createResult.value.businessProfile.stateOrDistrict,
+          stateOrDistrict:
+            createResult.value.businessProfile.stateOrDistrict,
           taxRegistrationId:
             createResult.value.businessProfile.taxRegistrationId,
         },
@@ -127,6 +231,7 @@ export const useProfileBusinessCreatorViewModel = (
       }));
 
       setCreateBusinessProfileForm(createDefaultBusinessProfileForm());
+      setCreateBusinessProfileFieldErrors({});
       setIsCreateBusinessExpanded(false);
       setSuccessMessage("New business profile created.");
 
@@ -149,6 +254,7 @@ export const useProfileBusinessCreatorViewModel = (
 
   return {
     createBusinessProfileForm,
+    createBusinessProfileFieldErrors,
     isCreateBusinessExpanded,
     isCreatingBusinessProfile,
     onToggleCreateBusinessExpanded,

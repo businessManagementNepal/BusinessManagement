@@ -1,16 +1,20 @@
 import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { SaveAccountUseCase } from "@/feature/auth/accountSelection/useCase/saveAccount.useCase";
 import {
-    BusinessProfileDatabaseError,
-    BusinessProfileValidationError,
+  BusinessProfileDatabaseError,
+  BusinessProfileValidationError,
 } from "@/feature/profile/business/types/businessProfile.types";
 import * as Crypto from "expo-crypto";
 import {
-    CreateBusinessWorkspaceInput,
-    CreateBusinessWorkspaceUseCase,
-    CreatedBusinessWorkspaceResult,
+  CreateBusinessWorkspaceInput,
+  CreateBusinessWorkspaceUseCase,
+  CreatedBusinessWorkspaceResult,
 } from "./createBusinessWorkspace.useCase";
 import { SaveBusinessProfileUseCase } from "./saveBusinessProfile.useCase";
+import {
+  getFirstBusinessProfileFieldErrorMessage,
+  validateBusinessProfileFields,
+} from "@/feature/profile/business/validation/validateBusinessProfileFields";
 
 type CreateBusinessWorkspaceUseCaseParams = {
   saveAccountUseCase: SaveAccountUseCase;
@@ -18,6 +22,7 @@ type CreateBusinessWorkspaceUseCaseParams = {
 };
 
 const normalizeRequired = (value: string): string => value.trim();
+
 const normalizeOptional = (value: string | null): string | null => {
   if (value === null) {
     return null;
@@ -65,6 +70,13 @@ export const createCreateBusinessWorkspaceUseCase = (
       const normalizedLegalBusinessName = normalizeRequired(
         payload.legalBusinessName,
       );
+      const normalizedBusinessPhone = normalizeRequired(payload.businessPhone);
+      const normalizedBusinessEmail = normalizeRequired(
+        payload.businessEmail,
+      ).toLowerCase();
+      const normalizedRegisteredAddress = normalizeRequired(
+        payload.registeredAddress,
+      );
       const normalizedCurrencyCode = normalizeRequired(
         payload.currencyCode,
       ).toUpperCase();
@@ -72,6 +84,9 @@ export const createCreateBusinessWorkspaceUseCase = (
       const normalizedCity = normalizeOptionalFromRequired(payload.city);
       const normalizedStateOrDistrict = normalizeOptionalFromRequired(
         payload.stateOrDistrict,
+      );
+      const normalizedTaxRegistrationId = normalizeRequired(
+        payload.taxRegistrationId,
       );
 
       if (!normalizedOwnerUserRemoteId) {
@@ -83,26 +98,23 @@ export const createCreateBusinessWorkspaceUseCase = (
         };
       }
 
-      if (!normalizedLegalBusinessName) {
-        return {
-          success: false,
-          error: BusinessProfileValidationError(
-            "Legal business name is required.",
-          ),
-        };
-      }
+      const fieldErrors = validateBusinessProfileFields({
+        legalBusinessName: normalizedLegalBusinessName,
+        businessType: payload.businessType,
+        businessPhone: normalizedBusinessPhone,
+        businessEmail: normalizedBusinessEmail,
+        registeredAddress: normalizedRegisteredAddress,
+        currencyCode: normalizedCurrencyCode,
+        country: normalizedCountry,
+      });
 
-      if (!normalizedCurrencyCode) {
-        return {
-          success: false,
-          error: BusinessProfileValidationError("Currency is required."),
-        };
-      }
+      const firstErrorMessage =
+        getFirstBusinessProfileFieldErrorMessage(fieldErrors);
 
-      if (!normalizedCountry) {
+      if (firstErrorMessage) {
         return {
           success: false,
-          error: BusinessProfileValidationError("Country is required."),
+          error: BusinessProfileValidationError(firstErrorMessage),
         };
       }
 
@@ -116,8 +128,8 @@ export const createCreateBusinessWorkspaceUseCase = (
         displayName: normalizedLegalBusinessName,
         currencyCode: normalizedCurrencyCode,
         cityOrLocation: buildAccountLocation(
-          payload.city,
-          payload.stateOrDistrict,
+          normalizedCity ?? "",
+          normalizedStateOrDistrict ?? "",
         ),
         countryCode: normalizedCountry,
         isActive: true,
@@ -140,14 +152,14 @@ export const createCreateBusinessWorkspaceUseCase = (
           legalBusinessName: normalizedLegalBusinessName,
           businessType: payload.businessType,
           businessLogoUrl: normalizeOptional(payload.businessLogoUrl),
-          businessPhone: payload.businessPhone,
-          businessEmail: payload.businessEmail,
-          registeredAddress: payload.registeredAddress,
+          businessPhone: normalizedBusinessPhone,
+          businessEmail: normalizedBusinessEmail,
+          registeredAddress: normalizedRegisteredAddress,
           currencyCode: normalizedCurrencyCode,
           country: normalizedCountry,
           city: normalizedCity ?? "",
           stateOrDistrict: normalizedStateOrDistrict ?? "",
-          taxRegistrationId: payload.taxRegistrationId,
+          taxRegistrationId: normalizedTaxRegistrationId,
           isActive: true,
         });
 

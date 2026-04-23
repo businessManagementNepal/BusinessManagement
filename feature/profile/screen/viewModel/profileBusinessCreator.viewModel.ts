@@ -1,8 +1,9 @@
 import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { BusinessProfileFieldErrors } from "@/feature/profile/business/types/businessProfile.types";
 import { CreateBusinessWorkspaceUseCase } from "@/feature/profile/business/useCase/createBusinessWorkspace.useCase";
 import {
-    EditableBusinessProfile,
-    ProfileScreenData,
+  EditableBusinessProfile,
+  ProfileScreenData,
 } from "@/feature/profile/screen/types/profileScreen.types";
 
 export type UseProfileBusinessCreatorViewModelParams = {
@@ -19,6 +20,7 @@ export type UseProfileBusinessCreatorViewModelParams = {
 
 export interface ProfileBusinessCreatorViewModel {
   createBusinessProfileForm: EditableBusinessProfile;
+  createBusinessProfileFieldErrors: BusinessProfileFieldErrors;
   isCreateBusinessExpanded: boolean;
   isCreatingBusinessProfile: boolean;
   onToggleCreateBusinessExpanded: () => void;

@@ -1,6 +1,19 @@
 import { Result } from "@/shared/types/result.types";
 import { BusinessTypeValue } from "@/shared/constants/businessType.constants";
 
+export type BusinessProfileFieldName =
+  | "legalBusinessName"
+  | "businessType"
+  | "businessPhone"
+  | "businessEmail"
+  | "registeredAddress"
+  | "currencyCode"
+  | "country";
+
+export type BusinessProfileFieldErrors = Partial<
+  Record<BusinessProfileFieldName, string>
+>;
+
 export type SaveBusinessProfilePayload = {
   accountRemoteId: string;
   ownerUserRemoteId: string;

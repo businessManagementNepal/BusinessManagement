@@ -17,6 +17,7 @@ type ProfileFieldProps = {
   textContentType: TextInputProps["textContentType"] | null;
   icon: ReactNode | null;
   isLast: boolean;
+  errorText?: string;
 };
 
 export function ProfileField({
@@ -33,6 +34,7 @@ export function ProfileField({
   textContentType,
   icon,
   isLast,
+  errorText,
 }: ProfileFieldProps) {
   return (
     <View style={[styles.row, !isLast ? styles.rowDivider : null]}>
@@ -58,6 +60,7 @@ export function ProfileField({
         ) : (
           <Text style={styles.value}>{value || "-"}</Text>
         )}
+        {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
       </View>
     </View>
   );
@@ -108,5 +111,12 @@ const styles = StyleSheet.create({
   inputMultiline: {
     minHeight: 68,
     paddingTop: 2,
+  },
+  errorText: {
+    color: colors.destructive,
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: "InterMedium",
+    marginTop: 2,
   },
 });

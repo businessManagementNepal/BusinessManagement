@@ -167,6 +167,8 @@ export const useProfileScreenViewModel = (
       onSaveBusinessProfile: businessEditor.onSaveBusinessProfile,
 
       createBusinessProfileForm: businessCreator.createBusinessProfileForm,
+      createBusinessProfileFieldErrors:
+        businessCreator.createBusinessProfileFieldErrors,
       isCreateBusinessExpanded: businessCreator.isCreateBusinessExpanded,
       isCreatingBusinessProfile: businessCreator.isCreatingBusinessProfile,
       onToggleCreateBusinessExpanded:
@@ -184,6 +186,7 @@ export const useProfileScreenViewModel = (
       accountSwitch.onSelectAccount,
       accountSwitch.onToggleSwitchExpanded,
       businessCreator.createBusinessProfileForm,
+      businessCreator.createBusinessProfileFieldErrors,
       businessCreator.isCreateBusinessExpanded,
       businessCreator.isCreatingBusinessProfile,
       businessCreator.onCreateBusinessProfile,

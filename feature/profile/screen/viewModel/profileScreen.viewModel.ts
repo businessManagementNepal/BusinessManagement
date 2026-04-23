@@ -1,20 +1,21 @@
 import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { GetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase";
 import { SaveAccountUseCase } from "@/feature/auth/accountSelection/useCase/saveAccount.useCase";
+import { BusinessProfileFieldErrors } from "@/feature/profile/business/types/businessProfile.types";
 import { CreateBusinessWorkspaceUseCase } from "@/feature/profile/business/useCase/createBusinessWorkspace.useCase";
 import { GetBusinessProfileByAccountRemoteIdUseCase } from "@/feature/profile/business/useCase/getBusinessProfileByAccountRemoteId.useCase";
 import { SaveBusinessProfileUseCase } from "@/feature/profile/business/useCase/saveBusinessProfile.useCase";
 import {
-    EditableBusinessProfile,
-    EditablePersonalProfile,
-    ProfileAccountOption,
+  EditableBusinessProfile,
+  EditablePersonalProfile,
+  ProfileAccountOption,
 } from "@/feature/profile/screen/types/profileScreen.types";
 import { GetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase";
 import { SaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase";
 import { GetUserManagementSnapshotUseCase } from "@/feature/userManagement/useCase/getUserManagementSnapshot.useCase";
 import {
-    BUSINESS_TYPE_OPTIONS,
-    BusinessTypeValue,
+  BUSINESS_TYPE_OPTIONS,
+  BusinessTypeValue,
 } from "@/shared/constants/businessType.constants";
 
 export type PersonalProfileFieldKey = keyof EditablePersonalProfile;
@@ -62,6 +63,7 @@ export interface ProfileScreenViewModel {
   onSaveBusinessProfile: () => Promise<void>;
 
   createBusinessProfileForm: EditableBusinessProfile;
+  createBusinessProfileFieldErrors: BusinessProfileFieldErrors;
   isCreateBusinessExpanded: boolean;
   isCreatingBusinessProfile: boolean;
   onToggleCreateBusinessExpanded: () => void;

@@ -14,15 +14,20 @@ import {
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
-import { Dropdown, DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
+import {
+  Dropdown,
+  DropdownOption,
+} from "@/shared/components/reusable/DropDown/Dropdown";
 import { EditableBusinessProfile } from "@/feature/profile/screen/types/profileScreen.types";
 import { ProfileField } from "./ProfileField";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
+import { BusinessProfileFieldErrors } from "@/feature/profile/business/types/businessProfile.types";
 
 type CreateBusinessProfileSectionProps = {
   createBusinessProfileForm: EditableBusinessProfile;
+  createBusinessProfileFieldErrors: BusinessProfileFieldErrors;
   isCreateBusinessExpanded: boolean;
   isCreatingBusinessProfile: boolean;
   businessTypeOptions: readonly { value: string; label: string }[];
@@ -36,6 +41,7 @@ type CreateBusinessProfileSectionProps = {
 
 export function CreateBusinessProfileSection({
   createBusinessProfileForm,
+  createBusinessProfileFieldErrors,
   isCreateBusinessExpanded,
   isCreatingBusinessProfile,
   businessTypeOptions,
@@ -162,7 +168,10 @@ export function CreateBusinessProfileSection({
                 value={createBusinessProfileForm.legalBusinessName}
                 editable={!isCreatingBusinessProfile}
                 onChangeText={(nextValue) => {
-                  onUpdateCreateBusinessProfileField("legalBusinessName", nextValue);
+                  onUpdateCreateBusinessProfileField(
+                    "legalBusinessName",
+                    nextValue,
+                  );
                 }}
                 placeholder="Legal business name"
                 autoCapitalize="words"
@@ -173,6 +182,7 @@ export function CreateBusinessProfileSection({
                 textContentType={null}
                 icon={<Building2 size={16} color={colors.mutedForeground} />}
                 isLast={false}
+                errorText={createBusinessProfileFieldErrors.legalBusinessName}
               />
 
               <ProfileField
@@ -191,6 +201,7 @@ export function CreateBusinessProfileSection({
                 textContentType={null}
                 icon={<Phone size={16} color={colors.mutedForeground} />}
                 isLast={false}
+                errorText={createBusinessProfileFieldErrors.businessPhone}
               />
 
               <ProfileField
@@ -209,6 +220,7 @@ export function CreateBusinessProfileSection({
                 textContentType="emailAddress"
                 icon={<Mail size={16} color={colors.mutedForeground} />}
                 isLast={false}
+                errorText={createBusinessProfileFieldErrors.businessEmail}
               />
 
               <ProfileField
@@ -234,7 +246,10 @@ export function CreateBusinessProfileSection({
                 value={createBusinessProfileForm.registeredAddress}
                 editable={!isCreatingBusinessProfile}
                 onChangeText={(nextValue) => {
-                  onUpdateCreateBusinessProfileField("registeredAddress", nextValue);
+                  onUpdateCreateBusinessProfileField(
+                    "registeredAddress",
+                    nextValue,
+                  );
                 }}
                 placeholder="Street, ward, landmark"
                 autoCapitalize="sentences"
@@ -245,6 +260,7 @@ export function CreateBusinessProfileSection({
                 textContentType={null}
                 icon={<MapPin size={16} color={colors.mutedForeground} />}
                 isLast={false}
+                errorText={createBusinessProfileFieldErrors.registeredAddress}
               />
 
               <ProfileField
@@ -252,7 +268,10 @@ export function CreateBusinessProfileSection({
                 value={createBusinessProfileForm.taxRegistrationId}
                 editable={!isCreatingBusinessProfile}
                 onChangeText={(nextValue) => {
-                  onUpdateCreateBusinessProfileField("taxRegistrationId", nextValue);
+                  onUpdateCreateBusinessProfileField(
+                    "taxRegistrationId",
+                    nextValue,
+                  );
                 }}
                 placeholder="Tax registration number"
                 autoCapitalize="characters"
@@ -284,6 +303,11 @@ export function CreateBusinessProfileSection({
                     triggerStyle={styles.dropdownTrigger}
                     triggerTextStyle={styles.dropdownTriggerText}
                   />
+                  {createBusinessProfileFieldErrors.businessType ? (
+                    <Text style={styles.inlineErrorText}>
+                      {createBusinessProfileFieldErrors.businessType}
+                    </Text>
+                  ) : null}
                 </View>
               </View>
 
@@ -473,6 +497,13 @@ const styles = StyleSheet.create({
     color: colors.cardForeground,
     fontSize: 14,
     fontFamily: "InterSemiBold",
+  },
+  inlineErrorText: {
+    color: colors.destructive,
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: "InterMedium",
+    marginTop: 2,
   },
   lastRow: {
     borderBottomWidth: 0,
