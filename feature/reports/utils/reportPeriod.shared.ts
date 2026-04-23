@@ -28,8 +28,6 @@ export type ReportDateRange = {
   label: string;
 };
 
-export type ReportDateWindow = Pick<ReportDateRange, "startMs" | "endMs">;
-
 export type ReportSeriesBucket = {
   label: string;
   startMs: number;
@@ -168,27 +166,6 @@ export const getReportDateRangeForPeriod = (
         label: "Last 6 Months",
       };
   }
-};
-
-export const getDashboardDatasetDateWindow = (
-  period: ReportPeriodValue,
-  nowMs: number,
-): ReportDateWindow => {
-  const periodRange = getReportDateRangeForPeriod(period, nowMs);
-
-  const sixMonthStart = new Date(
-    new Date(nowMs).getFullYear(),
-    new Date(nowMs).getMonth() - 5,
-    1,
-  ).getTime();
-
-  const sevenDayStart = startOfDay(nowMs);
-  sevenDayStart.setDate(sevenDayStart.getDate() - 6);
-
-  return {
-    startMs: Math.min(periodRange.startMs, sixMonthStart, sevenDayStart.getTime()),
-    endMs: periodRange.endMs,
-  };
 };
 
 export const buildReportSeriesBucketsForPeriod = (

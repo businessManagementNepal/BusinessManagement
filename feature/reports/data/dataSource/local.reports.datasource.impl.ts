@@ -11,10 +11,7 @@ import {
     ReportQuery,
     ReportScope,
 } from "@/feature/reports/types/report.entity.types";
-import {
-    getDashboardDatasetDateWindow,
-    getReportDateRangeForPeriod,
-} from "@/feature/reports/utils/reportPeriod.shared";
+import { getReportDateRangeForPeriod } from "@/feature/reports/utils/reportPeriod.shared";
 import { TransactionModel } from "@/feature/transactions/data/dataSource/db/transaction.model";
 import { Result } from "@/shared/types/result.types";
 import { Database, Q } from "@nozbe/watermelondb";
@@ -64,7 +61,7 @@ const resolveDatasetRequirements = (
         loadInventoryMovements: false,
         loadProducts: false,
         loadMoneyAccounts: false,
-        dateWindow: getDashboardDatasetDateWindow(query.period, nowMs),
+        dateWindow: periodWindow,
         ledgerEntryTypes: null,
       };
 

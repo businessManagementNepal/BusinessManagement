@@ -4,29 +4,29 @@ import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import {
-  AlertTriangle,
-  ArrowLeft,
-  Clock,
-  FileText,
-  RefreshCcw,
-  ShieldAlert,
-  X,
+    AlertTriangle,
+    ArrowLeft,
+    Clock,
+    FileText,
+    RefreshCcw,
+    ShieldAlert,
+    X,
 } from "lucide-react-native";
 import React from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import type {
-  PosSaleHistoryItem,
-  PosSaleReconciliation,
+    PosSaleHistoryItem,
+    PosSaleReconciliation,
 } from "../types/posSaleHistory.entity.types";
 import { PosArtifactReconciliationStatus } from "../types/posSaleHistory.entity.types";
 import { PosReceiptDetail } from "./PosReceiptDetail";
@@ -324,19 +324,20 @@ export function PosSaleHistory({
                   </Pressable>
                 </View>
 
-                <PosReceiptDetail
-                  receipt={selectedReceipt.document}
-                  currencyCode={currencyCode}
-                  countryCode={countryCode}
-                  onPrintReceipt={() => {
-                    void onPrintReceipt(selectedReceipt);
-                  }}
-                  onShareReceipt={() => {
-                    void onShareReceipt(selectedReceipt);
-                  }}
-                  onClose={onCloseDetail}
-                  extraContent={recoveryPanel}
-                />
+                <View style={styles.detailPanel}>
+                  <PosReceiptDetail
+                    receipt={selectedReceipt.document}
+                    currencyCode={currencyCode}
+                    countryCode={countryCode}
+                    onPrintReceipt={() => {
+                      void onPrintReceipt(selectedReceipt);
+                    }}
+                    onShareReceipt={() => {
+                      void onShareReceipt(selectedReceipt);
+                    }}
+                    extraContent={recoveryPanel}
+                  />
+                </View>
               </>
             ) : (
               <>
@@ -418,6 +419,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 720,
     maxHeight: "82%",
+    minHeight: 0,
     backgroundColor: colors.card,
     borderRadius: radius.xl,
     borderWidth: 1,
@@ -652,6 +654,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: "InterMedium",
     lineHeight: 16,
+  },
+  detailPanel: {
+    flex: 1,
+    minHeight: 0,
   },
   recoveryActionsRow: {
     flexDirection: "row",

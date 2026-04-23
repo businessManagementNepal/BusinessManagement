@@ -72,58 +72,8 @@ const createCurrencyFormatter = (options: CreateReportsRepositoryOptions) => {
   return { formatCurrency, formatSignedCurrency };
 };
 
-const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-const startOfDay = (value: number): Date => {
-  const date = new Date(value);
-  date.setHours(0, 0, 0, 0);
-  return date;
-};
-
-const endOfDay = (value: number): Date => {
-  const date = new Date(value);
-  date.setHours(23, 59, 59, 999);
-  return date;
-};
-
-
 const isWithinRange = (value: number, startMs: number, endMs: number): boolean => {
   return value >= startMs && value <= endMs;
-};
-
-const buildLastSixMonthSeries = (
-  seriesBuilder: (bucketStart: Date, bucketEnd: Date) => number,
-  nowMs: number,
-): ReportSeriesPoint[] => {
-  const now = new Date(nowMs);
-  return Array.from({ length: 6 }).map((_, index) => {
-    const bucketDate = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
-    const bucketStart = new Date(bucketDate.getFullYear(), bucketDate.getMonth(), 1);
-    const bucketEnd = new Date(bucketDate.getFullYear(), bucketDate.getMonth() + 1, 0, 23, 59, 59, 999);
-    return {
-      label: monthLabels[bucketDate.getMonth()],
-      value: seriesBuilder(bucketStart, bucketEnd),
-    };
-  });
-};
-
-const buildLastSixMonthDualSeries = (
-  primaryBuilder: (bucketStart: Date, bucketEnd: Date) => number,
-  secondaryBuilder: (bucketStart: Date, bucketEnd: Date) => number,
-  nowMs: number,
-): ReportDualSeriesPoint[] => {
-  const now = new Date(nowMs);
-  return Array.from({ length: 6 }).map((_, index) => {
-    const bucketDate = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
-    const bucketStart = new Date(bucketDate.getFullYear(), bucketDate.getMonth(), 1);
-    const bucketEnd = new Date(bucketDate.getFullYear(), bucketDate.getMonth() + 1, 0, 23, 59, 59, 999);
-    return {
-      label: monthLabels[bucketDate.getMonth()],
-      primaryValue: primaryBuilder(bucketStart, bucketEnd),
-      secondaryValue: secondaryBuilder(bucketStart, bucketEnd),
-    };
-  });
 };
 
 const buildSeriesForBuckets = (
@@ -136,22 +86,16 @@ const buildSeriesForBuckets = (
   }));
 };
 
-const buildLastSevenDayDualSeries = (
-  primaryBuilder: (bucketStart: Date, bucketEnd: Date) => number,
-  secondaryBuilder: (bucketStart: Date, bucketEnd: Date) => number,
-  nowMs: number,
+const buildDualSeriesForBuckets = (
+  buckets: readonly { label: string; startMs: number; endMs: number }[],
+  primaryBuilder: (startMs: number, endMs: number) => number,
+  secondaryBuilder: (startMs: number, endMs: number) => number,
 ): ReportDualSeriesPoint[] => {
-  const today = startOfDay(nowMs);
-  return Array.from({ length: 7 }).map((_, index) => {
-    const bucketStart = new Date(today);
-    bucketStart.setDate(today.getDate() - (6 - index));
-    const bucketEnd = endOfDay(bucketStart.getTime());
-    return {
-      label: weekdayLabels[bucketStart.getDay()],
-      primaryValue: primaryBuilder(bucketStart, bucketEnd),
-      secondaryValue: secondaryBuilder(bucketStart, bucketEnd),
-    };
-  });
+  return buckets.map((bucket) => ({
+    label: bucket.label,
+    primaryValue: primaryBuilder(bucket.startMs, bucket.endMs),
+    secondaryValue: secondaryBuilder(bucket.startMs, bucket.endMs),
+  }));
 };
 
 const aggregateCategorySegments = (
@@ -340,116 +284,125 @@ export const createReportsRepository = (
 
   return {
     async getReportsDashboard(query: ReportQuery): Promise<ReportsDashboardResult> {
-    if (!query.accountRemoteId && !query.ownerUserRemoteId) {
-      return { success: false, error: ReportValidationError("Active report scope is missing.") };
+  if (!query.accountRemoteId && !query.ownerUserRemoteId) {
+    return {
+      success: false,
+      error: ReportValidationError("Active report scope is missing."),
+    };
+  }
+
+  try {
+    const datasetResult = await datasource.getDataset(query);
+    if (!datasetResult.success) {
+      return { success: false, error: ReportDatabaseError };
     }
 
-    try {
-      const datasetResult = await datasource.getDataset(query);
-      if (!datasetResult.success) {
-        return { success: false, error: ReportDatabaseError };
-      }
+    const nowMs = Date.now();
+    const range = getReportDateRangeForPeriod(query.period, nowMs);
+    const periodBuckets = buildReportSeriesBucketsForPeriod(query.period, nowMs);
 
-      const nowMs = Date.now();
-      const range = getReportDateRangeForPeriod(query.period, nowMs);
-      const transactions = datasetResult.value.transactions.map(mapTransactionModel);
-      const billingDocuments = datasetResult.value.billingDocuments.map(mapBillingDocumentModel);
-      const ledgerEntries = datasetResult.value.ledgerEntries.map(mapLedgerEntryModel);
+    const transactions = datasetResult.value.transactions.map(mapTransactionModel);
+    const billingDocuments = datasetResult.value.billingDocuments.map(mapBillingDocumentModel);
+    const ledgerEntries = datasetResult.value.ledgerEntries.map(mapLedgerEntryModel);
 
-      const topSummary = getScopedIncomeExpense({
-        scope: query.scope,
-        transactions,
-        billingDocuments,
-        ledgerEntries,
-        startMs: range.startMs,
-        endMs: range.endMs,
-      });
+    const topSummary = getScopedIncomeExpense({
+      scope: query.scope,
+      transactions,
+      billingDocuments,
+      ledgerEntries,
+      startMs: range.startMs,
+      endMs: range.endMs,
+    });
 
-      const overviewTrend = buildLastSixMonthSeries((bucketStart, bucketEnd) => {
+    const overviewTrend = buildSeriesForBuckets(
+      periodBuckets,
+      (bucketStartMs, bucketEndMs) => {
         const bucketSummary = getScopedIncomeExpense({
           scope: query.scope,
           transactions,
           billingDocuments,
           ledgerEntries,
-          startMs: bucketStart.getTime(),
-          endMs: bucketEnd.getTime(),
+          startMs: bucketStartMs,
+          endMs: bucketEndMs,
         });
+
         return bucketSummary.totalIncome - bucketSummary.totalExpense;
-      }, nowMs);
+      },
+    );
 
-      const incomeExpenseComparison = buildLastSixMonthDualSeries(
-        (bucketStart, bucketEnd) =>
-          getScopedIncomeExpense({
-            scope: query.scope,
-            transactions,
-            billingDocuments,
-            ledgerEntries,
-            startMs: bucketStart.getTime(),
-            endMs: bucketEnd.getTime(),
-          }).totalIncome,
-        (bucketStart, bucketEnd) =>
-          getScopedIncomeExpense({
-            scope: query.scope,
-            transactions,
-            billingDocuments,
-            ledgerEntries,
-            startMs: bucketStart.getTime(),
-            endMs: bucketEnd.getTime(),
-          }).totalExpense,
-        nowMs,
-      );
-
-      const cashFlowSeries = buildLastSevenDayDualSeries(
-        (bucketStart, bucketEnd) =>
-          getScopedIncomeExpense({
-            scope: query.scope,
-            transactions,
-            billingDocuments,
-            ledgerEntries,
-            startMs: bucketStart.getTime(),
-            endMs: bucketEnd.getTime(),
-          }).totalIncome,
-        (bucketStart, bucketEnd) =>
-          getScopedIncomeExpense({
-            scope: query.scope,
-            transactions,
-            billingDocuments,
-            ledgerEntries,
-            startMs: bucketStart.getTime(),
-            endMs: bucketEnd.getTime(),
-          }).totalExpense,
-        nowMs,
-      );
-
-      const categoryBreakdown = aggregateCategorySegments(
-        transactions,
-        range.startMs,
-        range.endMs,
-      );
-
-      return {
-        success: true,
-        value: {
+    const incomeExpenseComparison = buildDualSeriesForBuckets(
+      periodBuckets,
+      (bucketStartMs, bucketEndMs) =>
+        getScopedIncomeExpense({
           scope: query.scope,
-          currencyCode: options.currencyCode,
-          countryCode: options.countryCode,
-          periodLabel: range.label,
-          topSummary: {
-            totalIncome: topSummary.totalIncome,
-            totalExpense: topSummary.totalExpense,
-            netProfit: topSummary.totalIncome - topSummary.totalExpense,
-          },
-          overviewTrend,
-          incomeExpenseComparison,
-          categoryBreakdown,
-          cashFlowSeries,
-          sections: buildSections(query.scope),
+          transactions,
+          billingDocuments,
+          ledgerEntries,
+          startMs: bucketStartMs,
+          endMs: bucketEndMs,
+        }).totalIncome,
+      (bucketStartMs, bucketEndMs) =>
+        getScopedIncomeExpense({
+          scope: query.scope,
+          transactions,
+          billingDocuments,
+          ledgerEntries,
+          startMs: bucketStartMs,
+          endMs: bucketEndMs,
+        }).totalExpense,
+    );
+
+    const cashFlowSeries = buildDualSeriesForBuckets(
+      periodBuckets,
+      (bucketStartMs, bucketEndMs) =>
+        getScopedIncomeExpense({
+          scope: query.scope,
+          transactions,
+          billingDocuments,
+          ledgerEntries,
+          startMs: bucketStartMs,
+          endMs: bucketEndMs,
+        }).totalIncome,
+      (bucketStartMs, bucketEndMs) =>
+        getScopedIncomeExpense({
+          scope: query.scope,
+          transactions,
+          billingDocuments,
+          ledgerEntries,
+          startMs: bucketStartMs,
+          endMs: bucketEndMs,
+        }).totalExpense,
+    );
+
+    const categoryBreakdown = aggregateCategorySegments(
+      transactions,
+      range.startMs,
+      range.endMs,
+    );
+
+    return {
+      success: true,
+      value: {
+        scope: query.scope,
+        currencyCode: options.currencyCode,
+        countryCode: options.countryCode,
+        periodLabel: range.label,
+        topSummary: {
+          totalIncome: topSummary.totalIncome,
+          totalExpense: topSummary.totalExpense,
+          netProfit: topSummary.totalIncome - topSummary.totalExpense,
         },
-      };
-    } catch {
-      return { success: false, error: ReportUnknownError };
-    }
-  },
+        overviewTrend,
+        incomeExpenseComparison,
+        categoryBreakdown,
+        cashFlowSeries,
+        sections: buildSections(query.scope),
+      },
+    };
+  } catch {
+    return { success: false, error: ReportUnknownError };
+  }
+},
 
     async getReportDetail(query: ReportQuery): Promise<ReportDetailResult> {
     if (!query.reportId) {

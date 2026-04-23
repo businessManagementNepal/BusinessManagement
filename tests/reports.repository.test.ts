@@ -234,5 +234,145 @@ describe("reports.repository", () => {
       }),
     );
   });
+
+  it("uses the selected period for all dashboard analytics instead of mixed fixed windows", async () => {
+    const now = Date.now();
+    const olderAt = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth() - 2,
+      1,
+    ).getTime();
+
+    const dataset = createDataset({
+      transactions: [
+        {
+          title: "Fuel",
+          amount: 15,
+          categoryLabel: "Transport",
+          happenedAt: now,
+          direction: "out",
+          transactionType: "expense",
+          accountDisplayNameSnapshot: "Cash",
+        },
+        {
+          title: "Old expense",
+          amount: 200,
+          categoryLabel: "Old",
+          happenedAt: olderAt,
+          direction: "out",
+          transactionType: "expense",
+          accountDisplayNameSnapshot: "Cash",
+        },
+      ],
+      billingDocuments: [
+        {
+          customerName: "Walk-in",
+          status: "paid",
+          totalAmount: 100,
+          issuedAt: now,
+        },
+        {
+          customerName: "Archived",
+          status: "paid",
+          totalAmount: 900,
+          issuedAt: olderAt,
+        },
+      ],
+      ledgerEntries: [
+        {
+          partyName: "Customer A",
+          entryType: "collection",
+          balanceDirection: "receive",
+          amount: 20,
+          currencyCode: CURRENCY_CODE,
+          happenedAt: now,
+          dueAt: null,
+        },
+        {
+          partyName: "Supplier A",
+          entryType: "payment_out",
+          balanceDirection: "pay",
+          amount: 40,
+          currencyCode: CURRENCY_CODE,
+          happenedAt: now,
+          dueAt: null,
+        },
+        {
+          partyName: "Old Customer",
+          entryType: "collection",
+          balanceDirection: "receive",
+          amount: 50,
+          currencyCode: CURRENCY_CODE,
+          happenedAt: olderAt,
+          dueAt: null,
+        },
+        {
+          partyName: "Old Supplier",
+          entryType: "payment_out",
+          balanceDirection: "pay",
+          amount: 300,
+          currencyCode: CURRENCY_CODE,
+          happenedAt: olderAt,
+          dueAt: null,
+        },
+      ],
+    });
+
+    const repository = createReportsRepository(createDatasource(dataset), {
+      currencyCode: CURRENCY_CODE,
+      countryCode: COUNTRY_CODE,
+    });
+
+    const result = await repository.getReportsDashboard({
+      ...createBaseQuery(null),
+      period: ReportPeriod.ThisWeek,
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+
+    expect(result.value.periodLabel).toBe("This Week");
+    expect(result.value.overviewTrend).toHaveLength(7);
+    expect(result.value.incomeExpenseComparison).toHaveLength(7);
+    expect(result.value.cashFlowSeries).toHaveLength(7);
+
+    expect(
+      result.value.overviewTrend.reduce((sum, item) => sum + item.value, 0),
+    ).toBe(80);
+
+    expect(
+      result.value.incomeExpenseComparison.reduce(
+        (sum, item) => sum + item.primaryValue,
+        0,
+      ),
+    ).toBe(120);
+
+    expect(
+      result.value.incomeExpenseComparison.reduce(
+        (sum, item) => sum + item.secondaryValue,
+        0,
+      ),
+    ).toBe(40);
+
+    expect(
+      result.value.cashFlowSeries.reduce(
+        (sum, item) => sum + item.primaryValue,
+        0,
+      ),
+    ).toBe(120);
+
+    expect(
+      result.value.cashFlowSeries.reduce(
+        (sum, item) => sum + item.secondaryValue,
+        0,
+      ),
+    ).toBe(40);
+
+    expect(
+      result.value.categoryBreakdown.reduce((sum, item) => sum + item.value, 0),
+    ).toBe(15);
+  });
 });
 

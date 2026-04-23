@@ -68,6 +68,8 @@ function ReportsHomeView({ viewModel }: Props) {
     maximumFractionDigits: 0,
   });
 
+  const dashboardPeriodLabel = viewModel.dashboard?.periodLabel ?? "selected period";
+
   return (
     <View style={styles.screenGap}>
       {viewModel.errorMessage ? <ErrorCard message={viewModel.errorMessage} /> : null}
@@ -112,7 +114,9 @@ function ReportsHomeView({ viewModel }: Props) {
         {viewModel.activeHomeTab === ReportHomeTab.Overview ? (
           <>
             <Text style={styles.chartTitle}>Profit Trend</Text>
-            <Text style={styles.chartSubtitle}>Last 6 months net profit</Text>
+            <Text style={styles.chartSubtitle}>
+              {`Net profit trend for ${dashboardPeriodLabel}`}
+            </Text>
             <LineAreaChart data={viewModel.dashboard?.overviewTrend ?? []} />
           </>
         ) : null}
@@ -120,7 +124,9 @@ function ReportsHomeView({ viewModel }: Props) {
         {viewModel.activeHomeTab === ReportHomeTab.IncomeExpense ? (
           <>
             <Text style={styles.chartTitle}>Income vs Expense</Text>
-            <Text style={styles.chartSubtitle}>Monthly comparison</Text>
+            <Text style={styles.chartSubtitle}>
+              {`Income vs expense for ${dashboardPeriodLabel}`}
+            </Text>
             <GroupedBarChart data={viewModel.dashboard?.incomeExpenseComparison ?? []} />
           </>
         ) : null}
@@ -128,7 +134,9 @@ function ReportsHomeView({ viewModel }: Props) {
         {viewModel.activeHomeTab === ReportHomeTab.Categories ? (
           <>
             <Text style={styles.chartTitle}>Expense Breakdown</Text>
-            <Text style={styles.chartSubtitle}>By category this period</Text>
+            <Text style={styles.chartSubtitle}>
+              {`Category breakdown for ${dashboardPeriodLabel}`}
+            </Text>
             <SemiDonutChart segments={viewModel.dashboard?.categoryBreakdown ?? []} />
           </>
         ) : null}
@@ -136,7 +144,9 @@ function ReportsHomeView({ viewModel }: Props) {
         {viewModel.activeHomeTab === ReportHomeTab.CashFlow ? (
           <>
             <Text style={styles.chartTitle}>Daily Cash Flow</Text>
-            <Text style={styles.chartSubtitle}>This week inflow vs outflow</Text>
+            <Text style={styles.chartSubtitle}>
+              {`Inflow vs outflow for ${dashboardPeriodLabel}`}
+            </Text>
             <DualLineChart data={viewModel.dashboard?.cashFlowSeries ?? []} />
           </>
         ) : null}
