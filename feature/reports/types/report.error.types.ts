@@ -2,6 +2,7 @@ export const ReportErrorType = {
   ValidationError: "VALIDATION_ERROR",
   DatabaseError: "DATABASE_ERROR",
   ReportNotFound: "REPORT_NOT_FOUND",
+  ExportError: "EXPORT_ERROR",
   UnknownError: "UNKNOWN_ERROR",
 } as const;
 
@@ -24,6 +25,11 @@ export const ReportNotFoundError: ReportError = {
   type: ReportErrorType.ReportNotFound,
   message: "The requested report was not found.",
 };
+
+export const ReportExportError = (message: string): ReportError => ({
+  type: ReportErrorType.ExportError,
+  message,
+});
 
 export const ReportUnknownError: ReportError = {
   type: ReportErrorType.UnknownError,

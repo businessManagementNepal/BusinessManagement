@@ -1,4 +1,5 @@
 import { BillingDocumentModel } from "@/feature/billing/data/dataSource/db/billingDocument.model";
+import { BillingDocumentTypeValue } from "@/feature/billing/types/billing.types";
 import { EmiPlanModel } from "@/feature/emiLoans/data/dataSource/db/emiPlan.model";
 import { InventoryMovementModel } from "@/feature/inventory/data/dataSource/db/inventoryMovement.model";
 import { LedgerEntryModel } from "@/feature/ledger/data/dataSource/db/ledger.model";
@@ -17,6 +18,8 @@ export type TransactionRecord = {
 };
 
 export type BillingDocumentRecord = {
+  remoteId: string;
+  documentType: BillingDocumentTypeValue;
   customerName: string;
   status: string;
   totalAmount: number;
@@ -44,7 +47,9 @@ export type EmiPlanRecord = {
 };
 
 export type InventoryMovementRecord = {
+  productRemoteId: string;
   productNameSnapshot: string;
+  productUnitLabelSnapshot: string | null;
   movementType: string;
   deltaQuantity: number;
   unitRate: number | null;
@@ -52,11 +57,13 @@ export type InventoryMovementRecord = {
 };
 
 export type ProductRecord = {
+  remoteId: string;
   name: string;
   categoryName: string | null;
   salePrice: number;
   costPrice: number | null;
   stockQuantity: number | null;
+  unitLabel: string | null;
   status: string;
 };
 
@@ -81,6 +88,8 @@ export const mapTransactionModel = (model: TransactionModel): TransactionRecord 
 export const mapBillingDocumentModel = (
   model: BillingDocumentModel,
 ): BillingDocumentRecord => ({
+  remoteId: model.remoteId,
+  documentType: model.documentType,
   customerName: model.customerName,
   status: model.status,
   totalAmount: model.totalAmount,
@@ -110,7 +119,9 @@ export const mapEmiPlanModel = (model: EmiPlanModel): EmiPlanRecord => ({
 export const mapInventoryMovementModel = (
   model: InventoryMovementModel,
 ): InventoryMovementRecord => ({
+  productRemoteId: model.productRemoteId,
   productNameSnapshot: model.productNameSnapshot,
+  productUnitLabelSnapshot: model.productUnitLabelSnapshot,
   movementType: model.movementType,
   deltaQuantity: model.deltaQuantity,
   unitRate: model.unitRate,
@@ -118,11 +129,13 @@ export const mapInventoryMovementModel = (
 });
 
 export const mapProductModel = (model: ProductModel): ProductRecord => ({
+  remoteId: model.remoteId,
   name: model.name,
   categoryName: model.categoryName,
   salePrice: model.salePrice,
   costPrice: model.costPrice,
   stockQuantity: model.stockQuantity,
+  unitLabel: model.unitLabel,
   status: model.status,
 });
 

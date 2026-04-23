@@ -7,7 +7,7 @@ import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGro
 import { colors } from "@/shared/components/theme/colors";
 import { spacing } from "@/shared/components/theme/spacing";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, Download, Printer, Share2 } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { isReportPeriodFilterable } from "../utils/reportPeriod.shared";
@@ -185,6 +185,62 @@ function ReportDetailView({ viewModel }: Props) {
         />
       ) : null}
 
+      {viewModel.canExportReports ? (
+        <View style={styles.exportActionsRow}>
+          <Pressable
+            style={[
+              styles.exportActionButton,
+              viewModel.isExporting ? styles.exportActionButtonDisabled : null,
+            ]}
+            disabled={viewModel.isExporting}
+            onPress={() => {
+              void viewModel.onExportDetail("share");
+            }}
+          >
+            <Share2 size={16} color={colors.primary} />
+            <Text style={styles.exportActionText}>
+              {viewModel.isExporting ? "Exporting..." : "Share PDF"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.exportActionButton,
+              viewModel.isExporting ? styles.exportActionButtonDisabled : null,
+            ]}
+            disabled={viewModel.isExporting}
+            onPress={() => {
+              void viewModel.onExportDetail("save");
+            }}
+          >
+            <Download size={16} color={colors.primary} />
+            <Text style={styles.exportActionText}>
+              {viewModel.isExporting ? "Exporting..." : "Save PDF"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.exportActionButton,
+              viewModel.isExporting ? styles.exportActionButtonDisabled : null,
+            ]}
+            disabled={viewModel.isExporting}
+            onPress={() => {
+              void viewModel.onExportDetail("print");
+            }}
+          >
+            <Printer size={16} color={colors.primary} />
+            <Text style={styles.exportActionText}>
+              {viewModel.isExporting ? "Exporting..." : "Print"}
+            </Text>
+          </Pressable>
+        </View>
+      ) : viewModel.isBusinessMode ? (
+        <Text style={styles.permissionHint}>
+          You have view access only. Ask admin for export permission.
+        </Text>
+      ) : null}
+
       {viewModel.errorMessage ? <ErrorCard message={viewModel.errorMessage} /> : null}
 
       <ReportsSummaryRow cards={detail.summaryCards} />
@@ -306,6 +362,34 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 15,
     fontFamily: "InterBold",
+  },
+  exportActionsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  exportActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  exportActionButtonDisabled: {
+    opacity: 0.6,
+  },
+  exportActionText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontFamily: "InterBold",
+  },
+  permissionHint: {
+    color: colors.mutedForeground,
+    fontSize: 12,
   },
   errorCard: {
     backgroundColor: "#FFF6F6",

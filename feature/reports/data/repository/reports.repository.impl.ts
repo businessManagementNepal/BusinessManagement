@@ -1,5 +1,6 @@
 import { EmiPlanStatus } from "@/feature/emiLoans/types/emi.entity.types";
 import { LedgerBalanceDirection, LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
+import { BillingDocumentType } from "@/feature/billing/types/billing.types";
 import { ReportsDatasource } from "@/feature/reports/data/dataSource/reports.datasource";
 import { colors } from "@/shared/components/theme/colors";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
@@ -26,7 +27,6 @@ import {
 } from "../../utils/reportPeriod.shared";
 import {
     BillingDocumentRecord,
-    LedgerEntryRecord,
     mapBillingDocumentModel,
     mapEmiPlanModel,
     mapInventoryMovementModel,
@@ -128,50 +128,117 @@ const aggregateCategorySegments = (
     }));
 };
 
-const getScopedIncomeExpense = (params: {
-  scope: string;
-  transactions: readonly TransactionRecord[];
-  billingDocuments: readonly BillingDocumentRecord[];
-  ledgerEntries: readonly LedgerEntryRecord[];
-  startMs: number;
-  endMs: number;
-}) => {
-  const { scope, transactions, billingDocuments, ledgerEntries, startMs, endMs } = params;
-
-  if (scope === ReportScope.Personal) {
-    const totalIncome = transactions
-      .filter((item) => item.direction === "in" && isWithinRange(item.happenedAt, startMs, endMs))
-      .reduce((sum, item) => sum + item.amount, 0);
-    const totalExpense = transactions
-      .filter((item) => item.direction === "out" && isWithinRange(item.happenedAt, startMs, endMs))
-      .reduce((sum, item) => sum + item.amount, 0);
-    return { totalIncome, totalExpense };
-  }
-
-  const salesIncome = billingDocuments
-    .filter((document) => isWithinRange(document.issuedAt, startMs, endMs))
-    .reduce((sum, document) => sum + document.totalAmount, 0);
-  const collectedIncome = ledgerEntries
+const getTransactionIncomeExpense = (
+  transactions: readonly TransactionRecord[],
+  startMs: number,
+  endMs: number,
+) => {
+  const totalIncome = transactions
     .filter(
-      (entry) =>
-        isWithinRange(entry.happenedAt, startMs, endMs) &&
-        entry.entryType === LedgerEntryType.Collection,
+      (item) => item.direction === "in" && isWithinRange(item.happenedAt, startMs, endMs),
     )
-    .reduce((sum, entry) => sum + entry.amount, 0);
-  const paymentExpense = ledgerEntries
-    .filter(
-      (entry) =>
-        isWithinRange(entry.happenedAt, startMs, endMs) &&
-        (entry.entryType === LedgerEntryType.PaymentOut ||
-          entry.entryType === LedgerEntryType.Purchase ||
-          entry.entryType === LedgerEntryType.Refund),
-    )
-    .reduce((sum, entry) => sum + entry.amount, 0);
+    .reduce((sum, item) => sum + item.amount, 0);
 
-  return {
-    totalIncome: salesIncome + collectedIncome,
-    totalExpense: paymentExpense,
-  };
+  const totalExpense = transactions
+    .filter(
+      (item) => item.direction === "out" && isWithinRange(item.happenedAt, startMs, endMs),
+    )
+    .reduce((sum, item) => sum + item.amount, 0);
+
+  return { totalIncome, totalExpense };
+};
+
+const toSignedBillingDocumentAmount = (document: BillingDocumentRecord): number => {
+  return document.documentType === BillingDocumentType.CreditNote
+    ? -document.totalAmount
+    : document.totalAmount;
+};
+
+type StockRow = {
+  productRemoteId: string;
+  productName: string;
+  categoryLabel: string;
+  unitLabel: string;
+  stockQuantity: number;
+  valuation: number;
+  tone: "positive" | "negative";
+};
+
+const buildStockRows = (params: {
+  products: readonly import("./mapper/reports.mapper").ProductRecord[];
+  inventoryMovements: readonly import("./mapper/reports.mapper").InventoryMovementRecord[];
+}): StockRow[] => {
+  const movementMap = new Map<
+    string,
+    {
+      productName: string;
+      unitLabel: string;
+      quantity: number;
+      latestUnitRate: number | null;
+      lastMovementAt: number;
+    }
+  >();
+
+  params.inventoryMovements.forEach((movement) => {
+    const current = movementMap.get(movement.productRemoteId) ?? {
+      productName: movement.productNameSnapshot,
+      unitLabel: movement.productUnitLabelSnapshot ?? "units",
+      quantity: 0,
+      latestUnitRate: null,
+      lastMovementAt: 0,
+    };
+
+    current.quantity += movement.deltaQuantity;
+
+    if (movement.movementAt >= current.lastMovementAt) {
+      current.productName = movement.productNameSnapshot;
+      current.unitLabel = movement.productUnitLabelSnapshot ?? current.unitLabel;
+      current.latestUnitRate = movement.unitRate ?? current.latestUnitRate;
+      current.lastMovementAt = movement.movementAt;
+    }
+
+    movementMap.set(movement.productRemoteId, current);
+  });
+
+  const consumedMovementIds = new Set<string>();
+
+  const productRows: StockRow[] = params.products.map((product) => {
+    const movementAggregate = movementMap.get(product.remoteId);
+    consumedMovementIds.add(product.remoteId);
+
+    const stockQuantity = movementAggregate?.quantity ?? 0;
+    const unitRate =
+      product.costPrice ?? movementAggregate?.latestUnitRate ?? product.salePrice ?? 0;
+
+    return {
+      productRemoteId: product.remoteId,
+      productName: product.name,
+      categoryLabel: product.categoryName ?? "General",
+      unitLabel: product.unitLabel ?? movementAggregate?.unitLabel ?? "units",
+      stockQuantity,
+      valuation: stockQuantity * unitRate,
+      tone: stockQuantity <= 5 ? "negative" : "positive",
+    };
+  });
+
+  const orphanMovementRows: StockRow[] = [...movementMap.entries()]
+    .filter(([productRemoteId]) => !consumedMovementIds.has(productRemoteId))
+    .map(([productRemoteId, aggregate]) => ({
+      productRemoteId,
+      productName: aggregate.productName,
+      categoryLabel: "General",
+      unitLabel: aggregate.unitLabel,
+      stockQuantity: aggregate.quantity,
+      valuation: aggregate.quantity * (aggregate.latestUnitRate ?? 0),
+      tone: aggregate.quantity <= 5 ? "negative" : "positive",
+    }));
+
+  return [...productRows, ...orphanMovementRows].sort((left, right) => {
+    if (right.valuation !== left.valuation) {
+      return right.valuation - left.valuation;
+    }
+    return left.productName.localeCompare(right.productName);
+  });
 };
 
 const buildSections = (scope: string): ReportMenuSection[] => {
@@ -284,125 +351,105 @@ export const createReportsRepository = (
 
   return {
     async getReportsDashboard(query: ReportQuery): Promise<ReportsDashboardResult> {
-  if (!query.accountRemoteId && !query.ownerUserRemoteId) {
-    return {
-      success: false,
-      error: ReportValidationError("Active report scope is missing."),
-    };
-  }
+      if (!query.accountRemoteId && !query.ownerUserRemoteId) {
+        return {
+          success: false,
+          error: ReportValidationError("Active report scope is missing."),
+        };
+      }
 
-  try {
-    const datasetResult = await datasource.getDataset(query);
-    if (!datasetResult.success) {
-      return { success: false, error: ReportDatabaseError };
-    }
+      try {
+        const datasetResult = await datasource.getDataset(query);
+        if (!datasetResult.success) {
+          return { success: false, error: ReportDatabaseError };
+        }
 
-    const nowMs = Date.now();
-    const range = getReportDateRangeForPeriod(query.period, nowMs);
-    const periodBuckets = buildReportSeriesBucketsForPeriod(query.period, nowMs);
+        const nowMs = Date.now();
+        const range = getReportDateRangeForPeriod(query.period, nowMs);
+        const periodBuckets = buildReportSeriesBucketsForPeriod(query.period, nowMs);
 
-    const transactions = datasetResult.value.transactions.map(mapTransactionModel);
-    const billingDocuments = datasetResult.value.billingDocuments.map(mapBillingDocumentModel);
-    const ledgerEntries = datasetResult.value.ledgerEntries.map(mapLedgerEntryModel);
+        const transactions = datasetResult.value.transactions.map(mapTransactionModel);
 
-    const topSummary = getScopedIncomeExpense({
-      scope: query.scope,
-      transactions,
-      billingDocuments,
-      ledgerEntries,
-      startMs: range.startMs,
-      endMs: range.endMs,
-    });
-
-    const overviewTrend = buildSeriesForBuckets(
-      periodBuckets,
-      (bucketStartMs, bucketEndMs) => {
-        const bucketSummary = getScopedIncomeExpense({
-          scope: query.scope,
+        const topSummary = getTransactionIncomeExpense(
           transactions,
-          billingDocuments,
-          ledgerEntries,
-          startMs: bucketStartMs,
-          endMs: bucketEndMs,
-        });
+          range.startMs,
+          range.endMs,
+        );
 
-        return bucketSummary.totalIncome - bucketSummary.totalExpense;
-      },
-    );
+        const overviewTrend = buildSeriesForBuckets(
+          periodBuckets,
+          (bucketStartMs, bucketEndMs) => {
+            const bucketSummary = getTransactionIncomeExpense(
+              transactions,
+              bucketStartMs,
+              bucketEndMs,
+            );
 
-    const incomeExpenseComparison = buildDualSeriesForBuckets(
-      periodBuckets,
-      (bucketStartMs, bucketEndMs) =>
-        getScopedIncomeExpense({
-          scope: query.scope,
+            return bucketSummary.totalIncome - bucketSummary.totalExpense;
+          },
+        );
+
+        const incomeExpenseComparison = buildDualSeriesForBuckets(
+          periodBuckets,
+          (bucketStartMs, bucketEndMs) =>
+            getTransactionIncomeExpense(
+              transactions,
+              bucketStartMs,
+              bucketEndMs,
+            ).totalIncome,
+          (bucketStartMs, bucketEndMs) =>
+            getTransactionIncomeExpense(
+              transactions,
+              bucketStartMs,
+              bucketEndMs,
+            ).totalExpense,
+        );
+
+        const cashFlowSeries = buildDualSeriesForBuckets(
+          periodBuckets,
+          (bucketStartMs, bucketEndMs) =>
+            getTransactionIncomeExpense(
+              transactions,
+              bucketStartMs,
+              bucketEndMs,
+            ).totalIncome,
+          (bucketStartMs, bucketEndMs) =>
+            getTransactionIncomeExpense(
+              transactions,
+              bucketStartMs,
+              bucketEndMs,
+            ).totalExpense,
+        );
+
+        const categoryBreakdown = aggregateCategorySegments(
           transactions,
-          billingDocuments,
-          ledgerEntries,
-          startMs: bucketStartMs,
-          endMs: bucketEndMs,
-        }).totalIncome,
-      (bucketStartMs, bucketEndMs) =>
-        getScopedIncomeExpense({
-          scope: query.scope,
-          transactions,
-          billingDocuments,
-          ledgerEntries,
-          startMs: bucketStartMs,
-          endMs: bucketEndMs,
-        }).totalExpense,
-    );
+          range.startMs,
+          range.endMs,
+        );
 
-    const cashFlowSeries = buildDualSeriesForBuckets(
-      periodBuckets,
-      (bucketStartMs, bucketEndMs) =>
-        getScopedIncomeExpense({
-          scope: query.scope,
-          transactions,
-          billingDocuments,
-          ledgerEntries,
-          startMs: bucketStartMs,
-          endMs: bucketEndMs,
-        }).totalIncome,
-      (bucketStartMs, bucketEndMs) =>
-        getScopedIncomeExpense({
-          scope: query.scope,
-          transactions,
-          billingDocuments,
-          ledgerEntries,
-          startMs: bucketStartMs,
-          endMs: bucketEndMs,
-        }).totalExpense,
-    );
-
-    const categoryBreakdown = aggregateCategorySegments(
-      transactions,
-      range.startMs,
-      range.endMs,
-    );
-
-    return {
-      success: true,
-      value: {
-        scope: query.scope,
-        currencyCode: options.currencyCode,
-        countryCode: options.countryCode,
-        periodLabel: range.label,
-        topSummary: {
-          totalIncome: topSummary.totalIncome,
-          totalExpense: topSummary.totalExpense,
-          netProfit: topSummary.totalIncome - topSummary.totalExpense,
-        },
-        overviewTrend,
-        incomeExpenseComparison,
-        categoryBreakdown,
-        cashFlowSeries,
-        sections: buildSections(query.scope),
-      },
-    };
-  } catch {
-    return { success: false, error: ReportUnknownError };
-  }
-},
+        return {
+          success: true,
+          value: {
+            scope: query.scope,
+            currencyCode: options.currencyCode,
+            countryCode: options.countryCode,
+            periodLabel: range.label,
+            topSummary: {
+              totalIncome: topSummary.totalIncome,
+              totalExpense: topSummary.totalExpense,
+              netProfit: topSummary.totalIncome - topSummary.totalExpense,
+            },
+            overviewTrend,
+            incomeExpenseComparison,
+            categoryBreakdown,
+            cashFlowSeries,
+            sections: buildSections(query.scope),
+          },
+        };
+      } catch {
+        return { success: false, error: ReportUnknownError };
+      }
+    },
 
     async getReportDetail(query: ReportQuery): Promise<ReportDetailResult> {
     if (!query.reportId) {
@@ -439,11 +486,11 @@ export const createReportsRepository = (
                 .filter((document) =>
                   isWithinRange(document.issuedAt, bucketStartMs, bucketEndMs),
                 )
-                .reduce((sum, document) => sum + document.totalAmount, 0),
+                .reduce((sum, document) => sum + toSignedBillingDocumentAmount(document), 0),
           );
 
           const totalSales = periodBillingDocuments.reduce(
-            (sum, document) => sum + document.totalAmount,
+            (sum, document) => sum + toSignedBillingDocumentAmount(document),
             0,
           );
 
@@ -456,9 +503,9 @@ export const createReportsRepository = (
               summaryCards: [
                 {
                   id: "sales-total",
-                  label: "Total Sales",
+                  label: "Net Sales",
                   value: formatCurrency(totalSales),
-                  tone: "positive",
+                  tone: totalSales >= 0 ? "positive" : "negative",
                 },
                 {
                   id: "sales-docs",
@@ -468,7 +515,7 @@ export const createReportsRepository = (
                 },
               ],
               chartTitle: "Sales Trend",
-              chartSubtitle: "Trend for the selected period",
+              chartSubtitle: "Net sales for the selected period",
               chartKind: "line",
               lineSeries: series,
             },
@@ -699,29 +746,22 @@ export const createReportsRepository = (
           };
         }
         case ReportMenuItem.Stock: {
-          const stockRows = products.map((product) => {
-            const movementDelta = inventoryMovements
-              .filter((movement) => movement.productNameSnapshot === product.name)
-              .reduce((sum, movement) => sum + movement.deltaQuantity, 0);
-            const stockQuantity = product.stockQuantity ?? movementDelta;
-            const valuation = stockQuantity * (product.costPrice ?? product.salePrice);
-            return {
-              productName: product.name,
-              categoryLabel: product.categoryName ?? "General",
-              stockQuantity,
-              valuation,
-              tone: stockQuantity <= 5 ? ("negative" as const) : ("positive" as const),
-            };
+          const stockRows = buildStockRows({
+            products,
+            inventoryMovements,
           });
+
           const listItems = stockRows.map((row) => ({
-            id: row.productName,
+            id: row.productRemoteId,
             title: row.productName,
-            subtitle: `${row.categoryLabel} | ${row.stockQuantity} units`,
+            subtitle: `${row.categoryLabel} | ${row.stockQuantity} ${row.unitLabel}`,
             value: formatCurrency(row.valuation),
             tone: row.tone,
             progressRatio: null,
           }));
+
           const stockValue = stockRows.reduce((sum, row) => sum + row.valuation, 0);
+
           return {
             success: true,
             value: {
@@ -729,25 +769,22 @@ export const createReportsRepository = (
               title: "Stock Report",
               periodLabel: range.label,
               summaryCards: [
-                { id: "stock-products", label: "Products", value: `${products.length}`, tone: "neutral" },
+                { id: "stock-products", label: "Products", value: `${stockRows.length}`, tone: "neutral" },
                 { id: "stock-value", label: "Stock Value", value: formatCurrency(stockValue), tone: "positive" },
               ],
               chartTitle: "Current stock & valuation",
-              chartSubtitle: "Current stock and valuation summary",
+              chartSubtitle: "Inventory movement based stock position",
               chartKind: "list",
               listItems,
             },
           };
         }
         case ReportMenuItem.ExportData: {
-          const topSummary = getScopedIncomeExpense({
-            scope: query.scope,
+          const topSummary = getTransactionIncomeExpense(
             transactions,
-            billingDocuments,
-            ledgerEntries,
-            startMs: range.startMs,
-            endMs: range.endMs,
-          });
+            range.startMs,
+            range.endMs,
+          );
           const rows = [
             { label: "Period", value: range.label },
             { label: "Money In", value: String(topSummary.totalIncome) },

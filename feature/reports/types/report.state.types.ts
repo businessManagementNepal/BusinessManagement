@@ -17,6 +17,7 @@ export const REPORT_PERIOD_OPTIONS = [
 
 export type ReportsViewState = {
   isLoading: boolean;
+  isExporting: boolean;
   errorMessage: string | null;
   activeHomeTab: ReportHomeTabValue;
   activePeriod: ReportPeriodValue;

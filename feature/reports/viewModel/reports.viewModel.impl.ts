@@ -1,15 +1,16 @@
 import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
-    ReportHomeTab,
-    ReportPeriod,
-    ReportQuery,
-    ReportScope,
+  ReportHomeTab,
+  ReportPeriod,
+  ReportQuery,
+  ReportScope,
 } from "@/feature/reports/types/report.entity.types";
 import { ReportsViewState } from "@/feature/reports/types/report.state.types";
+import { DocumentExportAction } from "@/shared/utils/document/exportDocument";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ReportsViewModel,
-    UseReportsViewModelParams,
+  ReportsViewModel,
+  UseReportsViewModelParams,
 } from "./reports.viewModel";
 
 const buildQuery = (params: {
@@ -37,12 +38,15 @@ export const useReportsViewModel = (
     accountType,
     ownerUserRemoteId,
     accountRemoteId,
+    canExportReports,
     getReportsDashboardUseCase,
     getReportDetailUseCase,
+    exportReportDetailDocumentUseCase,
   } = params;
 
   const [state, setState] = useState<ReportsViewState>({
     isLoading: true,
+    isExporting: false,
     errorMessage: null,
     activeHomeTab: ReportHomeTab.Overview,
     activePeriod: ReportPeriod.ThisMonth,
@@ -50,6 +54,7 @@ export const useReportsViewModel = (
     selectedReportId: null,
     detail: null,
   });
+
   const activeLoadRequestRef = useRef(0);
 
   const loadDashboard = useCallback(
@@ -68,11 +73,13 @@ export const useReportsViewModel = (
 
       const requestId = activeLoadRequestRef.current + 1;
       activeLoadRequestRef.current = requestId;
+
       setState((current) => ({
         ...current,
         isLoading: true,
         errorMessage: null,
       }));
+
       const result = await getReportsDashboardUseCase.execute(
         buildQuery({
           accountType,
@@ -130,6 +137,7 @@ export const useReportsViewModel = (
 
       const requestId = activeLoadRequestRef.current + 1;
       activeLoadRequestRef.current = requestId;
+
       setState((current) => ({
         ...current,
         isLoading: true,
@@ -172,7 +180,7 @@ export const useReportsViewModel = (
   );
 
   useEffect(() => {
-    loadDashboard(ReportPeriod.ThisMonth);
+    void loadDashboard(ReportPeriod.ThisMonth);
   }, [loadDashboard]);
 
   const onRefresh = useCallback(async () => {
@@ -222,26 +230,79 @@ export const useReportsViewModel = (
       selectedReportId: null,
       detail: null,
       errorMessage: null,
+      isExporting: false,
     }));
   }, []);
+
+  const onExportDetail = useCallback(
+    async (action: DocumentExportAction) => {
+      if (!state.detail) {
+        return;
+      }
+
+      if (!canExportReports) {
+        setState((current) => ({
+          ...current,
+          errorMessage:
+            "You have view access only. Ask admin for export permission.",
+        }));
+        return;
+      }
+
+      setState((current) => ({
+        ...current,
+        isExporting: true,
+        errorMessage: null,
+      }));
+
+      const scopeLabel =
+        accountType === AccountType.Business ? "Business" : "Personal";
+
+      const result = await exportReportDetailDocumentUseCase.execute({
+        detail: state.detail,
+        scopeLabel,
+        action,
+      });
+
+      if (!result.success) {
+        setState((current) => ({
+          ...current,
+          isExporting: false,
+          errorMessage: result.error.message,
+        }));
+        return;
+      }
+
+      setState((current) => ({
+        ...current,
+        isExporting: false,
+        errorMessage: null,
+      }));
+    },
+    [accountType, canExportReports, exportReportDetailDocumentUseCase, state.detail],
+  );
 
   return useMemo(
     () => ({
       ...state,
       isBusinessMode: accountType === AccountType.Business,
+      canExportReports,
       onRefresh,
       onSelectHomeTab,
       onSelectPeriod,
       onOpenReport,
       onBackToReports,
+      onExportDetail,
     }),
     [
       accountType,
+      canExportReports,
       onBackToReports,
       onOpenReport,
       onRefresh,
       onSelectHomeTab,
       onSelectPeriod,
+      onExportDetail,
       state,
     ],
   );

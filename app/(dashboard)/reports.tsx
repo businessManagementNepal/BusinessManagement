@@ -8,6 +8,7 @@ import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 import React, { useEffect } from "react";
 
 const REPORTS_VIEW_PERMISSION_CODE = "reports.view";
+const REPORTS_EXPORT_PERMISSION_CODE = "reports.export";
 
 export default function ReportsDashboardRoute() {
   const navigation = useSmoothNavigation();
@@ -27,8 +28,11 @@ export default function ReportsDashboardRoute() {
     activeAccountRemoteId,
   });
 
-  const canViewReports = permissionAccess.hasPermission(REPORTS_VIEW_PERMISSION_CODE);
   const isBusinessAccount = activeAccountType === AccountType.Business;
+  const canViewReports = permissionAccess.hasPermission(REPORTS_VIEW_PERMISSION_CODE);
+  const canExportReports =
+    !isBusinessAccount ||
+    permissionAccess.hasPermission(REPORTS_EXPORT_PERMISSION_CODE);
 
   useEffect(() => {
     if (isLoading || !hasActiveSession || !hasActiveAccount) {
@@ -74,6 +78,7 @@ export default function ReportsDashboardRoute() {
       accountRemoteId={activeAccountRemoteId}
       activeAccountCurrencyCode={activeAccountCurrencyCode}
       activeAccountCountryCode={activeAccountCountryCode}
+      canExportReports={canExportReports}
     />
   );
 }

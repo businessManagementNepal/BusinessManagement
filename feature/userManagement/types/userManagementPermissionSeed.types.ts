@@ -122,6 +122,12 @@ export const USER_MANAGEMENT_PERMISSION_SEED: readonly UserManagementPermissionS
       description: "Open dashboards and analytical reports.",
     },
     {
+      code: "reports.export",
+      module: "Reports",
+      label: "Export Reports",
+      description: "Share, print, and save report documents and snapshots.",
+    },
+    {
       code: "tax_calculator.view",
       module: "Tax Calculator",
       label: "View Tax Calculator",

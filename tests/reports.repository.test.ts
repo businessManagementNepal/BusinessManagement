@@ -2,10 +2,10 @@ import { AccountType } from "@/feature/auth/accountSelection/types/accountSelect
 import { ReportsDatasource } from "@/feature/reports/data/dataSource/reports.datasource";
 import { createReportsRepository } from "@/feature/reports/data/repository/reports.repository.impl";
 import {
-    ReportMenuItem,
-    ReportPeriod,
-    ReportQuery,
-    ReportScope,
+  ReportMenuItem,
+  ReportPeriod,
+  ReportQuery,
+  ReportScope,
 } from "@/feature/reports/types/report.entity.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import { describe, expect, it, vi } from "vitest";
@@ -121,25 +121,31 @@ describe("reports.repository", () => {
     const dataset = createDataset({
       products: [
         {
+          remoteId: "product-rice",
           name: "Rice",
           categoryName: "Groceries",
           salePrice: 12,
           costPrice: 10,
           stockQuantity: 3,
+          unitLabel: "kg",
           status: "active",
         },
         {
+          remoteId: "product-soap",
           name: "Soap",
           categoryName: "Household",
           salePrice: 5,
           costPrice: null,
           stockQuantity: null,
+          unitLabel: "pcs",
           status: "active",
         },
       ],
       inventoryMovements: [
         {
+          productRemoteId: "product-soap",
           productNameSnapshot: "Soap",
+          productUnitLabelSnapshot: "pcs",
           movementType: "purchase_in",
           deltaQuantity: 4,
           unitRate: 5,
@@ -163,7 +169,7 @@ describe("reports.repository", () => {
     }
 
     const expectedStockValue = formatCurrencyAmount({
-      amount: 50,
+      amount: 20,
       currencyCode: CURRENCY_CODE,
       countryCode: COUNTRY_CODE,
       maximumFractionDigits: 0,
@@ -173,7 +179,7 @@ describe("reports.repository", () => {
     );
 
     expect(stockValueCard?.value).toBe(expectedStockValue);
-    expect(result.value.listItems?.[0]?.subtitle.includes("|")).toBe(true);
+    expect(result.value.listItems?.[0]?.subtitle).toContain("4 pcs");
   });
 
   it("uses the selected period for the sales detail trend instead of a fixed six-month window", async () => {
@@ -187,12 +193,16 @@ describe("reports.repository", () => {
     const dataset = createDataset({
       billingDocuments: [
         {
+          remoteId: "doc-current",
+          documentType: "invoice",
           customerName: "Walk-in",
           status: "paid",
           totalAmount: 120,
           issuedAt: currentIssuedAt,
         },
         {
+          remoteId: "doc-older",
+          documentType: "invoice",
           customerName: "Archived",
           status: "paid",
           totalAmount: 900,
@@ -266,12 +276,16 @@ describe("reports.repository", () => {
       ],
       billingDocuments: [
         {
+          remoteId: "doc-now",
+          documentType: "invoice",
           customerName: "Walk-in",
           status: "paid",
           totalAmount: 100,
           issuedAt: now,
         },
         {
+          remoteId: "doc-old",
+          documentType: "invoice",
           customerName: "Archived",
           status: "paid",
           totalAmount: 900,
@@ -306,15 +320,6 @@ describe("reports.repository", () => {
           happenedAt: olderAt,
           dueAt: null,
         },
-        {
-          partyName: "Old Supplier",
-          entryType: "payment_out",
-          balanceDirection: "pay",
-          amount: 300,
-          currencyCode: CURRENCY_CODE,
-          happenedAt: olderAt,
-          dueAt: null,
-        },
       ],
     });
 
@@ -337,42 +342,138 @@ describe("reports.repository", () => {
     expect(result.value.overviewTrend).toHaveLength(7);
     expect(result.value.incomeExpenseComparison).toHaveLength(7);
     expect(result.value.cashFlowSeries).toHaveLength(7);
-
-    expect(
-      result.value.overviewTrend.reduce((sum, item) => sum + item.value, 0),
-    ).toBe(80);
-
-    expect(
-      result.value.incomeExpenseComparison.reduce(
-        (sum, item) => sum + item.primaryValue,
-        0,
-      ),
-    ).toBe(120);
-
-    expect(
-      result.value.incomeExpenseComparison.reduce(
-        (sum, item) => sum + item.secondaryValue,
-        0,
-      ),
-    ).toBe(40);
-
-    expect(
-      result.value.cashFlowSeries.reduce(
-        (sum, item) => sum + item.primaryValue,
-        0,
-      ),
-    ).toBe(120);
-
-    expect(
-      result.value.cashFlowSeries.reduce(
-        (sum, item) => sum + item.secondaryValue,
-        0,
-      ),
-    ).toBe(40);
-
     expect(
       result.value.categoryBreakdown.reduce((sum, item) => sum + item.value, 0),
     ).toBe(15);
   });
-});
 
+  it("uses transaction money truth for business dashboard totals instead of combining billing and ledger values", async () => {
+    const now = Date.now();
+
+    const dataset = createDataset({
+      transactions: [
+        {
+          title: "Cash sale",
+          amount: 100,
+          categoryLabel: "Sales",
+          happenedAt: now,
+          direction: "in",
+          transactionType: "sale",
+          accountDisplayNameSnapshot: "Cash",
+        },
+        {
+          title: "Expense",
+          amount: 30,
+          categoryLabel: "Utilities",
+          happenedAt: now,
+          direction: "out",
+          transactionType: "expense",
+          accountDisplayNameSnapshot: "Cash",
+        },
+      ],
+      billingDocuments: [
+        {
+          remoteId: "doc-1",
+          documentType: "invoice",
+          customerName: "Customer",
+          status: "paid",
+          totalAmount: 900,
+          issuedAt: now,
+        },
+      ],
+      ledgerEntries: [
+        {
+          partyName: "Customer A",
+          entryType: "collection",
+          balanceDirection: "receive",
+          amount: 50,
+          currencyCode: CURRENCY_CODE,
+          happenedAt: now,
+          dueAt: null,
+        },
+        {
+          partyName: "Supplier A",
+          entryType: "payment_out",
+          balanceDirection: "pay",
+          amount: 40,
+          currencyCode: CURRENCY_CODE,
+          happenedAt: now,
+          dueAt: null,
+        },
+      ],
+    });
+
+    const repository = createReportsRepository(createDatasource(dataset), {
+      currencyCode: CURRENCY_CODE,
+      countryCode: COUNTRY_CODE,
+    });
+
+    const result = await repository.getReportsDashboard(createBaseQuery(null));
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+
+    expect(result.value.topSummary.totalIncome).toBe(100);
+    expect(result.value.topSummary.totalExpense).toBe(30);
+    expect(result.value.topSummary.netProfit).toBe(70);
+  });
+
+  it("uses inventory movement remote-id truth for stock quantity instead of product snapshot stock", async () => {
+    const dataset = createDataset({
+      products: [
+        {
+          remoteId: "product-soap",
+          name: "Soap",
+          categoryName: "Household",
+          salePrice: 5,
+          costPrice: 10,
+          stockQuantity: 99,
+          unitLabel: "pcs",
+          status: "active",
+        },
+      ],
+      inventoryMovements: [
+        {
+          productRemoteId: "product-soap",
+          productNameSnapshot: "Soap",
+          productUnitLabelSnapshot: "pcs",
+          movementType: "purchase_in",
+          deltaQuantity: 4,
+          unitRate: 10,
+          movementAt: Date.now(),
+        },
+      ],
+    });
+
+    const repository = createReportsRepository(createDatasource(dataset), {
+      currencyCode: CURRENCY_CODE,
+      countryCode: COUNTRY_CODE,
+    });
+
+    const result = await repository.getReportDetail(
+      createBaseQuery(ReportMenuItem.Stock),
+    );
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+
+    const stockValueCard = result.value.summaryCards.find(
+      (item) => item.id === "stock-value",
+    );
+
+    expect(stockValueCard?.value).toBe(
+      formatCurrencyAmount({
+        amount: 40,
+        currencyCode: CURRENCY_CODE,
+        countryCode: COUNTRY_CODE,
+        maximumFractionDigits: 0,
+      }),
+    );
+
+    expect(result.value.listItems?.[0]?.subtitle).toContain("4 pcs");
+  });
+});
