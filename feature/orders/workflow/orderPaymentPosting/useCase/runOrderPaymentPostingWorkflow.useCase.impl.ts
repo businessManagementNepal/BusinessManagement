@@ -421,10 +421,8 @@ export const createRunOrderPaymentPostingWorkflowUseCase = (params: {
       });
 
       if (!failedAuditResult.success) {
-        return {
-          success: false,
-          error: OrderValidationError(failedAuditResult.error.message),
-        };
+        // Keep the real settlement/rollback error as the returned business result.
+        // Audit failure should not hide the actual payment workflow failure.
       }
 
       return {
@@ -462,10 +460,8 @@ export const createRunOrderPaymentPostingWorkflowUseCase = (params: {
     });
 
     if (!auditResult.success) {
-      return {
-        success: false,
-        error: OrderValidationError(auditResult.error.message),
-      };
+      // Audit failure must not turn a completed payment into a user-facing failure.
+      // The payment transaction and ledger settlement are already posted at this point.
     }
 
     return {

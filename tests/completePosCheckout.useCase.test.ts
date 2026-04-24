@@ -2,6 +2,13 @@ import type { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/del
 import type { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import type { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
 import type { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase";
+import type { RecordAuditEventUseCase } from "@/feature/audit/useCase/recordAuditEvent.useCase";
+import {
+  AuditModule,
+  AuditOutcome,
+  AuditSeverity,
+  type AuditEvent,
+} from "@/feature/audit/types/audit.entity.types";
 import type { CreatePosSaleDraftUseCase } from "@/feature/pos/useCase/createPosSaleDraft.useCase";
 import type { UpdatePosSaleWorkflowStateUseCase } from "@/feature/pos/useCase/updatePosSaleWorkflowState.useCase";
 import type { PosSaleRecord } from "@/feature/pos/types/posSale.entity.types";
@@ -52,6 +59,26 @@ const CUSTOMER: PosCustomer = {
   phone: "+1234567890",
   address: null,
 };
+
+const buildAuditEvent = (): AuditEvent => ({
+  remoteId: "audit-1",
+  accountRemoteId: "business-1",
+  ownerUserRemoteId: "user-1",
+  actorUserRemoteId: "user-1",
+  module: AuditModule.Pos,
+  action: "pos_checkout_posted",
+  sourceModule: "pos",
+  sourceRemoteId: "sale-1",
+  sourceAction: "checkout",
+  outcome: AuditOutcome.Success,
+  severity: AuditSeverity.Info,
+  summary: "POS checkout audit test event.",
+  metadataJson: null,
+  createdAt: 1,
+  syncStatus: "pending",
+  lastSyncedAt: null,
+  deletedAt: null,
+});
 
 const createRunParams = (
   overrides: Partial<RunPosCheckoutParams> = {},
@@ -184,6 +211,7 @@ type HarnessOptions = {
   verifyLinkedDocument?: AddLedgerEntryUseCase["verifyLinkedDocument"];
   postBusinessTransactionExecute?: PostBusinessTransactionUseCase["execute"];
   saveBillingDocumentExecute?: SaveBillingDocumentUseCase["execute"];
+  recordAuditEventExecute?: RecordAuditEventUseCase["execute"];
 };
 
 const createCheckoutHarness = (options: HarnessOptions = {}) => {
@@ -330,11 +358,13 @@ const createCheckoutHarness = (options: HarnessOptions = {}) => {
         value: true,
       })),
   };
-  const recordAuditEventUseCase = {
-    execute: vi.fn(async () => ({
-      success: true as const,
-      value: {} as never,
-    })),
+  const recordAuditEventUseCase: RecordAuditEventUseCase = {
+    execute:
+      options.recordAuditEventExecute ??
+      vi.fn(async () => ({
+        success: true as const,
+        value: buildAuditEvent(),
+      })),
   };
 
   const useCase = createRunPosCheckoutUseCase({
@@ -350,7 +380,7 @@ const createCheckoutHarness = (options: HarnessOptions = {}) => {
     addLedgerEntryUseCase,
     deleteLedgerEntryUseCase,
     commitPosCheckoutInventoryUseCase,
-    recordAuditEventUseCase: recordAuditEventUseCase as never,
+    recordAuditEventUseCase,
   });
 
   return {
@@ -383,6 +413,29 @@ describe("runPosCheckout.useCase", () => {
       expect(result.value.workflowStatus).toBe(PosCheckoutWorkflowStatus.Posted);
       expect(result.value.receipt?.ledgerEffect.type).toBe("none");
       expect(result.value.receipt?.dueAmount).toBe(0);
+    }
+  });
+
+  it("keeps posted checkout successful when audit recording fails after posting", async () => {
+    const { useCase, spies } = createCheckoutHarness({
+      recordAuditEventExecute: vi.fn(async () => ({
+        success: false as const,
+        error: {
+          type: "UNKNOWN" as const,
+          message: "Audit write failed.",
+        },
+      })),
+    });
+
+    const result = await useCase.execute(createRunParams());
+
+    expect(spies.postBusinessTransactionExecute).toHaveBeenCalledTimes(1);
+    expect(spies.commitInventoryExecute).toHaveBeenCalledTimes(1);
+    expect(spies.recordAuditEventExecute).toHaveBeenCalledTimes(1);
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.value.workflowStatus).toBe(PosCheckoutWorkflowStatus.Posted);
     }
   });
 

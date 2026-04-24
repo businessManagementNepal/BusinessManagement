@@ -724,6 +724,121 @@ describe("runOrderPaymentPostingWorkflowUseCase success path", () => {
       expect(result.value.ledgerDueEntryRemoteId).toBe("due-1");
     }
   });
+
+  it("keeps completed order payment successful when audit recording fails after settlement", async () => {
+    const ensureOrderBillingAndDueLinksUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: {
+          order: buildOrder(),
+          contact: buildContact(),
+          billingDocumentRemoteId: "bill-1",
+          ledgerDueEntryRemoteId: "due-1",
+        },
+      })),
+    };
+
+    const getBillingOverviewUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: {
+          documents: [buildBillingDocument({ remoteId: "bill-1" })],
+          allocations: [],
+          billPhotos: [],
+          summary: {
+            totalDocuments: 1,
+            pendingAmount: 113,
+            overdueAmount: 0,
+          },
+        },
+      })),
+    };
+
+    const getLedgerEntriesUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: [buildLedgerEntry()],
+      })),
+    };
+
+    const postBusinessTransactionUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: {
+          remoteId: "txn-order-payment-attempt-1",
+          ownerUserRemoteId: "user-1",
+          accountRemoteId: "business-1",
+          accountDisplayNameSnapshot: "Business Name",
+          transactionType: "income",
+          direction: "in",
+          title: "Order Payment ORD-001",
+          amount: 100,
+          currencyCode: "NPR",
+          categoryLabel: "Orders",
+          note: null,
+          happenedAt: 1_710_000_000_000,
+          settlementMoneyAccountRemoteId: "account-1",
+          settlementMoneyAccountDisplayNameSnapshot: "Cash Account",
+          sourceModule: "orders",
+          sourceRemoteId: "order-1",
+          sourceAction: "payment",
+          idempotencyKey: "orders:payment:attempt-1",
+          contactRemoteId: "contact-1",
+          createdAt: 1_710_000_000_000,
+          updatedAt: 1_710_000_000_000,
+        },
+      })),
+    };
+
+    const saveLedgerEntryWithSettlementUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: buildLedgerEntry({
+          remoteId: "led-settlement-attempt-1",
+          entryType: LedgerEntryType.Collection,
+          balanceDirection: LedgerBalanceDirection.Receive,
+          amount: 100,
+        }),
+      })),
+    };
+
+    const recordAuditEventExecute = vi.fn(async () => ({
+      success: false as const,
+      error: {
+        type: "UNKNOWN" as const,
+        message: "Audit write failed.",
+      },
+    }));
+
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
+      getBillingOverviewUseCase: getBillingOverviewUseCase as any,
+      getLedgerEntriesUseCase: getLedgerEntriesUseCase as any,
+      getMoneyAccountsUseCase: {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: [buildMoneyAccount()],
+        })),
+      } as any,
+      postBusinessTransactionUseCase: postBusinessTransactionUseCase as any,
+      deleteBusinessTransactionUseCase: { execute: vi.fn() } as any,
+      saveLedgerEntryWithSettlementUseCase:
+        saveLedgerEntryWithSettlementUseCase as any,
+      ensureOrderBillingAndDueLinksUseCase:
+        ensureOrderBillingAndDueLinksUseCase as any,
+      recordAuditEventUseCase: {
+        execute: recordAuditEventExecute,
+      },
+    });
+
+    const result = await useCase.execute(buildInput());
+
+    expect(result.success).toBe(true);
+    expect(postBusinessTransactionUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(saveLedgerEntryWithSettlementUseCase.execute).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(recordAuditEventExecute).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("runOrderPaymentPostingWorkflowUseCase rollback", () => {

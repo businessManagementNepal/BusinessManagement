@@ -306,7 +306,7 @@ describe("pos checkout workflow audit", () => {
     ).toBe(true);
   });
 
-  it("audit failure after posted checkout returns failure", async () => {
+  it("audit failure after posted checkout keeps checkout successful", async () => {
     const { useCase } = createCheckoutHarness({
       recordAuditExecute: vi.fn(async () => ({
         success: false as const,
@@ -319,10 +319,9 @@ describe("pos checkout workflow audit", () => {
 
     const result = await useCase.execute(createRunParams());
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.type).toBe("UNKNOWN");
-      expect(result.error.message).toContain("Unable to save audit event");
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.value.workflowStatus).toBe(PosCheckoutWorkflowStatus.Posted);
     }
   });
 });

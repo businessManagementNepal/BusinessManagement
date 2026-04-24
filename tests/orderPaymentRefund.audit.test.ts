@@ -468,7 +468,7 @@ describe("order payment/refund workflow audit", () => {
     expect(metadata.rollbackMessage).toContain("rollback delete failed");
   });
 
-  it("order payment audit failure after successful payment returns failure", async () => {
+  it("order payment audit failure after successful payment keeps success", async () => {
     const deps = createPaymentDeps({
       recordAuditEventUseCase: createRecordAuditUseCase(
         vi.fn(async () => ({
@@ -484,9 +484,12 @@ describe("order payment/refund workflow audit", () => {
 
     const result = await useCase.execute(buildPaymentInput());
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.message).toContain("Unable to save audit event");
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.value.orderRemoteId).toBe("order-1");
+      expect(result.value.paymentTransactionRemoteId).toBe(
+        "txn-order-payment-attempt-1",
+      );
     }
   });
 

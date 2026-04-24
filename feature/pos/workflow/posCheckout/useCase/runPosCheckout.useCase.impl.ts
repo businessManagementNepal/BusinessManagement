@@ -510,7 +510,7 @@ export const createRunPosCheckoutUseCase = ({
         workflowStatus: string;
         errorType: string | null;
         errorMessage: string | null;
-      }): Promise<RunPosCheckoutResult | null> => {
+      }): Promise<void> => {
         const auditResult = await recordAuditEventUseCase.execute({
           accountRemoteId: saleBusinessAccountRemoteId,
           ownerUserRemoteId: saleOwnerUserRemoteId,
@@ -536,16 +536,8 @@ export const createRunPosCheckoutUseCase = ({
         });
 
         if (!auditResult.success) {
-          return {
-            success: false,
-            error: {
-              type: PosCheckoutErrorType.Unknown,
-              message: auditResult.error.message,
-            },
-          };
+          return;
         }
-
-        return null;
       };
 
       const persistFailedCheckout = async ({
@@ -586,7 +578,7 @@ export const createRunPosCheckoutUseCase = ({
           return failedResult;
         }
 
-        const auditFailure = await recordCheckoutAudit({
+        await recordCheckoutAudit({
           action: rollbackResult.rollbackErrorMessage
             ? "pos_checkout_partially_posted"
             : "pos_checkout_failed",
@@ -613,7 +605,7 @@ export const createRunPosCheckoutUseCase = ({
             : baseErrorMessage,
         });
 
-        return auditFailure ?? failedResult;
+        return failedResult;
       };
 
       const pendingPostingResult = await persistWorkflowState({
@@ -809,7 +801,7 @@ export const createRunPosCheckoutUseCase = ({
           return postedResult;
         }
 
-        const auditFailure = await recordCheckoutAudit({
+        await recordCheckoutAudit({
           action: "pos_checkout_posted",
           outcome: AuditOutcome.Success,
           severity: AuditSeverity.Info,
@@ -822,7 +814,7 @@ export const createRunPosCheckoutUseCase = ({
           errorMessage: null,
         });
 
-        return auditFailure ?? postedResult;
+        return postedResult;
       }
 
       let createdLedgerEntryRemoteId: string | null = dueLedgerRemoteId;
@@ -925,7 +917,7 @@ export const createRunPosCheckoutUseCase = ({
         return postedResult;
       }
 
-      const auditFailure = await recordCheckoutAudit({
+      await recordCheckoutAudit({
         action: "pos_checkout_posted",
         outcome: AuditOutcome.Success,
         severity: AuditSeverity.Info,
@@ -938,7 +930,7 @@ export const createRunPosCheckoutUseCase = ({
         errorMessage: null,
       });
 
-      return auditFailure ?? postedResult;
+      return postedResult;
     };
 
     const existingSaleResult =
