@@ -3,6 +3,12 @@ import {
     MoneyAccountType,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
+import {
+    AuditModule,
+    AuditOutcome,
+    AuditSeverity,
+} from "@/feature/audit/types/audit.entity.types";
+import type { RecordAuditEventUseCase } from "@/feature/audit/useCase/recordAuditEvent.useCase";
 import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { GetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase";
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
@@ -182,6 +188,7 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
   deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
   saveLedgerEntryWithSettlementUseCase: SaveLedgerEntryWithSettlementUseCase;
   ensureOrderBillingAndDueLinksUseCase: EnsureOrderBillingAndDueLinksUseCase;
+  recordAuditEventUseCase: RecordAuditEventUseCase;
 }): RunOrderRefundPostingWorkflowUseCase => ({
   async execute(
     input: OrderRefundPostingWorkflowInput,
@@ -437,6 +444,38 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
             })
           : null;
 
+      const failedAuditResult = await params.recordAuditEventUseCase.execute({
+        accountRemoteId: normalizedAccountRemoteId,
+        ownerUserRemoteId: normalizedOwnerUserRemoteId,
+        actorUserRemoteId: normalizedOwnerUserRemoteId,
+        module: AuditModule.Orders,
+        action: "order_refund_failed",
+        sourceModule: "orders",
+        sourceRemoteId: ensureResult.value.order.remoteId,
+        sourceAction: "refund",
+        outcome: AuditOutcome.Failure,
+        severity: rollbackMessage ? AuditSeverity.Critical : AuditSeverity.Warning,
+        summary: `Order refund failed: ${normalizedOrderNumber}`,
+        metadataJson: JSON.stringify({
+          orderRemoteId: ensureResult.value.order.remoteId,
+          orderNumber: normalizedOrderNumber,
+          refundAttemptRemoteId: normalizedRefundAttemptRemoteId,
+          refundTransactionRemoteId,
+          refundSettlementLedgerEntryRemoteId,
+          refundBillingDocumentRemoteId,
+          originalDueEntryRemoteId: settlementSnapshot.dueEntry.remoteId,
+          rollbackMessage,
+          errorMessage: saveRefundDocumentResult.error.message,
+        }),
+      });
+
+      if (!failedAuditResult.success) {
+        return {
+          success: false,
+          error: OrderValidationError(failedAuditResult.error.message),
+        };
+      }
+
       return {
         success: false,
         error: buildRollbackAwareValidationError({
@@ -505,12 +544,76 @@ export const createRunOrderRefundPostingWorkflowUseCase = (params: {
             })
           : null;
 
+      const failedAuditResult = await params.recordAuditEventUseCase.execute({
+        accountRemoteId: normalizedAccountRemoteId,
+        ownerUserRemoteId: normalizedOwnerUserRemoteId,
+        actorUserRemoteId: normalizedOwnerUserRemoteId,
+        module: AuditModule.Orders,
+        action: "order_refund_failed",
+        sourceModule: "orders",
+        sourceRemoteId: ensureResult.value.order.remoteId,
+        sourceAction: "refund",
+        outcome: AuditOutcome.Failure,
+        severity: rollbackMessage ? AuditSeverity.Critical : AuditSeverity.Warning,
+        summary: `Order refund failed: ${normalizedOrderNumber}`,
+        metadataJson: JSON.stringify({
+          orderRemoteId: ensureResult.value.order.remoteId,
+          orderNumber: normalizedOrderNumber,
+          refundAttemptRemoteId: normalizedRefundAttemptRemoteId,
+          refundTransactionRemoteId,
+          refundSettlementLedgerEntryRemoteId,
+          refundBillingDocumentRemoteId,
+          originalDueEntryRemoteId: settlementSnapshot.dueEntry.remoteId,
+          rollbackMessage,
+          errorMessage: settlementResult.error.message,
+        }),
+      });
+
+      if (!failedAuditResult.success) {
+        return {
+          success: false,
+          error: OrderValidationError(failedAuditResult.error.message),
+        };
+      }
+
       return {
         success: false,
         error: buildRollbackAwareValidationError({
           primaryMessage: settlementResult.error.message,
           rollbackMessage,
         }),
+      };
+    }
+
+    const auditResult = await params.recordAuditEventUseCase.execute({
+      accountRemoteId: normalizedAccountRemoteId,
+      ownerUserRemoteId: normalizedOwnerUserRemoteId,
+      actorUserRemoteId: normalizedOwnerUserRemoteId,
+      module: AuditModule.Orders,
+      action: "order_refund_posted",
+      sourceModule: "orders",
+      sourceRemoteId: ensureResult.value.order.remoteId,
+      sourceAction: "refund",
+      outcome: AuditOutcome.Success,
+      severity: AuditSeverity.Info,
+      summary: `Order refund posted: ${normalizedOrderNumber}`,
+      metadataJson: JSON.stringify({
+        orderRemoteId: ensureResult.value.order.remoteId,
+        orderNumber: normalizedOrderNumber,
+        refundAttemptRemoteId: normalizedRefundAttemptRemoteId,
+        refundTransactionRemoteId,
+        refundSettlementLedgerEntryRemoteId: settlementResult.value.remoteId,
+        refundBillingDocumentRemoteId,
+        originalDueEntryRemoteId: settlementSnapshot.dueEntry.remoteId,
+        rollbackMessage: null,
+        errorMessage: null,
+      }),
+    });
+
+    if (!auditResult.success) {
+      return {
+        success: false,
+        error: OrderValidationError(auditResult.error.message),
       };
     }
 

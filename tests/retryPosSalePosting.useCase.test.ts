@@ -6,6 +6,13 @@ import type { RunPosCheckoutUseCase } from "@/feature/pos/workflow/posCheckout/u
 import { createRetryPosSalePostingUseCase } from "@/feature/pos/workflow/posRecovery/useCase/retryPosSalePosting.useCase.impl";
 import { describe, expect, it, vi } from "vitest";
 
+const createRecordAuditEventUseCase = () => ({
+  execute: vi.fn(async () => ({
+    success: true as const,
+    value: {} as never,
+  })),
+});
+
 const buildSale = (overrides: Partial<PosSaleRecord> = {}): PosSaleRecord => ({
   remoteId: "sale-1",
   receiptNumber: "POS-001",
@@ -67,6 +74,7 @@ describe("createRetryPosSalePostingUseCase", () => {
 
     const useCase = createRetryPosSalePostingUseCase({
       runPosCheckoutUseCase,
+      recordAuditEventUseCase: createRecordAuditEventUseCase() as never,
     });
 
     const result = await useCase.execute({
@@ -89,6 +97,7 @@ describe("createRetryPosSalePostingUseCase", () => {
 
     const useCase = createRetryPosSalePostingUseCase({
       runPosCheckoutUseCase,
+      recordAuditEventUseCase: createRecordAuditEventUseCase() as never,
     });
 
     const result = await useCase.execute({
@@ -112,6 +121,7 @@ describe("createRetryPosSalePostingUseCase", () => {
 
     const useCase = createRetryPosSalePostingUseCase({
       runPosCheckoutUseCase,
+      recordAuditEventUseCase: createRecordAuditEventUseCase() as never,
     });
 
     const result = await useCase.execute({
@@ -161,6 +171,7 @@ describe("createRetryPosSalePostingUseCase", () => {
 
     const useCase = createRetryPosSalePostingUseCase({
       runPosCheckoutUseCase,
+      recordAuditEventUseCase: createRecordAuditEventUseCase() as never,
     });
 
     const sale = buildSale({
@@ -221,6 +232,7 @@ describe("createRetryPosSalePostingUseCase", () => {
 
     const useCase = createRetryPosSalePostingUseCase({
       runPosCheckoutUseCase,
+      recordAuditEventUseCase: createRecordAuditEventUseCase() as never,
     });
 
     const result = await useCase.execute({

@@ -3,6 +3,12 @@ import {
   BillingDocumentType,
   BillingTemplateType,
 } from "@/feature/billing/types/billing.types";
+import {
+  AuditModule,
+  AuditOutcome,
+  AuditSeverity,
+} from "@/feature/audit/types/audit.entity.types";
+import type { RecordAuditEventUseCase } from "@/feature/audit/useCase/recordAuditEvent.useCase";
 import type { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import type { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import {
@@ -52,6 +58,7 @@ type CreateRunPosCheckoutUseCaseParams = {
   addLedgerEntryUseCase: AddLedgerEntryUseCase;
   deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase;
   commitPosCheckoutInventoryUseCase: CommitPosCheckoutInventoryUseCase;
+  recordAuditEventUseCase: RecordAuditEventUseCase;
 };
 
 const createSaleRemoteId = (): string => {
@@ -176,6 +183,27 @@ const mapSaleToRunValue = (sale: PosSaleRecord): RunPosCheckoutValue => ({
   postedTransactionRemoteIds: sale.postedTransactionRemoteIds,
 });
 
+const buildPosCheckoutAuditMetadata = (params: {
+  saleRemoteId: string;
+  receiptNumber: string | null;
+  billingDocumentRemoteId: string | null;
+  ledgerEntryRemoteId: string | null;
+  postedTransactionRemoteIds: readonly string[];
+  workflowStatus: string;
+  errorType: string | null;
+  errorMessage: string | null;
+}): string =>
+  JSON.stringify({
+    saleRemoteId: params.saleRemoteId,
+    receiptNumber: params.receiptNumber,
+    billingDocumentRemoteId: params.billingDocumentRemoteId,
+    ledgerEntryRemoteId: params.ledgerEntryRemoteId,
+    postedTransactionRemoteIds: params.postedTransactionRemoteIds,
+    workflowStatus: params.workflowStatus,
+    errorType: params.errorType,
+    errorMessage: params.errorMessage,
+  });
+
 const mapSaleErrorToCheckoutError = (error: PosSaleError): PosCheckoutError => {
   if (error.type === PosSaleErrorType.Validation) {
     return { type: PosCheckoutErrorType.Validation, message: error.message };
@@ -289,6 +317,7 @@ export const createRunPosCheckoutUseCase = ({
   addLedgerEntryUseCase,
   deleteLedgerEntryUseCase,
   commitPosCheckoutInventoryUseCase,
+  recordAuditEventUseCase,
 }: CreateRunPosCheckoutUseCaseParams): RunPosCheckoutUseCase => ({
   async execute(params): Promise<RunPosCheckoutResult> {
     const businessAccountRemoteId =
@@ -470,6 +499,55 @@ export const createRunPosCheckoutUseCase = ({
         };
       };
 
+      const recordCheckoutAudit = async (params: {
+        action: string;
+        outcome: (typeof AuditOutcome)[keyof typeof AuditOutcome];
+        severity: (typeof AuditSeverity)[keyof typeof AuditSeverity];
+        summary: string;
+        billingDocumentRemoteId: string | null;
+        ledgerEntryRemoteId: string | null;
+        postedTransactionRemoteIds: readonly string[];
+        workflowStatus: string;
+        errorType: string | null;
+        errorMessage: string | null;
+      }): Promise<RunPosCheckoutResult | null> => {
+        const auditResult = await recordAuditEventUseCase.execute({
+          accountRemoteId: saleBusinessAccountRemoteId,
+          ownerUserRemoteId: saleOwnerUserRemoteId,
+          actorUserRemoteId: saleOwnerUserRemoteId,
+          module: AuditModule.Pos,
+          action: params.action,
+          sourceModule: "pos",
+          sourceRemoteId: saleRemoteId,
+          sourceAction: "checkout",
+          outcome: params.outcome,
+          severity: params.severity,
+          summary: params.summary,
+          metadataJson: buildPosCheckoutAuditMetadata({
+            saleRemoteId,
+            receiptNumber: draftReceipt.receiptNumber,
+            billingDocumentRemoteId: params.billingDocumentRemoteId,
+            ledgerEntryRemoteId: params.ledgerEntryRemoteId,
+            postedTransactionRemoteIds: params.postedTransactionRemoteIds,
+            workflowStatus: params.workflowStatus,
+            errorType: params.errorType,
+            errorMessage: params.errorMessage,
+          }),
+        });
+
+        if (!auditResult.success) {
+          return {
+            success: false,
+            error: {
+              type: PosCheckoutErrorType.Unknown,
+              message: auditResult.error.message,
+            },
+          };
+        }
+
+        return null;
+      };
+
       const persistFailedCheckout = async ({
         receipt,
         baseErrorType,
@@ -488,7 +566,7 @@ export const createRunPosCheckoutUseCase = ({
           deleteLedgerEntryUseCase,
         });
 
-        return persistWorkflowState({
+        const failedResult = await persistWorkflowState({
           workflowStatus: rollbackResult.rollbackErrorMessage
             ? PosCheckoutWorkflowStatus.PartiallyPosted
             : PosCheckoutWorkflowStatus.Failed,
@@ -503,6 +581,39 @@ export const createRunPosCheckoutUseCase = ({
             ? `${baseErrorMessage} | Rollback: ${rollbackResult.rollbackErrorMessage}`
             : baseErrorMessage,
         });
+
+        if (!failedResult.success) {
+          return failedResult;
+        }
+
+        const auditFailure = await recordCheckoutAudit({
+          action: rollbackResult.rollbackErrorMessage
+            ? "pos_checkout_partially_posted"
+            : "pos_checkout_failed",
+          outcome: rollbackResult.rollbackErrorMessage
+            ? AuditOutcome.Partial
+            : AuditOutcome.Failure,
+          severity: rollbackResult.rollbackErrorMessage
+            ? AuditSeverity.Critical
+            : AuditSeverity.Warning,
+          summary: rollbackResult.rollbackErrorMessage
+            ? "POS checkout failed and rollback was partial."
+            : "POS checkout failed and rollback completed.",
+          billingDocumentRemoteId: rollbackResult.billingDocumentRemoteId,
+          ledgerEntryRemoteId: rollbackResult.ledgerEntryRemoteId,
+          postedTransactionRemoteIds: rollbackResult.postedTransactionRemoteIds,
+          workflowStatus: rollbackResult.rollbackErrorMessage
+            ? PosCheckoutWorkflowStatus.PartiallyPosted
+            : PosCheckoutWorkflowStatus.Failed,
+          errorType: rollbackResult.rollbackErrorMessage
+            ? `${baseErrorType}_rollback_failed`
+            : baseErrorType,
+          errorMessage: rollbackResult.rollbackErrorMessage
+            ? `${baseErrorMessage} | Rollback: ${rollbackResult.rollbackErrorMessage}`
+            : baseErrorMessage,
+        });
+
+        return auditFailure ?? failedResult;
       };
 
       const pendingPostingResult = await persistWorkflowState({
@@ -684,7 +795,7 @@ export const createRunPosCheckoutUseCase = ({
           });
         }
 
-        return persistWorkflowState({
+        const postedResult = await persistWorkflowState({
           workflowStatus: PosCheckoutWorkflowStatus.Posted,
           receipt: draftReceipt,
           billingDocumentRemoteId,
@@ -693,6 +804,25 @@ export const createRunPosCheckoutUseCase = ({
           lastErrorType: null,
           lastErrorMessage: null,
         });
+
+        if (!postedResult.success) {
+          return postedResult;
+        }
+
+        const auditFailure = await recordCheckoutAudit({
+          action: "pos_checkout_posted",
+          outcome: AuditOutcome.Success,
+          severity: AuditSeverity.Info,
+          summary: `POS checkout posted: ${draftReceipt.receiptNumber}`,
+          billingDocumentRemoteId,
+          ledgerEntryRemoteId: null,
+          postedTransactionRemoteIds,
+          workflowStatus: PosCheckoutWorkflowStatus.Posted,
+          errorType: null,
+          errorMessage: null,
+        });
+
+        return auditFailure ?? postedResult;
       }
 
       let createdLedgerEntryRemoteId: string | null = dueLedgerRemoteId;
@@ -781,7 +911,7 @@ export const createRunPosCheckoutUseCase = ({
         });
       }
 
-      return persistWorkflowState({
+      const postedResult = await persistWorkflowState({
         workflowStatus: PosCheckoutWorkflowStatus.Posted,
         receipt: withDueBalanceCreated(draftReceipt),
         billingDocumentRemoteId,
@@ -790,6 +920,25 @@ export const createRunPosCheckoutUseCase = ({
         lastErrorType: null,
         lastErrorMessage: null,
       });
+
+      if (!postedResult.success) {
+        return postedResult;
+      }
+
+      const auditFailure = await recordCheckoutAudit({
+        action: "pos_checkout_posted",
+        outcome: AuditOutcome.Success,
+        severity: AuditSeverity.Info,
+        summary: `POS checkout posted: ${draftReceipt.receiptNumber}`,
+        billingDocumentRemoteId,
+        ledgerEntryRemoteId: createdLedgerEntryRemoteId,
+        postedTransactionRemoteIds,
+        workflowStatus: PosCheckoutWorkflowStatus.Posted,
+        errorType: null,
+        errorMessage: null,
+      });
+
+      return auditFailure ?? postedResult;
     };
 
     const existingSaleResult =

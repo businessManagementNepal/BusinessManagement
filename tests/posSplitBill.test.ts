@@ -199,6 +199,13 @@ const createCheckoutHarness = () => {
     })),
   };
 
+  const recordAuditEventUseCase = {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: {} as never,
+    })),
+  };
+
   const useCase = createRunPosCheckoutUseCase({
     posCheckoutRepository: {
       getSaleByIdempotencyKey,
@@ -212,6 +219,7 @@ const createCheckoutHarness = () => {
     addLedgerEntryUseCase,
     deleteLedgerEntryUseCase,
     commitPosCheckoutInventoryUseCase,
+    recordAuditEventUseCase: recordAuditEventUseCase as never,
   });
 
   return {
@@ -385,5 +393,6 @@ describe("POS split payment checkout", () => {
     }
   });
 });
+
 
 

@@ -1,6 +1,9 @@
 import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
 import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
+import { createLocalAuditDatasource } from "@/feature/audit/data/dataSource/local.audit.datasource.impl";
+import { createAuditRepository } from "@/feature/audit/data/repository/audit.repository.impl";
+import { createRecordAuditEventUseCase } from "@/feature/audit/useCase/recordAuditEvent.useCase.impl";
 import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
 import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
 import { createRunBillingDocumentIssueUseCase } from "@/feature/billing/workflow/billingDocumentIssue/useCase/runBillingDocumentIssue.useCase.impl";
@@ -156,6 +159,18 @@ export function GetBillingScreenFactory({
     () => createGetMoneyAccountsUseCase(moneyAccountRepository),
     [moneyAccountRepository],
   );
+  const auditDatasource = React.useMemo(
+    () => createLocalAuditDatasource(database),
+    [database],
+  );
+  const auditRepository = React.useMemo(
+    () => createAuditRepository(auditDatasource),
+    [auditDatasource],
+  );
+  const recordAuditEventUseCase = React.useMemo(
+    () => createRecordAuditEventUseCase(auditRepository),
+    [auditRepository],
+  );
 
   const contactDatasource = React.useMemo(
     () => createLocalContactDatasource(database),
@@ -219,6 +234,7 @@ export function GetBillingScreenFactory({
         replaceBillingDocumentAllocationsForSettlementEntryUseCase,
         deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
         deleteBillingDocumentUseCase,
+        recordAuditEventUseCase,
       }),
     [
       addLedgerEntryUseCase,
@@ -226,6 +242,7 @@ export function GetBillingScreenFactory({
       getMoneyAccountsUseCase,
       postBusinessTransactionUseCase,
       deleteBusinessTransactionUseCase,
+      recordAuditEventUseCase,
       saveBillingDocumentUseCase,
       replaceBillingDocumentAllocationsForSettlementEntryUseCase,
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,

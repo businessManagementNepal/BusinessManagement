@@ -1,5 +1,6 @@
 import {
     LedgerEntry,
+    LedgerPaymentModeValue,
     LedgerEntryResult,
     SaveLedgerEntryPayload,
 } from "@/feature/ledger/types/ledger.entity.types";
@@ -18,7 +19,7 @@ export type ExternalSettlementTransactionContext = {
   remoteId: string;
   settlementMoneyAccountRemoteId: string;
   settlementMoneyAccountDisplayNameSnapshot: string;
-  paymentMode: string;
+  paymentMode: LedgerPaymentModeValue;
 };
 
 export type SaveLedgerEntryWithSettlementPayload = {

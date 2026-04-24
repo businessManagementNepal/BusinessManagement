@@ -3,10 +3,17 @@ import { PosErrorType } from "@/feature/pos/types/pos.error.types";
 import type { PosSaleRecord } from "@/feature/pos/types/posSale.entity.types";
 import { isPosSaleRetryableWorkflowStatus } from "@/feature/pos/utils/posSaleRecoveryStatus.util";
 import type { RunPosCheckoutUseCase } from "@/feature/pos/workflow/posCheckout/useCase/runPosCheckout.useCase";
+import {
+  AuditModule,
+  AuditOutcome,
+  AuditSeverity,
+} from "@/feature/audit/types/audit.entity.types";
+import type { RecordAuditEventUseCase } from "@/feature/audit/useCase/recordAuditEvent.useCase";
 import type { RetryPosSalePostingUseCase } from "./retryPosSalePosting.useCase";
 
 type CreateRetryPosSalePostingUseCaseParams = {
   runPosCheckoutUseCase: RunPosCheckoutUseCase;
+  recordAuditEventUseCase: RecordAuditEventUseCase;
 };
 
 const buildCustomerSnapshot = (sale: PosSaleRecord): PosCustomer | null => {
@@ -73,6 +80,7 @@ const validateSaleSnapshot = (sale: PosSaleRecord): string | null => {
 
 export const createRetryPosSalePostingUseCase = ({
   runPosCheckoutUseCase,
+  recordAuditEventUseCase,
 }: CreateRetryPosSalePostingUseCaseParams): RetryPosSalePostingUseCase => ({
   async execute({ sale }) {
     if (!isPosSaleRetryableWorkflowStatus(sale.workflowStatus)) {
@@ -108,6 +116,41 @@ export const createRetryPosSalePostingUseCase = ({
       activeAccountCurrencyCode: sale.currencyCode,
       activeAccountCountryCode: sale.countryCode,
     });
+
+    const auditResult = await recordAuditEventUseCase.execute({
+      accountRemoteId: sale.businessAccountRemoteId,
+      ownerUserRemoteId: sale.ownerUserRemoteId,
+      actorUserRemoteId: sale.ownerUserRemoteId,
+      module: AuditModule.Pos,
+      action: result.success
+        ? "pos_checkout_retry_success"
+        : "pos_checkout_retry_failed",
+      sourceModule: "pos",
+      sourceRemoteId: sale.remoteId,
+      sourceAction: "retry_posting",
+      outcome: result.success ? AuditOutcome.Success : AuditOutcome.Failure,
+      severity: result.success ? AuditSeverity.Info : AuditSeverity.Warning,
+      summary: result.success
+        ? "POS checkout retry completed."
+        : "POS checkout retry failed.",
+      metadataJson: JSON.stringify({
+        saleRemoteId: sale.remoteId,
+        idempotencyKey: sale.idempotencyKey,
+        previousWorkflowStatus: sale.workflowStatus,
+        resultWorkflowStatus: result.success ? result.value.workflowStatus : null,
+        errorMessage: result.success ? null : result.error.message,
+      }),
+    });
+
+    if (!auditResult.success) {
+      return {
+        success: false,
+        error: {
+          type: PosErrorType.Unknown,
+          message: auditResult.error.message,
+        },
+      };
+    }
 
     if (!result.success) {
       return {

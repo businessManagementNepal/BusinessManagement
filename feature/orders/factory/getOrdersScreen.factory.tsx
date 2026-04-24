@@ -1,6 +1,9 @@
 import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
 import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
+import { createLocalAuditDatasource } from "@/feature/audit/data/dataSource/local.audit.datasource.impl";
+import { createAuditRepository } from "@/feature/audit/data/repository/audit.repository.impl";
+import { createRecordAuditEventUseCase } from "@/feature/audit/useCase/recordAuditEvent.useCase.impl";
 import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
 import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
 import { createDeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase.impl";
@@ -143,6 +146,18 @@ export function GetOrdersScreenFactory({
     () => createGetMoneyAccountsUseCase(moneyAccountRepository),
     [moneyAccountRepository],
   );
+  const auditDatasource = React.useMemo(
+    () => createLocalAuditDatasource(appDatabase),
+    [],
+  );
+  const auditRepository = React.useMemo(
+    () => createAuditRepository(auditDatasource),
+    [auditDatasource],
+  );
+  const recordAuditEventUseCase = React.useMemo(
+    () => createRecordAuditEventUseCase(auditRepository),
+    [auditRepository],
+  );
   const billingDatasource = React.useMemo(
     () => createLocalBillingDatasource(appDatabase),
     [],
@@ -260,6 +275,7 @@ export function GetOrdersScreenFactory({
         replaceBillingDocumentAllocationsForSettlementEntryUseCase,
         deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
         deleteBillingDocumentUseCase,
+        recordAuditEventUseCase,
       }),
     [
       addLedgerEntryUseCase,
@@ -269,6 +285,7 @@ export function GetOrdersScreenFactory({
       deleteLedgerEntryUseCase,
       getMoneyAccountsUseCase,
       postBusinessTransactionUseCase,
+      recordAuditEventUseCase,
       replaceBillingDocumentAllocationsForSettlementEntryUseCase,
       saveBillingDocumentUseCase,
       updateLedgerEntryUseCase,
@@ -453,8 +470,10 @@ export function GetOrdersScreenFactory({
         deleteBusinessTransactionUseCase,
         saveLedgerEntryWithSettlementUseCase,
         ensureOrderBillingAndDueLinksUseCase,
+        recordAuditEventUseCase,
       }),
     [
+      recordAuditEventUseCase,
       ensureOrderBillingAndDueLinksUseCase,
       getBillingOverviewUseCase,
       getLedgerEntriesUseCase,
@@ -484,8 +503,10 @@ export function GetOrdersScreenFactory({
         deleteBillingDocumentUseCase,
         saveLedgerEntryWithSettlementUseCase,
         ensureOrderBillingAndDueLinksUseCase,
+        recordAuditEventUseCase,
       }),
     [
+      recordAuditEventUseCase,
       deleteBillingDocumentUseCase,
       deleteBusinessTransactionUseCase,
       ensureOrderBillingAndDueLinksUseCase,

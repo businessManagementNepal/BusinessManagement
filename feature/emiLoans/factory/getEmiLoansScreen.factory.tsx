@@ -1,6 +1,9 @@
 import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
 import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
+import { createLocalAuditDatasource } from "@/feature/audit/data/dataSource/local.audit.datasource.impl";
+import { createAuditRepository } from "@/feature/audit/data/repository/audit.repository.impl";
+import { createRecordAuditEventUseCase } from "@/feature/audit/useCase/recordAuditEvent.useCase.impl";
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
 import {
@@ -154,6 +157,18 @@ export function GetEmiLoansScreenFactory({
     () => createGetMoneyAccountsUseCase(moneyAccountRepository),
     [moneyAccountRepository],
   );
+  const auditDatasource = useMemo(
+    () => createLocalAuditDatasource(appDatabase),
+    [],
+  );
+  const auditRepository = useMemo(
+    () => createAuditRepository(auditDatasource),
+    [auditDatasource],
+  );
+  const recordAuditEventUseCase = useMemo(
+    () => createRecordAuditEventUseCase(auditRepository),
+    [auditRepository],
+  );
   const moneyPostingRuntime = useMemo(
     () => createMoneyPostingRuntime(appDatabase),
     [],
@@ -203,6 +218,7 @@ export function GetEmiLoansScreenFactory({
         replaceBillingDocumentAllocationsForSettlementEntryUseCase,
         deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
         deleteBillingDocumentUseCase,
+        recordAuditEventUseCase,
       }),
     [
       addLedgerEntryUseCase,
@@ -211,6 +227,7 @@ export function GetEmiLoansScreenFactory({
       deleteBusinessTransactionUseCase,
       getMoneyAccountsUseCase,
       postBusinessTransactionUseCase,
+      recordAuditEventUseCase,
       replaceBillingDocumentAllocationsForSettlementEntryUseCase,
       saveBillingDocumentUseCase,
       updateLedgerEntryUseCase,

@@ -133,7 +133,16 @@ describe("pos recovery audit", () => {
     });
 
     const result = await useCase.execute({ sale: buildSale() as never });
-    const auditPayload = recordAuditEventUseCase.execute.mock.calls[0]?.[0];
+    const auditPayload = (
+      recordAuditEventUseCase.execute as ReturnType<typeof vi.fn>
+    ).mock.calls[0]?.[0] as {
+      outcome: string;
+      metadataJson: string;
+    } | undefined;
+    expect(auditPayload).toBeDefined();
+    if (!auditPayload) {
+      return;
+    }
     const metadata = JSON.parse(auditPayload.metadataJson) as {
       remainingBillingDocumentRemoteId: string | null;
     };

@@ -508,31 +508,34 @@ export function GetPosScreenFactory({
         saveBillingDocumentUseCase,
         deleteBillingDocumentUseCase,
         postBusinessTransactionUseCase,
-        deleteBusinessTransactionUseCase,
-        addLedgerEntryUseCase,
-        deleteLedgerEntryUseCase,
-        commitPosCheckoutInventoryUseCase,
-      }),
-    [
+      deleteBusinessTransactionUseCase,
       addLedgerEntryUseCase,
+      deleteLedgerEntryUseCase,
       commitPosCheckoutInventoryUseCase,
-      createPosSaleDraftUseCase,
+      recordAuditEventUseCase,
+    }),
+  [
+    addLedgerEntryUseCase,
+    commitPosCheckoutInventoryUseCase,
+    createPosSaleDraftUseCase,
       deleteBillingDocumentUseCase,
       deleteBusinessTransactionUseCase,
-      deleteLedgerEntryUseCase,
-      posCheckoutRepository,
-      postBusinessTransactionUseCase,
-      saveBillingDocumentUseCase,
-      updatePosSaleWorkflowStateUseCase,
-    ],
-  );
+    deleteLedgerEntryUseCase,
+    posCheckoutRepository,
+    postBusinessTransactionUseCase,
+    recordAuditEventUseCase,
+    saveBillingDocumentUseCase,
+    updatePosSaleWorkflowStateUseCase,
+  ],
+);
 
   const retryPosSalePostingUseCase = React.useMemo(
     () =>
       createRetryPosSalePostingUseCase({
         runPosCheckoutUseCase,
+        recordAuditEventUseCase,
       }),
-    [runPosCheckoutUseCase],
+    [recordAuditEventUseCase, runPosCheckoutUseCase],
   );
 
   const saleHistoryViewModel = usePosSaleHistoryViewModel({

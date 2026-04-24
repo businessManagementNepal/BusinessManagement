@@ -293,6 +293,12 @@ const buildDeps = (overrides: Record<string, unknown> = {}) => ({
       },
     })),
   },
+  recordAuditEventUseCase: {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: {} as never,
+    })),
+  },
   ...overrides,
 });
 

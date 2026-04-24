@@ -4,6 +4,12 @@ import {
 } from "@/feature/accounts/types/moneyAccount.types";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import {
+    AuditModule,
+    AuditOutcome,
+    AuditSeverity,
+} from "@/feature/audit/types/audit.entity.types";
+import type { RecordAuditEventUseCase } from "@/feature/audit/useCase/recordAuditEvent.useCase";
+import {
     BillingDocumentStatus,
     BillingDocumentType,
     BillingDocumentTypeValue,
@@ -57,6 +63,7 @@ type CreateSaveLedgerEntryWithSettlementUseCaseParams = {
   deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase:
     DeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase;
   deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
+  recordAuditEventUseCase: RecordAuditEventUseCase;
 };
 
 const createTransactionRemoteId = (): string => {
@@ -352,6 +359,7 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
   replaceBillingDocumentAllocationsForSettlementEntryUseCase,
   deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
   deleteBillingDocumentUseCase,
+  recordAuditEventUseCase,
 }: CreateSaveLedgerEntryWithSettlementUseCaseParams): SaveLedgerEntryWithSettlementUseCase => ({
   async execute(
     payload: SaveLedgerEntryWithSettlementPayload,
@@ -386,6 +394,51 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
     let hasPreparedSettlementAllocations = false;
 
     const externalSettlementTransaction = payload.externalSettlementTransaction ?? null;
+    const recordLedgerAudit = async (params: {
+      action: string;
+      outcome: (typeof AuditOutcome)[keyof typeof AuditOutcome];
+      severity: (typeof AuditSeverity)[keyof typeof AuditSeverity];
+      summary: string;
+      errorMessage: string | null;
+      rollbackMessage: string | null;
+    }): Promise<LedgerEntryResult | null> => {
+      const auditResult = await recordAuditEventUseCase.execute({
+        accountRemoteId: businessAccountRemoteId,
+        ownerUserRemoteId: payload.ledgerEntry.ownerUserRemoteId,
+        actorUserRemoteId: payload.ledgerEntry.ownerUserRemoteId,
+        module: AuditModule.Ledger,
+        action: params.action,
+        sourceModule: "ledger",
+        sourceRemoteId: ledgerRemoteId,
+        sourceAction: payload.mode,
+        outcome: params.outcome,
+        severity: params.severity,
+        summary: params.summary,
+        metadataJson: JSON.stringify({
+          ledgerRemoteId,
+          mode: payload.mode,
+          entryType: payload.ledgerEntry.entryType,
+          amount: payload.ledgerEntry.amount,
+          linkedTransactionRemoteId,
+          linkedDocumentRemoteId,
+          settlementMoneyAccountRemoteId,
+          createdTransactionRemoteId,
+          createdBillingDocumentRemoteId,
+          hasPreparedSettlementAllocations,
+          errorMessage: params.errorMessage,
+          rollbackMessage: params.rollbackMessage,
+        }),
+      });
+
+      if (!auditResult.success) {
+        return {
+          success: false,
+          error: mapEffectError(auditResult.error.message),
+        };
+      }
+
+      return null;
+    };
 
     if (isSettlementAction) {
       if (!selectedSettlementAccountRemoteId) {
@@ -434,7 +487,7 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
         linkedTransactionRemoteId = externalSettlementTransaction.remoteId;
         settlementMoneyAccountRemoteId = externalSettlementTransaction.settlementMoneyAccountRemoteId;
         settlementMoneyAccountDisplayNameSnapshot = externalSettlementTransaction.settlementMoneyAccountDisplayNameSnapshot;
-        resolvedPaymentMode = externalSettlementTransaction.paymentMode as any;
+        resolvedPaymentMode = externalSettlementTransaction.paymentMode;
       } else {
         const transactionRemoteId =
           linkedTransactionRemoteId ?? createTransactionRemoteId();
@@ -527,10 +580,36 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
         });
 
         if (rollbackError) {
+          const rollbackAuditResult = await recordLedgerAudit({
+            action: "ledger_settlement_failed",
+            outcome: AuditOutcome.Partial,
+            severity: AuditSeverity.Critical,
+            summary: "Ledger settlement failed and rollback was partial.",
+            errorMessage: saveDocumentResult.error.message,
+            rollbackMessage: rollbackError.message,
+          });
+
+          if (rollbackAuditResult) {
+            return rollbackAuditResult;
+          }
+
           return {
             success: false,
             error: rollbackError,
           };
+        }
+
+        const failureAuditResult = await recordLedgerAudit({
+          action: "ledger_settlement_failed",
+          outcome: AuditOutcome.Failure,
+          severity: AuditSeverity.Warning,
+          summary: "Ledger settlement failed before ledger save.",
+          errorMessage: saveDocumentResult.error.message,
+          rollbackMessage: null,
+        });
+
+        if (failureAuditResult) {
+          return failureAuditResult;
         }
 
         return {
@@ -580,6 +659,19 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
           );
         }
 
+        const failureAuditResult = await recordLedgerAudit({
+          action: "ledger_settlement_failed",
+          outcome: AuditOutcome.Failure,
+          severity: AuditSeverity.Warning,
+          summary: "Ledger settlement failed while preparing allocations.",
+          errorMessage: replaceAllocationsResult.error.message,
+          rollbackMessage: null,
+        });
+
+        if (failureAuditResult) {
+          return failureAuditResult;
+        }
+
         return {
           success: false,
           error: mapEffectError(replaceAllocationsResult.error.message),
@@ -616,10 +708,36 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
       });
 
       if (rollbackError) {
+        const rollbackAuditResult = await recordLedgerAudit({
+          action: "ledger_settlement_failed",
+          outcome: AuditOutcome.Partial,
+          severity: AuditSeverity.Critical,
+          summary: "Ledger settlement failed and rollback was partial.",
+          errorMessage: result.error.message,
+          rollbackMessage: rollbackError.message,
+        });
+
+        if (rollbackAuditResult) {
+          return rollbackAuditResult;
+        }
+
         return {
           success: false,
           error: rollbackError,
         };
+      }
+
+      const failureAuditResult = await recordLedgerAudit({
+        action: "ledger_settlement_failed",
+        outcome: AuditOutcome.Failure,
+        severity: AuditSeverity.Warning,
+        summary: "Ledger settlement failed and rollback completed.",
+        errorMessage: result.error.message,
+        rollbackMessage: null,
+      });
+
+      if (failureAuditResult) {
+        return failureAuditResult;
       }
 
       return result;
@@ -634,6 +752,25 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
       await deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase.execute(
         ledgerRemoteId,
       );
+    }
+
+    const auditAction = isSettlementAction
+      ? "ledger_settlement_saved"
+      : isDueAction
+        ? "ledger_due_saved"
+        : "ledger_entry_saved";
+
+    const auditResult = await recordLedgerAudit({
+      action: auditAction,
+      outcome: AuditOutcome.Success,
+      severity: AuditSeverity.Info,
+      summary: `Ledger ${isSettlementAction ? "settlement" : "entry"} saved: ${payload.ledgerEntry.title}`,
+      errorMessage: null,
+      rollbackMessage: null,
+    });
+
+    if (auditResult) {
+      return auditResult;
     }
 
     return result;

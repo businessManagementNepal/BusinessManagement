@@ -1,11 +1,16 @@
+import type { RecordAuditEventUseCase } from "@/feature/audit/useCase/recordAuditEvent.useCase";
 import type { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import type { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import type { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
 import type { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase";
-import type { PosCartLine, PosCustomer, PosTotals } from "@/feature/pos/types/pos.entity.types";
+import type {
+  PosCartLine,
+  PosReceipt,
+  PosTotals,
+} from "@/feature/pos/types/pos.entity.types";
+import type { PosSaleRecord } from "@/feature/pos/types/posSale.entity.types";
 import type { CreatePosSaleDraftUseCase } from "@/feature/pos/useCase/createPosSaleDraft.useCase";
 import type { UpdatePosSaleWorkflowStateUseCase } from "@/feature/pos/useCase/updatePosSaleWorkflowState.useCase";
-import type { PosSaleRecord } from "@/feature/pos/types/posSale.entity.types";
 import { ProductKind } from "@/feature/products/types/product.types";
 import type { CommitPosCheckoutInventoryUseCase } from "@/feature/pos/workflow/posCheckout/useCase/commitPosCheckoutInventory.useCase";
 import type { PosCheckoutRepository } from "@/feature/pos/workflow/posCheckout/repository/posCheckout.repository";
@@ -16,59 +21,47 @@ import type { RunPosCheckoutParams } from "@/feature/pos/workflow/posCheckout/ty
 import { createRunPosCheckoutUseCase } from "@/feature/pos/workflow/posCheckout/useCase/runPosCheckout.useCase.impl";
 import type { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
 import type { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
-import { buildPosCartLine, buildPosTotals } from "./helpers/posTestBuilders";
 import { describe, expect, it, vi } from "vitest";
+import { buildPosCartLine, buildPosTotals } from "./helpers/posTestBuilders";
 
 const BASE_TOTALS: PosTotals = buildPosTotals({
   itemCount: 1,
-  gross: 1000,
-  taxAmount: 130,
-  grandTotal: 1130,
+  gross: 100,
+  taxAmount: 0,
+  grandTotal: 100,
 });
 
 const BASE_CART_LINES: readonly PosCartLine[] = [
   buildPosCartLine({
     lineId: "line-1",
     productId: "product-1",
-    productName: "Test Product",
+    productName: "Audit Product",
     categoryLabel: "General",
-    shortCode: "TP",
+    shortCode: "AUD",
     kind: ProductKind.Item,
     quantity: 1,
-    unitPrice: 1000,
-    taxRate: 0.13,
-    lineSubtotal: 1000,
+    unitPrice: 100,
+    taxRate: 0,
+    lineSubtotal: 100,
   }),
 ];
-
-const CREATED_CUSTOMER: PosCustomer = {
-  remoteId: "new-customer-123",
-  fullName: "Jane Smith",
-  phone: "+9876543210",
-  address: null,
-};
 
 const createRunParams = (
   overrides: Partial<RunPosCheckoutParams> = {},
 ): RunPosCheckoutParams => ({
-  idempotencyKey: "idem-customer-1",
+  idempotencyKey: "idem-audit-1",
   paymentParts: [
     {
       paymentPartId: "part-1",
       payerLabel: null,
-      amount: 750,
+      amount: 100,
       settlementAccountRemoteId: "money-cash-1",
     },
   ],
-  selectedCustomer: CREATED_CUSTOMER,
-  grandTotalSnapshot: 1000,
+  selectedCustomer: null,
+  grandTotalSnapshot: BASE_TOTALS.grandTotal,
   cartLinesSnapshot: BASE_CART_LINES,
-  totalsSnapshot: {
-    ...BASE_TOTALS,
-    grandTotal: 1000,
-    taxAmount: 0,
-    gross: 1000,
-  },
+  totalsSnapshot: BASE_TOTALS,
   activeBusinessAccountRemoteId: "business-1",
   activeOwnerUserRemoteId: "user-1",
   activeAccountCurrencyCode: "NPR",
@@ -76,16 +69,45 @@ const createRunParams = (
   ...overrides,
 });
 
-const createCheckoutHarness = () => {
-  let saleState: PosSaleRecord | null = null;
-  let postedTransactionCount = 0;
+const buildReceiptSnapshot = (): PosReceipt => ({
+  receiptNumber: "POS-001",
+  issuedAt: new Date(1_710_000_000_000).toISOString(),
+  lines: BASE_CART_LINES.map((line) => ({ ...line })),
+  totals: { ...BASE_TOTALS },
+  paidAmount: 100,
+  dueAmount: 0,
+  paymentParts: [
+    {
+      paymentPartId: "part-1",
+      payerLabel: null,
+      amount: 100,
+      settlementAccountRemoteId: "money-cash-1",
+      settlementAccountLabel: null,
+    },
+  ],
+  ledgerEffect: {
+    type: "none",
+    dueAmount: 0,
+    accountRemoteId: "money-cash-1",
+  },
+  customerName: null,
+  customerPhone: null,
+  contactRemoteId: null,
+});
 
-  const getSaleByIdempotencyKey: PosCheckoutRepository["getSaleByIdempotencyKey"] = vi.fn(
-    async () => ({
+type HarnessOptions = {
+  postBusinessTransactionExecute?: PostBusinessTransactionUseCase["execute"];
+  recordAuditExecute?: RecordAuditEventUseCase["execute"];
+};
+
+const createCheckoutHarness = (options: HarnessOptions = {}) => {
+  let saleState: PosSaleRecord | null = null;
+
+  const getSaleByIdempotencyKey: PosCheckoutRepository["getSaleByIdempotencyKey"] =
+    vi.fn(async () => ({
       success: true as const,
-      value: null,
-    }),
-  );
+      value: saleState,
+    }));
 
   const createPosSaleDraftUseCase: CreatePosSaleDraftUseCase = {
     execute: vi.fn(async (params) => {
@@ -104,7 +126,7 @@ const createCheckoutHarness = () => {
         cartLinesSnapshot: params.cartLinesSnapshot,
         totalsSnapshot: params.totalsSnapshot,
         paymentParts: params.paymentParts,
-        receipt: params.receipt,
+        receipt: buildReceiptSnapshot(),
         billingDocumentRemoteId: null,
         ledgerEntryRemoteId: null,
         postedTransactionRemoteIds: [],
@@ -167,12 +189,12 @@ const createCheckoutHarness = () => {
   };
 
   const postBusinessTransactionUseCase: PostBusinessTransactionUseCase = {
-    execute: vi.fn(async () => ({
-      success: true as const,
-      value: {
-        remoteId: `txn-${++postedTransactionCount}`,
-      } as never,
-    })),
+    execute:
+      options.postBusinessTransactionExecute ??
+      vi.fn(async () => ({
+        success: true as const,
+        value: { remoteId: "txn-1" } as never,
+      })),
   };
 
   const deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase = {
@@ -211,11 +233,13 @@ const createCheckoutHarness = () => {
     })),
   };
 
-  const recordAuditEventUseCase = {
-    execute: vi.fn(async () => ({
-      success: true as const,
-      value: {} as never,
-    })),
+  const recordAuditEventUseCase: RecordAuditEventUseCase = {
+    execute:
+      options.recordAuditExecute ??
+      vi.fn(async () => ({
+        success: true as const,
+        value: {} as never,
+      })),
   };
 
   const useCase = createRunPosCheckoutUseCase({
@@ -231,72 +255,74 @@ const createCheckoutHarness = () => {
     addLedgerEntryUseCase,
     deleteLedgerEntryUseCase,
     commitPosCheckoutInventoryUseCase,
-    recordAuditEventUseCase: recordAuditEventUseCase as never,
+    recordAuditEventUseCase,
   });
 
   return {
     useCase,
-    spies: {
-      saveBillingDocumentExecute: saveBillingDocumentUseCase.execute,
-      addLedgerEntryExecute: addLedgerEntryUseCase.execute,
-      verifyLinkedDocument: addLedgerEntryUseCase.verifyLinkedDocument,
-      commitInventoryExecute: commitPosCheckoutInventoryUseCase.execute,
-    },
+    recordAuditEventExecute: recordAuditEventUseCase.execute,
   };
 };
 
-describe("POS Customer-linked due-balance checkout", () => {
-  it("posts due balance with selected customer linkage", async () => {
-    const { useCase, spies } = createCheckoutHarness();
+describe("pos checkout workflow audit", () => {
+  it("successful fully-paid checkout emits pos_checkout_posted", async () => {
+    const { useCase, recordAuditEventExecute } = createCheckoutHarness();
 
     const result = await useCase.execute(createRunParams());
 
     expect(result.success).toBe(true);
-    expect(spies.addLedgerEntryExecute).toHaveBeenCalledTimes(1);
-    expect(spies.verifyLinkedDocument).toHaveBeenCalledTimes(1);
-
-    expect(spies.addLedgerEntryExecute).toHaveBeenCalledWith(
+    expect(recordAuditEventExecute).toHaveBeenCalledWith(
       expect.objectContaining({
-        contactRemoteId: CREATED_CUSTOMER.remoteId,
-        partyName: CREATED_CUSTOMER.fullName,
-        partyPhone: CREATED_CUSTOMER.phone,
-        amount: 250,
+        action: "pos_checkout_posted",
+        outcome: "success",
       }),
     );
-
-    expect(spies.saveBillingDocumentExecute).toHaveBeenCalledWith(
-      expect.objectContaining({
-        contactRemoteId: CREATED_CUSTOMER.remoteId,
-        customerName: CREATED_CUSTOMER.fullName,
-      }),
-    );
-
-    if (result.success) {
-      expect(result.value.workflowStatus).toBe(PosCheckoutWorkflowStatus.Posted);
-      expect(result.value.receipt?.ledgerEffect.type).toBe("due_balance_created");
-      expect(result.value.receipt?.dueAmount).toBe(250);
-    }
   });
 
-  it("fails due-balance checkout when selected customer is missing", async () => {
-    const { useCase, spies } = createCheckoutHarness();
+  it("failed checkout emits workflow failure audit", async () => {
+    const { useCase, recordAuditEventExecute } = createCheckoutHarness({
+      postBusinessTransactionExecute: vi.fn(async () => ({
+        success: false as const,
+        error: {
+          type: "UNKNOWN_ERROR" as const,
+          message: "Unable to post payment.",
+        },
+      })),
+    });
 
-    const result = await useCase.execute(
-      createRunParams({
-        selectedCustomer: null,
-      }),
-    );
+    const result = await useCase.execute(createRunParams());
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.value.workflowStatus).toBe(PosCheckoutWorkflowStatus.Failed);
+    }
+    const auditCalls = (
+      recordAuditEventExecute as ReturnType<typeof vi.fn>
+    ).mock.calls as Array<[Record<string, string>]>;
+    const actions = auditCalls.map((call) => call[0].action);
+    expect(
+      actions.includes("pos_checkout_failed") ||
+        actions.includes("pos_checkout_partially_posted"),
+    ).toBe(true);
+  });
+
+  it("audit failure after posted checkout returns failure", async () => {
+    const { useCase } = createCheckoutHarness({
+      recordAuditExecute: vi.fn(async () => ({
+        success: false as const,
+        error: {
+          type: "DATABASE" as const,
+          message: "Unable to save audit event.",
+        },
+      })),
+    });
+
+    const result = await useCase.execute(createRunParams());
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.type).toBe("CONTEXT_REQUIRED");
-      expect(result.error.message).toContain("Customer selection is required");
+      expect(result.error.type).toBe("UNKNOWN");
+      expect(result.error.message).toContain("Unable to save audit event");
     }
-
-    expect(spies.commitInventoryExecute).not.toHaveBeenCalled();
-    expect(spies.addLedgerEntryExecute).not.toHaveBeenCalled();
   });
 });
-
-
-

@@ -190,6 +190,12 @@ const createDependencies = () => {
       value: true,
     })),
   };
+  const recordAuditEventUseCase: { execute: any } = {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: {} as never,
+    })),
+  };
 
   const useCase = createSaveLedgerEntryWithSettlementUseCase({
     addLedgerEntryUseCase: addLedgerEntryUseCase as any,
@@ -204,6 +210,7 @@ const createDependencies = () => {
     deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase:
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase as any,
     deleteBillingDocumentUseCase: deleteBillingDocumentUseCase as any,
+    recordAuditEventUseCase: recordAuditEventUseCase as any,
   });
 
   return {
@@ -217,6 +224,7 @@ const createDependencies = () => {
     replaceBillingDocumentAllocationsForSettlementEntryUseCase,
     deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
     deleteBillingDocumentUseCase,
+    recordAuditEventUseCase,
   };
 };
 
@@ -391,6 +399,7 @@ describe("saveLedgerEntryWithSettlement.useCase", () => {
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase:
         deps.deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase as any,
       deleteBillingDocumentUseCase: deps.deleteBillingDocumentUseCase as any,
+      recordAuditEventUseCase: deps.recordAuditEventUseCase as any,
     });
 
     const result = await useCase.execute({
@@ -513,6 +522,7 @@ describe("saveLedgerEntryWithSettlement.useCase", () => {
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase:
         deps.deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase as any,
       deleteBillingDocumentUseCase: deps.deleteBillingDocumentUseCase as any,
+      recordAuditEventUseCase: deps.recordAuditEventUseCase as any,
     });
 
     const result = await useCase.execute({
@@ -561,6 +571,7 @@ describe("saveLedgerEntryWithSettlement.useCase", () => {
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase:
         deps.deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase as any,
       deleteBillingDocumentUseCase: deps.deleteBillingDocumentUseCase as any,
+      recordAuditEventUseCase: deps.recordAuditEventUseCase as any,
     });
 
     const result = await useCase.execute({
@@ -707,6 +718,7 @@ describe("saveLedgerEntryWithSettlement.useCase", () => {
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase:
         deps.deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase as any,
       deleteBillingDocumentUseCase: deps.deleteBillingDocumentUseCase as any,
+      recordAuditEventUseCase: deps.recordAuditEventUseCase as any,
     });
 
     const result = await useCase.execute({

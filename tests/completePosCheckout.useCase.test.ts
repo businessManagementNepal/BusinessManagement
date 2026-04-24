@@ -330,6 +330,12 @@ const createCheckoutHarness = (options: HarnessOptions = {}) => {
         value: true,
       })),
   };
+  const recordAuditEventUseCase = {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: {} as never,
+    })),
+  };
 
   const useCase = createRunPosCheckoutUseCase({
     posCheckoutRepository: {
@@ -344,6 +350,7 @@ const createCheckoutHarness = (options: HarnessOptions = {}) => {
     addLedgerEntryUseCase,
     deleteLedgerEntryUseCase,
     commitPosCheckoutInventoryUseCase,
+    recordAuditEventUseCase: recordAuditEventUseCase as never,
   });
 
   return {
@@ -357,6 +364,7 @@ const createCheckoutHarness = (options: HarnessOptions = {}) => {
       addLedgerEntryExecute: addLedgerEntryUseCase.execute,
       verifyLinkedDocument: addLedgerEntryUseCase.verifyLinkedDocument,
       commitInventoryExecute: commitPosCheckoutInventoryUseCase.execute,
+      recordAuditEventExecute: recordAuditEventUseCase.execute,
     },
   };
 };

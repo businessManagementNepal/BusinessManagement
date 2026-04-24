@@ -164,9 +164,30 @@ const buildInput = (
   ...overrides,
 });
 
+type OrderPaymentWorkflowDeps = Parameters<
+  typeof createRunOrderPaymentPostingWorkflowUseCase
+>[0];
+
+const createOrderPaymentPostingWorkflowUseCase = (
+  params: Omit<OrderPaymentWorkflowDeps, "recordAuditEventUseCase"> & {
+    recordAuditEventUseCase?: OrderPaymentWorkflowDeps["recordAuditEventUseCase"];
+  },
+) =>
+  createRunOrderPaymentPostingWorkflowUseCase({
+    ...params,
+    recordAuditEventUseCase:
+      params.recordAuditEventUseCase ??
+      ({
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: {} as never,
+        })),
+      } as OrderPaymentWorkflowDeps["recordAuditEventUseCase"]),
+  });
+
 describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
   it("rejects blank payment attempt id", async () => {
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: { execute: vi.fn() } as any,
       getLedgerEntriesUseCase: { execute: vi.fn() } as any,
       getMoneyAccountsUseCase: { execute: vi.fn() } as any,
@@ -187,7 +208,7 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
   });
 
   it("rejects blank order remote id", async () => {
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: { execute: vi.fn() } as any,
       getLedgerEntriesUseCase: { execute: vi.fn() } as any,
       getMoneyAccountsUseCase: { execute: vi.fn() } as any,
@@ -206,7 +227,7 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
   });
 
   it("rejects blank order number", async () => {
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: { execute: vi.fn() } as any,
       getLedgerEntriesUseCase: { execute: vi.fn() } as any,
       getMoneyAccountsUseCase: { execute: vi.fn() } as any,
@@ -225,7 +246,7 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
   });
 
   it("rejects missing active account context", async () => {
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: { execute: vi.fn() } as any,
       getLedgerEntriesUseCase: { execute: vi.fn() } as any,
       getMoneyAccountsUseCase: { execute: vi.fn() } as any,
@@ -248,7 +269,7 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
   });
 
   it("rejects missing account label", async () => {
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: { execute: vi.fn() } as any,
       getLedgerEntriesUseCase: { execute: vi.fn() } as any,
       getMoneyAccountsUseCase: { execute: vi.fn() } as any,
@@ -269,7 +290,7 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
   });
 
   it("rejects non-positive amount", async () => {
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: { execute: vi.fn() } as any,
       getLedgerEntriesUseCase: { execute: vi.fn() } as any,
       getMoneyAccountsUseCase: { execute: vi.fn() } as any,
@@ -288,7 +309,7 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
   });
 
   it("rejects invalid happenedAt", async () => {
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: { execute: vi.fn() } as any,
       getLedgerEntriesUseCase: { execute: vi.fn() } as any,
       getMoneyAccountsUseCase: { execute: vi.fn() } as any,
@@ -307,7 +328,7 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
   });
 
   it("rejects blank settlement money account id", async () => {
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: { execute: vi.fn() } as any,
       getLedgerEntriesUseCase: { execute: vi.fn() } as any,
       getMoneyAccountsUseCase: { execute: vi.fn() } as any,
@@ -328,7 +349,7 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
   });
 
   it("rejects blank settlement money account label", async () => {
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: { execute: vi.fn() } as any,
       getLedgerEntriesUseCase: { execute: vi.fn() } as any,
       getMoneyAccountsUseCase: { execute: vi.fn() } as any,
@@ -359,7 +380,7 @@ describe("runOrderPaymentPostingWorkflowUseCase validation", () => {
       })),
     };
 
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: { execute: vi.fn() } as any,
       getLedgerEntriesUseCase: { execute: vi.fn() } as any,
       getMoneyAccountsUseCase: getMoneyAccountsUseCase as any,
@@ -394,7 +415,7 @@ describe(
         })),
       };
 
-      const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+      const useCase = createOrderPaymentPostingWorkflowUseCase({
         getBillingOverviewUseCase: { execute: vi.fn() } as any,
         getLedgerEntriesUseCase: { execute: vi.fn() } as any,
         getMoneyAccountsUseCase: {
@@ -471,7 +492,7 @@ describe(
         execute: vi.fn(),
       };
 
-      const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+      const useCase = createOrderPaymentPostingWorkflowUseCase({
         getBillingOverviewUseCase: getBillingOverviewUseCase as any,
         getLedgerEntriesUseCase: getLedgerEntriesUseCase as any,
         getMoneyAccountsUseCase: {
@@ -538,7 +559,7 @@ describe(
         })),
       };
 
-      const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+      const useCase = createOrderPaymentPostingWorkflowUseCase({
         getBillingOverviewUseCase: getBillingOverviewUseCase as any,
         getLedgerEntriesUseCase: getLedgerEntriesUseCase as any,
         getMoneyAccountsUseCase: {
@@ -644,7 +665,7 @@ describe("runOrderPaymentPostingWorkflowUseCase success path", () => {
       })),
     };
 
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: getBillingOverviewUseCase as any,
       getLedgerEntriesUseCase: getLedgerEntriesUseCase as any,
       getMoneyAccountsUseCase: {
@@ -788,7 +809,7 @@ describe("runOrderPaymentPostingWorkflowUseCase rollback", () => {
       })),
     };
 
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: getBillingOverviewUseCase as any,
       getLedgerEntriesUseCase: getLedgerEntriesUseCase as any,
       getMoneyAccountsUseCase: {
@@ -863,7 +884,7 @@ describe("runOrderPaymentPostingWorkflowUseCase business-rule rejections", () =>
       })),
     };
 
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: getBillingOverviewUseCase as any,
       getLedgerEntriesUseCase: getLedgerEntriesUseCase as any,
       getMoneyAccountsUseCase: {
@@ -925,7 +946,7 @@ describe("runOrderPaymentPostingWorkflowUseCase business-rule rejections", () =>
       })),
     };
 
-    const useCase = createRunOrderPaymentPostingWorkflowUseCase({
+    const useCase = createOrderPaymentPostingWorkflowUseCase({
       getBillingOverviewUseCase: getBillingOverviewUseCase as any,
       getLedgerEntriesUseCase: getLedgerEntriesUseCase as any,
       getMoneyAccountsUseCase: {
@@ -951,3 +972,4 @@ describe("runOrderPaymentPostingWorkflowUseCase business-rule rejections", () =>
     }
   });
 });
+
