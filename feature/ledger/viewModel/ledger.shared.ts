@@ -367,10 +367,24 @@ export const getLedgerSignedAmount = (entry: LedgerEntry): number => {
     : -entry.amount;
 };
 
-const normalizePartyKey = (entry: Pick<LedgerEntry, "partyName" | "partyPhone">): string => {
+const normalizePartySnapshotKey = (
+  entry: Pick<LedgerEntry, "partyName" | "partyPhone">,
+): string => {
   const normalizedName = entry.partyName.trim().toLowerCase();
   const normalizedPhone = entry.partyPhone?.trim().toLowerCase() || "";
-  return `${normalizedName}::${normalizedPhone}`;
+  return `snapshot:${normalizedName}::${normalizedPhone}`;
+};
+
+const normalizePartyKey = (
+  entry: Pick<LedgerEntry, "contactRemoteId" | "partyName" | "partyPhone">,
+): string => {
+  const contactRemoteId = entry.contactRemoteId?.trim();
+
+  if (contactRemoteId) {
+    return `contact:${contactRemoteId}`;
+  }
+
+  return normalizePartySnapshotKey(entry);
 };
 
 const normalizePartyName = (value: string): string => value.trim().toLowerCase();
@@ -431,30 +445,39 @@ export const buildSettlementLinkCandidates = ({
   entries,
   settlementEntryType,
   partyName,
+  contactRemoteId = null,
   fallbackCurrencyCode,
   countryCode = null,
 }: {
   entries: readonly LedgerEntry[];
   settlementEntryType: LedgerEntryTypeValue;
   partyName: string;
+  contactRemoteId?: string | null;
   fallbackCurrencyCode: string | null;
   countryCode?: string | null;
 }): LedgerSettlementLinkCandidate[] => {
   const dueEntryType = resolveDueEntryTypeForSettlement(settlementEntryType);
   const normalizedPartyName = normalizePartyName(partyName);
+  const normalizedContactRemoteId = contactRemoteId?.trim() ?? "";
 
-  if (!dueEntryType || normalizedPartyName.length === 0) {
+  if (!dueEntryType || (!normalizedContactRemoteId && normalizedPartyName.length === 0)) {
     return [];
   }
 
   const outstandingByDueId = buildOutstandingByDueEntryRemoteId(entries);
 
   return entries
-    .filter(
-      (entry) =>
-        entry.entryType === dueEntryType &&
-        normalizePartyName(entry.partyName) === normalizedPartyName,
-    )
+    .filter((entry) => {
+      if (entry.entryType !== dueEntryType) {
+        return false;
+      }
+
+      if (normalizedContactRemoteId) {
+        return entry.contactRemoteId === normalizedContactRemoteId;
+      }
+
+      return normalizePartyName(entry.partyName) === normalizedPartyName;
+    })
     .sort((left, right) => getDueSortTimestamp(left) - getDueSortTimestamp(right))
     .map((entry) => {
       const outstandingAmount = roundCurrency(
