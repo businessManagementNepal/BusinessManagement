@@ -26,12 +26,13 @@ import {
   createDatabase,
 } from "@/shared/database/createDatabase";
 import { runDatabaseIntegrityChecks } from "@/shared/database/databaseIntegrity";
+import { APP_DATABASE_SCHEMA_VERSION } from "@/shared/database/appDatabaseSchemaVersion";
 import { migrations } from "@/shared/database/migration";
 import { appSchema, Collection, Q } from "@nozbe/watermelondb";
 
 const APP_SETTINGS_TABLE = "app_settings";
 
-export const APP_DATABASE_SCHEMA_VERSION = 42;
+export { APP_DATABASE_SCHEMA_VERSION };
 
 const schema = appSchema({
   version: APP_DATABASE_SCHEMA_VERSION,

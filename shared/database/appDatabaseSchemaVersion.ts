@@ -1,0 +1,1 @@
+export const APP_DATABASE_SCHEMA_VERSION = 42;

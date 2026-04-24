@@ -55,7 +55,6 @@ vi.mock("@nozbe/watermelondb", async () => {
 
 describe("app database startup orchestration", () => {
   beforeEach(() => {
-    vi.resetModules();
     fetchCountMock.mockReset();
     unsafeFetchRawMock.mockReset();
     unsafeSqlQueryMock.mockClear();

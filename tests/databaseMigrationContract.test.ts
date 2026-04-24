@@ -4,15 +4,9 @@ import {
   DEDUPE_CONTACT_NORMALIZED_PHONE_SQL,
   DROP_CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL,
 } from "@/feature/contacts/data/dataSource/db/contactPhone.uniqueIndex";
+import { APP_DATABASE_SCHEMA_VERSION } from "@/shared/database/appDatabaseSchemaVersion";
 import { migrations } from "@/shared/database/migration";
-import { describe, expect, it, vi } from "vitest";
-
-vi.mock("@/shared/database/createDatabase", () => ({
-  assertDatabaseSetupHealthy: vi.fn(),
-  createDatabase: vi.fn(() => ({
-    get: vi.fn(),
-  })),
-}));
+import { describe, expect, it } from "vitest";
 
 type MigrationStep =
   | { type: "sql"; sql: string }
@@ -71,10 +65,7 @@ const getSqlSteps = (migration: MigrationDefinition): readonly string[] => {
 };
 
 describe("database migration contract", () => {
-  it("keeps app schema version aligned with the latest migration version", async () => {
-    const { APP_DATABASE_SCHEMA_VERSION } = await import(
-      "@/shared/database/appDatabase"
-    );
+  it("keeps app schema version aligned with the latest migration version", () => {
     const latestMigration = getLatestMigration();
 
     expect(APP_DATABASE_SCHEMA_VERSION).toBe(latestMigration.toVersion);
