@@ -11,20 +11,13 @@ import {
   type PosArtifactReconciliationRefs,
   type PosSaleReconciliation,
 } from "@/feature/pos/types/posSaleHistory.entity.types";
-import { PosSaleWorkflowStatus } from "@/feature/pos/types/posSale.constant";
+import { isPosSaleCleanupAllowedWorkflowStatus } from "@/feature/pos/utils/posSaleRecoveryStatus.util";
 import type { ReconcilePosSaleUseCase } from "./reconcilePosSale.useCase";
 
 type CreateReconcilePosSaleUseCaseParams = {
   getInventoryMovementsBySourceUseCase: GetInventoryMovementsBySourceUseCase;
   getBillingDocumentByRemoteIdUseCase: GetBillingDocumentByRemoteIdUseCase;
   getLedgerEntryByRemoteIdUseCase: GetLedgerEntryByRemoteIdUseCase;
-};
-
-const isAbnormalSaleStatus = (workflowStatus: string): boolean => {
-  return (
-    workflowStatus === PosSaleWorkflowStatus.Failed ||
-    workflowStatus === PosSaleWorkflowStatus.PartiallyPosted
-  );
 };
 
 const buildNotRecordedItem = (
@@ -248,7 +241,8 @@ export const createReconcilePosSaleUseCase = ({
       transactionRefs,
       hasUnresolvedArtifacts,
       canRunCleanup:
-        isAbnormalSaleStatus(sale.workflowStatus) && hasUnresolvedArtifacts,
+        isPosSaleCleanupAllowedWorkflowStatus(sale.workflowStatus) &&
+        hasUnresolvedArtifacts,
       checkedAt: Date.now(),
     };
 

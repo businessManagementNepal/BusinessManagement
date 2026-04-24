@@ -1,20 +1,13 @@
 import type { PosCustomer } from "@/feature/pos/types/pos.entity.types";
 import { PosErrorType } from "@/feature/pos/types/pos.error.types";
 import type { PosSaleRecord } from "@/feature/pos/types/posSale.entity.types";
-import { PosSaleWorkflowStatus } from "@/feature/pos/types/posSale.constant";
+import { isPosSaleRetryableWorkflowStatus } from "@/feature/pos/utils/posSaleRecoveryStatus.util";
 import type { RunPosCheckoutUseCase } from "@/feature/pos/workflow/posCheckout/useCase/runPosCheckout.useCase";
 import type { RetryPosSalePostingUseCase } from "./retryPosSalePosting.useCase";
 
 type CreateRetryPosSalePostingUseCaseParams = {
   runPosCheckoutUseCase: RunPosCheckoutUseCase;
 };
-
-const RETRYABLE_STATUSES = new Set<string>([
-  PosSaleWorkflowStatus.PendingValidation,
-  PosSaleWorkflowStatus.PendingPosting,
-  PosSaleWorkflowStatus.Failed,
-  PosSaleWorkflowStatus.PartiallyPosted,
-]);
 
 const buildCustomerSnapshot = (sale: PosSaleRecord): PosCustomer | null => {
   const remoteId = sale.customerRemoteId?.trim() ?? "";
@@ -59,8 +52,16 @@ const validateSaleSnapshot = (sale: PosSaleRecord): string | null => {
     return "POS sale retry requires the original cart snapshot.";
   }
 
-  if (sale.paymentParts.length === 0 && sale.totalsSnapshot.grandTotal > 0) {
-    return "POS sale retry requires the original payment snapshot.";
+  const hasPaidPaymentPart = sale.paymentParts.some(
+    (part) => part.amount > 0,
+  );
+
+  const hasInvalidPaidPart = sale.paymentParts.some(
+    (part) => part.amount > 0 && !part.settlementAccountRemoteId?.trim(),
+  );
+
+  if (hasPaidPaymentPart && hasInvalidPaidPart) {
+    return "POS sale retry requires the original settlement money account for paid payment parts.";
   }
 
   if (hasDueAmount(sale) && !buildCustomerSnapshot(sale)) {
@@ -74,7 +75,7 @@ export const createRetryPosSalePostingUseCase = ({
   runPosCheckoutUseCase,
 }: CreateRetryPosSalePostingUseCaseParams): RetryPosSalePostingUseCase => ({
   async execute({ sale }) {
-    if (!RETRYABLE_STATUSES.has(sale.workflowStatus)) {
+    if (!isPosSaleRetryableWorkflowStatus(sale.workflowStatus)) {
       return {
         success: false,
         error: {

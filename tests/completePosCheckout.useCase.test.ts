@@ -541,6 +541,94 @@ describe("runPosCheckout.useCase", () => {
     }
   });
 
+  it("retries pending_validation sale from persisted snapshot", async () => {
+    const existingSale = createSaleRecord({
+      workflowStatus: PosCheckoutWorkflowStatus.PendingValidation,
+    });
+
+    const { useCase, spies } = createCheckoutHarness({
+      initialSaleState: existingSale,
+    });
+
+    const result = await useCase.execute(createRunParams());
+
+    expect(result.success).toBe(true);
+    expect(spies.createPosSaleDraftExecute).not.toHaveBeenCalled();
+    expect(spies.postBusinessTransactionExecute).toHaveBeenCalledTimes(1);
+    expect(spies.commitInventoryExecute).toHaveBeenCalledTimes(1);
+
+    if (result.success) {
+      expect(result.value.workflowStatus).toBe(PosCheckoutWorkflowStatus.Posted);
+    }
+  });
+
+  it("retries fully unpaid due sale when customer snapshot exists", async () => {
+    const existingSale = createSaleRecord({
+      workflowStatus: PosCheckoutWorkflowStatus.PendingPosting,
+      paymentParts: [],
+      customerRemoteId: CUSTOMER.remoteId,
+      customerNameSnapshot: CUSTOMER.fullName,
+      customerPhoneSnapshot: CUSTOMER.phone,
+      receipt: buildReceiptSnapshot({
+        receiptNumber: "POS-001",
+        cartLines: BASE_CART_LINES,
+        totals: BASE_TOTALS,
+        paymentParts: [],
+        selectedCustomer: CUSTOMER,
+      }),
+    });
+
+    const { useCase, spies } = createCheckoutHarness({
+      initialSaleState: existingSale,
+    });
+
+    const result = await useCase.execute(createRunParams());
+
+    expect(result.success).toBe(true);
+    expect(spies.postBusinessTransactionExecute).not.toHaveBeenCalled();
+    expect(spies.addLedgerEntryExecute).toHaveBeenCalledTimes(1);
+    expect(spies.commitInventoryExecute).toHaveBeenCalledTimes(1);
+
+    if (result.success) {
+      expect(result.value.workflowStatus).toBe(PosCheckoutWorkflowStatus.Posted);
+      expect(result.value.ledgerEntryRemoteId).toBe("pos-ledger-sale-1");
+    }
+  });
+
+  it("rejects fully unpaid due sale retry when customer snapshot is missing", async () => {
+    const existingSale = createSaleRecord({
+      workflowStatus: PosCheckoutWorkflowStatus.PendingPosting,
+      paymentParts: [],
+      customerRemoteId: null,
+      customerNameSnapshot: null,
+      customerPhoneSnapshot: null,
+      receipt: buildReceiptSnapshot({
+        receiptNumber: "POS-001",
+        cartLines: BASE_CART_LINES,
+        totals: BASE_TOTALS,
+        paymentParts: [],
+        selectedCustomer: null,
+      }),
+    });
+
+    const { useCase, spies } = createCheckoutHarness({
+      initialSaleState: existingSale,
+    });
+
+    const result = await useCase.execute(createRunParams());
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.type).toBe("CONTEXT_REQUIRED");
+      expect(result.error.message).toContain("Customer selection is required");
+    }
+
+    expect(spies.postBusinessTransactionExecute).not.toHaveBeenCalled();
+    expect(spies.addLedgerEntryExecute).not.toHaveBeenCalled();
+    expect(spies.commitInventoryExecute).not.toHaveBeenCalled();
+  });
+
   it("does not create a second POS sale draft during retry", async () => {
     const existingSale = createSaleRecord({
       workflowStatus: PosCheckoutWorkflowStatus.PendingValidation,

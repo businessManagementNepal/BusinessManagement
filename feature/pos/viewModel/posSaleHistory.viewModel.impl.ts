@@ -3,10 +3,13 @@ import type {
   PosSaleHistoryItem,
   PosSaleReconciliation,
 } from "../types/posSaleHistory.entity.types";
-import { PosSaleWorkflowStatus } from "../types/posSale.constant";
 import type { GetPosSaleHistoryUseCase } from "../useCase/getPosSaleHistory.useCase";
 import type { PrintPosReceiptUseCase } from "../useCase/printPosReceipt.useCase";
 import type { SharePosReceiptUseCase } from "../useCase/sharePosReceipt.useCase";
+import {
+  isPosSaleCleanupAllowedWorkflowStatus,
+  isPosSaleRetryableWorkflowStatus,
+} from "../utils/posSaleRecoveryStatus.util";
 import type { PosSaleHistoryViewModel } from "./posSaleHistory.viewModel";
 import type { ReconcilePosSaleUseCase } from "../workflow/posRecovery/useCase/reconcilePosSale.useCase";
 import type { RetryPosSalePostingUseCase } from "../workflow/posRecovery/useCase/retryPosSalePosting.useCase";
@@ -56,15 +59,20 @@ const INITIAL_STATE: PosSaleHistoryViewModelState = {
   recoveryMessage: null,
 };
 
-const isAbnormalSale = (receipt: PosSaleHistoryItem | null): boolean => {
+const isRecoverableSale = (receipt: PosSaleHistoryItem | null): boolean => {
   if (!receipt) {
     return false;
   }
 
-  return (
-    receipt.workflowStatus === PosSaleWorkflowStatus.Failed ||
-    receipt.workflowStatus === PosSaleWorkflowStatus.PartiallyPosted
-  );
+  return isPosSaleRetryableWorkflowStatus(receipt.workflowStatus);
+};
+
+const isCleanupAllowedSale = (receipt: PosSaleHistoryItem | null): boolean => {
+  if (!receipt) {
+    return false;
+  }
+
+  return isPosSaleCleanupAllowedWorkflowStatus(receipt.workflowStatus);
 };
 
 export function usePosSaleHistoryViewModel({
@@ -138,7 +146,7 @@ export function usePosSaleHistoryViewModel({
 
   const loadReconciliationForReceipt = useCallback(
     async (receipt: PosSaleHistoryItem) => {
-      if (!isAbnormalSale(receipt)) {
+      if (!isRecoverableSale(receipt)) {
         setState((currentState) => ({
           ...currentState,
           reconciliation: null,
@@ -213,7 +221,7 @@ export function usePosSaleHistoryViewModel({
         errorMessage: null,
       }));
 
-      if (isAbnormalSale(receipt)) {
+      if (isRecoverableSale(receipt)) {
         void loadReconciliationForReceipt(receipt);
       }
     },
@@ -325,7 +333,7 @@ export function usePosSaleHistoryViewModel({
 
   const onRetryAbnormalSale = useCallback(async () => {
     const selectedReceipt = state.selectedReceipt;
-    if (!selectedReceipt || !isAbnormalSale(selectedReceipt)) {
+    if (!selectedReceipt || !isRecoverableSale(selectedReceipt)) {
       return;
     }
 
@@ -357,7 +365,7 @@ export function usePosSaleHistoryViewModel({
       errorMessage: result.success ? null : result.error.message,
     }));
 
-    if (refreshedSelectedReceipt && isAbnormalSale(refreshedSelectedReceipt)) {
+    if (refreshedSelectedReceipt && isRecoverableSale(refreshedSelectedReceipt)) {
       await loadReconciliationForReceipt(refreshedSelectedReceipt);
     }
   }, [
@@ -370,7 +378,7 @@ export function usePosSaleHistoryViewModel({
 
   const onCleanupAbnormalSale = useCallback(async () => {
     const selectedReceipt = state.selectedReceipt;
-    if (!selectedReceipt || !isAbnormalSale(selectedReceipt)) {
+    if (!selectedReceipt || !isCleanupAllowedSale(selectedReceipt)) {
       return;
     }
 
@@ -404,7 +412,7 @@ export function usePosSaleHistoryViewModel({
       errorMessage: result.success ? null : result.error.message,
     }));
 
-    if (refreshedSelectedReceipt && isAbnormalSale(refreshedSelectedReceipt)) {
+    if (refreshedSelectedReceipt && isRecoverableSale(refreshedSelectedReceipt)) {
       await loadReconciliationForReceipt(refreshedSelectedReceipt);
     }
   }, [

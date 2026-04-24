@@ -6,6 +6,7 @@ import { LedgerErrorType } from "@/feature/ledger/types/ledger.error.types";
 import type { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase";
 import { PosErrorType } from "@/feature/pos/types/pos.error.types";
 import { PosSaleWorkflowStatus } from "@/feature/pos/types/posSale.constant";
+import { isPosSaleCleanupAllowedWorkflowStatus } from "@/feature/pos/utils/posSaleRecoveryStatus.util";
 import type { UpdatePosSaleWorkflowStateUseCase } from "@/feature/pos/useCase/updatePosSaleWorkflowState.useCase";
 import { TransactionErrorType } from "@/feature/transactions/types/transaction.error.types";
 import type { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
@@ -17,13 +18,6 @@ type CreateResolvePosAbnormalSaleUseCaseParams = {
   deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase;
   deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
   updatePosSaleWorkflowStateUseCase: UpdatePosSaleWorkflowStateUseCase;
-};
-
-const isAbnormalSaleStatus = (workflowStatus: string): boolean => {
-  return (
-    workflowStatus === PosSaleWorkflowStatus.Failed ||
-    workflowStatus === PosSaleWorkflowStatus.PartiallyPosted
-  );
 };
 
 const isBillingAlreadyClearedError = (error: { type?: string } | null | undefined) =>
@@ -73,7 +67,7 @@ export const createResolvePosAbnormalSaleUseCase = ({
       };
     }
 
-    if (!isAbnormalSaleStatus(sale.workflowStatus)) {
+    if (!isPosSaleCleanupAllowedWorkflowStatus(sale.workflowStatus)) {
       return {
         success: false,
         error: {

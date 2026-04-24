@@ -29,6 +29,11 @@ import type {
     PosSaleReconciliation,
 } from "../types/posSaleHistory.entity.types";
 import { PosArtifactReconciliationStatus } from "../types/posSaleHistory.entity.types";
+import {
+  getPosSaleRecoveryStatusLabel,
+  isPosSaleCleanupAllowedWorkflowStatus,
+  isPosSaleRetryableWorkflowStatus,
+} from "../utils/posSaleRecoveryStatus.util";
 import { PosReceiptDetail } from "./PosReceiptDetail";
 
 type PosSaleHistoryProps = {
@@ -56,9 +61,6 @@ type PosSaleHistoryProps = {
   onRetryAbnormalSale: () => Promise<void>;
   onCleanupAbnormalSale: () => Promise<void>;
 };
-
-const PARTIALLY_POSTED = "partially_posted";
-const FAILED = "failed";
 
 const getStatusLabel = (status: string): string => {
   switch (status) {
@@ -99,9 +101,7 @@ export function PosSaleHistory({
   onCleanupAbnormalSale,
 }: PosSaleHistoryProps) {
   const renderReceiptItem = ({ item }: { item: PosSaleHistoryItem }) => {
-    const isPartiallyPosted = item.workflowStatus === PARTIALLY_POSTED;
-    const isFailed = item.workflowStatus === FAILED;
-    const hasSyncWarning = isPartiallyPosted || isFailed;
+    const hasSyncWarning = isPosSaleRetryableWorkflowStatus(item.workflowStatus);
     const receipt = item.document;
 
     return (
@@ -133,9 +133,7 @@ export function PosSaleHistory({
             <Text style={styles.syncWarningText}>
               {item.lastErrorMessage
                 ? item.lastErrorMessage
-                : isFailed
-                  ? "Posting failed - review Ledger and Billing manually."
-                  : "Partial sync - some accounting entries may be missing."}
+                : `${getPosSaleRecoveryStatusLabel(item.workflowStatus)} - review and retry from receipt detail.`}
             </Text>
           </View>
         ) : null}
@@ -168,7 +166,7 @@ export function PosSaleHistory({
               ]}
             >
               {hasSyncWarning
-                ? "SYNC ERROR"
+                ? getPosSaleRecoveryStatusLabel(item.workflowStatus)
                 : receipt.status === "paid"
                   ? "PAID"
                   : receipt.status.replace("_", " ").toUpperCase()}
@@ -179,12 +177,16 @@ export function PosSaleHistory({
     );
   };
 
-  const isAbnormalSelectedReceipt =
-    selectedReceipt?.workflowStatus === FAILED ||
-    selectedReceipt?.workflowStatus === PARTIALLY_POSTED;
+  const isRecoverableSelectedReceipt =
+    selectedReceipt !== null &&
+    isPosSaleRetryableWorkflowStatus(selectedReceipt.workflowStatus);
+
+  const canCleanupSelectedReceipt =
+    selectedReceipt !== null &&
+    isPosSaleCleanupAllowedWorkflowStatus(selectedReceipt.workflowStatus);
 
   const recoveryPanel =
-    isAbnormalSelectedReceipt && selectedReceipt ? (
+    isRecoverableSelectedReceipt && selectedReceipt ? (
       <View style={styles.recoverySection}>
         <View style={styles.recoveryHeader}>
           <ShieldAlert size={16} color={colors.warning} />
@@ -192,7 +194,7 @@ export function PosSaleHistory({
         </View>
 
         <Text style={styles.recoverySubtitle}>
-          Inspect linked inventory and accounting artifacts and clean up abnormal POS sales safely.
+          Inspect linked inventory and accounting artifacts, retry pending POS sales, or clean up failed/partial sales safely.
         </Text>
 
         {recoveryMessage ? (
@@ -301,6 +303,7 @@ export function PosSaleHistory({
               isRetrying ||
               isResolving ||
               isReconciling ||
+              !canCleanupSelectedReceipt ||
               !reconciliation?.canRunCleanup
             }
           />
