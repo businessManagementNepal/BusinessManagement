@@ -34,7 +34,11 @@ export const createLocalMoneyAccountBalanceDatasource = (
     try {
       const collection = database.get<MoneyAccountModel>(MONEY_ACCOUNTS_TABLE);
       const matching = await collection
-        .query(Q.where("remote_id", remoteId), Q.where("deleted_at", Q.eq(null)))
+        .query(
+          Q.where("remote_id", remoteId),
+          Q.where("is_active", true),
+          Q.where("deleted_at", Q.eq(null)),
+        )
         .fetch();
 
       return {
