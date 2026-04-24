@@ -3,6 +3,7 @@ import { createLocalMoneyAccountBalanceDatasource } from "@/feature/transactions
 import { createLocalMoneyPostingDatasource } from "@/feature/transactions/data/dataSource/local.moneyPosting.datasource.impl";
 import { createMoneyPostingRepository } from "@/feature/transactions/data/repository/moneyPosting.repository.impl";
 import { createMoneyPostingWorkflowRepository } from "@/feature/transactions/workflow/moneyPosting/repository/moneyPostingWorkflow.repository.impl";
+import { createRunMoneyPostingWorkflowUseCase } from "@/feature/transactions/workflow/moneyPosting/useCase/runMoneyPostingWorkflow.useCase.impl";
 import {
   SaveTransactionPayload,
   TransactionDirection,
@@ -335,7 +336,10 @@ const createDatasourceHarness = ({
     transactionDatasource,
     moneyAccountBalanceDatasource,
   });
-  const repository = createMoneyPostingRepository(workflowRepository);
+  const workflowUseCase = createRunMoneyPostingWorkflowUseCase({
+    workflowRepository,
+  });
+  const repository = createMoneyPostingRepository(workflowUseCase);
 
   return {
     repository,

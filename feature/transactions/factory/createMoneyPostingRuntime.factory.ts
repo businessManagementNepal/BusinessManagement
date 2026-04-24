@@ -13,6 +13,7 @@ import { createPostMoneyMovementUseCase } from "@/feature/transactions/useCase/p
 import type { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import type { PostMoneyMovementUseCase } from "@/feature/transactions/useCase/postMoneyMovement.useCase";
 import { createMoneyPostingWorkflowRepository } from "@/feature/transactions/workflow/moneyPosting/repository/moneyPostingWorkflow.repository.impl";
+import { createRunMoneyPostingWorkflowUseCase } from "@/feature/transactions/workflow/moneyPosting/useCase/runMoneyPostingWorkflow.useCase.impl";
 import { Database } from "@nozbe/watermelondb";
 
 export type MoneyPostingRuntime = {
@@ -36,10 +37,13 @@ export const createMoneyPostingRuntime = (
   const auditDatasource = createLocalAuditDatasource(database);
   const auditRepository = createAuditRepository(auditDatasource);
   const recordAuditEventUseCase = createRecordAuditEventUseCase(auditRepository);
-
-  const moneyPostingRepository = createMoneyPostingRepository(
+  const runMoneyPostingWorkflowUseCase = createRunMoneyPostingWorkflowUseCase({
     workflowRepository,
     recordAuditEventUseCase,
+  });
+
+  const moneyPostingRepository = createMoneyPostingRepository(
+    runMoneyPostingWorkflowUseCase,
   );
 
   const postMoneyMovementUseCase =

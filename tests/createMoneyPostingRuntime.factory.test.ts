@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   createLocalAuditDatasource: vi.fn(),
   createAuditRepository: vi.fn(),
   createRecordAuditEventUseCase: vi.fn(),
+  createRunMoneyPostingWorkflowUseCase: vi.fn(),
   createMoneyPostingRepository: vi.fn(),
   createPostMoneyMovementUseCase: vi.fn(),
   createDeleteMoneyMovementUseCase: vi.fn(),
@@ -48,6 +49,14 @@ vi.mock("@/feature/audit/useCase/recordAuditEvent.useCase.impl", () => ({
   createRecordAuditEventUseCase: mocks.createRecordAuditEventUseCase,
 }));
 
+vi.mock(
+  "@/feature/transactions/workflow/moneyPosting/useCase/runMoneyPostingWorkflow.useCase.impl",
+  () => ({
+    createRunMoneyPostingWorkflowUseCase:
+      mocks.createRunMoneyPostingWorkflowUseCase,
+  }),
+);
+
 vi.mock("@/feature/transactions/data/repository/moneyPosting.repository.impl", () => ({
   createMoneyPostingRepository: mocks.createMoneyPostingRepository,
 }));
@@ -77,6 +86,10 @@ describe("createMoneyPostingRuntime", () => {
     const auditDatasource = { id: "audit-datasource" };
     const auditRepository = { id: "audit-repository" };
     const recordAuditEventUseCase = { execute: vi.fn() };
+    const runMoneyPostingWorkflowUseCase = {
+      postMoneyMovement: vi.fn(),
+      deleteMoneyMovementByRemoteId: vi.fn(),
+    };
     const moneyPostingRepository = { id: "money-posting-repository" };
 
     const postMoneyMovementUseCase = { execute: vi.fn() };
@@ -90,6 +103,9 @@ describe("createMoneyPostingRuntime", () => {
     mocks.createLocalAuditDatasource.mockReturnValue(auditDatasource);
     mocks.createAuditRepository.mockReturnValue(auditRepository);
     mocks.createRecordAuditEventUseCase.mockReturnValue(recordAuditEventUseCase);
+    mocks.createRunMoneyPostingWorkflowUseCase.mockReturnValue(
+      runMoneyPostingWorkflowUseCase,
+    );
     mocks.createMoneyPostingRepository.mockReturnValue(moneyPostingRepository);
     mocks.createPostMoneyMovementUseCase.mockReturnValue(postMoneyMovementUseCase);
     mocks.createDeleteMoneyMovementUseCase.mockReturnValue(
@@ -111,9 +127,12 @@ describe("createMoneyPostingRuntime", () => {
     expect(mocks.createRecordAuditEventUseCase).toHaveBeenCalledWith(
       auditRepository,
     );
-    expect(mocks.createMoneyPostingRepository).toHaveBeenCalledWith(
+    expect(mocks.createRunMoneyPostingWorkflowUseCase).toHaveBeenCalledWith({
       workflowRepository,
       recordAuditEventUseCase,
+    });
+    expect(mocks.createMoneyPostingRepository).toHaveBeenCalledWith(
+      runMoneyPostingWorkflowUseCase,
     );
     expect(mocks.createPostMoneyMovementUseCase).toHaveBeenCalledWith(
       moneyPostingRepository,
