@@ -3,7 +3,6 @@ import { SyncResult } from "@/shared/sync/types/syncResult.types";
 import { SyncScope } from "@/shared/sync/types/syncScope.types";
 
 export type RunSyncWorkflowInput = SyncScope & {
-  syncEnabled: boolean;
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
 };

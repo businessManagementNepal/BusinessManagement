@@ -10,6 +10,7 @@ export const billingDocumentItemsTable = tableSchema({
     { name: "quantity", type: "number" },
     { name: "unit_rate", type: "number" },
     { name: "line_total", type: "number" },
+    { name: "server_revision", type: "string", isOptional: true },
     { name: "deleted_at", type: "number", isOptional: true },
     { name: "created_at", type: "number" },
     { name: "updated_at", type: "number" },

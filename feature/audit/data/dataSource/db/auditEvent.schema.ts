@@ -16,6 +16,7 @@ export const auditEventsTable = tableSchema({
     { name: "severity", type: "string", isIndexed: true },
     { name: "summary", type: "string" },
     { name: "metadata_json", type: "string", isOptional: true },
+    { name: "server_revision", type: "string", isOptional: true },
     { name: "sync_status", type: "string", isIndexed: true },
     { name: "last_synced_at", type: "number", isOptional: true },
     { name: "deleted_at", type: "number", isOptional: true },

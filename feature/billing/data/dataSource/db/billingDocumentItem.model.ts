@@ -11,6 +11,7 @@ export class BillingDocumentItemModel extends Model {
   @field("quantity") quantity!: number;
   @field("unit_rate") unitRate!: number;
   @field("line_total") lineTotal!: number;
+  @field("server_revision") serverRevision!: string | null;
   @field("deleted_at") deletedAt!: number | null;
 
   @readonly @date("created_at") createdAt!: Date;

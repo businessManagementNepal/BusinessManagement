@@ -42,6 +42,10 @@ export type AppAppearanceState = {
   updatedAt: number;
 };
 
+const normalizeSyncEnabled = (value: boolean | null | undefined): boolean => {
+  return value === true;
+};
+
 const normalizeStringValue = (
   value: string | null | undefined,
   fallbackValue: string,
@@ -117,6 +121,7 @@ const copySettingsValues = (
   target.appearanceCompactModeEnabled = normalizeCompactModeEnabled(
     source.appearanceCompactModeEnabled,
   );
+  target.syncEnabled = normalizeSyncEnabled(source.syncEnabled);
 };
 
 const createSingletonRecord = async (
@@ -146,6 +151,7 @@ const createSingletonRecord = async (
         record.appearanceThemePreference = DEFAULT_THEME_PREFERENCE;
         record.appearanceTextSizePreference = DEFAULT_TEXT_SIZE_PREFERENCE;
         record.appearanceCompactModeEnabled = DEFAULT_COMPACT_MODE_ENABLED;
+        record.syncEnabled = false;
       }
 
       setCreatedAndUpdatedAt(record, now);

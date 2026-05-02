@@ -17,6 +17,7 @@ export const productsTable = tableSchema({
     { name: "description", type: "string", isOptional: true },
     { name: "image_url", type: "string", isOptional: true },
     { name: "status", type: "string", isIndexed: true },
+    { name: "server_revision", type: "string", isOptional: true },
     { name: "sync_status", type: "string", isIndexed: true },
     { name: "last_synced_at", type: "number", isOptional: true },
     { name: "deleted_at", type: "number", isOptional: true },

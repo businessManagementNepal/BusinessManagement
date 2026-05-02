@@ -29,6 +29,7 @@ export class BillingDocumentModel extends Model {
   @field("linked_ledger_entry_remote_id")
   linkedLedgerEntryRemoteId!: string | null;
   @field("pos_workflow_status") posWorkflowStatus!: string | null;
+  @field("server_revision") serverRevision!: string | null;
   @field("sync_status") recordSyncStatus!: string;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

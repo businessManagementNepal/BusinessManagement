@@ -9,6 +9,9 @@ describe("sync dependency order", () => {
   it("keeps parent business records ahead of dependent records", () => {
     expect(getRank("accounts")).toBeLessThan(getRank("business_profiles"));
     expect(getRank("billing_documents")).toBeLessThan(
+      getRank("bill_photos"),
+    );
+    expect(getRank("billing_documents")).toBeLessThan(
       getRank("billing_document_items"),
     );
     expect(getRank("orders")).toBeLessThan(getRank("order_lines"));

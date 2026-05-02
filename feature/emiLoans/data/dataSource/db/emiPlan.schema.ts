@@ -25,6 +25,7 @@ export const emiPlansTable = tableSchema({
     { name: "reminder_days_before", type: "number", isOptional: true },
     { name: "note", type: "string", isOptional: true },
     { name: "status", type: "string", isIndexed: true },
+    { name: "server_revision", type: "string", isOptional: true },
     { name: "sync_status", type: "string", isIndexed: true },
     { name: "last_synced_at", type: "number", isOptional: true },
     { name: "deleted_at", type: "number", isOptional: true },

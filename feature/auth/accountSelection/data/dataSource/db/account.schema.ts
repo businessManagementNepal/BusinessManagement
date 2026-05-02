@@ -15,6 +15,7 @@ export const accountsTable = tableSchema({
     { name: "default_tax_mode", type: "string", isOptional: true },
     { name: "is_active", type: "boolean" },
     { name: "is_default", type: "boolean" },
+    { name: "server_revision", type: "string", isOptional: true },
 
     { name: "sync_status", type: "string", isIndexed: true },
     { name: "last_synced_at", type: "number", isOptional: true },

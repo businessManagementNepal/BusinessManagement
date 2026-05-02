@@ -11,6 +11,7 @@ export class BillPhotoModel extends Model {
   @field("mime_type") mimeType!: string | null;
   @field("image_data_url") imageDataUrl!: string;
   @field("uploaded_at") uploadedAt!: number;
+  @field("server_revision") serverRevision!: string | null;
   @field("sync_status") recordSyncStatus!: string;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

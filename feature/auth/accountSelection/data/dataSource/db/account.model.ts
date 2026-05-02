@@ -17,6 +17,7 @@ export class AccountModel extends Model {
   @field("default_tax_mode") defaultTaxMode!: string | null;
   @field("is_active") isActive!: boolean;
   @field("is_default") isDefault!: boolean;
+  @field("server_revision") serverRevision!: string | null;
 
   @field("sync_status")
   recordSyncStatus!:

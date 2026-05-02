@@ -9,6 +9,7 @@ export class AccountRoleModel extends Model {
   @field("name") name!: string;
   @field("is_system") isSystem!: boolean;
   @field("is_default") isDefault!: boolean;
+  @field("server_revision") serverRevision!: string | null;
 
   @field("sync_status")
   recordSyncStatus!:

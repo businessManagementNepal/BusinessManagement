@@ -11,6 +11,7 @@ export const syncDependencyOrder = [
   "products",
   "inventory_movements",
   "billing_documents",
+  "bill_photos",
   "billing_document_items",
   "ledger_entries",
   "transactions",

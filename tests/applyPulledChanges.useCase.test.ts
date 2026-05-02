@@ -172,9 +172,12 @@ describe("applyPulledChanges use case", () => {
 
     expect(result.success).toBe(true);
     expect(localDatasource.tombstoneRecord).toHaveBeenCalledWith(
-      expect.any(Object),
-      "contact-delete",
-      999,
+      expect.objectContaining({
+        registryItem: expect.any(Object),
+        recordRemoteId: "contact-delete",
+        accountRemoteId: scope.accountRemoteId,
+        deletedAt: 999,
+      }),
     );
   });
 });

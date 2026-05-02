@@ -1,4 +1,7 @@
-import { SyncConflictResolutionActionValue } from "@/shared/sync/types/syncConflict.types";
+import {
+  SyncConflictPolicy,
+  SyncConflictResolutionActionValue,
+} from "@/shared/sync/types/syncConflict.types";
 import {
   SyncOperation,
   SyncOperationValue,
@@ -28,6 +31,8 @@ import {
 } from "../dataSource/syncLocal.datasource";
 import { SyncRemoteDatasource } from "../dataSource/syncRemote.datasource";
 import { SyncRepository } from "./sync.repository";
+
+const SERVER_REVISION_FIELD = "server_revision";
 
 const stringifyStable = (value: unknown): string => {
   return JSON.stringify(value);
@@ -94,20 +99,80 @@ const resolvePushOperation = (record: SyncRawRecord): SyncOperationValue => {
   return SyncOperation.Update;
 };
 
+const getServerRevisionFromPayload = (
+  payload: Record<string, unknown>,
+): string | null => {
+  const value = payload[SERVER_REVISION_FIELD];
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
+const mergeServerRevisionIntoPayload = (
+  payload: Record<string, unknown>,
+  serverRevision: string | null,
+): Record<string, unknown> => {
+  if (!serverRevision) {
+    return { ...payload };
+  }
+
+  return {
+    ...payload,
+    [SERVER_REVISION_FIELD]: serverRevision,
+  };
+};
+
 const buildStateInput = ({
   registryItem,
   recordRemoteId,
   accountRemoteId,
+  serverRevision,
 }: {
   registryItem: NonNullable<ReturnType<typeof getSyncRegistryItem>>;
   recordRemoteId: string;
   accountRemoteId: string;
+  serverRevision?: string | null;
 }): UpdateSyncRecordStateInput => ({
   registryItem,
   recordRemoteId,
   accountRemoteId,
   lastSyncedAt: Date.now(),
+  serverRevision,
 });
+
+const isVersionBasedConflict = ({
+  registryItem,
+  existing,
+  remotePayload,
+  remoteServerRevision,
+}: {
+  registryItem: NonNullable<ReturnType<typeof getSyncRegistryItem>>;
+  existing: SyncRawRecord;
+  remotePayload: Record<string, unknown>;
+  remoteServerRevision: string | null;
+}): boolean => {
+  if (registryItem.conflictPolicy !== SyncConflictPolicy.VersionBased) {
+    return false;
+  }
+
+  if (!isPendingSyncStatus(existing.recordSyncStatus)) {
+    return false;
+  }
+
+  const localServerRevision = getServerRevisionFromPayload(existing.payload);
+  if (!localServerRevision || !remoteServerRevision) {
+    return true;
+  }
+
+  if (localServerRevision !== remoteServerRevision) {
+    return true;
+  }
+
+  return stringifyStable(existing.payload) !== stringifyStable(remotePayload);
+};
 
 const isFinancialConflict = (
   tableName: string,
@@ -269,7 +334,7 @@ export const createSyncRepository = (
         operation,
         recordRemoteId: record.recordRemoteId,
         payload: record.payload,
-        serverRevision: null,
+        serverRevision: getServerRevisionFromPayload(record.payload),
         changedAt: record.updatedAt ?? Date.now(),
       });
     }
@@ -322,6 +387,7 @@ export const createSyncRepository = (
         registryItem,
         recordRemoteId: acknowledgement.recordRemoteId,
         accountRemoteId: scope.accountRemoteId,
+        serverRevision: acknowledgement.serverRevision,
       });
 
       if (acknowledgement.status === "accepted") {
@@ -469,9 +535,9 @@ export const createSyncRepository = (
       let tableFailed = false;
 
       for (const change of tableResult.changes) {
-        const sanitizedPayload = sanitizePayloadForPull(
-          tableResult.tableName,
-          change.payload,
+        const pulledPayload = mergeServerRevisionIntoPayload(
+          sanitizePayloadForPull(tableResult.tableName, change.payload),
+          change.serverRevision,
         );
         const existingResult = await localDatasource.getLocalRecord(
           registryItem,
@@ -487,20 +553,33 @@ export const createSyncRepository = (
         const existingPayload = existing?.payload ?? {};
         const localPendingChange =
           existing !== null && isPendingSyncStatus(existing.recordSyncStatus);
+        const versionBasedConflict =
+          existing !== null &&
+          isVersionBasedConflict({
+            registryItem,
+            existing,
+            remotePayload: pulledPayload,
+            remoteServerRevision: change.serverRevision,
+          });
         const protectedFieldConflict =
           existing !== null &&
           (isFinancialConflict(
             tableResult.tableName,
             existingPayload,
-            sanitizedPayload,
+            pulledPayload,
           ) ||
             isWorkflowConflict(
               tableResult.tableName,
               existingPayload,
-              sanitizedPayload,
+              pulledPayload,
             ));
 
-        if (localPendingChange || protectedFieldConflict) {
+        if (
+          protectedFieldConflict ||
+          versionBasedConflict ||
+          (localPendingChange &&
+            registryItem.conflictPolicy !== SyncConflictPolicy.VersionBased)
+        ) {
           const markConflictResult = await localDatasource.markRecordConflict({
             registryItem,
             recordRemoteId: change.recordRemoteId,
@@ -515,7 +594,7 @@ export const createSyncRepository = (
             recordRemoteId: change.recordRemoteId,
             accountRemoteId: scope.accountRemoteId,
             localPayloadJson: JSON.stringify(existingPayload),
-            remotePayloadJson: JSON.stringify(sanitizedPayload),
+            remotePayloadJson: JSON.stringify(pulledPayload),
             conflictPolicy: registryItem.conflictPolicy,
           });
           if (!conflictResult.success) {
@@ -528,14 +607,15 @@ export const createSyncRepository = (
 
         const isDeleteOperation =
           change.operation === SyncOperation.Delete ||
-          typeof sanitizedPayload.deleted_at === "number";
+          typeof pulledPayload.deleted_at === "number";
 
         if (isDeleteOperation) {
-          const tombstoneResult = await localDatasource.tombstoneRecord(
+          const tombstoneResult = await localDatasource.tombstoneRecord({
             registryItem,
-            change.recordRemoteId,
-            Number(sanitizedPayload.deleted_at ?? change.changedAt),
-          );
+            recordRemoteId: change.recordRemoteId,
+            accountRemoteId: scope.accountRemoteId,
+            deletedAt: Number(pulledPayload.deleted_at ?? change.changedAt),
+          });
           if (!tombstoneResult.success) {
             tableFailed = true;
             summary.failedCount += 1;
@@ -543,11 +623,12 @@ export const createSyncRepository = (
           }
           summary.appliedCount += 1;
         } else {
-          const upsertResult = await localDatasource.upsertPulledRecord(
+          const upsertResult = await localDatasource.upsertPulledRecord({
             registryItem,
-            change.recordRemoteId,
-            sanitizedPayload,
-          );
+            recordRemoteId: change.recordRemoteId,
+            accountRemoteId: scope.accountRemoteId,
+            payload: pulledPayload,
+          });
           if (!upsertResult.success) {
             tableFailed = true;
             summary.failedCount += 1;

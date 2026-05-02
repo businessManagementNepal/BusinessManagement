@@ -10,6 +10,7 @@ export const accountMembersTable = tableSchema({
     { name: "invited_by_user_remote_id", type: "string", isOptional: true },
     { name: "joined_at", type: "number", isOptional: true },
     { name: "last_active_at", type: "number", isOptional: true },
+    { name: "server_revision", type: "string", isOptional: true },
     { name: "sync_status", type: "string", isIndexed: true },
     { name: "last_synced_at", type: "number", isOptional: true },
     { name: "deleted_at", type: "number", isOptional: true },

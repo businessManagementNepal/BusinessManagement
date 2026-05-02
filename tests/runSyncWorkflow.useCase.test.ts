@@ -6,8 +6,7 @@ const input = {
   deviceId: "device-1",
   ownerUserRemoteId: "user-1",
   accountRemoteId: "account-1",
-  schemaVersion: 45,
-  syncEnabled: true,
+  schemaVersion: 49,
   activeUserRemoteId: "user-1",
   activeAccountRemoteId: "account-1",
 };
@@ -59,6 +58,12 @@ describe("runSyncWorkflow use case", () => {
     const useCase = createRunSyncWorkflowUseCase({
       syncRunRepository: syncRunRepository as never,
       syncLock: createSyncLock(),
+      getSyncFeatureFlagUseCase: {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: { syncEnabled: true },
+        })),
+      } as never,
     });
 
     const result = await useCase.execute(input);
@@ -86,6 +91,12 @@ describe("runSyncWorkflow use case", () => {
     const useCase = createRunSyncWorkflowUseCase({
       syncRunRepository: {} as never,
       syncLock: lock,
+      getSyncFeatureFlagUseCase: {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: { syncEnabled: true },
+        })),
+      } as never,
     });
 
     const result = await useCase.execute(input);

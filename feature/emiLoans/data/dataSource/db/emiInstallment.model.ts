@@ -12,6 +12,7 @@ export class EmiInstallmentModel extends Model {
   @field("due_at") dueAt!: number;
   @field("status") status!: EmiInstallmentStatusValue;
   @field("paid_at") paidAt!: number | null;
+  @field("server_revision") serverRevision!: string | null;
 
   @readonly
   @date("created_at")

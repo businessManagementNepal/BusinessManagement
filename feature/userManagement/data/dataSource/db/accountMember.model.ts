@@ -12,6 +12,7 @@ export class AccountMemberModel extends Model {
   invitedByUserRemoteId!: string | null;
   @field("joined_at") joinedAt!: number | null;
   @field("last_active_at") lastActiveAt!: number | null;
+  @field("server_revision") serverRevision!: string | null;
 
   @field("sync_status")
   recordSyncStatus!:

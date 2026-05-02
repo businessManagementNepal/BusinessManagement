@@ -14,10 +14,13 @@ export class MoneyAccountModel extends Model {
   @field("name") name!: string;
   @field("account_type") accountType!: MoneyAccountTypeValue;
   @field("current_balance") currentBalance!: number;
+  @field("opening_balance_amount") openingBalanceAmount!: number | null;
+  @field("opening_balance_direction") openingBalanceDirection!: string | null;
   @field("description") description!: string | null;
   @field("currency_code") currencyCode!: string | null;
   @field("is_primary") isPrimary!: boolean;
   @field("is_active") isActive!: boolean;
+  @field("server_revision") serverRevision!: string | null;
 
   @field("sync_status")
   recordSyncStatus!: MoneyAccountSyncStatusValue;

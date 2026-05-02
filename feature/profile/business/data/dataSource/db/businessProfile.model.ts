@@ -22,6 +22,7 @@ export class BusinessProfileModel extends Model {
   @field("timezone") timezone!: string;
   @field("phone_policy") phonePolicy!: string;
   @field("is_active") isActive!: boolean;
+  @field("server_revision") serverRevision!: string | null;
 
   @field("sync_status")
   recordSyncStatus!:

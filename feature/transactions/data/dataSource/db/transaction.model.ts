@@ -33,6 +33,7 @@ export class TransactionModel extends Model {
   @field("idempotency_key") idempotencyKey!: string | null;
   @field("posting_status") postingStatus!: TransactionPostingStatusValue;
   @field("contact_remote_id") contactRemoteId!: string | null;
+  @field("server_revision") serverRevision!: string | null;
 
   @field("sync_status") recordSyncStatus!: TransactionSyncStatusValue;
   @field("last_synced_at") lastSyncedAt!: number | null;

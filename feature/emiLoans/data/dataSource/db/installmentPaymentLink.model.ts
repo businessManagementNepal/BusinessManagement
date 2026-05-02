@@ -15,6 +15,7 @@ export class InstallmentPaymentLinkModel extends Model {
   @field("payment_record_remote_id") paymentRecordRemoteId!: string;
   @field("payment_direction") paymentDirection!: EmiPaymentDirectionValue;
   @field("amount") amount!: number;
+  @field("server_revision") serverRevision!: string | null;
 
   @readonly
   @date("created_at")

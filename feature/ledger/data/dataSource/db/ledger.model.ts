@@ -37,6 +37,7 @@ export class LedgerEntryModel extends Model {
   @field("settlement_account_remote_id") settlementAccountRemoteId!: string | null;
   @field("settlement_account_display_name_snapshot")
   settlementAccountDisplayNameSnapshot!: string | null;
+  @field("server_revision") serverRevision!: string | null;
 
   @field("sync_status") recordSyncStatus!: LedgerEntrySyncStatusValue;
   @field("last_synced_at") lastSyncedAt!: number | null;

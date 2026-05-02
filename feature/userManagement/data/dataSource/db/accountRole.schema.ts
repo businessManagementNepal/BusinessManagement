@@ -8,6 +8,7 @@ export const accountRolesTable = tableSchema({
     { name: "name", type: "string" },
     { name: "is_system", type: "boolean" },
     { name: "is_default", type: "boolean" },
+    { name: "server_revision", type: "string", isOptional: true },
 
     { name: "sync_status", type: "string", isIndexed: true },
     { name: "last_synced_at", type: "number", isOptional: true },

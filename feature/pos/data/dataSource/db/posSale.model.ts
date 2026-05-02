@@ -32,6 +32,7 @@ export class PosSaleModel extends Model {
   postedTransactionRemoteIdsJson!: string;
   @field("last_error_type") lastErrorType!: string | null;
   @field("last_error_message") lastErrorMessage!: string | null;
+  @field("server_revision") serverRevision!: string | null;
   @field("sync_status") recordSyncStatus!: RecordSyncStatusValue;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

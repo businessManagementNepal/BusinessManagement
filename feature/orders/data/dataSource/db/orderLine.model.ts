@@ -19,6 +19,7 @@ export class OrderLineModel extends Model {
   @field("line_tax_amount") lineTaxAmount!: number | null;
   @field("line_total_amount") lineTotalAmount!: number | null;
   @field("line_order") lineOrder!: number;
+  @field("server_revision") serverRevision!: string | null;
   @field("sync_status") recordSyncStatus!: string;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

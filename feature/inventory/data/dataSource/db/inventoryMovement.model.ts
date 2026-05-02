@@ -24,6 +24,7 @@ export class InventoryMovementModel extends Model {
   @field("source_line_remote_id") sourceLineRemoteId!: string | null;
   @field("source_action") sourceAction!: string | null;
   @field("movement_at") movementAt!: number;
+  @field("server_revision") serverRevision!: string | null;
   @field("sync_status") recordSyncStatus!: string;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

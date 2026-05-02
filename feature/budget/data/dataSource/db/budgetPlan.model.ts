@@ -14,6 +14,7 @@ export class BudgetPlanModel extends Model {
   @field("currency_code") currencyCode!: string | null;
   @field("planned_amount") plannedAmount!: number;
   @field("note") note!: string | null;
+  @field("server_revision") serverRevision!: string | null;
 
   @field("sync_status")
   recordSyncStatus!: BudgetSyncStatusValue;

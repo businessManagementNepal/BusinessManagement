@@ -7,6 +7,7 @@ export class AccountUserRoleModel extends Model {
   @field("account_remote_id") accountRemoteId!: string;
   @field("user_remote_id") userRemoteId!: string;
   @field("role_remote_id") roleRemoteId!: string;
+  @field("server_revision") serverRevision!: string | null;
 
   @readonly
   @date("created_at")

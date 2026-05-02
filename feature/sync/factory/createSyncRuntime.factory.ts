@@ -8,9 +8,13 @@ import { createRecalculateStockProjectionUseCase } from "@/feature/inventory/use
 import { syncLock } from "@/shared/sync/runtime/syncLock";
 import { Database } from "@nozbe/watermelondb";
 import { createLocalSyncLocalDatasource } from "../data/dataSource/local.syncLocal.datasource.impl";
+import { createLocalSyncFeatureFlagDatasource } from "../data/dataSource/local.syncFeatureFlag.datasource.impl";
 import type { SyncRemoteDatasource } from "../data/dataSource/syncRemote.datasource";
 import { createSyncRepository } from "../data/repository/sync.repository.impl";
+import { createSyncFeatureFlagRepository } from "../data/repository/syncFeatureFlag.repository.impl";
 import type { GetSyncStatusUseCase } from "../useCase/getSyncStatus.useCase";
+import type { GetSyncFeatureFlagUseCase } from "../useCase/getSyncFeatureFlag.useCase";
+import { createGetSyncFeatureFlagUseCase } from "../useCase/getSyncFeatureFlag.useCase.impl";
 import { createGetSyncStatusUseCase } from "../useCase/getSyncStatus.useCase.impl";
 import type { ApplyPulledChangesUseCase } from "../useCase/applyPulledChanges.useCase";
 import { createApplyPulledChangesUseCase } from "../useCase/applyPulledChanges.useCase.impl";
@@ -25,6 +29,7 @@ import type { RunSyncWorkflowUseCase } from "../workflow/syncRun/useCase/runSync
 import { createRunSyncWorkflowUseCase } from "../workflow/syncRun/useCase/runSyncWorkflow.useCase.impl";
 
 export type SyncRuntime = {
+  getSyncFeatureFlagUseCase: GetSyncFeatureFlagUseCase;
   getSyncStatusUseCase: GetSyncStatusUseCase;
   pushPendingChangesUseCase: PushPendingChangesUseCase;
   pullRemoteChangesUseCase: PullRemoteChangesUseCase;
@@ -44,7 +49,12 @@ export const createSyncRuntime: CreateSyncRuntime = (
 ) => {
   const localDatasource = createLocalSyncLocalDatasource(database);
   const syncRepository = createSyncRepository(localDatasource, remoteDatasource);
+  const syncFeatureFlagDatasource = createLocalSyncFeatureFlagDatasource(database);
+  const syncFeatureFlagRepository =
+    createSyncFeatureFlagRepository(syncFeatureFlagDatasource);
 
+  const getSyncFeatureFlagUseCase =
+    createGetSyncFeatureFlagUseCase(syncFeatureFlagRepository);
   const getSyncStatusUseCase = createGetSyncStatusUseCase(syncRepository);
   const pushPendingChangesUseCase =
     createPushPendingChangesUseCase(syncRepository);
@@ -84,9 +94,11 @@ export const createSyncRuntime: CreateSyncRuntime = (
   const runSyncWorkflowUseCase = createRunSyncWorkflowUseCase({
     syncRunRepository,
     syncLock,
+    getSyncFeatureFlagUseCase,
   });
 
   return {
+    getSyncFeatureFlagUseCase,
     getSyncStatusUseCase,
     pushPendingChangesUseCase,
     pullRemoteChangesUseCase,

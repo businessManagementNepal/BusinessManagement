@@ -18,6 +18,7 @@ export const orderLinesTable = tableSchema({
     { name: "line_tax_amount", type: "number", isOptional: true },
     { name: "line_total_amount", type: "number", isOptional: true },
     { name: "line_order", type: "number", isIndexed: true },
+    { name: "server_revision", type: "string", isOptional: true },
     { name: "sync_status", type: "string", isIndexed: true },
     { name: "last_synced_at", type: "number", isOptional: true },
     { name: "deleted_at", type: "number", isOptional: true },

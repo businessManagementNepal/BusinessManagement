@@ -26,6 +26,7 @@ export const ledgerEntriesTable = tableSchema({
     { name: "linked_transaction_remote_id", type: "string", isOptional: true, isIndexed: true },
     { name: "settlement_account_remote_id", type: "string", isOptional: true, isIndexed: true },
     { name: "settlement_account_display_name_snapshot", type: "string", isOptional: true },
+    { name: "server_revision", type: "string", isOptional: true },
     { name: "sync_status", type: "string", isIndexed: true },
     { name: "last_synced_at", type: "number", isOptional: true },
     { name: "deleted_at", type: "number", isOptional: true },

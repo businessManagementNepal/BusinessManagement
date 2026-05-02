@@ -38,6 +38,7 @@ const SYNC_RUNS_TABLE = "sync_runs";
 const SYNC_ERRORS_TABLE = "sync_errors";
 const SYNC_CONFLICTS_TABLE = "sync_conflicts";
 const SYNC_OUTBOX_TABLE = "sync_outbox";
+const SERVER_REVISION_COLUMN = "server_revision";
 
 const SQL_IDENTIFIER_REGEX = /^[a-z_]+$/;
 
@@ -339,27 +340,41 @@ export const createLocalSyncLocalDatasource = (
   const updateBusinessRecordSyncState = async (
     registryItem: SyncRegistryItem,
     recordRemoteId: string,
+    accountRemoteId: string,
     nextStatus: string,
     lastSyncedAt: number | null,
+    serverRevision?: string | null,
   ): Promise<void> => {
-    if (!registryItem.syncStatusField) {
-      return;
-    }
-
     const columns = await getTableColumns(registryItem.tableName);
-    if (!columns.has(registryItem.syncStatusField)) {
+    const existing = await getDirectRecordByRemoteId(
+      registryItem,
+      recordRemoteId,
+      accountRemoteId,
+    );
+
+    if (!existing?.id) {
       return;
     }
 
-    const lookup = buildRecordLookupClause(registryItem, recordRemoteId);
-    const updates: string[] = [
-      `${quoteIdentifier(registryItem.syncStatusField)} = ?`,
-    ];
-    const args: SqlPrimitive[] = [nextStatus];
+    const updates: string[] = [];
+    const args: SqlPrimitive[] = [];
 
-    if (registryItem.lastSyncedAtField && columns.has(registryItem.lastSyncedAtField)) {
+    if (registryItem.syncStatusField && columns.has(registryItem.syncStatusField)) {
+      updates.push(`${quoteIdentifier(registryItem.syncStatusField)} = ?`);
+      args.push(nextStatus);
+    }
+
+    if (
+      registryItem.lastSyncedAtField &&
+      columns.has(registryItem.lastSyncedAtField)
+    ) {
       updates.push(`${quoteIdentifier(registryItem.lastSyncedAtField)} = ?`);
       args.push(lastSyncedAt);
+    }
+
+    if (columns.has(SERVER_REVISION_COLUMN) && typeof serverRevision === "string") {
+      updates.push(`${quoteIdentifier(SERVER_REVISION_COLUMN)} = ?`);
+      args.push(serverRevision);
     }
 
     if (columns.has("updated_at")) {
@@ -367,13 +382,16 @@ export const createLocalSyncLocalDatasource = (
       args.push(Date.now());
     }
 
-    args.push(...lookup.args);
+    if (updates.length === 0) {
+      return;
+    }
+    args.push(existing.id);
 
     await executeSql([
       [
         `UPDATE ${quoteIdentifier(registryItem.tableName)} SET ${updates.join(
           ", ",
-        )} WHERE ${lookup.clause}`,
+        )} WHERE ${quoteIdentifier("id")} = ?`,
         args,
       ],
     ]);
@@ -629,11 +647,12 @@ export const createLocalSyncLocalDatasource = (
       }
     },
 
-    async upsertPulledRecord(
+    async upsertPulledRecord({
       registryItem,
       recordRemoteId,
+      accountRemoteId,
       payload,
-    ): Promise<Result<SyncRawRecord>> {
+    }): Promise<Result<SyncRawRecord>> {
       try {
         const columns = await getTableColumns(registryItem.tableName);
         const sanitizedPayload = Object.fromEntries(
@@ -672,12 +691,7 @@ export const createLocalSyncLocalDatasource = (
         const existing = await getDirectRecordByRemoteId(
           registryItem,
           recordRemoteId,
-          toNullableString(
-            payload.account_remote_id ??
-              payload.business_account_remote_id ??
-              payload.scope_account_remote_id ??
-              payload.account_remote_id,
-          ) ?? "",
+          accountRemoteId,
         );
 
         if (existing?.id) {
@@ -715,12 +729,6 @@ export const createLocalSyncLocalDatasource = (
           ]);
         }
 
-        const accountRemoteId =
-          toNullableString(
-            payload.account_remote_id ??
-              payload.business_account_remote_id ??
-              payload.scope_account_remote_id,
-          ) ?? "";
         const refreshed = await getDirectRecordByRemoteId(
           registryItem,
           recordRemoteId,
@@ -745,17 +753,26 @@ export const createLocalSyncLocalDatasource = (
       }
     },
 
-    async tombstoneRecord(
+    async tombstoneRecord({
       registryItem,
       recordRemoteId,
+      accountRemoteId,
       deletedAt,
-    ): Promise<Result<boolean>> {
+    }): Promise<Result<boolean>> {
       try {
         if (!registryItem.deletedAtField) {
           return { success: true, value: true };
         }
 
-        const lookup = buildRecordLookupClause(registryItem, recordRemoteId);
+        const existing = await getDirectRecordByRemoteId(
+          registryItem,
+          recordRemoteId,
+          accountRemoteId,
+        );
+        if (!existing?.id) {
+          return { success: true, value: true };
+        }
+
         const updates = [
           `${quoteIdentifier(registryItem.deletedAtField)} = ?`,
           registryItem.syncStatusField
@@ -774,13 +791,13 @@ export const createLocalSyncLocalDatasource = (
         if (registryItem.lastSyncedAtField) {
           args.push(Date.now());
         }
-        args.push(Date.now(), ...lookup.args);
+        args.push(Date.now(), existing.id);
 
         await executeSql([
           [
             `UPDATE ${quoteIdentifier(registryItem.tableName)} SET ${updates.join(
               ", ",
-            )} WHERE ${lookup.clause}`,
+            )} WHERE ${quoteIdentifier("id")} = ?`,
             args,
           ],
         ]);
@@ -865,8 +882,10 @@ export const createLocalSyncLocalDatasource = (
         await updateBusinessRecordSyncState(
           input.registryItem,
           input.recordRemoteId,
+          input.accountRemoteId,
           SyncStatus.Syncing,
           input.lastSyncedAt ?? null,
+          input.serverRevision,
         );
         await updateOutboxState({
           tableName: input.registryItem.tableName,
@@ -889,8 +908,10 @@ export const createLocalSyncLocalDatasource = (
         await updateBusinessRecordSyncState(
           input.registryItem,
           input.recordRemoteId,
+          input.accountRemoteId,
           SyncStatus.Synced,
           input.lastSyncedAt ?? Date.now(),
+          input.serverRevision,
         );
         await updateOutboxState({
           tableName: input.registryItem.tableName,
@@ -913,8 +934,10 @@ export const createLocalSyncLocalDatasource = (
         await updateBusinessRecordSyncState(
           input.registryItem,
           input.recordRemoteId,
+          input.accountRemoteId,
           legacyFailureStatus,
           input.lastSyncedAt ?? null,
+          input.serverRevision,
         );
         await updateOutboxState({
           tableName: input.registryItem.tableName,
@@ -937,8 +960,10 @@ export const createLocalSyncLocalDatasource = (
         await updateBusinessRecordSyncState(
           input.registryItem,
           input.recordRemoteId,
+          input.accountRemoteId,
           SyncStatus.Conflict,
           input.lastSyncedAt ?? null,
+          input.serverRevision,
         );
         await updateOutboxState({
           tableName: input.registryItem.tableName,

@@ -20,6 +20,7 @@ export const businessProfilesTable = tableSchema({
     { name: "timezone", type: "string" },
     { name: "phone_policy", type: "string" },
     { name: "is_active", type: "boolean" },
+    { name: "server_revision", type: "string", isOptional: true },
 
     { name: "sync_status", type: "string", isIndexed: true },
     { name: "last_synced_at", type: "number", isOptional: true },

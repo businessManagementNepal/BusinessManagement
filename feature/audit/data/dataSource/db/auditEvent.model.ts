@@ -22,6 +22,7 @@ export class AuditEventModel extends Model {
   @field("severity") severity!: AuditSeverityValue;
   @field("summary") summary!: string;
   @field("metadata_json") metadataJson!: string | null;
+  @field("server_revision") serverRevision!: string | null;
   @field("sync_status") recordSyncStatus!: "pending" | "synced" | "failed";
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

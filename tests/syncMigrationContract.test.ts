@@ -25,8 +25,8 @@ const getMigrationDefinitions = (): readonly MigrationDefinition[] => {
 };
 
 describe("sync migration contract", () => {
-  it("advances the schema to version 46", () => {
-    expect(APP_DATABASE_SCHEMA_VERSION).toBe(46);
+  it("advances the schema to version 49", () => {
+    expect(APP_DATABASE_SCHEMA_VERSION).toBe(49);
   });
 
   it("creates all sync infrastructure tables in migration 45", () => {
@@ -50,5 +50,43 @@ describe("sync migration contract", () => {
         "sync_outbox",
       ]),
     );
+  });
+
+  it("adds money account opening balance fields in migration 47", () => {
+    const migration47 = getMigrationDefinitions().find(
+      (definition) => definition.toVersion === 47,
+    );
+
+    expect(migration47).toBeDefined();
+    const serializedSteps = JSON.stringify(migration47?.steps ?? []);
+    expect(serializedSteps).toContain("opening_balance_amount");
+    expect(serializedSteps).toContain("opening_balance_direction");
+    expect(serializedSteps).toContain("UPDATE money_accounts");
+  });
+
+  it("adds server_revision coverage in migration 48", () => {
+    const migration48 = getMigrationDefinitions().find(
+      (definition) => definition.toVersion === 48,
+    );
+
+    expect(migration48).toBeDefined();
+    const serializedSteps = JSON.stringify(migration48?.steps ?? []);
+    expect(serializedSteps).toContain('"table":"contacts"');
+    expect(serializedSteps).toContain('"table":"money_accounts"');
+    expect(serializedSteps).toContain('"table":"orders"');
+    expect(serializedSteps).toContain('"table":"bill_photos"');
+    expect(serializedSteps).toContain("server_revision");
+  });
+
+  it("adds sync_enabled to app_settings in migration 49", () => {
+    const migration49 = getMigrationDefinitions().find(
+      (definition) => definition.toVersion === 49,
+    );
+
+    expect(migration49).toBeDefined();
+    const serializedSteps = JSON.stringify(migration49?.steps ?? []);
+    expect(serializedSteps).toContain('"table":"app_settings"');
+    expect(serializedSteps).toContain("sync_enabled");
+    expect(serializedSteps).toContain("UPDATE app_settings");
   });
 });

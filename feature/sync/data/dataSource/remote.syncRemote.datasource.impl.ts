@@ -5,12 +5,14 @@ import {
   PushChangesRequestDto,
   PushChangesResponseDto,
 } from "../../types/sync.dto.types";
+import { SyncAuthHeaderAdapter } from "../adapter/syncAuthHeader.adapter";
 import { SyncRemoteDatasource } from "./syncRemote.datasource";
 
 type FetchLike = typeof fetch;
 
-type CreateRemoteSyncRemoteDatasourceParams = {
+export type CreateRemoteSyncRemoteDatasourceParams = {
   apiBaseUrl: string;
+  authHeaderAdapter: SyncAuthHeaderAdapter;
   fetchFn?: FetchLike;
 };
 
@@ -26,17 +28,21 @@ const postJson = async <TRequest, TResponse>({
   apiBaseUrl,
   endpoint,
   body,
+  authHeaderAdapter,
   fetchFn,
 }: {
   apiBaseUrl: string;
   endpoint: string;
   body: TRequest;
+  authHeaderAdapter: SyncAuthHeaderAdapter;
   fetchFn: FetchLike;
 }): Promise<TResponse> => {
+  const authHeaders = await authHeaderAdapter.getAuthHeaders();
   const response = await fetchFn(`${apiBaseUrl}${endpoint}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders,
     },
     body: JSON.stringify(body),
   });
@@ -50,6 +56,7 @@ const postJson = async <TRequest, TResponse>({
 
 export const createRemoteSyncRemoteDatasource = ({
   apiBaseUrl,
+  authHeaderAdapter,
   fetchFn = fetch,
 }: CreateRemoteSyncRemoteDatasourceParams): SyncRemoteDatasource => {
   const normalizedApiBaseUrl = normalizeApiBaseUrl(apiBaseUrl);
@@ -60,6 +67,7 @@ export const createRemoteSyncRemoteDatasource = ({
         apiBaseUrl: normalizedApiBaseUrl,
         endpoint: SYNC_PUSH_ENDPOINT,
         body: input,
+        authHeaderAdapter,
         fetchFn,
       });
     },
@@ -69,6 +77,7 @@ export const createRemoteSyncRemoteDatasource = ({
         apiBaseUrl: normalizedApiBaseUrl,
         endpoint: SYNC_PULL_ENDPOINT,
         body: input,
+        authHeaderAdapter,
         fetchFn,
       });
     },

@@ -6,6 +6,7 @@ export class AccountRolePermissionModel extends Model {
 
   @field("role_remote_id") roleRemoteId!: string;
   @field("permission_code") permissionCode!: string;
+  @field("server_revision") serverRevision!: string | null;
 
   @readonly
   @date("created_at")

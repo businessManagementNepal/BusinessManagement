@@ -1,10 +1,12 @@
 import { SyncLock } from "@/shared/sync/runtime/syncLock";
+import { GetSyncFeatureFlagUseCase } from "@/feature/sync/useCase/getSyncFeatureFlag.useCase";
 import { RunSyncWorkflowUseCase } from "./runSyncWorkflow.useCase";
 import { SyncRunRepository } from "../repository/syncRun.repository";
 
 type CreateRunSyncWorkflowUseCaseParams = {
   syncRunRepository: SyncRunRepository;
   syncLock: SyncLock;
+  getSyncFeatureFlagUseCase: GetSyncFeatureFlagUseCase;
 };
 
 const createValidationError = (message: string): Error => new Error(message);
@@ -12,6 +14,7 @@ const createValidationError = (message: string): Error => new Error(message);
 export const createRunSyncWorkflowUseCase = ({
   syncRunRepository,
   syncLock,
+  getSyncFeatureFlagUseCase,
 }: CreateRunSyncWorkflowUseCaseParams): RunSyncWorkflowUseCase => ({
   async execute(input) {
     if (!input.ownerUserRemoteId.trim()) {
@@ -44,7 +47,15 @@ export const createRunSyncWorkflowUseCase = ({
       };
     }
 
-    if (!input.syncEnabled) {
+    const syncFeatureFlagResult = await getSyncFeatureFlagUseCase.execute();
+    if (!syncFeatureFlagResult.success) {
+      return {
+        success: false,
+        error: syncFeatureFlagResult.error,
+      };
+    }
+
+    if (!syncFeatureFlagResult.value.syncEnabled) {
       return {
         success: false,
         error: createValidationError("Sync is disabled for this context."),

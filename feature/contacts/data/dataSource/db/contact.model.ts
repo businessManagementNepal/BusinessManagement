@@ -25,6 +25,7 @@ export class ContactModel extends Model {
   openingBalanceDirection!: ContactBalanceDirectionValue | null;
   @field("notes") notes!: string | null;
   @field("is_archived") isArchived!: boolean;
+  @field("server_revision") serverRevision!: string | null;
   @field("sync_status") recordSyncStatus!: string;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

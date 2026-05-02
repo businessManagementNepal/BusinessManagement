@@ -22,6 +22,7 @@ export class ProductModel extends Model {
   @field("description") description!: string | null;
   @field("image_url") imageUrl!: string | null;
   @field("status") status!: ProductStatusValue;
+  @field("server_revision") serverRevision!: string | null;
   @field("sync_status") recordSyncStatus!: string;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

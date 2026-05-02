@@ -25,6 +25,7 @@ export class OrderModel extends Model {
   linkedBillingDocumentRemoteId!: string | null;
   @field("linked_ledger_due_entry_remote_id")
   linkedLedgerDueEntryRemoteId!: string | null;
+  @field("server_revision") serverRevision!: string | null;
   @field("sync_status") recordSyncStatus!: string;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

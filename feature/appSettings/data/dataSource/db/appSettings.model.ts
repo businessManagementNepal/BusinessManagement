@@ -19,6 +19,7 @@ export class AppSettingsModel extends Model {
   @field("appearance_compact_mode_enabled") appearanceCompactModeEnabled!:
     | boolean
     | null;
+  @field("sync_enabled") syncEnabled!: boolean | null;
 
   @readonly
   @date("created_at")

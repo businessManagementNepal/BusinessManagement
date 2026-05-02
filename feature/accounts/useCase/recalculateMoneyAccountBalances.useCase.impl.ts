@@ -27,7 +27,14 @@ export const createRecalculateMoneyAccountBalancesUseCase = (
     }
 
     const balancesByRemoteId: Record<string, number> = Object.fromEntries(
-      accountsResult.value.map((account) => [account.remoteId, 0]),
+      accountsResult.value.map((account) => {
+        const openingBalance =
+          account.openingBalanceDirection === "out"
+            ? -Math.abs(account.openingBalanceAmount ?? 0)
+            : Math.abs(account.openingBalanceAmount ?? 0);
+
+        return [account.remoteId, roundToCurrencyScale(openingBalance)];
+      }),
     );
 
     for (const transaction of transactionsResult.value) {

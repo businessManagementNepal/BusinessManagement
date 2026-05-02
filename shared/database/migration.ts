@@ -1264,5 +1264,146 @@ export const migrations = schemaMigrations({
         ),
       ],
     },
+    {
+      toVersion: 47,
+      steps: [
+        addColumns({
+          table: "money_accounts",
+          columns: [
+            {
+              name: "opening_balance_amount",
+              type: "number",
+              isOptional: true,
+            },
+            {
+              name: "opening_balance_direction",
+              type: "string",
+              isOptional: true,
+            },
+          ],
+        }),
+        unsafeExecuteSql(`
+          UPDATE money_accounts
+          SET opening_balance_amount = current_balance,
+              opening_balance_direction =
+                CASE
+                  WHEN current_balance < 0 THEN 'out'
+                  ELSE 'in'
+                END
+          WHERE opening_balance_amount IS NULL;
+        `),
+      ],
+    },
+    {
+      toVersion: 48,
+      steps: [
+        addColumns({
+          table: "accounts",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "business_profiles",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "account_members",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "account_roles",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "account_role_permissions",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "account_user_roles",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "contacts",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "money_accounts",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "products",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "inventory_movements",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "billing_documents",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "billing_document_items",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "ledger_entries",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "transactions",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "orders",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "order_lines",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "pos_sales",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "emi_plans",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "emi_installments",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "installment_payment_links",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "budget_plans",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "audit_events",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+        addColumns({
+          table: "bill_photos",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+      ],
+    },
+    {
+      toVersion: 49,
+      steps: [
+        addColumns({
+          table: "app_settings",
+          columns: [{ name: "sync_enabled", type: "boolean", isOptional: true }],
+        }),
+        unsafeExecuteSql(`
+          UPDATE app_settings
+          SET sync_enabled = 0
+          WHERE sync_enabled IS NULL;
+        `),
+      ],
+    },
     ],
 });

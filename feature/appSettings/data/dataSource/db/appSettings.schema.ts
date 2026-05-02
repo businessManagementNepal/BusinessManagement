@@ -30,6 +30,7 @@ export const appSettingsTable = tableSchema({
       type: "boolean",
       isOptional: true,
     },
+    { name: "sync_enabled", type: "boolean", isOptional: true },
     { name: "created_at", type: "number" },
     { name: "updated_at", type: "number" },
   ],

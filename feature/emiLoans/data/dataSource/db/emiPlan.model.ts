@@ -33,6 +33,7 @@ export class EmiPlanModel extends Model {
   @field("reminder_days_before") reminderDaysBefore!: number | null;
   @field("note") note!: string | null;
   @field("status") status!: EmiPlanStatusValue;
+  @field("server_revision") serverRevision!: string | null;
   @field("sync_status") recordSyncStatus!: EmiSyncStatusValue;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

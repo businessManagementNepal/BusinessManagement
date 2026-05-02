@@ -10,6 +10,7 @@ export const billPhotosTable = tableSchema({
     { name: "mime_type", type: "string", isOptional: true },
     { name: "image_data_url", type: "string" },
     { name: "uploaded_at", type: "number", isIndexed: true },
+    { name: "server_revision", type: "string", isOptional: true },
     { name: "sync_status", type: "string", isIndexed: true },
     { name: "last_synced_at", type: "number", isOptional: true },
     { name: "deleted_at", type: "number", isOptional: true },

@@ -19,6 +19,7 @@ export const inventoryMovementsTable = tableSchema({
     { name: "source_line_remote_id", type: "string", isOptional: true, isIndexed: true },
     { name: "source_action", type: "string", isOptional: true, isIndexed: true },
     { name: "movement_at", type: "number", isIndexed: true },
+    { name: "server_revision", type: "string", isOptional: true },
     { name: "sync_status", type: "string", isIndexed: true },
     { name: "last_synced_at", type: "number", isOptional: true },
     { name: "deleted_at", type: "number", isOptional: true },

@@ -31,6 +31,7 @@ export const ordersTable = tableSchema({
       isOptional: true,
       isIndexed: true,
     },
+    { name: "server_revision", type: "string", isOptional: true },
     { name: "sync_status", type: "string", isIndexed: true },
     { name: "last_synced_at", type: "number", isOptional: true },
     { name: "deleted_at", type: "number", isOptional: true },

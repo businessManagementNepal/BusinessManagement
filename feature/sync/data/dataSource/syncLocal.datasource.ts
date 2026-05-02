@@ -24,6 +24,7 @@ export type UpdateSyncRecordStateInput = {
   recordRemoteId: string;
   accountRemoteId: string;
   lastSyncedAt?: number | null;
+  serverRevision?: string | null;
   errorMessage?: string | null;
 };
 
@@ -93,17 +94,19 @@ export interface SyncLocalDatasource {
     accountRemoteId: string,
   ): Promise<Result<SyncRawRecord | null>>;
 
-  upsertPulledRecord(
-    registryItem: SyncRegistryItem,
-    recordRemoteId: string,
-    payload: Record<string, unknown>,
-  ): Promise<Result<SyncRawRecord>>;
+  upsertPulledRecord(input: {
+    registryItem: SyncRegistryItem;
+    recordRemoteId: string;
+    accountRemoteId: string;
+    payload: Record<string, unknown>;
+  }): Promise<Result<SyncRawRecord>>;
 
-  tombstoneRecord(
-    registryItem: SyncRegistryItem,
-    recordRemoteId: string,
-    deletedAt: number,
-  ): Promise<Result<boolean>>;
+  tombstoneRecord(input: {
+    registryItem: SyncRegistryItem;
+    recordRemoteId: string;
+    accountRemoteId: string;
+    deletedAt: number;
+  }): Promise<Result<boolean>>;
 
   queueOutboxRecord(
     input: QueueOutboxRecordInput,

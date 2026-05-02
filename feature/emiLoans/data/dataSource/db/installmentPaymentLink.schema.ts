@@ -10,6 +10,7 @@ export const installmentPaymentLinksTable = tableSchema({
     { name: "payment_record_remote_id", type: "string", isIndexed: true },
     { name: "payment_direction", type: "string", isIndexed: true },
     { name: "amount", type: "number" },
+    { name: "server_revision", type: "string", isOptional: true },
     { name: "created_at", type: "number" },
     { name: "updated_at", type: "number" },
   ],
