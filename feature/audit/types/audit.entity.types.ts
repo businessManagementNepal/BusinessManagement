@@ -2,6 +2,7 @@ import type { Result } from "@/shared/types/result.types";
 
 export const AuditModule = {
   Sync: "sync",
+  Settings: "settings",
   Transactions: "transactions",
   Pos: "pos",
   Billing: "billing",

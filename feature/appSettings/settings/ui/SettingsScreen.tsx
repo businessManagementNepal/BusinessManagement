@@ -29,7 +29,6 @@ import { SettingsRowId, SettingsViewModel } from "../viewModel/settings.viewMode
 import { ChangePasswordModal } from "./components/ChangePasswordModal";
 import { ExportDataModal } from "./components/ExportDataModal";
 import { HelpFaqModal } from "./components/HelpFaqModal";
-import { ImportDataModal } from "./components/ImportDataModal";
 import { RateELekhaModal } from "./components/RateELekhaModal";
 import { RegionalFinanceModal } from "./components/RegionalFinanceModal";
 import { ReportBugModal } from "./components/ReportBugModal";
@@ -39,6 +38,7 @@ import { TermsPrivacyModal } from "./components/TermsPrivacyModal";
 type SettingsScreenProps = {
   viewModel: SettingsViewModel;
   onBack: () => void;
+  importDataFlow?: React.ReactNode;
 };
 
 const getIcon = (
@@ -75,7 +75,11 @@ const getIcon = (
   }
 };
 
-export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
+export function SettingsScreen({
+  viewModel,
+  onBack,
+  importDataFlow,
+}: SettingsScreenProps) {
   const theme = useAppTheme();
   const styles = React.useMemo(
     () =>
@@ -324,16 +328,7 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
         onSubmit={viewModel.onSubmitExportData}
       />
 
-      <ImportDataModal
-        visible={viewModel.activeModal === SettingsModal.ImportData}
-        subtitle={viewModel.importDataModalSubtitle}
-        unavailableMessage={viewModel.importDataUnavailableMessage}
-        moduleOptions={viewModel.importDataModuleOptions}
-        isImporting={viewModel.isImportingData}
-        errorMessage={viewModel.errorMessage}
-        onClose={viewModel.onCloseModal}
-        onImportModule={viewModel.onImportDataModule}
-      />
+      {importDataFlow}
 
       <SecurityModal
         visible={viewModel.activeModal === SettingsModal.Security}

@@ -105,10 +105,11 @@ export function ExportDataModal({
         },
         formatRow: {
           flexDirection: "row",
-          gap: theme.scaleSpace(spacing.sm),
+          flexWrap: "wrap",
+          gap: theme.scaleSpace(spacing.xs),
           backgroundColor: theme.colors.secondary,
           padding: 3,
-          borderRadius: radius.pill,
+          borderRadius: radius.lg,
           borderWidth: 1,
           borderColor: theme.colors.border,
         },
@@ -191,8 +192,18 @@ export function ExportDataModal({
             onPress={() => onChangeFormat(SettingsDataTransferFormat.Csv)}
           />
           <FormatToggleButton
+            active={format === SettingsDataTransferFormat.Excel}
+            label="Excel"
+            onPress={() => onChangeFormat(SettingsDataTransferFormat.Excel)}
+          />
+          <FormatToggleButton
+            active={format === SettingsDataTransferFormat.Pdf}
+            label="PDF"
+            onPress={() => onChangeFormat(SettingsDataTransferFormat.Pdf)}
+          />
+          <FormatToggleButton
             active={format === SettingsDataTransferFormat.Json}
-            label="JSON"
+            label="JSON Backup"
             onPress={() => onChangeFormat(SettingsDataTransferFormat.Json)}
           />
         </View>

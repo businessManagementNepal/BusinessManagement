@@ -1,6 +1,42 @@
 import { Result } from "@/shared/types/result.types";
 import { TaxMode, TaxModeValue } from "@/shared/types/regionalFinance.types";
-import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import {
+  IMPORTABLE_SETTINGS_DATA_TRANSFER_MODULES,
+  SETTINGS_DATA_TRANSFER_MODULE_OPTIONS,
+  SettingsDataTransferFormat,
+  SettingsDataTransferModule,
+  type ExportSettingsDataBundlePayload,
+  type ImportSettingsDataBundlePayload,
+  type SettingsDataExportSummary,
+  type SettingsDataImportSummary,
+  type SettingsDataTransferBundle,
+  type SettingsDataTransferFormatValue,
+  type SettingsDataTransferModuleOption,
+  type SettingsDataTransferModuleValue,
+  type SettingsDataTransferTable,
+  type SettingsDataTransferTableColumn,
+  type SettingsDataTransferModuleData,
+} from "@/feature/appSettings/dataTransfer/types/dataTransfer.types";
+
+export {
+  IMPORTABLE_SETTINGS_DATA_TRANSFER_MODULES,
+  SETTINGS_DATA_TRANSFER_MODULE_OPTIONS,
+  SettingsDataTransferFormat,
+  SettingsDataTransferModule,
+};
+export type {
+  ExportSettingsDataBundlePayload,
+  ImportSettingsDataBundlePayload,
+  SettingsDataExportSummary,
+  SettingsDataImportSummary,
+  SettingsDataTransferBundle,
+  SettingsDataTransferFormatValue,
+  SettingsDataTransferModuleData,
+  SettingsDataTransferModuleOption,
+  SettingsDataTransferModuleValue,
+  SettingsDataTransferTable,
+  SettingsDataTransferTableColumn,
+};
 
 export const SettingsModal = {
   None: "none",
@@ -18,94 +54,6 @@ export const SettingsModal = {
 
 export type SettingsModalValue =
   (typeof SettingsModal)[keyof typeof SettingsModal];
-
-export const SettingsDataTransferFormat = {
-  Csv: "csv",
-  Json: "json",
-} as const;
-
-export type SettingsDataTransferFormatValue =
-  (typeof SettingsDataTransferFormat)[keyof typeof SettingsDataTransferFormat];
-
-export const SettingsDataTransferModule = {
-  Transactions: "transactions",
-  Products: "products",
-  Contacts: "contacts",
-  Orders: "orders",
-  Budgets: "budgets",
-  Ledger: "ledger",
-  EmiLoans: "emi_loans",
-  Accounts: "accounts",
-} as const;
-
-export type SettingsDataTransferModuleValue =
-  (typeof SettingsDataTransferModule)[keyof typeof SettingsDataTransferModule];
-
-export type SettingsDataTransferModuleOption = {
-  id: SettingsDataTransferModuleValue;
-  label: string;
-  description?: string;
-  disabled?: boolean;
-  statusLabel?: string;
-};
-
-export const SETTINGS_DATA_TRANSFER_MODULE_OPTIONS: readonly SettingsDataTransferModuleOption[] =
-  [
-    { id: SettingsDataTransferModule.Transactions, label: "Transactions" },
-    { id: SettingsDataTransferModule.Products, label: "Products" },
-    { id: SettingsDataTransferModule.Contacts, label: "Contacts" },
-    { id: SettingsDataTransferModule.Orders, label: "Orders" },
-    { id: SettingsDataTransferModule.Budgets, label: "Budgets" },
-    { id: SettingsDataTransferModule.Ledger, label: "Ledger" },
-    { id: SettingsDataTransferModule.EmiLoans, label: "EMI & Loans" },
-    { id: SettingsDataTransferModule.Accounts, label: "Accounts" },
-  ] as const;
-
-export type SettingsDataTransferTableColumn = {
-  name: string;
-  type: "string" | "number" | "boolean";
-};
-
-export type SettingsDataTransferTable = {
-  tableName: string;
-  columns: readonly SettingsDataTransferTableColumn[];
-  rows: readonly Record<string, unknown>[];
-};
-
-export type SettingsDataTransferModuleData = {
-  moduleId: SettingsDataTransferModuleValue;
-  label: string;
-  tables: readonly SettingsDataTransferTable[];
-};
-
-export type SettingsDataTransferBundle = {
-  version: 1;
-  exportedAt: number;
-  modules: readonly SettingsDataTransferModuleData[];
-};
-
-export type ExportSettingsDataBundlePayload = {
-  moduleIds: readonly SettingsDataTransferModuleValue[];
-  activeAccountRemoteId: string;
-  activeAccountType: AccountTypeValue;
-};
-
-export type ImportSettingsDataBundlePayload = {
-  moduleId: SettingsDataTransferModuleValue;
-  tables: readonly SettingsDataTransferTable[];
-};
-
-export type SettingsDataImportSummary = {
-  moduleId: SettingsDataTransferModuleValue;
-  importedRowCount: number;
-  skippedRowCount: number;
-};
-
-export type SettingsDataExportSummary = {
-  fileName: string;
-  exportedModuleCount: number;
-  exportedRowCount: number;
-};
 
 export const BugSeverity = {
   Low: "low",

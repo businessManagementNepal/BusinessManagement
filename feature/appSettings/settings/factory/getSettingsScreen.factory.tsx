@@ -1,5 +1,6 @@
 import { createLocalAppearanceDatasource } from "@/feature/appSettings/appearance/data/dataSource/local.appearance.datasource.impl";
 import { createAppearanceRepository } from "@/feature/appSettings/appearance/data/repository/appearance.repository.impl";
+import { GetImportDataFlowFactory } from "@/feature/appSettings/dataTransfer/import/factory/getImportDataFlow.factory";
 import { createGetAppearancePreferencesUseCase } from "@/feature/appSettings/appearance/useCase/getAppearancePreferences.useCase.impl";
 import { createSaveAppearancePreferencesUseCase } from "@/feature/appSettings/appearance/useCase/saveAppearancePreferences.useCase.impl";
 import { createLocalSettingsDatasource } from "@/feature/appSettings/settings/data/dataSource/local.settings.datasource.impl";
@@ -24,6 +25,11 @@ import { createPasswordHashService } from "@/shared/utils/auth/passwordHash.serv
 import appDatabase from "@/shared/database/appDatabase";
 import React from "react";
 import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import {
+  SETTINGS_OWNER_ADMIN_REQUIRED_MESSAGE,
+  SETTINGS_PERMISSION_LOADING_MESSAGE,
+} from "../constants/settings.constants";
 
 type GetSettingsScreenFactoryProps = {
   activeUserRemoteId: string | null;
@@ -44,6 +50,26 @@ export function GetSettingsScreenFactory({
   isSensitiveSettingsAccessLoading,
   onBack,
 }: GetSettingsScreenFactoryProps) {
+  const sensitiveAccessGuard = React.useCallback((): string | null => {
+    if (activeAccountType !== AccountType.Business) {
+      return null;
+    }
+
+    if (isSensitiveSettingsAccessLoading) {
+      return SETTINGS_PERMISSION_LOADING_MESSAGE;
+    }
+
+    if (!canManageSensitiveSettings) {
+      return SETTINGS_OWNER_ADMIN_REQUIRED_MESSAGE;
+    }
+
+    return null;
+  }, [
+    activeAccountType,
+    canManageSensitiveSettings,
+    isSensitiveSettingsAccessLoading,
+  ]);
+
   const appearanceDatasource = React.useMemo(
     () => createLocalAppearanceDatasource(appDatabase),
     [],
@@ -121,8 +147,12 @@ export function GetSettingsScreenFactory({
     [settingsRepository],
   );
   const exportSettingsDataUseCase = React.useMemo(
-    () => createExportSettingsDataUseCase(settingsRepository),
-    [settingsRepository],
+    () =>
+      createExportSettingsDataUseCase({
+        settingsRepository,
+        ensureSensitiveAccess: sensitiveAccessGuard,
+      }),
+    [sensitiveAccessGuard, settingsRepository],
   );
   const importSettingsDataUseCase = React.useMemo(
     () => createImportSettingsDataUseCase(settingsRepository),
@@ -158,5 +188,22 @@ export function GetSettingsScreenFactory({
     saveAccountUseCase,
   });
 
-  return <SettingsScreen viewModel={viewModel} onBack={onBack} />;
+  return (
+    <SettingsScreen
+      viewModel={viewModel}
+      onBack={onBack}
+      importDataFlow={
+        <GetImportDataFlowFactory
+          visible={viewModel.activeModal === "import_data"}
+          activeUserRemoteId={activeUserRemoteId ?? ""}
+          activeAccountRemoteId={activeAccountRemoteId ?? ""}
+          activeAccountType={activeAccountType}
+          activeAccountDisplayName={activeAccountDisplayName}
+          canManageSensitiveSettings={canManageSensitiveSettings}
+          isSensitiveSettingsAccessLoading={isSensitiveSettingsAccessLoading}
+          onClose={viewModel.onCloseModal}
+        />
+      }
+    />
+  );
 }

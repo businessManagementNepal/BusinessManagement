@@ -67,4 +67,22 @@ describe("database migration contract", () => {
     expect(migration43.toVersion).toBe(43);
     expect(auditCreateStep).toBeDefined();
   });
+
+  it("contains import job tables at version 46", () => {
+    const migration46 = getMigrationByVersion(46);
+    const importJobsCreateStep = migration46.steps.find((step) => {
+      const stepType = (step as { type?: unknown }).type;
+      const tableName = (step as { table?: unknown }).table;
+      return stepType === "create_table" && tableName === "import_jobs";
+    });
+    const importJobRowsCreateStep = migration46.steps.find((step) => {
+      const stepType = (step as { type?: unknown }).type;
+      const tableName = (step as { table?: unknown }).table;
+      return stepType === "create_table" && tableName === "import_job_rows";
+    });
+
+    expect(migration46.toVersion).toBe(46);
+    expect(importJobsCreateStep).toBeDefined();
+    expect(importJobRowsCreateStep).toBeDefined();
+  });
 });

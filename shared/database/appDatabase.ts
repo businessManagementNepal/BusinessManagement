@@ -2,6 +2,7 @@ import { moneyAccountDbConfig } from "@/feature/accounts/data/dataSource/db/mone
 import { ensureAppSettingsAppearanceColumns } from "@/feature/appSettings/data/appSettings.store";
 import { AppSettingsModel } from "@/feature/appSettings/data/dataSource/db/appSettings.model";
 import { appSettingsDbConfig } from "@/feature/appSettings/data/dataSource/db/appSettingsDbConfig";
+import { importAuditDbConfig } from "@/feature/appSettings/dataTransfer/import/audit/data/dataSource/db/importAuditDbConfig";
 import { businessNotesDbConfig } from "@/feature/appSettings/notes/data/dataSource/db/businessNoteDbConfig";
 import { appRatingDbConfig } from "@/feature/appSettings/settings/data/dataSource/db/appRatingDbConfig";
 import { bugReportDbConfig } from "@/feature/appSettings/settings/data/dataSource/db/bugReportDbConfig";
@@ -61,6 +62,7 @@ const schema = appSchema({
     ...budgetPlanDbConfig.tables,
     ...appRatingDbConfig.tables,
     ...bugReportDbConfig.tables,
+    ...importAuditDbConfig.tables,
     ...auditDbConfig.tables,
     ...syncDbConfig.tables,
   ],
@@ -90,6 +92,7 @@ export const database = createDatabase({
     ...budgetPlanDbConfig.models,
     ...appRatingDbConfig.models,
     ...bugReportDbConfig.models,
+    ...importAuditDbConfig.models,
     ...auditDbConfig.models,
     ...syncDbConfig.models,
   ],

@@ -22,9 +22,9 @@ export const SETTINGS_BIOMETRIC_COMING_SOON_MESSAGE = "Coming soon.";
 export const SETTINGS_TWO_FACTOR_AUTH_AVAILABLE = false;
 export const SETTINGS_TWO_FACTOR_COMING_SOON_MESSAGE = "Coming soon.";
 
-export const SETTINGS_IMPORT_AVAILABLE = false;
+export const SETTINGS_IMPORT_AVAILABLE = true;
 export const SETTINGS_IMPORT_DISABLED_MESSAGE =
-  "Data import is disabled in v1 to protect live business data. Safe scoped import with validation, preview, and rollback is coming soon.";
+  "Only Products, Contacts, and Money Accounts are available for safe import in v1. Transactions, Orders, Ledger, EMI, and other relation-heavy modules remain protected until their full data-transfer workflows are ready.";
 
 export const SETTINGS_SUPPORT_EMAIL = "support@e-lekha.com";
 

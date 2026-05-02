@@ -1,17 +1,15 @@
-import * as FileSystem from "expo-file-system/legacy";
-import * as Sharing from "expo-sharing";
-import { Platform } from "react-native";
-import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
-import { SettingsRepository } from "../data/repository/settings.repository";
+import { SettingsRepository } from "@/feature/appSettings/settings/data/repository/settings.repository";
 import {
-  SettingsDataTransferBundle,
   SettingsDataTransferFormat,
   SettingsValidationError,
-} from "../types/settings.types";
-import {
-  ExportSettingsDataPayload,
-  ExportSettingsDataUseCase,
-} from "./exportSettingsData.useCase";
+} from "@/feature/appSettings/settings/types/settings.types";
+import { buildBusinessExportBundle } from "@/feature/appSettings/dataTransfer/export/useCase/exportBusinessBundle.shared";
+import { createExportCsvUseCase } from "@/feature/appSettings/dataTransfer/export/useCase/exportCsv.useCase";
+import { createExportDataBundleUseCase } from "@/feature/appSettings/dataTransfer/export/useCase/exportDataBundle.useCase";
+import { createExportExcelUseCase } from "@/feature/appSettings/dataTransfer/export/useCase/exportExcel.useCase";
+import { saveExportFile } from "@/feature/appSettings/dataTransfer/export/useCase/exportFile.shared";
+import { createExportPdfUseCase } from "@/feature/appSettings/dataTransfer/export/useCase/exportPdf.useCase";
+import { ExportSettingsDataPayload, ExportSettingsDataUseCase } from "./exportSettingsData.useCase";
 
 const buildFileStamp = (timestamp: number): string => {
   const date = new Date(timestamp);
@@ -24,58 +22,9 @@ const buildFileStamp = (timestamp: number): string => {
   )}`;
 };
 
-const escapeCsvValue = (value: unknown): string => {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  const normalized = String(value).replace(/\r?\n/g, "\\n");
-  if (
-    normalized.includes(",") ||
-    normalized.includes("\"") ||
-    normalized.includes("\n")
-  ) {
-    return `"${normalized.replace(/"/g, "\"\"")}"`;
-  }
-
-  return normalized;
-};
-
-const toCsvLine = (values: readonly unknown[]): string => {
-  return values.map((value) => escapeCsvValue(value)).join(",");
-};
-
-const toCsvContent = (bundle: SettingsDataTransferBundle): string => {
-  const lines: string[] = [
-    `# e_lekha_export_version=${bundle.version}`,
-    `# exported_at=${new Date(bundle.exportedAt).toISOString()}`,
-    "",
-  ];
-
-  for (const moduleItem of bundle.modules) {
-    for (const table of moduleItem.tables) {
-      lines.push(`# module_id=${moduleItem.moduleId}`);
-      lines.push(`# table=${table.tableName}`);
-      lines.push(toCsvLine(table.columns.map((column) => column.name)));
-
-      for (const row of table.rows) {
-        lines.push(
-          toCsvLine(table.columns.map((column) => row[column.name] ?? "")),
-        );
-      }
-
-      lines.push("");
-    }
-  }
-
-  return lines.join("\n");
-};
-
-const toJsonContent = (bundle: SettingsDataTransferBundle): string => {
-  return JSON.stringify(bundle, null, 2);
-};
-
-const countExportedRows = (bundle: SettingsDataTransferBundle): number => {
+const countExportedRows = (
+  bundle: import("@/feature/appSettings/dataTransfer/types/dataTransfer.types").SettingsDataTransferBundle,
+): number => {
   return bundle.modules.reduce((moduleTotal, moduleItem) => {
     const moduleRowCount = moduleItem.tables.reduce((tableTotal, table) => {
       return tableTotal + table.rows.length;
@@ -85,184 +34,163 @@ const countExportedRows = (bundle: SettingsDataTransferBundle): number => {
   }, 0);
 };
 
-const downloadOnWeb = async (
-  fileName: string,
-  content: string,
-  mimeType: string,
-): Promise<void> => {
-  if (typeof document === "undefined") {
-    throw new Error("Web export is unavailable on this platform.");
+type CreateExportSettingsDataUseCaseParams =
+  | SettingsRepository
+  | {
+      settingsRepository: SettingsRepository;
+      ensureSensitiveAccess?: () => string | null;
+    };
+
+const resolveParams = (
+  params: CreateExportSettingsDataUseCaseParams,
+): {
+  settingsRepository: SettingsRepository;
+  ensureSensitiveAccess: () => string | null;
+} => {
+  if ("exportDataBundle" in params) {
+    return {
+      settingsRepository: params,
+      ensureSensitiveAccess: () => null,
+    };
   }
 
-  const blob = new Blob([content], { type: mimeType });
-  const objectUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = objectUrl;
-  anchor.download = fileName;
-  anchor.style.display = "none";
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(objectUrl);
-};
-
-const saveToAndroidLocalDirectory = async (
-  fileName: string,
-  content: string,
-  mimeType: string,
-): Promise<boolean> => {
-  const initialDownloadsUri =
-    FileSystem.StorageAccessFramework.getUriForDirectoryInRoot("Download");
-  const directoryPermission =
-    await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
-      initialDownloadsUri,
-    );
-
-  if (!directoryPermission.granted) {
-    return false;
-  }
-
-  const targetFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-    directoryPermission.directoryUri,
-    fileName,
-    mimeType,
-  );
-
-  await FileSystem.StorageAccessFramework.writeAsStringAsync(
-    targetFileUri,
-    content,
-    {
-      encoding: FileSystem.EncodingType.UTF8,
-    },
-  );
-
-  return true;
+  return {
+    settingsRepository: params.settingsRepository,
+    ensureSensitiveAccess: params.ensureSensitiveAccess ?? (() => null),
+  };
 };
 
 export const createExportSettingsDataUseCase = (
-  settingsRepository: SettingsRepository,
-): ExportSettingsDataUseCase => ({
-  async execute(payload: ExportSettingsDataPayload) {
-    const activeUserRemoteId = payload.activeUserRemoteId.trim();
-    const activeAccountRemoteId = payload.activeAccountRemoteId.trim();
-    const moduleIds = [...new Set(payload.moduleIds)];
+  params: CreateExportSettingsDataUseCaseParams,
+): ExportSettingsDataUseCase => {
+  const { settingsRepository, ensureSensitiveAccess } = resolveParams(params);
+  const exportBundleUseCase = createExportDataBundleUseCase({
+    settingsRepository,
+    ensureSensitiveAccess,
+  });
+  const exportCsvUseCase = createExportCsvUseCase();
+  const exportExcelUseCase = createExportExcelUseCase();
+  const exportPdfUseCase = createExportPdfUseCase();
 
-    if (!activeUserRemoteId) {
-      return {
-        success: false,
-        error: SettingsValidationError("An active user is required to export data."),
-      };
-    }
+  return {
+    async execute(payload: ExportSettingsDataPayload) {
+      const bundleResult = await exportBundleUseCase.execute({
+        activeUserRemoteId: payload.activeUserRemoteId,
+        activeAccountRemoteId: payload.activeAccountRemoteId,
+        activeAccountType: payload.activeAccountType,
+        moduleIds: payload.moduleIds,
+      });
 
-    if (!activeAccountRemoteId) {
-      return {
-        success: false,
-        error: SettingsValidationError("An active account is required to export data."),
-      };
-    }
+      if (!bundleResult.success) {
+        return {
+          success: false,
+          error: SettingsValidationError(bundleResult.error.message),
+        };
+      }
 
-    if (
-      payload.activeAccountType !== AccountType.Business &&
-      payload.activeAccountType !== AccountType.Personal
-    ) {
-      return {
-        success: false,
-        error: SettingsValidationError("The active account type is invalid."),
-      };
-    }
+      const timestamp = Date.now();
+      const fileStamp = buildFileStamp(timestamp);
+      const exportedModuleCount = bundleResult.value.modules.length;
+      const exportedRowCount = countExportedRows(bundleResult.value);
 
-    if (moduleIds.length === 0) {
-      return {
-        success: false,
-        error: SettingsValidationError("Select at least one data group to export."),
-      };
-    }
-
-    const bundleResult = await settingsRepository.exportDataBundle({
-      moduleIds,
-      activeAccountRemoteId,
-      activeAccountType: payload.activeAccountType,
-    });
-
-    if (!bundleResult.success) {
-      return bundleResult;
-    }
-
-    const timestamp = Date.now();
-    const fileStamp = buildFileStamp(timestamp);
-    const extension =
-      payload.format === SettingsDataTransferFormat.Csv ? "csv" : "json";
-    const fileName = `elekha-export-${fileStamp}.${extension}`;
-    const content =
-      payload.format === SettingsDataTransferFormat.Csv
-        ? toCsvContent(bundleResult.value)
-        : toJsonContent(bundleResult.value);
-    const mimeType =
-      payload.format === SettingsDataTransferFormat.Csv
-        ? "text/csv"
-        : "application/json";
-
-    try {
-      if (Platform.OS === "web") {
-        await downloadOnWeb(fileName, content, mimeType);
-      } else if (Platform.OS === "android") {
-        const savedToLocalDirectory = await saveToAndroidLocalDirectory(
+      if (payload.format === SettingsDataTransferFormat.Json) {
+        const fileName = `elekha-backup-${fileStamp}.json`;
+        const jsonResult = await saveExportFile({
           fileName,
-          content,
-          mimeType,
-        );
-
-        if (!savedToLocalDirectory) {
-          return {
-            success: false,
-            error: SettingsValidationError(
-              "Downloads folder access is required to save on device. Please allow access and select Downloads.",
-            ),
-          };
-        }
-      } else {
-        const writableDirectory =
-          FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
-        if (!writableDirectory) {
-          return {
-            success: false,
-            error: SettingsValidationError(
-              "Unable to access local storage for export.",
-            ),
-          };
-        }
-
-        const outputUri = `${writableDirectory}${fileName}`;
-        await FileSystem.writeAsStringAsync(outputUri, content, {
-          encoding: FileSystem.EncodingType.UTF8,
+          mimeType: "application/json",
+          content: {
+            kind: "text",
+            value: JSON.stringify(bundleResult.value, null, 2),
+          },
+          dialogTitle: "Export Data",
+          uti: "public.json",
         });
 
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(outputUri, {
-            mimeType,
-            dialogTitle: "Export Data",
-            UTI: payload.format === SettingsDataTransferFormat.Csv ? "public.comma-separated-values-text" : "public.json",
-          });
+        if (!jsonResult.success) {
+          return {
+            success: false,
+            error: SettingsValidationError(jsonResult.error.message),
+          };
         }
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: SettingsValidationError(
-          error instanceof Error
-            ? error.message
-            : "Unable to export the selected data.",
-        ),
-      };
-    }
 
-    return {
-      success: true,
-      value: {
+        return {
+          success: true,
+          value: {
+            fileName,
+            exportedModuleCount,
+            exportedRowCount,
+          },
+        };
+      }
+
+      const businessBundle = buildBusinessExportBundle(bundleResult.value);
+
+      if (payload.format === SettingsDataTransferFormat.Csv) {
+        const fileName = `elekha-export-${fileStamp}.csv`;
+        const exportResult = await exportCsvUseCase.execute({
+          bundle: businessBundle,
+          fileName,
+        });
+        if (!exportResult.success) {
+          return {
+            success: false,
+            error: SettingsValidationError(exportResult.error.message),
+          };
+        }
+
+        return {
+          success: true,
+          value: {
+            fileName,
+            exportedModuleCount,
+            exportedRowCount,
+          },
+        };
+      }
+
+      if (payload.format === SettingsDataTransferFormat.Excel) {
+        const fileName = `elekha-export-${fileStamp}.xlsx`;
+        const exportResult = await exportExcelUseCase.execute({
+          bundle: businessBundle,
+          fileName,
+        });
+        if (!exportResult.success) {
+          return {
+            success: false,
+            error: SettingsValidationError(exportResult.error.message),
+          };
+        }
+
+        return {
+          success: true,
+          value: {
+            fileName,
+            exportedModuleCount,
+            exportedRowCount,
+          },
+        };
+      }
+
+      const fileName = `elekha-export-${fileStamp}.pdf`;
+      const exportResult = await exportPdfUseCase.execute({
+        bundle: businessBundle,
         fileName,
-        exportedModuleCount: bundleResult.value.modules.length,
-        exportedRowCount: countExportedRows(bundleResult.value),
-      },
-    };
-  },
-});
+      });
+      if (!exportResult.success) {
+        return {
+          success: false,
+          error: SettingsValidationError(exportResult.error.message),
+        };
+      }
+
+      return {
+        success: true,
+        value: {
+          fileName,
+          exportedModuleCount,
+          exportedRowCount,
+        },
+      };
+    },
+  };
+};

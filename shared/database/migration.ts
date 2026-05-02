@@ -1198,5 +1198,71 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 46,
+      steps: [
+        Object.assign(
+          createTable({
+            name: "import_jobs",
+            columns: [
+              { name: "remote_id", type: "string", isIndexed: true },
+              {
+                name: "active_account_remote_id",
+                type: "string",
+                isIndexed: true,
+              },
+              {
+                name: "active_user_remote_id",
+                type: "string",
+                isIndexed: true,
+              },
+              { name: "module_id", type: "string", isIndexed: true },
+              { name: "file_name", type: "string" },
+              { name: "file_format", type: "string", isIndexed: true },
+              { name: "status", type: "string", isIndexed: true },
+              { name: "import_mode", type: "string", isIndexed: true },
+              { name: "total_rows", type: "number" },
+              { name: "valid_rows", type: "number" },
+              { name: "invalid_rows", type: "number" },
+              { name: "duplicate_rows", type: "number" },
+              { name: "imported_rows", type: "number" },
+              { name: "skipped_rows", type: "number" },
+              { name: "failed_rows", type: "number" },
+              { name: "created_at", type: "number", isIndexed: true },
+              { name: "updated_at", type: "number" },
+              { name: "completed_at", type: "number", isOptional: true },
+            ],
+          }),
+          { table: "import_jobs" },
+        ),
+        Object.assign(
+          createTable({
+            name: "import_job_rows",
+            columns: [
+              { name: "remote_id", type: "string", isIndexed: true },
+              {
+                name: "import_job_remote_id",
+                type: "string",
+                isIndexed: true,
+              },
+              { name: "row_number", type: "number", isIndexed: true },
+              { name: "status", type: "string", isIndexed: true },
+              { name: "raw_json", type: "string" },
+              { name: "normalized_json", type: "string", isOptional: true },
+              { name: "error_json", type: "string", isOptional: true },
+              { name: "warning_json", type: "string", isOptional: true },
+              {
+                name: "created_record_remote_id",
+                type: "string",
+                isOptional: true,
+              },
+              { name: "created_at", type: "number" },
+              { name: "updated_at", type: "number" },
+            ],
+          }),
+          { table: "import_job_rows" },
+        ),
+      ],
+    },
     ],
 });

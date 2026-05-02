@@ -25,8 +25,8 @@ const getMigrationDefinitions = (): readonly MigrationDefinition[] => {
 };
 
 describe("sync migration contract", () => {
-  it("advances the schema to version 45", () => {
-    expect(APP_DATABASE_SCHEMA_VERSION).toBe(45);
+  it("advances the schema to version 46", () => {
+    expect(APP_DATABASE_SCHEMA_VERSION).toBe(46);
   });
 
   it("creates all sync infrastructure tables in migration 45", () => {

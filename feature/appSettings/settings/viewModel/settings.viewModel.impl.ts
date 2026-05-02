@@ -29,6 +29,7 @@ import {
   SETTINGS_TWO_FACTOR_COMING_SOON_MESSAGE,
 } from "@/feature/appSettings/settings/constants/settings.constants";
 import {
+  IMPORTABLE_SETTINGS_DATA_TRANSFER_MODULES,
   BUG_SEVERITY_OPTIONS,
   BugSeverity,
   SETTINGS_DATA_TRANSFER_MODULE_OPTIONS,
@@ -109,12 +110,12 @@ const SETTINGS_SECTIONS: readonly SettingsSection[] = [
       {
         id: "exportData",
         title: "Export Data",
-        subtitle: "Download business data as CSV or JSON",
+        subtitle: "Download business data as CSV, Excel, PDF, or JSON backup",
       },
       {
         id: "importData",
         title: "Import Data",
-        subtitle: "Upload CSV or JSON into your business",
+        subtitle: "Import validated CSV or Excel files with preview",
       },
     ],
   },
@@ -522,11 +523,21 @@ export const useSettingsViewModel = ({
     () =>
       SETTINGS_DATA_TRANSFER_MODULE_OPTIONS.map((moduleOption) => ({
         ...moduleOption,
-        disabled: !SETTINGS_IMPORT_AVAILABLE,
-        statusLabel: !SETTINGS_IMPORT_AVAILABLE ? "Coming soon." : undefined,
-        description: !SETTINGS_IMPORT_AVAILABLE
-          ? SETTINGS_IMPORT_DISABLED_MESSAGE
-          : moduleOption.description,
+        disabled:
+          !SETTINGS_IMPORT_AVAILABLE ||
+          !IMPORTABLE_SETTINGS_DATA_TRANSFER_MODULES.includes(moduleOption.id),
+        statusLabel:
+          !IMPORTABLE_SETTINGS_DATA_TRANSFER_MODULES.includes(moduleOption.id)
+            ? "Protected."
+            : !SETTINGS_IMPORT_AVAILABLE
+              ? "Coming soon."
+              : undefined,
+        description:
+          !IMPORTABLE_SETTINGS_DATA_TRANSFER_MODULES.includes(moduleOption.id)
+            ? SETTINGS_IMPORT_DISABLED_MESSAGE
+            : !SETTINGS_IMPORT_AVAILABLE
+              ? SETTINGS_IMPORT_DISABLED_MESSAGE
+              : moduleOption.description,
       })),
     [],
   );
@@ -1159,8 +1170,10 @@ export const useSettingsViewModel = ({
       exportDataModalSubtitle: activeAccountDisplayName.trim()
         ? `Only data from ${activeAccountDisplayName.trim()} will be exported. Other accounts are excluded.`
         : "Only data from the active account will be exported. Other accounts are excluded.",
-      importDataModalSubtitle: SETTINGS_IMPORT_DISABLED_MESSAGE,
-      importDataUnavailableMessage: SETTINGS_IMPORT_DISABLED_MESSAGE,
+      importDataModalSubtitle:
+        "Preview always runs before confirm, and imported rows only write through existing domain workflows.",
+      importDataUnavailableMessage:
+        "Only Products, Contacts, and Money Accounts are available for safe import in v1.",
       activeAccountType,
       onOpenAppearance,
       onOpenRegionalFinance,
