@@ -1,6 +1,7 @@
 import type { Result } from "@/shared/types/result.types";
 
 export const AuditModule = {
+  Sync: "sync",
   Transactions: "transactions",
   Pos: "pos",
   Billing: "billing",

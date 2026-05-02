@@ -1,0 +1,28 @@
+export const syncDependencyOrder = [
+  "accounts",
+  "business_profiles",
+  "account_members",
+  "account_roles",
+  "account_role_permissions",
+  "account_user_roles",
+  "categories",
+  "contacts",
+  "money_accounts",
+  "products",
+  "inventory_movements",
+  "billing_documents",
+  "billing_document_items",
+  "ledger_entries",
+  "transactions",
+  "orders",
+  "order_lines",
+  "pos_sales",
+  "emi_plans",
+  "emi_installments",
+  "installment_payment_links",
+  "budget_plans",
+  "business_notes",
+  "audit_events",
+] as const;
+
+export type SyncDependencyTableName = (typeof syncDependencyOrder)[number];

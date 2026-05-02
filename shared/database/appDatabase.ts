@@ -21,6 +21,7 @@ import { productDbConfig } from "@/feature/products/data/dataSource/db/productDb
 import { businessProfileDbConfig } from "@/feature/profile/business/data/dataSource/db/businessProfileDbConfig";
 import { authCredentialDbConfig } from "@/feature/session/data/dataSource/db/authCredentialDbConfig";
 import { authUserDbConfig } from "@/feature/session/data/dataSource/db/authUserDbConfig";
+import { syncDbConfig } from "@/feature/sync/data/dataSource/db/syncDbConfig";
 import { transactionDbConfig } from "@/feature/transactions/data/dataSource/db/transactionDbConfig";
 import { userManagementDbConfig } from "@/feature/userManagement/data/dataSource/db/userManagementDbConfig";
 import {
@@ -61,6 +62,7 @@ const schema = appSchema({
     ...appRatingDbConfig.tables,
     ...bugReportDbConfig.tables,
     ...auditDbConfig.tables,
+    ...syncDbConfig.tables,
   ],
 });
 
@@ -89,6 +91,7 @@ export const database = createDatabase({
     ...appRatingDbConfig.models,
     ...bugReportDbConfig.models,
     ...auditDbConfig.models,
+    ...syncDbConfig.models,
   ],
   migrations,
 });
