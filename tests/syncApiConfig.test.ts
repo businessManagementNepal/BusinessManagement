@@ -49,4 +49,24 @@ describe("sync api config", () => {
       buildApiUrl("https://api.elekha.app/", "/api/v1/sync/push"),
     ).toBe("https://api.elekha.app/api/v1/sync/push");
   });
+
+  it("derives the development API origin from the Expo host URI when unset", () => {
+    expect(
+      resolveApiBaseUrl({
+        apiBaseUrl: "",
+        mode: "development",
+        developmentHostUri: "192.168.18.50:8081",
+      }),
+    ).toBe("http://192.168.18.50:8000");
+  });
+
+  it("falls back to the static localhost development origin when no host URI exists", () => {
+    expect(
+      resolveApiBaseUrl({
+        apiBaseUrl: "",
+        mode: "development",
+        developmentHostUri: "",
+      }),
+    ).toBe("http://127.0.0.1:8000");
+  });
 });

@@ -4,6 +4,8 @@ import { SyncConflictModel } from "./syncConflict.model";
 import { syncConflictsTable } from "./syncConflict.schema";
 import { SyncErrorModel } from "./syncError.model";
 import { syncErrorsTable } from "./syncError.schema";
+import { SyncIdentityBindingModel } from "./syncIdentityBinding.model";
+import { syncIdentityBindingsTable } from "./syncIdentityBinding.schema";
 import { SyncOutboxModel } from "./syncOutbox.model";
 import { syncOutboxTable } from "./syncOutbox.schema";
 import { SyncRunModel } from "./syncRun.model";
@@ -16,6 +18,7 @@ export const syncDbConfig = {
     SyncErrorModel,
     SyncConflictModel,
     SyncOutboxModel,
+    SyncIdentityBindingModel,
   ],
   tables: [
     syncCheckpointsTable,
@@ -23,5 +26,6 @@ export const syncDbConfig = {
     syncErrorsTable,
     syncConflictsTable,
     syncOutboxTable,
+    syncIdentityBindingsTable,
   ],
 };

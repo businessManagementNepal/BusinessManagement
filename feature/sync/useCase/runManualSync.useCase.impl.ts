@@ -1,4 +1,5 @@
 import { GetAccountByRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccountByRemoteId.useCase";
+import { RemoteSyncIdentityService } from "@/feature/sync/auth/remoteSyncIdentity.service";
 import { createAuthenticationRequiredError } from "@/shared/network/networkError";
 import { SYNC_BACKEND_AUTH_REQUIRED_MESSAGE } from "@/shared/sync/constants/sync.constants";
 import { RunSyncWorkflowUseCase } from "../workflow/syncRun/useCase/runSyncWorkflow.useCase";
@@ -12,6 +13,7 @@ type CreateRunManualSyncUseCaseParams = {
   getAccountByRemoteIdUseCase: GetAccountByRemoteIdUseCase;
   getAccessToken: () => Promise<string | null>;
   getDeviceId: () => Promise<string>;
+  remoteSyncIdentityService: RemoteSyncIdentityService;
   runSyncWorkflowUseCase: RunSyncWorkflowUseCase;
   schemaVersion: number;
 };
@@ -32,6 +34,7 @@ export const createRunManualSyncUseCase = ({
   getAccountByRemoteIdUseCase,
   getAccessToken,
   getDeviceId,
+  remoteSyncIdentityService,
   runSyncWorkflowUseCase,
   schemaVersion,
 }: CreateRunManualSyncUseCaseParams): RunManualSyncUseCase => ({
@@ -81,11 +84,38 @@ export const createRunManualSyncUseCase = ({
         };
       }
 
+      const accountBindingResult =
+        await remoteSyncIdentityService.ensureRemoteBusinessAccountBinding({
+          localUserRemoteId: activeUserRemoteId,
+          localAccount: accountResult.value,
+        });
+      if (!accountBindingResult.success) {
+        return {
+          success: false,
+          error: accountBindingResult.error,
+        };
+      }
+
       const deviceId = await getDeviceId();
+      const remoteAccountSelectionResult =
+        await remoteSyncIdentityService.selectRemoteAccount({
+          localAccountRemoteId: activeAccountRemoteId,
+          deviceId,
+        });
+      if (!remoteAccountSelectionResult.success) {
+        return {
+          success: false,
+          error: remoteAccountSelectionResult.error,
+        };
+      }
+
       return runSyncWorkflowUseCase.execute({
         deviceId,
         ownerUserRemoteId: accountResult.value.ownerUserRemoteId,
         accountRemoteId: accountResult.value.remoteId,
+        remoteOwnerUserRemoteId: accountBindingResult.value.remoteUserRemoteId,
+        remoteAccountRemoteId:
+          accountBindingResult.value.remoteAccountRemoteId,
         schemaVersion,
         activeUserRemoteId,
         activeAccountRemoteId,

@@ -3,6 +3,7 @@ import { createApiConfigurationError } from "./networkError";
 export const API_VERSION_PREFIX = "/api/v1";
 
 const DEFAULT_DEVELOPMENT_API_BASE_URL = "http://127.0.0.1:8000";
+const DEFAULT_DEVELOPMENT_API_PORT = "8000";
 const LOCAL_API_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
 
 export type ApiMode = "development" | "test" | "production";
@@ -16,6 +17,7 @@ type ResolveApiBaseUrlParams = {
   apiBaseUrl?: string | null;
   mode?: ApiMode | string | null;
   developmentFallbackBaseUrl?: string;
+  developmentHostUri?: string | null;
 };
 
 const resolveMode = (mode: ResolveApiBaseUrlParams["mode"]): ApiMode => {
@@ -33,6 +35,84 @@ const normalizeEndpoint = (endpoint: string): string => {
   }
 
   return normalized.startsWith("/") ? normalized : `/${normalized}`;
+};
+
+const formatOriginWithPort = (protocol: string, hostname: string): string => {
+  const normalizedHostname = hostname.includes(":")
+    ? `[${hostname}]`
+    : hostname;
+
+  return `${protocol}//${normalizedHostname}:${DEFAULT_DEVELOPMENT_API_PORT}`;
+};
+
+const resolveDevelopmentFallbackBaseUrlFromHostUri = (
+  hostUri: string | null | undefined,
+): string | null => {
+  const normalizedHostUri =
+    typeof hostUri === "string" ? hostUri.trim() : "";
+
+  if (!normalizedHostUri) {
+    return null;
+  }
+
+  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(normalizedHostUri)
+    ? normalizedHostUri
+    : `http://${normalizedHostUri}`;
+
+  try {
+    const parsed = new URL(candidate);
+    if (!parsed.hostname) {
+      return null;
+    }
+
+    return normalizeApiBaseUrl(
+      formatOriginWithPort(parsed.protocol, parsed.hostname),
+      { mode: "development" },
+    );
+  } catch {
+    return null;
+  }
+};
+
+const tryResolveExpoDevelopmentHostUri = (): string | null => {
+  try {
+    const constantsModule = require("expo-constants");
+    const constants = constantsModule?.default ?? constantsModule;
+
+    const candidateValues = [
+      constants?.expoConfig?.hostUri,
+      constants?.expoGoConfig?.debuggerHost,
+      constants?.manifest?.debuggerHost,
+      constants?.platform?.hostUri,
+    ];
+
+    for (const candidate of candidateValues) {
+      if (typeof candidate === "string" && candidate.trim().length > 0) {
+        return candidate.trim();
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
+const resolveDevelopmentFallbackBaseUrl = (
+  params: Pick<
+    ResolveApiBaseUrlParams,
+    "developmentFallbackBaseUrl" | "developmentHostUri"
+  >,
+): string => {
+  const derivedFromHostUri = resolveDevelopmentFallbackBaseUrlFromHostUri(
+    params.developmentHostUri ?? tryResolveExpoDevelopmentHostUri(),
+  );
+
+  return (
+    derivedFromHostUri ??
+    params.developmentFallbackBaseUrl ??
+    DEFAULT_DEVELOPMENT_API_BASE_URL
+  );
 };
 
 export const normalizeApiBaseUrl = (
@@ -81,7 +161,8 @@ export const normalizeApiBaseUrl = (
 export const resolveApiBaseUrl = ({
   apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL,
   mode = process.env.NODE_ENV,
-  developmentFallbackBaseUrl = DEFAULT_DEVELOPMENT_API_BASE_URL,
+  developmentFallbackBaseUrl,
+  developmentHostUri,
 }: ResolveApiBaseUrlParams = {}): string => {
   const resolvedMode = resolveMode(mode);
   const candidate =
@@ -94,9 +175,15 @@ export const resolveApiBaseUrl = ({
       );
     }
 
-    return normalizeApiBaseUrl(developmentFallbackBaseUrl, {
-      mode: resolvedMode,
-    });
+    return normalizeApiBaseUrl(
+      resolveDevelopmentFallbackBaseUrl({
+        developmentFallbackBaseUrl,
+        developmentHostUri,
+      }),
+      {
+        mode: resolvedMode,
+      },
+    );
   }
 
   return normalizeApiBaseUrl(candidate, {

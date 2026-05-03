@@ -2,6 +2,8 @@ import { clearActiveUserSession } from "@/feature/appSettings/data/appSettings.s
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
 import { createGetAccountByRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccountByRemoteId.useCase.impl";
+import { createRemoteSyncAuthClient } from "@/feature/sync/auth/remoteSyncAuth.client";
+import { createRemoteSyncIdentityService } from "@/feature/sync/auth/remoteSyncIdentity.service";
 import { createAuthTokenStore } from "@/shared/auth/authTokenStore";
 import { createDeviceIdStore } from "@/shared/device/deviceIdStore";
 import { ensureDatabaseReady } from "@/shared/database/appDatabase";
@@ -11,7 +13,9 @@ import { createAuthenticatedHttpClient } from "@/shared/network/authenticatedHtt
 import { Database } from "@nozbe/watermelondb";
 import { useMemo } from "react";
 import { createSecureSyncAuthHeaderAdapter } from "../data/adapter/secure.syncAuthHeader.adapter.impl";
+import { createLocalSyncIdentityBindingDatasource } from "../data/dataSource/local.syncIdentityBinding.datasource.impl";
 import { createRemoteSyncRemoteDatasource } from "../data/dataSource/remote.syncRemote.datasource.impl";
+import { createSyncIdentityBindingRepository } from "../data/repository/syncIdentityBinding.repository.impl";
 import { SyncRuntime, createSyncRuntime } from "./createSyncRuntime.factory";
 
 type UseSyncRuntimeFactoryParams = {
@@ -24,6 +28,12 @@ export type UseSyncRuntimeFactoryResult = {
   getAccountByRemoteIdUseCase: ReturnType<typeof createGetAccountByRemoteIdUseCase>;
   authTokenStore: ReturnType<typeof createAuthTokenStore>;
   deviceIdStore: ReturnType<typeof createDeviceIdStore>;
+  syncIdentityBindingRepository: ReturnType<
+    typeof createSyncIdentityBindingRepository
+  >;
+  remoteSyncIdentityService: ReturnType<
+    typeof createRemoteSyncIdentityService
+  > | null;
   schemaVersion: number;
   ensureDatabaseReady: typeof ensureDatabaseReady;
 };
@@ -46,6 +56,14 @@ export const useSyncRuntimeFactory = ({
 
   const authTokenStore = useMemo(() => createAuthTokenStore(), []);
   const deviceIdStore = useMemo(() => createDeviceIdStore(), []);
+  const syncIdentityBindingDatasource = useMemo(
+    () => createLocalSyncIdentityBindingDatasource(database),
+    [database],
+  );
+  const syncIdentityBindingRepository = useMemo(
+    () => createSyncIdentityBindingRepository(syncIdentityBindingDatasource),
+    [syncIdentityBindingDatasource],
+  );
 
   const authHeaderAdapter = useMemo(
     () =>
@@ -55,9 +73,13 @@ export const useSyncRuntimeFactory = ({
     [authTokenStore],
   );
 
-  const { runtime, runtimeError } = useMemo(() => {
+  const { runtime, runtimeError, remoteSyncIdentityService } = useMemo(() => {
     try {
       const apiConfig = createApiConfig();
+      const remoteAuthClient = createRemoteSyncAuthClient({
+        apiConfig,
+        tokenStore: authTokenStore,
+      });
       const httpClient = createAuthenticatedHttpClient({
         apiConfig,
         getAuthHeaders: () => authHeaderAdapter.getAuthHeaders(),
@@ -76,6 +98,11 @@ export const useSyncRuntimeFactory = ({
       return {
         runtime: createSyncRuntime(database, remoteDatasource),
         runtimeError: null,
+        remoteSyncIdentityService: createRemoteSyncIdentityService({
+          remoteAuthClient,
+          tokenStore: authTokenStore,
+          bindingRepository: syncIdentityBindingRepository,
+        }),
       };
     } catch (error) {
       return {
@@ -84,9 +111,15 @@ export const useSyncRuntimeFactory = ({
           error instanceof Error
             ? error
             : new Error("Sync runtime could not be configured."),
+        remoteSyncIdentityService: null,
       };
     }
-  }, [authHeaderAdapter, authTokenStore, database]);
+  }, [
+    authHeaderAdapter,
+    authTokenStore,
+    database,
+    syncIdentityBindingRepository,
+  ]);
 
   return {
     runtime,
@@ -94,6 +127,8 @@ export const useSyncRuntimeFactory = ({
     getAccountByRemoteIdUseCase,
     authTokenStore,
     deviceIdStore,
+    syncIdentityBindingRepository,
+    remoteSyncIdentityService,
     schemaVersion: APP_DATABASE_SCHEMA_VERSION,
     ensureDatabaseReady,
   };

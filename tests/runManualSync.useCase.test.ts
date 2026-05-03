@@ -4,6 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 
 describe("runManualSync use case", () => {
   it("blocks manual sync when the active account is missing", async () => {
+    const remoteSyncIdentityService = {
+      ensureRemoteBusinessAccountBinding: vi.fn(),
+      selectRemoteAccount: vi.fn(),
+    };
     const useCase = createRunManualSyncUseCase({
       ensureDatabaseReady: vi.fn(async () => undefined),
       getAccountByRemoteIdUseCase: {
@@ -11,6 +15,7 @@ describe("runManualSync use case", () => {
       } as never,
       getAccessToken: vi.fn(async () => "token-1"),
       getDeviceId: vi.fn(async () => "device-1"),
+      remoteSyncIdentityService: remoteSyncIdentityService as never,
       runSyncWorkflowUseCase: {
         execute: vi.fn(),
       } as never,
@@ -29,6 +34,10 @@ describe("runManualSync use case", () => {
   });
 
   it("blocks manual sync when no access token exists", async () => {
+    const remoteSyncIdentityService = {
+      ensureRemoteBusinessAccountBinding: vi.fn(),
+      selectRemoteAccount: vi.fn(),
+    };
     const runSyncWorkflowUseCase = {
       execute: vi.fn(),
     };
@@ -45,6 +54,7 @@ describe("runManualSync use case", () => {
       } as never,
       getAccessToken: vi.fn(async () => null),
       getDeviceId: vi.fn(async () => "device-1"),
+      remoteSyncIdentityService: remoteSyncIdentityService as never,
       runSyncWorkflowUseCase: runSyncWorkflowUseCase as never,
       schemaVersion: 50,
     });
@@ -62,6 +72,23 @@ describe("runManualSync use case", () => {
   });
 
   it("delegates to the sync workflow once the database, account, token, and device are ready", async () => {
+    const remoteSyncIdentityService = {
+      ensureRemoteBusinessAccountBinding: vi.fn(async () => ({
+        success: true as const,
+        value: {
+          localUserRemoteId: "user-1",
+          remoteUserRemoteId: "remote-user-1",
+          localAccountRemoteId: "account-1",
+          remoteAccountRemoteId: "remote-account-1",
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      })),
+      selectRemoteAccount: vi.fn(async () => ({
+        success: true as const,
+        value: true,
+      })),
+    };
     const runSyncWorkflowUseCase = {
       execute: vi.fn(async () => ({
         success: true as const,
@@ -95,6 +122,7 @@ describe("runManualSync use case", () => {
       } as never,
       getAccessToken: vi.fn(async () => "token-1"),
       getDeviceId: vi.fn(async () => "device-1"),
+      remoteSyncIdentityService: remoteSyncIdentityService as never,
       runSyncWorkflowUseCase: runSyncWorkflowUseCase as never,
       schemaVersion: 50,
     });
@@ -109,6 +137,8 @@ describe("runManualSync use case", () => {
       deviceId: "device-1",
       ownerUserRemoteId: "owner-1",
       accountRemoteId: "account-1",
+      remoteOwnerUserRemoteId: "remote-user-1",
+      remoteAccountRemoteId: "remote-account-1",
       schemaVersion: 50,
       activeUserRemoteId: "user-1",
       activeAccountRemoteId: "account-1",

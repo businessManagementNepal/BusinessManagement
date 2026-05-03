@@ -1,1 +1,1 @@
-export const APP_DATABASE_SCHEMA_VERSION = 50;
+export const APP_DATABASE_SCHEMA_VERSION = 51;

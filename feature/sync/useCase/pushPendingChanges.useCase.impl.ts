@@ -1,6 +1,7 @@
 import { syncDependencyOrder } from "../registry/syncDependencyOrder";
 import { filterTableNamesByV1SyncRollout } from "../config/syncTableRollout.config";
 import { SyncRepository } from "../data/repository/sync.repository";
+import { toRemoteSyncScope } from "../types/syncExecutionScope.types";
 import { PushPendingChangesUseCase } from "./pushPendingChanges.useCase";
 
 export const createPushPendingChangesUseCase = (
@@ -22,7 +23,8 @@ export const createPushPendingChangesUseCase = (
       }
 
       const pushResult = await repository.pushChanges({
-        ...scope,
+        ...toRemoteSyncScope(scope),
+        syncRunRemoteId: scope.syncRunRemoteId,
         changes: pendingResult.value,
       });
       if (!pushResult.success) {

@@ -1,5 +1,5 @@
 import { SyncResult } from "@/shared/sync/types/syncResult.types";
-import { SyncScope } from "@/shared/sync/types/syncScope.types";
+import { SyncExecutionScope } from "../types/syncExecutionScope.types";
 
 export type PushPendingChangesResult = {
   pushedCount: number;
@@ -9,7 +9,7 @@ export type PushPendingChangesResult = {
 
 export interface PushPendingChangesUseCase {
   execute(
-    scope: SyncScope & {
+    scope: SyncExecutionScope & {
       syncRunRemoteId: string;
     },
   ): Promise<SyncResult<PushPendingChangesResult>>;

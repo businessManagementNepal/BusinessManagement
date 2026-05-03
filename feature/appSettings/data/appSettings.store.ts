@@ -1,5 +1,6 @@
 import { Database, Q } from "@nozbe/watermelondb";
 import { AppSettingsModel } from "./dataSource/db/appSettings.model";
+import { createAuthTokenStore } from "@/shared/auth/authTokenStore";
 import {
   SETTINGS_BIOMETRIC_LOGIN_AVAILABLE,
   SETTINGS_DEFAULT_APPEARANCE,
@@ -570,6 +571,7 @@ export const setActiveAccountSession = async (
 export const clearActiveUserSession = async (
   database: Database,
 ): Promise<void> => {
+  await createAuthTokenStore().clearTokens().catch(() => undefined);
   const settings = await ensureAppSettingsRecord(database);
 
   await database.write(async () => {

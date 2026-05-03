@@ -174,7 +174,7 @@ export function GetSettingsScreenFactory({
     database: appDatabase,
   });
   const runManualSyncUseCase = React.useMemo(() => {
-    if (!syncRuntime.runtime) {
+    if (!syncRuntime.runtime || !syncRuntime.remoteSyncIdentityService) {
       return null;
     }
 
@@ -183,6 +183,7 @@ export function GetSettingsScreenFactory({
       getAccountByRemoteIdUseCase: syncRuntime.getAccountByRemoteIdUseCase,
       getAccessToken: () => syncRuntime.authTokenStore.getAccessToken(),
       getDeviceId: () => syncRuntime.deviceIdStore.getDeviceId(),
+      remoteSyncIdentityService: syncRuntime.remoteSyncIdentityService,
       runSyncWorkflowUseCase: syncRuntime.runtime.runSyncWorkflowUseCase,
       schemaVersion: syncRuntime.schemaVersion,
     });

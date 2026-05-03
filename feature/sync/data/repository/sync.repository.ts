@@ -6,6 +6,7 @@ import {
   SyncChangeSetDto,
   SyncRecordAckDto,
 } from "@/feature/sync/types/sync.dto.types";
+import { SyncExecutionScope } from "@/feature/sync/types/syncExecutionScope.types";
 import { SyncApplySummary, SyncStatusState } from "@/feature/sync/types/sync.state.types";
 import { SyncResult } from "@/shared/sync/types/syncResult.types";
 import { SyncScope } from "@/shared/sync/types/syncScope.types";
@@ -39,7 +40,7 @@ export interface SyncRepository {
   ): Promise<SyncResult<SyncRunRecord>>;
 
   getPendingChangeSet(
-    scope: SyncScope,
+    scope: SyncExecutionScope,
     tableName: string,
   ): Promise<SyncResult<SyncChangeSetDto[]>>;
 
@@ -48,7 +49,7 @@ export interface SyncRepository {
   ): Promise<SyncResult<import("@/feature/sync/types/sync.dto.types").PushChangesResponseDto>>;
 
   applyPushAcknowledgements(
-    scope: SyncScope,
+    scope: SyncExecutionScope,
     syncRunRemoteId: string,
     acknowledgements: readonly SyncRecordAckDto[],
   ): Promise<
@@ -59,19 +60,21 @@ export interface SyncRepository {
     }>
   >;
 
-  getPullRequest(scope: SyncScope): Promise<SyncResult<PullChangesRequestDto>>;
+  getPullRequest(
+    scope: SyncExecutionScope,
+  ): Promise<SyncResult<PullChangesRequestDto>>;
 
   pullChanges(
     input: PullChangesRequestDto,
   ): Promise<SyncResult<PullChangesResponseDto>>;
 
   applyPulledChanges(
-    scope: SyncScope,
+    scope: SyncExecutionScope,
     response: PullChangesResponseDto,
   ): Promise<SyncResult<SyncApplySummary>>;
 
   saveCheckpoints(
-    scope: SyncScope,
+    scope: SyncExecutionScope,
     checkpoints: readonly {
       tableName: string;
       serverCursor: string | null;

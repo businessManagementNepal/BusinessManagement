@@ -2,6 +2,12 @@ import { setActiveUserSession } from "@/feature/appSettings/data/appSettings.sto
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
 import { createSaveAccountUseCase } from "@/feature/auth/accountSelection/useCase/saveAccount.useCase.impl";
+import { createRemoteSyncAuthClient } from "@/feature/sync/auth/remoteSyncAuth.client";
+import { createRemoteSyncIdentityService } from "@/feature/sync/auth/remoteSyncIdentity.service";
+import { createLocalSyncIdentityBindingDatasource } from "@/feature/sync/data/dataSource/local.syncIdentityBinding.datasource.impl";
+import { createSyncIdentityBindingRepository } from "@/feature/sync/data/repository/syncIdentityBinding.repository.impl";
+import { createAuthTokenStore } from "@/shared/auth/authTokenStore";
+import { createApiConfig } from "@/shared/network/apiConfig";
 import { createLocalAuthCredentialDatasource } from "@/feature/session/data/dataSource/local.authCredential.datasource.impl";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository.impl";
@@ -34,6 +40,27 @@ export function createLocalSignUpRepositoryWithDatabase(database: Database) {
   );
   const saveAccountUseCase = createSaveAccountUseCase(accountRepository);
   const passwordHashService = createPasswordHashService();
+  const syncIdentityBindingDatasource =
+    createLocalSyncIdentityBindingDatasource(database);
+  const syncIdentityBindingRepository =
+    createSyncIdentityBindingRepository(syncIdentityBindingDatasource);
+  const remoteSyncIdentityService = (() => {
+    try {
+      const authTokenStore = createAuthTokenStore();
+      const remoteAuthClient = createRemoteSyncAuthClient({
+        apiConfig: createApiConfig(),
+        tokenStore: authTokenStore,
+      });
+
+      return createRemoteSyncIdentityService({
+        remoteAuthClient,
+        tokenStore: authTokenStore,
+        bindingRepository: syncIdentityBindingRepository,
+      });
+    } catch {
+      return null;
+    }
+  })();
   const registerUserWithDefaultAccountUseCase =
     createRegisterUserWithDefaultAccountUseCase({
       getActiveAuthCredentialByLoginIdUseCase,
@@ -46,11 +73,23 @@ export function createLocalSignUpRepositoryWithDatabase(database: Database) {
     });
 
   return createLocalSignUpRepository(registerUserWithDefaultAccountUseCase, {
-    onRegistered: async (verifiedCredential) => {
+    onRegistered: async (verifiedCredential, payload) => {
       await setActiveUserSession(
         database,
         verifiedCredential.authUser.remoteId,
       );
+
+      if (!remoteSyncIdentityService) {
+        return;
+      }
+
+      await remoteSyncIdentityService
+        .bootstrapAfterLocalRegistration({
+          localUser: verifiedCredential.authUser,
+          loginId: verifiedCredential.authCredential.loginId || payload.phoneNumber,
+          password: payload.password,
+        })
+        .catch(() => undefined);
     },
   });
 }

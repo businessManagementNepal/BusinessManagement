@@ -1,8 +1,8 @@
 import { SyncApplySummary } from "@/feature/sync/types/sync.state.types";
 import { SyncResult } from "@/shared/sync/types/syncResult.types";
-import { SyncScope } from "@/shared/sync/types/syncScope.types";
+import { SyncExecutionScope } from "@/feature/sync/types/syncExecutionScope.types";
 
-export type RunSyncWorkflowInput = SyncScope & {
+export type RunSyncWorkflowInput = SyncExecutionScope & {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
 };

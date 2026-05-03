@@ -28,6 +28,14 @@ import {
 import { mapLocalRecordToRemoteSyncPayload } from "../../mapper/mapLocalRecordToRemoteSyncPayload";
 import { mapRemoteSyncPayloadToLocalRecord } from "../../mapper/mapRemoteSyncPayloadToLocalRecord";
 import {
+  mapLocalScopedPayloadToRemote,
+  mapRemoteScopedPayloadToLocal,
+} from "../../mapper/mapSyncScopedIdentity";
+import {
+  SyncExecutionScope,
+  toRemoteSyncScope,
+} from "../../types/syncExecutionScope.types";
+import {
   SyncLocalDatasource,
   UpdateSyncRecordStateInput,
 } from "../dataSource/syncLocal.datasource";
@@ -272,7 +280,7 @@ export const createSyncRepository = (
   },
 
   async getPendingChangeSet(
-    scope: SyncScope,
+    scope: SyncExecutionScope,
     tableName: string,
   ): Promise<SyncResult<SyncChangeSetDto[]>> {
     const registryItem = getSyncRegistryItem(tableName);
@@ -297,9 +305,9 @@ export const createSyncRepository = (
 
     for (const record of recordsResult.value) {
       const operation = resolvePushOperation(record);
-      const remotePayload = mapLocalRecordToRemoteSyncPayload(
-        tableName,
-        record.payload,
+      const remotePayload = mapLocalScopedPayloadToRemote(
+        mapLocalRecordToRemoteSyncPayload(tableName, record.payload),
+        scope,
       );
       const outboxResult = await localDatasource.queueOutboxRecord({
         tableName,
@@ -344,7 +352,7 @@ export const createSyncRepository = (
   },
 
   async applyPushAcknowledgements(
-    scope: SyncScope,
+    scope: SyncExecutionScope,
     syncRunRemoteId: string,
     acknowledgements: readonly SyncRecordAckDto[],
   ) {
@@ -449,7 +457,7 @@ export const createSyncRepository = (
     };
   },
 
-  async getPullRequest(scope: SyncScope) {
+  async getPullRequest(scope: SyncExecutionScope) {
     const cursors = [];
     for (const tableName of [...new Set(syncRegistryTablesOrdered())]) {
       const checkpointResult = await localDatasource.getCheckpoint(scope, tableName);
@@ -466,7 +474,7 @@ export const createSyncRepository = (
     return {
       success: true,
       value: {
-        ...scope,
+        ...toRemoteSyncScope(scope),
         cursors,
       },
     };
@@ -487,7 +495,7 @@ export const createSyncRepository = (
   },
 
   async applyPulledChanges(
-    scope: SyncScope,
+    scope: SyncExecutionScope,
     response: PullChangesResponseDto,
   ): Promise<SyncResult<SyncApplySummary>> {
     const orderedTables = [...response.tables].sort(
@@ -517,11 +525,14 @@ export const createSyncRepository = (
       let tableFailed = false;
 
       for (const change of tableResult.changes) {
-        const pulledPayload = mapRemoteSyncPayloadToLocalRecord({
-          tableName: tableResult.tableName,
-          payload: change.payload,
-          serverRevision: change.serverRevision,
-        });
+        const pulledPayload = mapRemoteScopedPayloadToLocal(
+          mapRemoteSyncPayloadToLocalRecord({
+            tableName: tableResult.tableName,
+            payload: change.payload,
+            serverRevision: change.serverRevision,
+          }),
+          scope,
+        );
         const existingResult = await localDatasource.getLocalRecord(
           registryItem,
           change.recordRemoteId,
@@ -646,7 +657,7 @@ export const createSyncRepository = (
     };
   },
 
-  async saveCheckpoints(scope, checkpoints, lastPulledAt) {
+  async saveCheckpoints(scope: SyncExecutionScope, checkpoints, lastPulledAt) {
     for (const checkpoint of checkpoints) {
       const result = await localDatasource.saveCheckpoint({
         ...scope,

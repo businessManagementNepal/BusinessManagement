@@ -20,6 +20,7 @@ import {
   SyncLocalDatasource,
   UpdateSyncRecordStateInput,
 } from "./syncLocal.datasource";
+import { filterTablesByV1SyncRollout } from "../../config/syncTableRollout.config";
 import { getSyncRegistryItem, syncRegistry } from "../../registry/syncRegistry";
 import { SyncOutboxStatus, SyncRunStatus } from "../../types/sync.constant";
 import {
@@ -1299,7 +1300,7 @@ export const createLocalSyncLocalDatasource = (
         let pendingChangesCount = 0;
         let failedRecordsCount = 0;
 
-        for (const registryItem of syncRegistry) {
+        for (const registryItem of filterTablesByV1SyncRollout(syncRegistry)) {
           if (registryItem.syncStatusField) {
             const pendingRecords = await fetchPendingBusinessRows({
               ...scope,

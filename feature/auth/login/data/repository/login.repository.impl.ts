@@ -3,6 +3,7 @@ import {
   AuthSessionErrorType,
   VerifiedLocalCredential,
 } from "@/feature/session/types/authSession.types";
+import { LoginInput } from "../../types/login.types";
 import { LoginRepository } from "./login.repository";
 import {
   DatabaseError,
@@ -18,6 +19,7 @@ import { buildPhoneLoginIdCandidates } from "@/shared/utils/auth/phoneNumber.uti
 type LocalLoginRepositoryOptions = {
   onAuthenticated: (
     verifiedCredential: VerifiedLocalCredential,
+    payload: LoginInput,
   ) => Promise<void> | void;
 };
 
@@ -38,7 +40,7 @@ export const createLocalLoginRepository = (
 
       if (verificationResult.success) {
         try {
-          await options.onAuthenticated(verificationResult.value);
+          await options.onAuthenticated(verificationResult.value, payload);
         } catch {
           return {
             success: false,
