@@ -1,0 +1,17 @@
+{
+  "tableName": "orders",
+  "operation": "update",
+  "recordRemoteId": "order-fixture-1",
+  "serverRevision": "rev-order-1",
+  "changedAt": 1760000005000,
+  "payload": {
+    "remote_id": "order-fixture-1",
+    "owner_user_remote_id": "owner-fixture-1",
+    "account_remote_id": "account-fixture-1",
+    "order_number": "ORD-1001",
+    "order_date": 1760000000000,
+    "customer_remote_id": "contact-fixture-1",
+    "status": "delivered",
+    "total_amount": 1350
+  }
+}

@@ -1,7 +1,10 @@
 import { SyncAuthHeaderAdapter } from "./syncAuthHeader.adapter";
+import { AuthTokenStore } from "@/shared/auth/authTokenStore";
+import { createAuthenticationRequiredError } from "@/shared/network/networkError";
 
 type CreateSecureSyncAuthHeaderAdapterParams = {
-  getAccessToken: () => Promise<string | null>;
+  tokenStore?: Pick<AuthTokenStore, "getAccessToken">;
+  getAccessToken?: () => Promise<string | null>;
   requireAuth?: boolean;
 };
 
@@ -15,14 +18,20 @@ const normalizeAccessToken = (value: string | null): string | null => {
 };
 
 export const createSecureSyncAuthHeaderAdapter = ({
+  tokenStore,
   getAccessToken,
   requireAuth = true,
 }: CreateSecureSyncAuthHeaderAdapterParams): SyncAuthHeaderAdapter => ({
   async getAuthHeaders() {
-    const accessToken = normalizeAccessToken(await getAccessToken());
+    const accessTokenReader = tokenStore?.getAccessToken ?? getAccessToken;
+    if (!accessTokenReader) {
+      throw new Error("A secure access token reader is required.");
+    }
+
+    const accessToken = normalizeAccessToken(await accessTokenReader());
     if (!accessToken) {
       if (requireAuth) {
-        throw new Error("Sync authentication token is required.");
+        throw createAuthenticationRequiredError();
       }
 
       return {} as Record<string, string>;

@@ -1405,5 +1405,14 @@ export const migrations = schemaMigrations({
         `),
       ],
     },
+    {
+      toVersion: 50,
+      steps: [
+        addColumns({
+          table: "categories",
+          columns: [{ name: "server_revision", type: "string", isOptional: true }],
+        }),
+      ],
+    },
     ],
 });

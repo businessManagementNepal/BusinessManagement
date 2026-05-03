@@ -19,6 +19,10 @@ import { createAccountRepository } from "@/feature/auth/accountSelection/data/re
 import { createGetAccountByRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccountByRemoteId.useCase.impl";
 import { createSaveAccountUseCase } from "@/feature/auth/accountSelection/useCase/saveAccount.useCase.impl";
 import { useSettingsViewModel } from "@/feature/appSettings/settings/viewModel/settings.viewModel.impl";
+import { useSyncRuntimeFactory } from "@/feature/sync/factory/useSyncRuntime.factory";
+import { createRunManualSyncUseCase } from "@/feature/sync/useCase/runManualSync.useCase.impl";
+import { SyncStatusCard } from "@/feature/sync/ui/components/SyncStatusCard";
+import { useSyncStatusViewModel } from "@/feature/sync/viewModel/syncStatus.viewModel.impl";
 import { createLocalAuthCredentialDatasource } from "@/feature/session/data/dataSource/local.authCredential.datasource.impl";
 import { createAuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository.impl";
 import { createPasswordHashService } from "@/shared/utils/auth/passwordHash.service";
@@ -166,6 +170,23 @@ export function GetSettingsScreenFactory({
       ),
     [authCredentialRepository, passwordHashService],
   );
+  const syncRuntime = useSyncRuntimeFactory({
+    database: appDatabase,
+  });
+  const runManualSyncUseCase = React.useMemo(() => {
+    if (!syncRuntime.runtime) {
+      return null;
+    }
+
+    return createRunManualSyncUseCase({
+      ensureDatabaseReady: syncRuntime.ensureDatabaseReady,
+      getAccountByRemoteIdUseCase: syncRuntime.getAccountByRemoteIdUseCase,
+      getAccessToken: () => syncRuntime.authTokenStore.getAccessToken(),
+      getDeviceId: () => syncRuntime.deviceIdStore.getDeviceId(),
+      runSyncWorkflowUseCase: syncRuntime.runtime.runSyncWorkflowUseCase,
+      schemaVersion: syncRuntime.schemaVersion,
+    });
+  }, [syncRuntime]);
 
   const viewModel = useSettingsViewModel({
     activeUserRemoteId,
@@ -187,11 +208,26 @@ export function GetSettingsScreenFactory({
     getAccountByRemoteIdUseCase,
     saveAccountUseCase,
   });
+  const syncStatusViewModel = useSyncStatusViewModel({
+    activeUserRemoteId,
+    activeAccountRemoteId,
+    runtimeError: syncRuntime.runtimeError,
+    getSyncFeatureFlagUseCase:
+      syncRuntime.runtime?.getSyncFeatureFlagUseCase ?? null,
+    updateSyncFeatureFlagUseCase:
+      syncRuntime.runtime?.updateSyncFeatureFlagUseCase ?? null,
+    getSyncStatusUseCase: syncRuntime.runtime?.getSyncStatusUseCase ?? null,
+    runManualSyncUseCase,
+    getAccountByRemoteIdUseCase: syncRuntime.getAccountByRemoteIdUseCase,
+    getDeviceId: () => syncRuntime.deviceIdStore.getDeviceId(),
+    schemaVersion: syncRuntime.schemaVersion,
+  });
 
   return (
     <SettingsScreen
       viewModel={viewModel}
       onBack={onBack}
+      syncStatusPanel={<SyncStatusCard viewModel={syncStatusViewModel} />}
       importDataFlow={
         <GetImportDataFlowFactory
           visible={viewModel.activeModal === "import_data"}

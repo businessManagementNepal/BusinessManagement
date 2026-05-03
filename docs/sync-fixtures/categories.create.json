@@ -1,0 +1,20 @@
+{
+  "tableName": "categories",
+  "operation": "create",
+  "recordRemoteId": "category-fixture-1",
+  "serverRevision": null,
+  "changedAt": 1760000000000,
+  "payload": {
+    "remote_id": "category-fixture-1",
+    "owner_user_remote_id": "owner-fixture-1",
+    "account_remote_id": "account-fixture-1",
+    "account_type": "business",
+    "scope": "business",
+    "kind": "product",
+    "name": "Beverages",
+    "description": "Fixture category",
+    "is_system": false,
+    "created_at": 1760000000000,
+    "updated_at": 1760000000000
+  }
+}

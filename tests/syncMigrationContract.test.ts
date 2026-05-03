@@ -25,8 +25,8 @@ const getMigrationDefinitions = (): readonly MigrationDefinition[] => {
 };
 
 describe("sync migration contract", () => {
-  it("advances the schema to version 49", () => {
-    expect(APP_DATABASE_SCHEMA_VERSION).toBe(49);
+  it("advances the schema to version 50", () => {
+    expect(APP_DATABASE_SCHEMA_VERSION).toBe(50);
   });
 
   it("creates all sync infrastructure tables in migration 45", () => {
@@ -88,5 +88,16 @@ describe("sync migration contract", () => {
     expect(serializedSteps).toContain('"table":"app_settings"');
     expect(serializedSteps).toContain("sync_enabled");
     expect(serializedSteps).toContain("UPDATE app_settings");
+  });
+
+  it("adds categories server_revision coverage in migration 50", () => {
+    const migration50 = getMigrationDefinitions().find(
+      (definition) => definition.toVersion === 50,
+    );
+
+    expect(migration50).toBeDefined();
+    const serializedSteps = JSON.stringify(migration50?.steps ?? []);
+    expect(serializedSteps).toContain('"table":"categories"');
+    expect(serializedSteps).toContain("server_revision");
   });
 });

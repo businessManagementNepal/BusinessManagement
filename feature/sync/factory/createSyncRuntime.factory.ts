@@ -16,6 +16,8 @@ import type { GetSyncStatusUseCase } from "../useCase/getSyncStatus.useCase";
 import type { GetSyncFeatureFlagUseCase } from "../useCase/getSyncFeatureFlag.useCase";
 import { createGetSyncFeatureFlagUseCase } from "../useCase/getSyncFeatureFlag.useCase.impl";
 import { createGetSyncStatusUseCase } from "../useCase/getSyncStatus.useCase.impl";
+import type { UpdateSyncFeatureFlagUseCase } from "../useCase/updateSyncFeatureFlag.useCase";
+import { createUpdateSyncFeatureFlagUseCase } from "../useCase/updateSyncFeatureFlag.useCase.impl";
 import type { ApplyPulledChangesUseCase } from "../useCase/applyPulledChanges.useCase";
 import { createApplyPulledChangesUseCase } from "../useCase/applyPulledChanges.useCase.impl";
 import type { PullRemoteChangesUseCase } from "../useCase/pullRemoteChanges.useCase";
@@ -30,6 +32,7 @@ import { createRunSyncWorkflowUseCase } from "../workflow/syncRun/useCase/runSyn
 
 export type SyncRuntime = {
   getSyncFeatureFlagUseCase: GetSyncFeatureFlagUseCase;
+  updateSyncFeatureFlagUseCase: UpdateSyncFeatureFlagUseCase;
   getSyncStatusUseCase: GetSyncStatusUseCase;
   pushPendingChangesUseCase: PushPendingChangesUseCase;
   pullRemoteChangesUseCase: PullRemoteChangesUseCase;
@@ -55,6 +58,8 @@ export const createSyncRuntime: CreateSyncRuntime = (
 
   const getSyncFeatureFlagUseCase =
     createGetSyncFeatureFlagUseCase(syncFeatureFlagRepository);
+  const updateSyncFeatureFlagUseCase =
+    createUpdateSyncFeatureFlagUseCase(syncFeatureFlagRepository);
   const getSyncStatusUseCase = createGetSyncStatusUseCase(syncRepository);
   const pushPendingChangesUseCase =
     createPushPendingChangesUseCase(syncRepository);
@@ -99,6 +104,7 @@ export const createSyncRuntime: CreateSyncRuntime = (
 
   return {
     getSyncFeatureFlagUseCase,
+    updateSyncFeatureFlagUseCase,
     getSyncStatusUseCase,
     pushPendingChangesUseCase,
     pullRemoteChangesUseCase,

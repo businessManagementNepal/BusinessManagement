@@ -1,0 +1,12 @@
+{
+  "tableName": "contacts",
+  "operation": "delete",
+  "recordRemoteId": "contact-fixture-1",
+  "serverRevision": "rev-contact-2",
+  "changedAt": 1760000010000,
+  "payload": {
+    "remote_id": "contact-fixture-1",
+    "account_remote_id": "account-fixture-1",
+    "deleted_at": 1760000010000
+  }
+}

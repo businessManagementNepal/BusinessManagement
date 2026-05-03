@@ -1,0 +1,12 @@
+{
+  "tableName": "products",
+  "operation": "delete",
+  "recordRemoteId": "product-fixture-1",
+  "serverRevision": "rev-product-2",
+  "changedAt": 1760000010000,
+  "payload": {
+    "remote_id": "product-fixture-1",
+    "account_remote_id": "account-fixture-1",
+    "deleted_at": 1760000010000
+  }
+}

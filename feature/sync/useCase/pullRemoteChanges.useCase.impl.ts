@@ -1,3 +1,4 @@
+import { filterTablesByV1SyncRollout } from "../config/syncTableRollout.config";
 import { SyncRepository } from "../data/repository/sync.repository";
 import { PullRemoteChangesUseCase } from "./pullRemoteChanges.useCase";
 
@@ -10,6 +11,19 @@ export const createPullRemoteChangesUseCase = (
       return requestResult;
     }
 
-    return repository.pullChanges(requestResult.value);
+    const responseResult = await repository.pullChanges({
+      ...requestResult.value,
+      cursors: filterTablesByV1SyncRollout(requestResult.value.cursors),
+    });
+    if (!responseResult.success) {
+      return responseResult;
+    }
+
+    return {
+      success: true,
+      value: {
+        tables: filterTablesByV1SyncRollout(responseResult.value.tables),
+      },
+    };
   },
 });

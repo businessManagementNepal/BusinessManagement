@@ -25,6 +25,8 @@ import {
   getSyncDependencyRank,
   getSyncRegistryItem,
 } from "../../registry/syncRegistry";
+import { mapLocalRecordToRemoteSyncPayload } from "../../mapper/mapLocalRecordToRemoteSyncPayload";
+import { mapRemoteSyncPayloadToLocalRecord } from "../../mapper/mapRemoteSyncPayloadToLocalRecord";
 import {
   SyncLocalDatasource,
   UpdateSyncRecordStateInput,
@@ -36,26 +38,6 @@ const SERVER_REVISION_FIELD = "server_revision";
 
 const stringifyStable = (value: unknown): string => {
   return JSON.stringify(value);
-};
-
-const sanitizePayloadForPull = (
-  tableName: string,
-  payload: Record<string, unknown>,
-): Record<string, unknown> => {
-  const registryItem = getSyncRegistryItem(tableName);
-  if (!registryItem) {
-    return payload;
-  }
-
-  if (!registryItem.ignoredPullFields?.length) {
-    return { ...payload };
-  }
-
-  return Object.fromEntries(
-    Object.entries(payload).filter(
-      ([key]) => !registryItem.ignoredPullFields?.includes(key),
-    ),
-  );
 };
 
 const selectFields = (
@@ -111,20 +93,6 @@ const getServerRevisionFromPayload = (
   return normalized.length > 0 ? normalized : null;
 };
 
-const mergeServerRevisionIntoPayload = (
-  payload: Record<string, unknown>,
-  serverRevision: string | null,
-): Record<string, unknown> => {
-  if (!serverRevision) {
-    return { ...payload };
-  }
-
-  return {
-    ...payload,
-    [SERVER_REVISION_FIELD]: serverRevision,
-  };
-};
-
 const buildStateInput = ({
   registryItem,
   recordRemoteId,
@@ -171,7 +139,19 @@ const isVersionBasedConflict = ({
     return true;
   }
 
-  return stringifyStable(existing.payload) !== stringifyStable(remotePayload);
+  const comparableLocalPayload = mapLocalRecordToRemoteSyncPayload(
+    registryItem.tableName,
+    existing.payload,
+  );
+  const comparableRemotePayload = mapLocalRecordToRemoteSyncPayload(
+    registryItem.tableName,
+    remotePayload,
+  );
+
+  return (
+    stringifyStable(comparableLocalPayload) !==
+    stringifyStable(comparableRemotePayload)
+  );
 };
 
 const isFinancialConflict = (
@@ -317,12 +297,16 @@ export const createSyncRepository = (
 
     for (const record of recordsResult.value) {
       const operation = resolvePushOperation(record);
+      const remotePayload = mapLocalRecordToRemoteSyncPayload(
+        tableName,
+        record.payload,
+      );
       const outboxResult = await localDatasource.queueOutboxRecord({
         tableName,
         recordRemoteId: record.recordRemoteId,
         accountRemoteId: scope.accountRemoteId,
         operation,
-        payload: record.payload,
+        payload: remotePayload,
       });
 
       if (!outboxResult.success) {
@@ -333,7 +317,7 @@ export const createSyncRepository = (
         tableName,
         operation,
         recordRemoteId: record.recordRemoteId,
-        payload: record.payload,
+        payload: remotePayload,
         serverRevision: getServerRevisionFromPayload(record.payload),
         changedAt: record.updatedAt ?? Date.now(),
       });
@@ -467,9 +451,7 @@ export const createSyncRepository = (
 
   async getPullRequest(scope: SyncScope) {
     const cursors = [];
-    for (const tableName of [
-      ...new Set(syncRegistryTablesOrdered()),
-    ]) {
+    for (const tableName of [...new Set(syncRegistryTablesOrdered())]) {
       const checkpointResult = await localDatasource.getCheckpoint(scope, tableName);
       if (!checkpointResult.success) {
         return checkpointResult;
@@ -535,10 +517,11 @@ export const createSyncRepository = (
       let tableFailed = false;
 
       for (const change of tableResult.changes) {
-        const pulledPayload = mergeServerRevisionIntoPayload(
-          sanitizePayloadForPull(tableResult.tableName, change.payload),
-          change.serverRevision,
-        );
+        const pulledPayload = mapRemoteSyncPayloadToLocalRecord({
+          tableName: tableResult.tableName,
+          payload: change.payload,
+          serverRevision: change.serverRevision,
+        });
         const existingResult = await localDatasource.getLocalRecord(
           registryItem,
           change.recordRemoteId,
@@ -700,7 +683,7 @@ export const createSyncRepository = (
 });
 
 const syncRegistryTablesOrdered = (): string[] => {
-  return syncRegistryTableNames.sort(
+  return [...syncRegistryTableNames].sort(
     (left, right) => getSyncDependencyRank(left) - getSyncDependencyRank(right),
   );
 };

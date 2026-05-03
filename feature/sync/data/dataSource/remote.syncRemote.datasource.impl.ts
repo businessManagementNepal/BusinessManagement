@@ -1,4 +1,7 @@
 import { SYNC_PULL_ENDPOINT, SYNC_PUSH_ENDPOINT } from "@/shared/sync/constants/sync.constants";
+import { createApiConfig } from "@/shared/network/apiConfig";
+import { AuthenticatedHttpClient } from "@/shared/network/authenticatedHttpClient";
+import { createHttpRequestError } from "@/shared/network/networkError";
 import {
   PullChangesRequestDto,
   PullChangesResponseDto,
@@ -13,73 +16,63 @@ type FetchLike = typeof fetch;
 export type CreateRemoteSyncRemoteDatasourceParams = {
   apiBaseUrl: string;
   authHeaderAdapter: SyncAuthHeaderAdapter;
+  httpClient?: AuthenticatedHttpClient;
   fetchFn?: FetchLike;
 };
 
-const normalizeApiBaseUrl = (apiBaseUrl: string): string => {
-  const normalized = apiBaseUrl.trim().replace(/\/+$/, "");
-  if (!normalized) {
-    throw new Error("Sync API base URL is required.");
-  }
-  return normalized;
-};
-
-const postJson = async <TRequest, TResponse>({
+const createFallbackHttpClient = ({
   apiBaseUrl,
-  endpoint,
-  body,
   authHeaderAdapter,
   fetchFn,
 }: {
   apiBaseUrl: string;
-  endpoint: string;
-  body: TRequest;
   authHeaderAdapter: SyncAuthHeaderAdapter;
   fetchFn: FetchLike;
-}): Promise<TResponse> => {
-  const authHeaders = await authHeaderAdapter.getAuthHeaders();
-  const response = await fetchFn(`${apiBaseUrl}${endpoint}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders,
+}): AuthenticatedHttpClient => {
+  const apiConfig = createApiConfig({ apiBaseUrl });
+
+  return {
+    async postJson<TRequest, TResponse>(endpoint: string, body: TRequest) {
+      const authHeaders = await authHeaderAdapter.getAuthHeaders();
+      const response = await fetchFn(apiConfig.buildUrl(endpoint), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        throw createHttpRequestError(response.status);
+      }
+
+      return (await response.json()) as TResponse;
     },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Sync request failed with status ${response.status}.`);
-  }
-
-  return (await response.json()) as TResponse;
+  };
 };
 
 export const createRemoteSyncRemoteDatasource = ({
   apiBaseUrl,
   authHeaderAdapter,
+  httpClient,
   fetchFn = fetch,
 }: CreateRemoteSyncRemoteDatasourceParams): SyncRemoteDatasource => {
-  const normalizedApiBaseUrl = normalizeApiBaseUrl(apiBaseUrl);
+  const client =
+    httpClient ??
+    createFallbackHttpClient({
+      apiBaseUrl,
+      authHeaderAdapter,
+      fetchFn,
+    });
 
   return {
     pushChanges(input: PushChangesRequestDto): Promise<PushChangesResponseDto> {
-      return postJson({
-        apiBaseUrl: normalizedApiBaseUrl,
-        endpoint: SYNC_PUSH_ENDPOINT,
-        body: input,
-        authHeaderAdapter,
-        fetchFn,
-      });
+      return client.postJson(SYNC_PUSH_ENDPOINT, input);
     },
 
     pullChanges(input: PullChangesRequestDto): Promise<PullChangesResponseDto> {
-      return postJson({
-        apiBaseUrl: normalizedApiBaseUrl,
-        endpoint: SYNC_PULL_ENDPOINT,
-        body: input,
-        authHeaderAdapter,
-        fetchFn,
-      });
+      return client.postJson(SYNC_PULL_ENDPOINT, input);
     },
   };
 };

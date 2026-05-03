@@ -7,4 +7,8 @@ export const createSyncFeatureFlagRepository = (
   getSyncFeatureFlag() {
     return datasource.getSyncEnabled();
   },
+
+  setSyncFeatureFlag(enabled: boolean) {
+    return datasource.setSyncEnabled(enabled);
+  },
 });

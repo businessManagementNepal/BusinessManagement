@@ -1,0 +1,25 @@
+{
+  "tableName": "contacts",
+  "operation": "update",
+  "recordRemoteId": "contact-fixture-1",
+  "serverRevision": "rev-contact-1",
+  "changedAt": 1760000005000,
+  "payload": {
+    "remote_id": "contact-fixture-1",
+    "owner_user_remote_id": "owner-fixture-1",
+    "account_remote_id": "account-fixture-1",
+    "account_type": "business",
+    "contact_type": "customer",
+    "full_name": "Hari Sharma Updated",
+    "phone_number": "9800001111",
+    "email_address": "hari.updated@example.com",
+    "address": "Bhaktapur",
+    "tax_id": null,
+    "opening_balance_amount": 125,
+    "opening_balance_direction": "pay",
+    "notes": "Updated fixture contact",
+    "is_archived": false,
+    "created_at": 1760000000000,
+    "updated_at": 1760000005000
+  }
+}

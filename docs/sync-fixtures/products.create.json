@@ -1,0 +1,24 @@
+{
+  "tableName": "products",
+  "operation": "create",
+  "recordRemoteId": "product-fixture-1",
+  "serverRevision": null,
+  "changedAt": 1760000000000,
+  "payload": {
+    "remote_id": "product-fixture-1",
+    "account_remote_id": "account-fixture-1",
+    "name": "Cola Bottle",
+    "kind": "item",
+    "category_name": "Beverages",
+    "sale_price": 120,
+    "cost_price": 90,
+    "unit_label": "pcs",
+    "sku_or_barcode": "SKU-001",
+    "tax_rate_label": "VAT 13%",
+    "description": "Fixture product",
+    "image_url": null,
+    "status": "active",
+    "created_at": 1760000000000,
+    "updated_at": 1760000000000
+  }
+}

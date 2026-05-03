@@ -1,4 +1,5 @@
 import { syncDependencyOrder } from "../registry/syncDependencyOrder";
+import { filterTableNamesByV1SyncRollout } from "../config/syncTableRollout.config";
 import { SyncRepository } from "../data/repository/sync.repository";
 import { PushPendingChangesUseCase } from "./pushPendingChanges.useCase";
 
@@ -10,7 +11,7 @@ export const createPushPendingChangesUseCase = (
     let conflictCount = 0;
     let failedCount = 0;
 
-    for (const tableName of syncDependencyOrder) {
+    for (const tableName of filterTableNamesByV1SyncRollout(syncDependencyOrder)) {
       const pendingResult = await repository.getPendingChangeSet(scope, tableName);
       if (!pendingResult.success) {
         return pendingResult;

@@ -1,4 +1,5 @@
 import { AppSettingsModel } from "@/feature/appSettings/data/dataSource/db/appSettings.model";
+import { setSyncEnabledState } from "@/feature/appSettings/data/appSettings.store";
 import { Result } from "@/shared/types/result.types";
 import { Database } from "@nozbe/watermelondb";
 import { SyncFeatureFlagDatasource } from "./syncFeatureFlag.datasource";
@@ -35,6 +36,21 @@ export const createLocalSyncFeatureFlagDatasource = (
       return {
         success: true,
         value: settings?.syncEnabled === true,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async setSyncEnabled(enabled: boolean): Promise<Result<boolean>> {
+    try {
+      const result = await setSyncEnabledState(database, enabled);
+      return {
+        success: true,
+        value: result.syncEnabled,
       };
     } catch (error) {
       return {

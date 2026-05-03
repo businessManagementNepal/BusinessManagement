@@ -1,0 +1,22 @@
+{
+  "tableName": "billing_documents",
+  "operation": "create",
+  "recordRemoteId": "billing-fixture-1",
+  "serverRevision": null,
+  "changedAt": 1760000000000,
+  "payload": {
+    "remote_id": "billing-fixture-1",
+    "account_remote_id": "account-fixture-1",
+    "document_number": "INV-1001",
+    "document_type": "invoice",
+    "template_type": "standard_invoice",
+    "customer_name": "Hari Sharma",
+    "contact_remote_id": "contact-fixture-1",
+    "status": "pending",
+    "tax_rate_percent": 13,
+    "subtotal_amount": 1000,
+    "tax_amount": 130,
+    "total_amount": 1130,
+    "issued_at": 1760000000000
+  }
+}

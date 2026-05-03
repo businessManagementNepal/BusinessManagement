@@ -18,6 +18,7 @@ export class CategoryModel extends Model {
   @field("name") name!: string;
   @field("description") description!: string | null;
   @field("is_system") isSystem!: boolean;
+  @field("server_revision") serverRevision!: string | null;
   @field("sync_status") recordSyncStatus!: string;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

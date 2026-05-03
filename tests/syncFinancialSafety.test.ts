@@ -121,7 +121,7 @@ describe("sync financial safety", () => {
               payload: {
                 remote_id: "txn-1",
                 amount: 200,
-                direction: "in",
+                direction: "inflow",
                 settlement_money_account_remote_id: "cash-1",
               },
               serverRevision: "rev-1",

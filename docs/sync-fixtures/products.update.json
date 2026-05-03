@@ -1,0 +1,24 @@
+{
+  "tableName": "products",
+  "operation": "update",
+  "recordRemoteId": "product-fixture-1",
+  "serverRevision": "rev-product-1",
+  "changedAt": 1760000005000,
+  "payload": {
+    "remote_id": "product-fixture-1",
+    "account_remote_id": "account-fixture-1",
+    "name": "Cola Bottle 1L",
+    "kind": "item",
+    "category_name": "Beverages",
+    "sale_price": 140,
+    "cost_price": 100,
+    "unit_label": "pcs",
+    "sku_or_barcode": "SKU-001-XL",
+    "tax_rate_label": "VAT 13%",
+    "description": "Updated fixture product",
+    "image_url": null,
+    "status": "active",
+    "created_at": 1760000000000,
+    "updated_at": 1760000005000
+  }
+}

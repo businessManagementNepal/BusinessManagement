@@ -40,6 +40,7 @@ type SettingsScreenProps = {
   viewModel: SettingsViewModel;
   onBack: () => void;
   importDataFlow?: React.ReactNode;
+  syncStatusPanel?: React.ReactNode;
 };
 
 const getIcon = (
@@ -80,6 +81,7 @@ export function SettingsScreen({
   viewModel,
   onBack,
   importDataFlow,
+  syncStatusPanel,
 }: SettingsScreenProps) {
   useToastMessage({
     message:
@@ -222,6 +224,8 @@ export function SettingsScreen({
         contentContainerStyle={styles.content}
         baseBottomPadding={spacing.xxl}
       >
+        {syncStatusPanel}
+
         {viewModel.settingsSections.map((section) => (
           <View key={section.id} style={styles.sectionWrap}>
             <Text style={styles.sectionTitle}>{section.title}</Text>

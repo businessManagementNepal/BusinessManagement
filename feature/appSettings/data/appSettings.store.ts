@@ -35,6 +35,10 @@ export type SecurityPreferenceState = {
   twoFactorAuthEnabled: boolean;
 };
 
+export type SyncPreferenceState = {
+  syncEnabled: boolean;
+};
+
 export type AppAppearanceState = {
   themePreference: string;
   textSizePreference: string;
@@ -322,6 +326,41 @@ export const getSecurityPreferenceState = async (
     twoFactorAuthEnabled: SETTINGS_TWO_FACTOR_AUTH_AVAILABLE
       ? Boolean(settings.twoFactorAuthEnabled)
       : false,
+  };
+};
+
+export const getSyncPreferenceState = async (
+  database: Database,
+): Promise<SyncPreferenceState> => {
+  const settings = await ensureAppSettingsRecord(database);
+
+  return {
+    syncEnabled: normalizeSyncEnabled(settings.syncEnabled),
+  };
+};
+
+export const setSyncEnabledState = async (
+  database: Database,
+  enabled: boolean,
+): Promise<SyncPreferenceState> => {
+  const settings = await ensureAppSettingsRecord(database);
+  const normalizedEnabled = enabled === true;
+
+  if (normalizeSyncEnabled(settings.syncEnabled) === normalizedEnabled) {
+    return {
+      syncEnabled: normalizedEnabled,
+    };
+  }
+
+  await database.write(async () => {
+    await settings.update((record) => {
+      record.syncEnabled = normalizedEnabled;
+      setUpdatedAt(record, Date.now());
+    });
+  });
+
+  return {
+    syncEnabled: normalizedEnabled,
   };
 };
 

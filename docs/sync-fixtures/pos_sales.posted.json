@@ -1,0 +1,17 @@
+{
+  "tableName": "pos_sales",
+  "operation": "update",
+  "recordRemoteId": "pos-fixture-1",
+  "serverRevision": "rev-pos-1",
+  "changedAt": 1760000005000,
+  "payload": {
+    "remote_id": "pos-fixture-1",
+    "business_account_remote_id": "account-fixture-1",
+    "owner_user_remote_id": "owner-fixture-1",
+    "receipt_number": "POS-1001",
+    "workflow_status": "posted",
+    "grand_total": 650,
+    "cart_lines_snapshot_json": "[]",
+    "payment_parts_snapshot_json": "[]"
+  }
+}

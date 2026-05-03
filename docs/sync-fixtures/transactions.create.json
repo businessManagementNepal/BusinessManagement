@@ -1,0 +1,17 @@
+{
+  "tableName": "transactions",
+  "operation": "create",
+  "recordRemoteId": "transaction-fixture-1",
+  "serverRevision": null,
+  "changedAt": 1760000000000,
+  "payload": {
+    "remote_id": "transaction-fixture-1",
+    "owner_user_remote_id": "owner-fixture-1",
+    "account_remote_id": "account-fixture-1",
+    "amount": 500,
+    "direction": "inflow",
+    "transaction_type": "income",
+    "posting_status": "posted",
+    "title": "Fixture income"
+  }
+}

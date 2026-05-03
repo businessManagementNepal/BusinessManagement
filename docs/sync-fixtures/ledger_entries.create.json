@@ -1,0 +1,18 @@
+{
+  "tableName": "ledger_entries",
+  "operation": "create",
+  "recordRemoteId": "ledger-fixture-1",
+  "serverRevision": null,
+  "changedAt": 1760000000000,
+  "payload": {
+    "remote_id": "ledger-fixture-1",
+    "business_account_remote_id": "account-fixture-1",
+    "owner_user_remote_id": "owner-fixture-1",
+    "party_name": "Supplier Fixture",
+    "entry_type": "purchase",
+    "balance_direction": "credit",
+    "title": "Fixture payable",
+    "amount": 900,
+    "settlement_account_remote_id": "money-account-fixture-1"
+  }
+}

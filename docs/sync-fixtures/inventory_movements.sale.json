@@ -1,0 +1,17 @@
+{
+  "tableName": "inventory_movements",
+  "operation": "create",
+  "recordRemoteId": "inventory-fixture-1",
+  "serverRevision": null,
+  "changedAt": 1760000000000,
+  "payload": {
+    "remote_id": "inventory-fixture-1",
+    "account_remote_id": "account-fixture-1",
+    "product_remote_id": "product-fixture-1",
+    "movement_type": "sale_out",
+    "quantity": 2,
+    "delta_quantity": -2,
+    "unit_rate": 120,
+    "movement_at": 1760000000000
+  }
+}
