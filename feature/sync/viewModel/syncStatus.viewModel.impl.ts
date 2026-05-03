@@ -1,4 +1,5 @@
 import { GetAccountByRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccountByRemoteId.useCase";
+import { SYNC_BACKEND_AUTH_REQUIRED_MESSAGE } from "@/shared/sync/constants/sync.constants";
 import { GetSyncFeatureFlagUseCase } from "../useCase/getSyncFeatureFlag.useCase";
 import { GetSyncStatusUseCase } from "../useCase/getSyncStatus.useCase";
 import { RunManualSyncUseCase } from "../useCase/runManualSync.useCase";
@@ -17,6 +18,7 @@ type Params = {
   runManualSyncUseCase: RunManualSyncUseCase | null;
   getAccountByRemoteIdUseCase: GetAccountByRemoteIdUseCase;
   getDeviceId: () => Promise<string>;
+  getAccessToken: () => Promise<string | null>;
   schemaVersion: number;
 };
 
@@ -36,15 +38,26 @@ const formatLastSyncedLabel = (timestamp: number | null): string => {
   return new Date(timestamp).toLocaleString();
 };
 
+const normalizeStringValue = (value: string | null | undefined): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
 const resolveStatusLabel = ({
   isLoading,
   isRunning,
   syncEnabled,
+  requiresBackendAuth,
   errorMessage,
 }: {
   isLoading: boolean;
   isRunning: boolean;
   syncEnabled: boolean;
+  requiresBackendAuth: boolean;
   errorMessage: string | null;
 }): string => {
   if (isLoading) {
@@ -57,6 +70,10 @@ const resolveStatusLabel = ({
 
   if (!syncEnabled) {
     return "Sync disabled";
+  }
+
+  if (requiresBackendAuth) {
+    return "Backend sign-in required";
   }
 
   if (errorMessage) {
@@ -76,24 +93,45 @@ export const useSyncStatusViewModel = ({
   runManualSyncUseCase,
   getAccountByRemoteIdUseCase,
   getDeviceId,
+  getAccessToken,
   schemaVersion,
 }: Params): SyncStatusViewModel => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingPreference, setIsSavingPreference] = useState(false);
   const [isRunningManualSync, setIsRunningManualSync] = useState(false);
   const [syncEnabled, setSyncEnabled] = useState(false);
-  const [pendingCount, setPendingCount] = useState(EMPTY_STATUS.pendingChangesCount);
-  const [conflictCount, setConflictCount] = useState(EMPTY_STATUS.conflictCount);
-  const [failedCount, setFailedCount] = useState(EMPTY_STATUS.failedRecordsCount);
+  const [pendingCount, setPendingCount] = useState(
+    EMPTY_STATUS.pendingChangesCount,
+  );
+  const [conflictCount, setConflictCount] = useState(
+    EMPTY_STATUS.conflictCount,
+  );
+  const [failedCount, setFailedCount] = useState(
+    EMPTY_STATUS.failedRecordsCount,
+  );
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(
     EMPTY_STATUS.lastSyncedAt,
   );
   const [isRunning, setIsRunning] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [requiresBackendAuth, setRequiresBackendAuth] = useState(false);
+  const [hasResolvedActiveAccount, setHasResolvedActiveAccount] =
+    useState(false);
+
+  const resetStatus = useCallback(() => {
+    setPendingCount(0);
+    setConflictCount(0);
+    setFailedCount(0);
+    setLastSyncedAt(null);
+    setIsRunning(false);
+  }, []);
 
   const loadSyncStatus = useCallback(async () => {
     setIsLoading(true);
+    setHasResolvedActiveAccount(false);
+    setRequiresBackendAuth(false);
 
     const syncFlagResult = getSyncFeatureFlagUseCase
       ? await getSyncFeatureFlagUseCase.execute()
@@ -104,41 +142,41 @@ export const useSyncStatusViewModel = ({
 
     if (!syncFlagResult.success) {
       setErrorMessage(syncFlagResult.error.message);
+      setNoticeMessage(null);
       setIsLoading(false);
       return;
     }
 
     setSyncEnabled(syncFlagResult.value.syncEnabled);
 
+    if (!syncFlagResult.value.syncEnabled) {
+      resetStatus();
+      setErrorMessage(null);
+      setNoticeMessage(null);
+      setIsLoading(false);
+      return;
+    }
+
     if (runtimeError) {
-      setPendingCount(0);
-      setConflictCount(0);
-      setFailedCount(0);
-      setLastSyncedAt(null);
-      setIsRunning(false);
+      resetStatus();
       setErrorMessage(runtimeError.message);
+      setNoticeMessage(null);
       setIsLoading(false);
       return;
     }
 
     if (!activeUserRemoteId?.trim()) {
-      setPendingCount(0);
-      setConflictCount(0);
-      setFailedCount(0);
-      setLastSyncedAt(null);
-      setIsRunning(false);
+      resetStatus();
       setErrorMessage("Sync requires an active user session.");
+      setNoticeMessage(null);
       setIsLoading(false);
       return;
     }
 
     if (!activeAccountRemoteId?.trim() || !getSyncStatusUseCase) {
-      setPendingCount(0);
-      setConflictCount(0);
-      setFailedCount(0);
-      setLastSyncedAt(null);
-      setIsRunning(false);
+      resetStatus();
       setErrorMessage("Sync requires an active account.");
+      setNoticeMessage(null);
       setIsLoading(false);
       return;
     }
@@ -146,16 +184,27 @@ export const useSyncStatusViewModel = ({
     const accountResult =
       await getAccountByRemoteIdUseCase.execute(activeAccountRemoteId);
     if (!accountResult.success) {
+      resetStatus();
       setErrorMessage(accountResult.error.message);
+      setNoticeMessage(null);
       setIsLoading(false);
       return;
     }
 
     if (!accountResult.value) {
+      resetStatus();
       setErrorMessage("Sync requires an active account.");
+      setNoticeMessage(null);
       setIsLoading(false);
       return;
     }
+
+    setHasResolvedActiveAccount(true);
+
+    const nextRequiresBackendAuth = !normalizeStringValue(
+      await getAccessToken(),
+    );
+    setRequiresBackendAuth(nextRequiresBackendAuth);
 
     const deviceId = await getDeviceId();
     const syncStatusResult = await getSyncStatusUseCase.execute({
@@ -166,7 +215,9 @@ export const useSyncStatusViewModel = ({
     });
 
     if (!syncStatusResult.success) {
+      resetStatus();
       setErrorMessage(syncStatusResult.error.message);
+      setNoticeMessage(null);
       setIsLoading(false);
       return;
     }
@@ -177,14 +228,19 @@ export const useSyncStatusViewModel = ({
     setLastSyncedAt(syncStatusResult.value.lastSyncedAt);
     setIsRunning(syncStatusResult.value.isRunning);
     setErrorMessage(null);
+    setNoticeMessage(
+      nextRequiresBackendAuth ? SYNC_BACKEND_AUTH_REQUIRED_MESSAGE : null,
+    );
     setIsLoading(false);
   }, [
     activeAccountRemoteId,
     activeUserRemoteId,
+    getAccessToken,
     getAccountByRemoteIdUseCase,
     getDeviceId,
     getSyncFeatureFlagUseCase,
     getSyncStatusUseCase,
+    resetStatus,
     runtimeError,
     schemaVersion,
   ]);
@@ -197,6 +253,7 @@ export const useSyncStatusViewModel = ({
     async (enabled: boolean) => {
       if (!updateSyncFeatureFlagUseCase) {
         setErrorMessage(runtimeError?.message ?? "Sync runtime is unavailable.");
+        setNoticeMessage(null);
         return;
       }
 
@@ -204,12 +261,14 @@ export const useSyncStatusViewModel = ({
       const result = await updateSyncFeatureFlagUseCase.execute(enabled);
       if (!result.success) {
         setErrorMessage(result.error.message);
+        setNoticeMessage(null);
         setIsSavingPreference(false);
         return;
       }
 
       setSyncEnabled(result.value.syncEnabled);
       setErrorMessage(runtimeError?.message ?? null);
+      setNoticeMessage(null);
       setSuccessMessage(
         result.value.syncEnabled
           ? "Sync enabled for staged V1 tables."
@@ -224,6 +283,7 @@ export const useSyncStatusViewModel = ({
   const onRunManualSync = useCallback(async () => {
     if (!runManualSyncUseCase) {
       setErrorMessage(runtimeError?.message ?? "Sync runtime is unavailable.");
+      setNoticeMessage(null);
       return;
     }
 
@@ -236,12 +296,14 @@ export const useSyncStatusViewModel = ({
 
     if (!result.success) {
       setErrorMessage(result.error.message);
+      setNoticeMessage(null);
       setIsRunningManualSync(false);
       await loadSyncStatus();
       return;
     }
 
     setErrorMessage(runtimeError?.message ?? null);
+    setNoticeMessage(null);
     setSuccessMessage(
       `Manual sync completed. Pushed ${result.value.pushedCount}, pulled ${result.value.pulledCount}.`,
     );
@@ -269,6 +331,7 @@ export const useSyncStatusViewModel = ({
         isLoading,
         isRunning: isRunning || isRunningManualSync,
         syncEnabled,
+        requiresBackendAuth,
         errorMessage,
       }),
       rolloutLabel,
@@ -277,9 +340,16 @@ export const useSyncStatusViewModel = ({
       failedCount,
       lastSyncedLabel: formatLastSyncedLabel(lastSyncedAt),
       errorMessage,
+      noticeMessage,
       successMessage,
       canRunManualSync:
         syncEnabled &&
+        !requiresBackendAuth &&
+        hasResolvedActiveAccount &&
+        Boolean(activeUserRemoteId?.trim()) &&
+        Boolean(activeAccountRemoteId?.trim()) &&
+        !runtimeError &&
+        Boolean(runManualSyncUseCase) &&
         !isLoading &&
         !isRunning &&
         !isRunningManualSync &&
@@ -289,18 +359,25 @@ export const useSyncStatusViewModel = ({
       onRetry: onRunManualSync,
     }),
     [
+      activeAccountRemoteId,
+      activeUserRemoteId,
       conflictCount,
       errorMessage,
       failedCount,
+      hasResolvedActiveAccount,
       isLoading,
       isRunning,
       isRunningManualSync,
       isSavingPreference,
       lastSyncedAt,
+      noticeMessage,
       onRunManualSync,
       onToggleSyncEnabled,
       pendingCount,
+      requiresBackendAuth,
       rolloutLabel,
+      runManualSyncUseCase,
+      runtimeError,
       successMessage,
       syncEnabled,
     ],

@@ -1,4 +1,5 @@
 import { createRunManualSyncUseCase } from "@/feature/sync/useCase/runManualSync.useCase.impl";
+import { SYNC_BACKEND_AUTH_REQUIRED_MESSAGE } from "@/shared/sync/constants/sync.constants";
 import { describe, expect, it, vi } from "vitest";
 
 describe("runManualSync use case", () => {
@@ -55,7 +56,7 @@ describe("runManualSync use case", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.message).toBe("Sync requires a valid access token.");
+      expect(result.error.message).toBe(SYNC_BACKEND_AUTH_REQUIRED_MESSAGE);
     }
     expect(runSyncWorkflowUseCase.execute).not.toHaveBeenCalled();
   });

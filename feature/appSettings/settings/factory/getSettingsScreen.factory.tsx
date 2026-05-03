@@ -220,6 +220,7 @@ export function GetSettingsScreenFactory({
     runManualSyncUseCase,
     getAccountByRemoteIdUseCase: syncRuntime.getAccountByRemoteIdUseCase,
     getDeviceId: () => syncRuntime.deviceIdStore.getDeviceId(),
+    getAccessToken: () => syncRuntime.authTokenStore.getAccessToken(),
     schemaVersion: syncRuntime.schemaVersion,
   });
 

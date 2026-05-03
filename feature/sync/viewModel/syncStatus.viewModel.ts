@@ -10,6 +10,7 @@ export interface SyncStatusViewModel {
   failedCount: number;
   lastSyncedLabel: string;
   errorMessage: string | null;
+  noticeMessage: string | null;
   successMessage: string | null;
   canRunManualSync: boolean;
   onToggleSyncEnabled: (enabled: boolean) => Promise<void>;

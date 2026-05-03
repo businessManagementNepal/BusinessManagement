@@ -208,6 +208,10 @@ export function SyncStatusCard({ viewModel }: SyncStatusCardProps) {
       {viewModel.errorMessage ? (
         <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
       ) : null}
+
+      {!viewModel.errorMessage && viewModel.noticeMessage ? (
+        <Text style={styles.subtitle}>{viewModel.noticeMessage}</Text>
+      ) : null}
     </Card>
   );
 }

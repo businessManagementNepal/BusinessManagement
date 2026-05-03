@@ -1,5 +1,6 @@
 import { GetAccountByRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccountByRemoteId.useCase";
 import { createAuthenticationRequiredError } from "@/shared/network/networkError";
+import { SYNC_BACKEND_AUTH_REQUIRED_MESSAGE } from "@/shared/sync/constants/sync.constants";
 import { RunSyncWorkflowUseCase } from "../workflow/syncRun/useCase/runSyncWorkflow.useCase";
 import {
   RunManualSyncInput,
@@ -75,7 +76,7 @@ export const createRunManualSyncUseCase = ({
         return {
           success: false,
           error: createAuthenticationRequiredError(
-            "Sync requires a valid access token.",
+            SYNC_BACKEND_AUTH_REQUIRED_MESSAGE,
           ),
         };
       }
