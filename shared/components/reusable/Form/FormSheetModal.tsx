@@ -80,6 +80,7 @@ export function FormSheetModal({
         },
         keyboardWrap: {
           maxHeight: "100%",
+          width: "100%",
         },
         sheet: {
           backgroundColor: theme.colors.card,
@@ -88,6 +89,7 @@ export function FormSheetModal({
         },
         bottomSheet: {
           maxHeight: "92%",
+          width: "100%",
           borderTopLeftRadius: radius.xl,
           borderTopRightRadius: radius.xl,
           paddingHorizontal: theme.scaleSpace(spacing.lg),

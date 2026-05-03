@@ -5,8 +5,11 @@ type ValidateTransactionEditorStateParams = {
   title: string;
   accountRemoteId: string;
   settlementMoneyAccountRemoteId: string;
+  categoryRemoteId: string;
   selectedAccountExists: boolean;
   selectedMoneyAccountExists: boolean;
+  selectedCategoryExists: boolean;
+  requiresCategory: boolean;
   amount: string;
   happenedAt: string;
 };
@@ -53,8 +56,11 @@ export const validateTransactionEditorState = ({
   title,
   accountRemoteId,
   settlementMoneyAccountRemoteId,
+  categoryRemoteId,
   selectedAccountExists,
   selectedMoneyAccountExists,
+  selectedCategoryExists,
+  requiresCategory,
   amount,
   happenedAt,
 }: ValidateTransactionEditorStateParams): TransactionEditorFieldErrors => {
@@ -81,6 +87,13 @@ export const validateTransactionEditorState = ({
   ) {
     nextFieldErrors.settlementMoneyAccountRemoteId =
       "Please select a valid money account.";
+  }
+
+  if (
+    requiresCategory &&
+    (!categoryRemoteId.trim() || !selectedCategoryExists)
+  ) {
+    nextFieldErrors.categoryRemoteId = "Please select a valid category.";
   }
 
   if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {

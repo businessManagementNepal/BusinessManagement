@@ -1,8 +1,31 @@
+import { describe, expect, it, vi } from "vitest";
+
+(
+  globalThis as typeof globalThis & { __DEV__?: boolean }
+).__DEV__ = false;
+
+vi.mock("react-native", () => ({
+  Platform: {
+    OS: "web",
+    select: <T,>(values: { web?: T; default?: T }) =>
+      values.web ?? values.default,
+  },
+  TurboModuleRegistry: {
+    getEnforcing: vi.fn(),
+    get: vi.fn(),
+  },
+}));
+
+vi.mock("expo-secure-store", () => ({
+  getItemAsync: vi.fn(async () => null),
+  setItemAsync: vi.fn(async () => undefined),
+  deleteItemAsync: vi.fn(async () => undefined),
+}));
+
 import { createLocalSyncFeatureFlagDatasource } from "@/feature/sync/data/dataSource/local.syncFeatureFlag.datasource.impl";
 import { createRunSyncWorkflowUseCase } from "@/feature/sync/workflow/syncRun/useCase/runSyncWorkflow.useCase.impl";
 import { createSyncLock } from "@/shared/sync/runtime/syncLock";
 import type { Database, Model } from "@nozbe/watermelondb";
-import { describe, expect, it, vi } from "vitest";
 
 const input = {
   deviceId: "device-1",

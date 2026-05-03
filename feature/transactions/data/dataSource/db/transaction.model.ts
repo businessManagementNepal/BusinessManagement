@@ -20,6 +20,8 @@ export class TransactionModel extends Model {
   @field("title") title!: string;
   @field("amount") amount!: number;
   @field("currency_code") currencyCode!: string | null;
+  @field("category_remote_id") categoryRemoteId!: string | null;
+  @field("category_name_snapshot") categoryNameSnapshot!: string | null;
   @field("category_label") categoryLabel!: string | null;
   @field("note") note!: string | null;
   @field("happened_at") happenedAt!: number;

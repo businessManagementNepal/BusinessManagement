@@ -52,6 +52,8 @@ describe("postMoneyMovement.useCase", () => {
       amount: 100,
       currencyCode: "NPR",
       categoryLabel: "POS",
+      categoryRemoteId: null,
+      categoryNameSnapshot: null,
       note: "cash",
       happenedAt: 1_710_000_000_000,
       postingStatus: TransactionPostingStatus.Posted,

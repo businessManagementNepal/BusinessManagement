@@ -1,9 +1,23 @@
 import { vi } from "vitest";
 
+(globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ = false;
+
 vi.mock("react-native", () => ({
   Platform: {
     OS: "web",
+    select: <T,>(values: { web?: T; default?: T }) =>
+      values.web ?? values.default,
   },
+  TurboModuleRegistry: {
+    getEnforcing: vi.fn(),
+    get: vi.fn(),
+  },
+}));
+
+vi.mock("expo-secure-store", () => ({
+  getItemAsync: vi.fn(async () => null),
+  setItemAsync: vi.fn(async () => undefined),
+  deleteItemAsync: vi.fn(async () => undefined),
 }));
 
 import { createLocalSettingsDatasource } from "@/feature/appSettings/settings/data/dataSource/local.settings.datasource.impl";

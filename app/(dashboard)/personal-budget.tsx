@@ -48,6 +48,7 @@ export default function PersonalBudgetDashboardRoute() {
       activeAccountRemoteId={activeAccountRemoteId}
       activeAccountCurrencyCode={activeAccountCurrencyCode}
       activeAccountCountryCode={activeAccountCountryCode}
+      onOpenCategoryManager={() => navigation.push("/(dashboard)/categories")}
     />
   );
 }

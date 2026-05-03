@@ -16,6 +16,8 @@ export const mapTransactionModelToDomain = async (
   title: model.title,
   amount: Number(model.amount),
   currencyCode: model.currencyCode,
+  categoryRemoteId: model.categoryRemoteId ?? null,
+  categoryNameSnapshot: model.categoryNameSnapshot ?? null,
   categoryLabel: model.categoryLabel,
   note: model.note,
   happenedAt: model.happenedAt,

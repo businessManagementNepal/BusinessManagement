@@ -4,6 +4,7 @@ import {
 } from "@/feature/transactions/types/transaction.entity.types";
 import {
   TransactionAccountOption,
+  TransactionCategoryOption,
   TransactionEditorState,
   TransactionMoneyAccountOption,
 } from "@/feature/transactions/types/transaction.state.types";
@@ -12,6 +13,7 @@ export interface TransactionEditorViewModel {
   state: TransactionEditorState;
   accountOptions: readonly TransactionAccountOption[];
   moneyAccountOptions: readonly TransactionMoneyAccountOption[];
+  categoryOptions: readonly TransactionCategoryOption[];
   availableTypes: readonly { value: TransactionTypeValue; label: string }[];
   availableDirections: readonly { value: TransactionDirectionValue; label: string }[];
   openCreate: (type: TransactionTypeValue) => void;
@@ -25,7 +27,7 @@ export interface TransactionEditorViewModel {
   onChangeSettlementMoneyAccountRemoteId: (
     settlementMoneyAccountRemoteId: string,
   ) => void;
-  onChangeCategoryLabel: (categoryLabel: string) => void;
+  onChangeCategoryRemoteId: (categoryRemoteId: string) => void;
   onChangeNote: (note: string) => void;
   onChangeHappenedAt: (happenedAt: string) => void;
   submit: () => Promise<void>;

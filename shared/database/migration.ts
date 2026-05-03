@@ -1441,5 +1441,26 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 52,
+      steps: [
+        addColumns({
+          table: "transactions",
+          columns: [
+            {
+              name: "category_remote_id",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
+            {
+              name: "category_name_snapshot",
+              type: "string",
+              isOptional: true,
+            },
+          ],
+        }),
+      ],
+    },
     ],
 });

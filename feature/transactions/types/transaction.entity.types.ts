@@ -60,6 +60,8 @@ export type Transaction = {
   title: string;
   amount: number;
   currencyCode: string | null;
+  categoryRemoteId: string | null;
+  categoryNameSnapshot: string | null;
   categoryLabel: string | null;
   note: string | null;
   happenedAt: number;
@@ -85,6 +87,8 @@ export type SaveTransactionPayload = {
   title: string;
   amount: number;
   currencyCode: string | null;
+  categoryRemoteId?: string | null;
+  categoryNameSnapshot?: string | null;
   categoryLabel: string | null;
   note: string | null;
   happenedAt: number;

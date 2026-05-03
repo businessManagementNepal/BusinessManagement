@@ -19,6 +19,8 @@ const normalizePayload = (
   accountRemoteId: payload.accountRemoteId.trim(),
   accountDisplayNameSnapshot: payload.accountDisplayNameSnapshot.trim(),
   title: payload.title.trim(),
+  categoryRemoteId: payload.categoryRemoteId?.trim() || null,
+  categoryNameSnapshot: payload.categoryNameSnapshot?.trim() || null,
   categoryLabel: payload.categoryLabel?.trim() || null,
   note: payload.note?.trim() || null,
   settlementMoneyAccountRemoteId:

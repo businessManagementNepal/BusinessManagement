@@ -1,5 +1,8 @@
-import { BudgetPlanResult } from "@/feature/budget/types/budget.types";
+import {
+  BudgetPlanResult,
+  BudgetScopedRemoteIdInput,
+} from "@/feature/budget/types/budget.types";
 
 export interface GetBudgetPlanByRemoteIdUseCase {
-  execute(remoteId: string): Promise<BudgetPlanResult>;
+  execute(input: BudgetScopedRemoteIdInput): Promise<BudgetPlanResult>;
 }

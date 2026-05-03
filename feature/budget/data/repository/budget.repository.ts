@@ -1,4 +1,5 @@
 import {
+  BudgetScopedRemoteIdInput,
   BudgetOperationResult,
   BudgetPlanResult,
   BudgetPlansResult,
@@ -7,8 +8,10 @@ import {
 
 export interface BudgetRepository {
   getBudgetPlansByAccountRemoteId(accountRemoteId: string): Promise<BudgetPlansResult>;
-  getBudgetPlanByRemoteId(remoteId: string): Promise<BudgetPlanResult>;
+  getBudgetPlanByRemoteId(input: BudgetScopedRemoteIdInput): Promise<BudgetPlanResult>;
   createBudgetPlan(payload: SaveBudgetPlanPayload): Promise<BudgetPlanResult>;
   updateBudgetPlan(payload: SaveBudgetPlanPayload): Promise<BudgetPlanResult>;
-  deleteBudgetPlanByRemoteId(remoteId: string): Promise<BudgetOperationResult>;
+  deleteBudgetPlanByRemoteId(
+    input: BudgetScopedRemoteIdInput,
+  ): Promise<BudgetOperationResult>;
 }

@@ -24,6 +24,8 @@ const buildTransaction = (
   title: "Opening balance - Cash Drawer",
   amount: 500,
   currencyCode: "NPR",
+  categoryRemoteId: null,
+  categoryNameSnapshot: null,
   categoryLabel: "Opening Balance",
   note: null,
   happenedAt: 1_710_000_000_000,

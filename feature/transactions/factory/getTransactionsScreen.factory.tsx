@@ -8,6 +8,9 @@ import {
     AccountType,
     AccountTypeValue,
 } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { createLocalCategoryDatasource } from "@/feature/categories/data/dataSource/local.category.datasource.impl";
+import { createCategoryRepository } from "@/feature/categories/data/repository/category.repository.impl";
+import { createGetCategoriesUseCase } from "@/feature/categories/useCase/getCategories.useCase.impl";
 import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
@@ -96,6 +99,18 @@ export function GetTransactionsScreenFactory({
   const getMoneyAccountsUseCase = useMemo(
     () => createGetMoneyAccountsUseCase(moneyAccountRepository),
     [moneyAccountRepository],
+  );
+  const categoryDatasource = useMemo(
+    () => createLocalCategoryDatasource(appDatabase),
+    [],
+  );
+  const categoryRepository = useMemo(
+    () => createCategoryRepository(categoryDatasource),
+    [categoryDatasource],
+  );
+  const getCategoriesUseCase = useMemo(
+    () => createGetCategoriesUseCase(categoryRepository),
+    [categoryRepository],
   );
 
   const transactionDatasource = useMemo(
@@ -194,7 +209,9 @@ export function GetTransactionsScreenFactory({
     ownerUserRemoteId: activeUserRemoteId ?? "",
     accounts,
     activeAccountRemoteId,
+    accountTypeScope,
     getMoneyAccountsUseCase,
+    getCategoriesUseCase,
     getTransactionByIdUseCase,
     addTransactionUseCase,
     updateTransactionUseCase,

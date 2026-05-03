@@ -57,8 +57,8 @@ export const createBudgetRepository = (
     };
   },
 
-  async getBudgetPlanByRemoteId(remoteId) {
-    const result = await datasource.getBudgetPlanByRemoteId(remoteId);
+  async getBudgetPlanByRemoteId(input) {
+    const result = await datasource.getBudgetPlanByRemoteId(input);
 
     if (!result.success) {
       return { success: false, error: mapDatasourceError(result.error) };
@@ -91,8 +91,8 @@ export const createBudgetRepository = (
     return { success: true, value: mapBudgetPlanModelToDomain(result.value) };
   },
 
-  async deleteBudgetPlanByRemoteId(remoteId) {
-    const result = await datasource.deleteBudgetPlanByRemoteId(remoteId);
+  async deleteBudgetPlanByRemoteId(input) {
+    const result = await datasource.deleteBudgetPlanByRemoteId(input);
 
     if (!result.success) {
       return { success: false, error: mapDatasourceError(result.error) };

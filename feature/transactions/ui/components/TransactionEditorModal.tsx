@@ -98,6 +98,12 @@ export function TransactionEditorModal({
       value: account.remoteId,
     }),
   );
+  const categoryOptions: DropdownOption[] = viewModel.categoryOptions.map(
+    (category) => ({
+      label: category.label,
+      value: category.remoteId,
+    }),
+  );
 
   const directionOptions: DropdownOption[] = viewModel.availableDirections.map(
     (option) => ({
@@ -231,13 +237,18 @@ export function TransactionEditorModal({
         errorText={state.fieldErrors.settlementMoneyAccountRemoteId}
       />
 
-      <LabeledTextInput
-        label="Category (optional)"
-        value={state.categoryLabel}
-        onChangeText={viewModel.onChangeCategoryLabel}
-        placeholder="Example: Food, Salary, Transport"
-        editable={!state.isSaving}
-      />
+      {state.type !== TransactionType.Transfer ? (
+        <LabeledDropdownField
+          label="Category"
+          value={state.categoryRemoteId}
+          options={categoryOptions}
+          onChange={viewModel.onChangeCategoryRemoteId}
+          placeholder="Select category"
+          modalTitle="Select category"
+          disabled={state.isSaving}
+          errorText={state.fieldErrors.categoryRemoteId}
+        />
+      ) : null}
 
       <DualCalendarDatePicker
         label="Date"

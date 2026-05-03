@@ -25,6 +25,8 @@ export const normalizeMoneyPostingPayload = (
   accountDisplayNameSnapshot: normalizeRequired(payload.accountDisplayNameSnapshot),
   title: normalizeRequired(payload.title),
   currencyCode: normalizeOptional(payload.currencyCode),
+  categoryRemoteId: normalizeOptional(payload.categoryRemoteId),
+  categoryNameSnapshot: normalizeOptional(payload.categoryNameSnapshot),
   categoryLabel: normalizeOptional(payload.categoryLabel),
   note: normalizeOptional(payload.note),
   settlementMoneyAccountRemoteId: normalizeOptional(

@@ -33,6 +33,10 @@ const updateSyncStatusOnMutation = (record: BudgetPlanModel): void => {
   }
 };
 
+const markBudgetPlanPendingDelete = (record: BudgetPlanModel): void => {
+  record.recordSyncStatus = BudgetSyncStatus.PendingDelete;
+};
+
 const normalizeRequired = (value: string): string => value.trim();
 const normalizeOptional = (value: string | null): string | null => {
   if (value === null) {
@@ -249,14 +253,28 @@ export const createLocalBudgetDatasource = (
   },
 
   async getBudgetPlanByRemoteId(
-    remoteId: string,
+    input,
   ): Promise<Result<BudgetPlanModel | null>> {
     try {
+      const normalizedAccountRemoteId = normalizeRequired(input.accountRemoteId);
+      const normalizedRemoteId = normalizeRequired(input.remoteId);
+
+      if (!normalizedAccountRemoteId) {
+        throw new Error("Account remote id is required");
+      }
+
+      if (!normalizedRemoteId) {
+        throw new Error("Budget remote id is required");
+      }
+
       const budgetPlansCollection = database.get<BudgetPlanModel>(
         BUDGET_PLANS_TABLE,
       );
       const matchingPlans = await budgetPlansCollection
-        .query(Q.where("remote_id", remoteId))
+        .query(
+          Q.where("account_remote_id", normalizedAccountRemoteId),
+          Q.where("remote_id", normalizedRemoteId),
+        )
         .fetch();
 
       const budgetPlan = matchingPlans[0] ?? null;
@@ -272,13 +290,27 @@ export const createLocalBudgetDatasource = (
     }
   },
 
-  async deleteBudgetPlanByRemoteId(remoteId: string): Promise<Result<boolean>> {
+  async deleteBudgetPlanByRemoteId(input): Promise<Result<boolean>> {
     try {
+      const normalizedAccountRemoteId = normalizeRequired(input.accountRemoteId);
+      const normalizedRemoteId = normalizeRequired(input.remoteId);
+
+      if (!normalizedAccountRemoteId) {
+        throw new Error("Account remote id is required");
+      }
+
+      if (!normalizedRemoteId) {
+        throw new Error("Budget remote id is required");
+      }
+
       const budgetPlansCollection = database.get<BudgetPlanModel>(
         BUDGET_PLANS_TABLE,
       );
       const matchingPlans = await budgetPlansCollection
-        .query(Q.where("remote_id", remoteId))
+        .query(
+          Q.where("account_remote_id", normalizedAccountRemoteId),
+          Q.where("remote_id", normalizedRemoteId),
+        )
         .fetch();
 
       const budgetPlan = matchingPlans[0];
@@ -290,7 +322,7 @@ export const createLocalBudgetDatasource = (
       await database.write(async () => {
         await budgetPlan.update((record) => {
           record.deletedAt = Date.now();
-          updateSyncStatusOnMutation(record);
+          markBudgetPlanPendingDelete(record);
           setUpdatedAt(record, Date.now());
         });
       });

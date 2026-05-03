@@ -12,6 +12,8 @@ export const transactionsTable = tableSchema({
     { name: "title", type: "string" },
     { name: "amount", type: "number" },
     { name: "currency_code", type: "string", isOptional: true },
+    { name: "category_remote_id", type: "string", isOptional: true, isIndexed: true },
+    { name: "category_name_snapshot", type: "string", isOptional: true },
     { name: "category_label", type: "string", isOptional: true },
     { name: "note", type: "string", isOptional: true },
     { name: "happened_at", type: "number", isIndexed: true },

@@ -4,6 +4,7 @@ export const AuditModule = {
   Sync: "sync",
   Settings: "settings",
   Transactions: "transactions",
+  Budget: "budget",
   Pos: "pos",
   Billing: "billing",
   Ledger: "ledger",

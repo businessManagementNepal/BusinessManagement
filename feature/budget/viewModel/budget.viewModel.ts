@@ -19,11 +19,12 @@ export type BudgetSummaryCardState = {
   id: string;
   label: string;
   value: string;
-  tone: "neutral" | "alert";
+  tone: "neutral" | "success" | "alert";
 };
 
 export type BudgetListItemState = {
   remoteId: string;
+  budgetMonth: string;
   title: string;
   subtitle: string;
   plannedAmountLabel: string;
@@ -50,6 +51,12 @@ export type BudgetEditorState = {
   isSaving: boolean;
 };
 
+export type BudgetQuickCategoryState = {
+  name: string;
+  errorMessage: string | null;
+  isSaving: boolean;
+};
+
 export type BudgetDetailState = {
   remoteId: string;
   title: string;
@@ -71,14 +78,20 @@ export interface BudgetViewModel {
   selectedFilter: BudgetListFilterValue;
   searchQuery: string;
   emptyStateMessage: string;
+  emptyStateActionLabel: string | null;
   categoryOptions: readonly BudgetCategoryOption[];
   editorState: BudgetEditorState;
+  quickCategoryState: BudgetQuickCategoryState;
   detailState: BudgetDetailState | null;
   isDetailVisible: boolean;
+  deleteConfirmationVisible: boolean;
+  deleteErrorMessage: string | null;
+  isDeleting: boolean;
   canCreate: boolean;
   onRefresh: () => Promise<void>;
   onChangeFilter: (value: BudgetListFilterValue) => void;
   onChangeSearchQuery: (value: string) => void;
+  onPressEmptyStateAction: () => void;
   onOpenCreate: () => void;
   onOpenDetail: (remoteId: string) => Promise<void>;
   onOpenEdit: (remoteId: string) => Promise<void>;
@@ -87,8 +100,12 @@ export interface BudgetViewModel {
     field: "budgetMonth" | "categoryRemoteId" | "plannedAmount" | "note",
     value: string,
   ) => void;
+  onQuickCategoryNameChange: (value: string) => void;
+  onCreateQuickExpenseCategory: () => Promise<void>;
   onSubmit: () => Promise<void>;
   onCloseDetail: () => void;
-  onDeleteActiveBudget: () => Promise<void>;
+  onRequestDeleteBudget: () => void;
+  onCancelDeleteBudget: () => void;
+  onConfirmDeleteBudget: () => Promise<void>;
   onEditFromDetail: () => Promise<void>;
 }

@@ -24,8 +24,11 @@ describe("validateTransactionEditorState", () => {
       title: "",
       accountRemoteId: "",
       settlementMoneyAccountRemoteId: "",
+      categoryRemoteId: "",
       selectedAccountExists: false,
       selectedMoneyAccountExists: false,
+      selectedCategoryExists: false,
+      requiresCategory: true,
       amount: "0",
       happenedAt: "2026-02-30",
     });
@@ -34,6 +37,7 @@ describe("validateTransactionEditorState", () => {
       title: "Please enter a title.",
       accountRemoteId: "Please select an account.",
       settlementMoneyAccountRemoteId: "Please select a money account.",
+      categoryRemoteId: "Please select a valid category.",
       amount: "Amount must be greater than zero.",
       happenedAt: "Please enter a valid date in YYYY-MM-DD format.",
     });
@@ -45,8 +49,11 @@ describe("validateTransactionEditorState", () => {
       title: "Salary",
       accountRemoteId: "account-1",
       settlementMoneyAccountRemoteId: "",
+      categoryRemoteId: "",
       selectedAccountExists: true,
       selectedMoneyAccountExists: true,
+      selectedCategoryExists: false,
+      requiresCategory: false,
       amount: "1000",
       happenedAt: "2026-04-22",
     });

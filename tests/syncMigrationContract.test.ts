@@ -25,8 +25,8 @@ const getMigrationDefinitions = (): readonly MigrationDefinition[] => {
 };
 
 describe("sync migration contract", () => {
-  it("advances the schema to version 50", () => {
-    expect(APP_DATABASE_SCHEMA_VERSION).toBe(50);
+  it("advances the schema to version 52", () => {
+    expect(APP_DATABASE_SCHEMA_VERSION).toBe(52);
   });
 
   it("creates all sync infrastructure tables in migration 45", () => {
@@ -99,5 +99,17 @@ describe("sync migration contract", () => {
     const serializedSteps = JSON.stringify(migration50?.steps ?? []);
     expect(serializedSteps).toContain('"table":"categories"');
     expect(serializedSteps).toContain("server_revision");
+  });
+
+  it("adds transaction category identity fields in migration 52", () => {
+    const migration52 = getMigrationDefinitions().find(
+      (definition) => definition.toVersion === 52,
+    );
+
+    expect(migration52).toBeDefined();
+    const serializedSteps = JSON.stringify(migration52?.steps ?? []);
+    expect(serializedSteps).toContain('"table":"transactions"');
+    expect(serializedSteps).toContain("category_remote_id");
+    expect(serializedSteps).toContain("category_name_snapshot");
   });
 });

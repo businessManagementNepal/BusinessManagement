@@ -1,4 +1,7 @@
 import {
+  CategoryKindValue,
+} from "@/feature/categories/types/category.types";
+import {
   TransactionDirectionValue,
   TransactionTypeValue,
 } from "./transaction.entity.types";
@@ -82,6 +85,12 @@ export type TransactionMoneyAccountOption = {
   label: string;
 };
 
+export type TransactionCategoryOption = {
+  remoteId: string;
+  label: string;
+  kind: CategoryKindValue;
+};
+
 export type TransactionFilterOption = {
   value: string;
   label: string;
@@ -93,6 +102,7 @@ export type TransactionEditorFieldName =
   | "title"
   | "accountRemoteId"
   | "settlementMoneyAccountRemoteId"
+  | "categoryRemoteId"
   | "amount"
   | "happenedAt";
 
@@ -110,6 +120,7 @@ export type TransactionEditorState = {
   amount: string;
   accountRemoteId: string;
   settlementMoneyAccountRemoteId: string;
+  categoryRemoteId: string;
   categoryLabel: string;
   note: string;
   happenedAt: string;

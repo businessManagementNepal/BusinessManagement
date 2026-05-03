@@ -160,6 +160,8 @@ const buildTransaction = (
   title: "Order Payment ORD-001",
   amount: 200,
   currencyCode: "NPR",
+  categoryRemoteId: null,
+  categoryNameSnapshot: null,
   categoryLabel: "Orders",
   note: null,
   happenedAt: 1_710_000_000_000,

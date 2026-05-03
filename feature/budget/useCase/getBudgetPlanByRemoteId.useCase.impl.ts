@@ -5,14 +5,24 @@ import { GetBudgetPlanByRemoteIdUseCase } from "./getBudgetPlanByRemoteId.useCas
 export const createGetBudgetPlanByRemoteIdUseCase = (
   repository: BudgetRepository,
 ): GetBudgetPlanByRemoteIdUseCase => ({
-  async execute(remoteId) {
-    if (!remoteId.trim()) {
+  async execute(input) {
+    if (!input.accountRemoteId.trim()) {
+      return {
+        success: false,
+        error: BudgetValidationError("Account context is required."),
+      };
+    }
+
+    if (!input.remoteId.trim()) {
       return {
         success: false,
         error: BudgetValidationError("Budget remote id is required."),
       };
     }
 
-    return repository.getBudgetPlanByRemoteId(remoteId);
+    return repository.getBudgetPlanByRemoteId({
+      accountRemoteId: input.accountRemoteId.trim(),
+      remoteId: input.remoteId.trim(),
+    });
   },
 });

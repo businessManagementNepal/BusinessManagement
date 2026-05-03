@@ -40,6 +40,8 @@ const buildTransaction = (
   title: "Sale Payment",
   amount: 100,
   currencyCode: "NPR",
+  categoryRemoteId: null,
+  categoryNameSnapshot: null,
   categoryLabel: "Sales",
   note: null,
   happenedAt: todayAt(10),

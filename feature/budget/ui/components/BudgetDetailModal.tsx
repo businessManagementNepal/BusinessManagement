@@ -3,8 +3,9 @@ import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { Pill } from "@/shared/components/reusable/List/Pill";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -15,6 +16,7 @@ type BudgetDetailModalProps = {
 export function BudgetDetailModal({
   viewModel,
 }: BudgetDetailModalProps) {
+  const styles = useThemedStyles(createStyles);
   const detailState = viewModel.detailState;
 
   return (
@@ -73,7 +75,7 @@ export function BudgetDetailModal({
               variant="secondary"
               size="lg"
               style={styles.actionButton}
-              onPress={() => void viewModel.onDeleteActiveBudget()}
+              onPress={viewModel.onRequestDeleteBudget}
             />
             <AppButton
               label="Edit"
@@ -89,69 +91,75 @@ export function BudgetDetailModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  sectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  summaryGrid: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  summaryCard: {
-    flex: 1,
-    paddingVertical: spacing.md,
-  },
-  summaryLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  summaryValue: {
-    color: colors.cardForeground,
-    fontSize: 18,
-    fontFamily: "InterBold",
-  },
-  noteCard: {
-    gap: 4,
-  },
-  noteTitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterBold",
-  },
-  noteValue: {
-    fontSize: 20,
-    fontFamily: "InterBold",
-  },
-  overValue: {
-    color: colors.destructive,
-  },
-  leftValue: {
-    color: colors.success,
-  },
-  noteText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 4,
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  actionButton: {
-    flex: 1,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+      paddingBottom: theme.scaleSpace(spacing.xl),
+    },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    sectionTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      lineHeight: theme.scaleLineHeight(18),
+      fontFamily: "InterBold",
+    },
+    summaryGrid: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    summaryCard: {
+      flex: 1,
+      paddingVertical: theme.scaleSpace(spacing.md),
+    },
+    summaryLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      marginBottom: theme.scaleSpace(4),
+    },
+    summaryValue: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(18),
+      lineHeight: theme.scaleLineHeight(22),
+      fontFamily: "InterBold",
+    },
+    noteCard: {
+      gap: theme.scaleSpace(4),
+    },
+    noteTitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterBold",
+    },
+    noteValue: {
+      fontSize: theme.scaleText(20),
+      lineHeight: theme.scaleLineHeight(24),
+      fontFamily: "InterBold",
+    },
+    overValue: {
+      color: theme.colors.destructive,
+    },
+    leftValue: {
+      color: theme.colors.success,
+    },
+    noteText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+      lineHeight: theme.scaleLineHeight(18),
+      marginTop: theme.scaleSpace(4),
+    },
+    actionRow: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+      marginTop: theme.scaleSpace(spacing.xs),
+    },
+    actionButton: {
+      flex: 1,
+    },
+  });

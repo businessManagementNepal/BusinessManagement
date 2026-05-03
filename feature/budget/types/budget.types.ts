@@ -37,6 +37,11 @@ export type SaveBudgetPlanPayload = {
   note: string | null;
 };
 
+export type BudgetScopedRemoteIdInput = {
+  accountRemoteId: string;
+  remoteId: string;
+};
+
 export const BudgetErrorType = {
   DatabaseError: "DATABASE_ERROR",
   ValidationError: "VALIDATION_ERROR",

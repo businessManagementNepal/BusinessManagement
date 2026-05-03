@@ -4,9 +4,8 @@ import {
   DuplicateBudgetError,
   SaveBudgetPlanPayload,
 } from "@/feature/budget/types/budget.types";
+import { validateBudgetMonth } from "@/feature/budget/validation/budgetMonth.validation";
 import { UpdateBudgetPlanUseCase } from "./updateBudgetPlan.useCase";
-
-const isValidBudgetMonth = (value: string): boolean => /^\d{4}-\d{2}$/.test(value);
 
 export const createUpdateBudgetPlanUseCase = (
   repository: BudgetRepository,
@@ -33,11 +32,10 @@ export const createUpdateBudgetPlanUseCase = (
       };
     }
 
-    if (!isValidBudgetMonth(payload.budgetMonth.trim())) {
-      return {
-        success: false,
-        error: BudgetValidationError("Budget month must use YYYY-MM format."),
-      };
+    const budgetMonthResult = validateBudgetMonth(payload.budgetMonth);
+
+    if (!budgetMonthResult.success) {
+      return budgetMonthResult;
     }
 
     if (!payload.categoryRemoteId.trim()) {
@@ -72,7 +70,7 @@ export const createUpdateBudgetPlanUseCase = (
     const duplicateBudget = existingBudgets.value.find(
       (budgetPlan) =>
         budgetPlan.remoteId !== payload.remoteId.trim() &&
-        budgetPlan.budgetMonth === payload.budgetMonth.trim() &&
+        budgetPlan.budgetMonth === budgetMonthResult.value &&
         budgetPlan.categoryRemoteId === payload.categoryRemoteId.trim(),
     );
 
@@ -81,14 +79,14 @@ export const createUpdateBudgetPlanUseCase = (
         success: false,
         error: DuplicateBudgetError(
           payload.categoryNameSnapshot.trim(),
-          payload.budgetMonth.trim(),
+          budgetMonthResult.value,
         ),
       };
     }
 
     return repository.updateBudgetPlan({
       ...payload,
-      budgetMonth: payload.budgetMonth.trim(),
+      budgetMonth: budgetMonthResult.value,
       categoryRemoteId: payload.categoryRemoteId.trim(),
       categoryNameSnapshot: payload.categoryNameSnapshot.trim(),
     });

@@ -1,47 +1,64 @@
-import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
-import { CategoryKind, Category } from "@/feature/categories/types/category.types";
-import { GetCategoriesUseCase } from "@/feature/categories/useCase/getCategories.useCase";
-import { Transaction, TransactionType } from "@/feature/transactions/types/transaction.entity.types";
-import { GetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase";
-import * as Crypto from "expo-crypto";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  BudgetPlan,
-} from "@/feature/budget/types/budget.types";
 import { CreateBudgetPlanUseCase } from "@/feature/budget/useCase/createBudgetPlan.useCase";
 import { DeleteBudgetPlanUseCase } from "@/feature/budget/useCase/deleteBudgetPlan.useCase";
 import { GetBudgetPlanByRemoteIdUseCase } from "@/feature/budget/useCase/getBudgetPlanByRemoteId.useCase";
-import { GetBudgetPlansUseCase } from "@/feature/budget/useCase/getBudgetPlans.useCase";
 import { UpdateBudgetPlanUseCase } from "@/feature/budget/useCase/updateBudgetPlan.useCase";
+import { BudgetPlan } from "@/feature/budget/types/budget.types";
 import {
   BudgetDetailState,
   BudgetEditorState,
+  BudgetQuickCategoryState,
   BudgetListFilter,
   BudgetListFilterValue,
   BudgetListItemState,
   BudgetSummaryCardState,
   BudgetViewModel,
-} from "./budget.viewModel";
+} from "@/feature/budget/viewModel/budget.viewModel";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import {
+  Category,
+  CategoryKind,
+  CategoryScope,
+} from "@/feature/categories/types/category.types";
+import { GetCategoriesUseCase } from "@/feature/categories/useCase/getCategories.useCase";
+import { SaveCategoryUseCase } from "@/feature/categories/useCase/saveCategory.useCase";
+import {
+  BudgetProgressItem,
+  BudgetProgressSummary,
+} from "@/shared/readModel/budgetProgress/types/budgetProgress.readModel.types";
+import { GetBudgetProgressReadModelUseCase } from "@/shared/readModel/budgetProgress/useCase/getBudgetProgressReadModel.useCase";
 import {
   formatCurrencyAmount,
   resolveCurrencyCode,
 } from "@/shared/utils/currency/accountCurrency";
+import * as Crypto from "expo-crypto";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type UseBudgetViewModelParams = {
   ownerUserRemoteId: string | null;
   accountRemoteId: string | null;
   currencyCode: string | null;
   countryCode: string | null;
-  getBudgetPlansUseCase: GetBudgetPlansUseCase;
   getBudgetPlanByRemoteIdUseCase: GetBudgetPlanByRemoteIdUseCase;
   createBudgetPlanUseCase: CreateBudgetPlanUseCase;
   updateBudgetPlanUseCase: UpdateBudgetPlanUseCase;
   deleteBudgetPlanUseCase: DeleteBudgetPlanUseCase;
   getCategoriesUseCase: GetCategoriesUseCase;
-  getTransactionsUseCase: GetTransactionsUseCase;
+  saveCategoryUseCase: SaveCategoryUseCase;
+  getBudgetProgressReadModelUseCase: GetBudgetProgressReadModelUseCase;
+  onOpenCategoryManager?: () => void;
 };
 
-const getCurrentBudgetMonth = (): string => new Date().toISOString().slice(0, 7);
+const EMPTY_SUMMARY: BudgetProgressSummary = {
+  currentMonthPlannedAmount: 0,
+  currentMonthSpentAmount: 0,
+  currentMonthRemainingAmount: 0,
+  hasOverspentBudget: false,
+};
+
+const getCurrentBudgetMonth = (): string => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+};
 
 const EMPTY_EDITOR_STATE: BudgetEditorState = {
   visible: false,
@@ -51,6 +68,12 @@ const EMPTY_EDITOR_STATE: BudgetEditorState = {
   categoryRemoteId: "",
   plannedAmount: "0",
   note: "",
+  errorMessage: null,
+  isSaving: false,
+};
+
+const EMPTY_QUICK_CATEGORY_STATE: BudgetQuickCategoryState = {
+  name: "",
   errorMessage: null,
   isSaving: false,
 };
@@ -76,106 +99,63 @@ const formatBudgetMonth = (budgetMonth: string): string => {
   });
 };
 
-const getTransactionBudgetMonth = (timestamp: number): string => {
-  const date = new Date(timestamp);
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  return `${year}-${month}`;
-};
-
-const buildSpentLookup = (
-  transactions: readonly Transaction[],
-): Map<string, number> => {
-  const lookup = new Map<string, number>();
-
-  transactions.forEach((transaction) => {
-    if (
-      transaction.transactionType !== TransactionType.Expense ||
-      !transaction.categoryLabel?.trim()
-    ) {
-      return;
-    }
-
-    const budgetMonth = getTransactionBudgetMonth(transaction.happenedAt);
-    const key = `${budgetMonth}::${transaction.categoryLabel.trim().toLowerCase()}`;
-    const currentAmount = lookup.get(key) ?? 0;
-    lookup.set(key, currentAmount + transaction.amount);
-  });
-
-  return lookup;
-};
-
 const buildBudgetListItemState = (
-  budgetPlan: BudgetPlan,
+  progressItem: BudgetProgressItem,
   currencyCode: string,
   countryCode: string | null,
-  spentAmount: number,
-): BudgetListItemState => {
-  const remainingAmount = budgetPlan.plannedAmount - spentAmount;
-  const isOverspent = remainingAmount < 0;
-  const progressPercent = budgetPlan.plannedAmount <= 0
-    ? 0
-    : Math.max(0, Math.min(100, (spentAmount / budgetPlan.plannedAmount) * 100));
-
-  return {
-    remoteId: budgetPlan.remoteId,
-    title: budgetPlan.categoryNameSnapshot,
-    subtitle: `${formatBudgetMonth(budgetPlan.budgetMonth)} budget`,
-    plannedAmountLabel: formatCurrencyAmount({
-      amount: budgetPlan.plannedAmount,
-      currencyCode,
-      countryCode,
-    }),
-    spentAmountLabel: formatCurrencyAmount({
-      amount: spentAmount,
-      currencyCode,
-      countryCode,
-    }),
-    remainingAmountLabel: formatCurrencyAmount({
-      amount: Math.abs(remainingAmount),
-      currencyCode,
-      countryCode,
-    }),
-    monthLabel: formatBudgetMonth(budgetPlan.budgetMonth),
-    noteLabel: budgetPlan.note?.trim() || null,
-    progressPercent,
-    isOverspent,
-    statusLabel: isOverspent ? "OVER" : "ON TRACK",
-  };
-};
+): BudgetListItemState => ({
+  remoteId: progressItem.budgetRemoteId,
+  budgetMonth: progressItem.budgetMonth,
+  title: progressItem.categoryNameSnapshot,
+  subtitle: `${formatBudgetMonth(progressItem.budgetMonth)} budget`,
+  plannedAmountLabel: formatCurrencyAmount({
+    amount: progressItem.plannedAmount,
+    currencyCode,
+    countryCode,
+  }),
+  spentAmountLabel: formatCurrencyAmount({
+    amount: progressItem.spentAmount,
+    currencyCode,
+    countryCode,
+  }),
+  remainingAmountLabel: formatCurrencyAmount({
+    amount: Math.abs(progressItem.remainingAmount),
+    currencyCode,
+    countryCode,
+  }),
+  monthLabel: formatBudgetMonth(progressItem.budgetMonth),
+  noteLabel: progressItem.note?.trim() || null,
+  progressPercent: progressItem.progressPercent,
+  isOverspent: progressItem.isOverspent,
+  statusLabel: progressItem.isOverspent ? "OVER" : "ON TRACK",
+});
 
 const buildDetailState = (
-  budgetPlan: BudgetPlan,
+  progressItem: BudgetProgressItem,
   currencyCode: string,
   countryCode: string | null,
-  spentAmount: number,
-): BudgetDetailState => {
-  const remainingAmount = budgetPlan.plannedAmount - spentAmount;
-  const isOverspent = remainingAmount < 0;
-
-  return {
-    remoteId: budgetPlan.remoteId,
-    title: budgetPlan.categoryNameSnapshot,
-    subtitle: formatBudgetMonth(budgetPlan.budgetMonth),
-    plannedAmountLabel: formatCurrencyAmount({
-      amount: budgetPlan.plannedAmount,
-      currencyCode,
-      countryCode,
-    }),
-    spentAmountLabel: formatCurrencyAmount({
-      amount: spentAmount,
-      currencyCode,
-      countryCode,
-    }),
-    remainingAmountLabel: formatCurrencyAmount({
-      amount: Math.abs(remainingAmount),
-      currencyCode,
-      countryCode,
-    }),
-    statusLabel: isOverspent ? "Over budget" : "On track",
-    noteLabel: budgetPlan.note?.trim() || null,
-  };
-};
+): BudgetDetailState => ({
+  remoteId: progressItem.budgetRemoteId,
+  title: progressItem.categoryNameSnapshot,
+  subtitle: formatBudgetMonth(progressItem.budgetMonth),
+  plannedAmountLabel: formatCurrencyAmount({
+    amount: progressItem.plannedAmount,
+    currencyCode,
+    countryCode,
+  }),
+  spentAmountLabel: formatCurrencyAmount({
+    amount: progressItem.spentAmount,
+    currencyCode,
+    countryCode,
+  }),
+  remainingAmountLabel: formatCurrencyAmount({
+    amount: Math.abs(progressItem.remainingAmount),
+    currencyCode,
+    countryCode,
+  }),
+  statusLabel: progressItem.isOverspent ? "Over budget" : "On track",
+  noteLabel: progressItem.note?.trim() || null,
+});
 
 const mapBudgetPlanToEditorState = (budgetPlan: BudgetPlan): BudgetEditorState => ({
   visible: true,
@@ -189,25 +169,43 @@ const mapBudgetPlanToEditorState = (budgetPlan: BudgetPlan): BudgetEditorState =
   isSaving: false,
 });
 
+const buildFallbackProgressItem = (budgetPlan: BudgetPlan): BudgetProgressItem => ({
+  budgetRemoteId: budgetPlan.remoteId,
+  accountRemoteId: budgetPlan.accountRemoteId,
+  budgetMonth: budgetPlan.budgetMonth,
+  categoryRemoteId: budgetPlan.categoryRemoteId,
+  categoryNameSnapshot: budgetPlan.categoryNameSnapshot,
+  plannedAmount: budgetPlan.plannedAmount,
+  spentAmount: 0,
+  remainingAmount: budgetPlan.plannedAmount,
+  progressPercent: 0,
+  isOverspent: false,
+  currencyCode: budgetPlan.currencyCode,
+  note: budgetPlan.note,
+});
+
 export const useBudgetViewModel = ({
   ownerUserRemoteId,
   accountRemoteId,
   currencyCode,
   countryCode,
-  getBudgetPlansUseCase,
   getBudgetPlanByRemoteIdUseCase,
   createBudgetPlanUseCase,
   updateBudgetPlanUseCase,
   deleteBudgetPlanUseCase,
   getCategoriesUseCase,
-  getTransactionsUseCase,
+  saveCategoryUseCase,
+  getBudgetProgressReadModelUseCase,
 }: UseBudgetViewModelParams): BudgetViewModel => {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [budgetPlans, setBudgetPlans] = useState<BudgetPlan[]>([]);
+  const [budgetProgressItems, setBudgetProgressItems] = useState<
+    BudgetProgressItem[]
+  >([]);
+  const [budgetSummary, setBudgetSummary] =
+    useState<BudgetProgressSummary>(EMPTY_SUMMARY);
   const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<BudgetListFilterValue>(
     BudgetListFilter.All,
   );
@@ -215,8 +213,20 @@ export const useBudgetViewModel = ({
   const [editorState, setEditorState] = useState<BudgetEditorState>(
     EMPTY_EDITOR_STATE,
   );
+  const [quickCategoryState, setQuickCategoryState] =
+    useState<BudgetQuickCategoryState>(EMPTY_QUICK_CATEGORY_STATE);
   const [detailState, setDetailState] = useState<BudgetDetailState | null>(null);
-  const [activeDetailRemoteId, setActiveDetailRemoteId] = useState<string | null>(null);
+  const [activeDetailRemoteId, setActiveDetailRemoteId] = useState<string | null>(
+    null,
+  );
+  const [deleteConfirmationVisible, setDeleteConfirmationVisible] =
+    useState(false);
+  const [pendingDeleteBudgetRemoteId, setPendingDeleteBudgetRemoteId] =
+    useState<string | null>(null);
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(
+    null,
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
   const resolvedCurrencyCode = useMemo(
     () => resolveCurrencyCode({ currencyCode, countryCode }),
     [countryCode, currencyCode],
@@ -224,9 +234,9 @@ export const useBudgetViewModel = ({
 
   const loadBudgetData = useCallback(async () => {
     if (!ownerUserRemoteId || !accountRemoteId) {
-      setBudgetPlans([]);
+      setBudgetProgressItems([]);
+      setBudgetSummary(EMPTY_SUMMARY);
       setExpenseCategories([]);
-      setTransactions([]);
       setErrorMessage("A personal account is required to manage budgets.");
       setIsLoading(false);
       return;
@@ -234,57 +244,49 @@ export const useBudgetViewModel = ({
 
     setIsLoading(true);
 
-    const [budgetPlansResult, categoriesResult, transactionsResult] = await Promise.all([
-      getBudgetPlansUseCase.execute({ ownerUserRemoteId, accountRemoteId }),
+    const [budgetProgressResult, categoriesResult] = await Promise.all([
+      getBudgetProgressReadModelUseCase.execute({
+        ownerUserRemoteId,
+        accountRemoteId,
+      }),
       getCategoriesUseCase.execute({
         ownerUserRemoteId,
         accountRemoteId,
         accountType: AccountType.Personal,
       }),
-      getTransactionsUseCase.execute({ ownerUserRemoteId, accountRemoteId }),
     ]);
 
-    if (!budgetPlansResult.success) {
-      setBudgetPlans([]);
+    if (!budgetProgressResult.success) {
+      setBudgetProgressItems([]);
+      setBudgetSummary(EMPTY_SUMMARY);
       setExpenseCategories([]);
-      setTransactions([]);
-      setErrorMessage(budgetPlansResult.error.message);
+      setErrorMessage(budgetProgressResult.error.message);
       setIsLoading(false);
       return;
     }
 
     if (!categoriesResult.success) {
-      setBudgetPlans([]);
+      setBudgetProgressItems([]);
+      setBudgetSummary(EMPTY_SUMMARY);
       setExpenseCategories([]);
-      setTransactions([]);
       setErrorMessage(categoriesResult.error.message);
       setIsLoading(false);
       return;
     }
 
-    if (!transactionsResult.success) {
-      setBudgetPlans([]);
-      setExpenseCategories([]);
-      setTransactions([]);
-      setErrorMessage(transactionsResult.error.message);
-      setIsLoading(false);
-      return;
-    }
-
-    setBudgetPlans(budgetPlansResult.value);
+    setBudgetProgressItems([...budgetProgressResult.value.items]);
+    setBudgetSummary(budgetProgressResult.value.summary);
     setExpenseCategories(
       categoriesResult.value.filter(
         (category) => category.kind === CategoryKind.Expense,
       ),
     );
-    setTransactions(transactionsResult.value);
     setErrorMessage(null);
     setIsLoading(false);
   }, [
     accountRemoteId,
-    getBudgetPlansUseCase,
+    getBudgetProgressReadModelUseCase,
     getCategoriesUseCase,
-    getTransactionsUseCase,
     ownerUserRemoteId,
   ]);
 
@@ -292,27 +294,28 @@ export const useBudgetViewModel = ({
     void loadBudgetData();
   }, [loadBudgetData]);
 
-  const spentLookup = useMemo(
-    () => buildSpentLookup(transactions),
-    [transactions],
+  const budgetProgressByRemoteId = useMemo(
+    () =>
+      new Map(
+        budgetProgressItems.map((progressItem) => [
+          progressItem.budgetRemoteId,
+          progressItem,
+        ]),
+      ),
+    [budgetProgressItems],
   );
 
   const budgetItems = useMemo(() => {
     const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
-    return budgetPlans
-      .map((budgetPlan) => {
-        const key = `${budgetPlan.budgetMonth}::${budgetPlan.categoryNameSnapshot
-          .trim()
-          .toLowerCase()}`;
-        const spentAmount = spentLookup.get(key) ?? 0;
-        return buildBudgetListItemState(
-          budgetPlan,
+    return budgetProgressItems
+      .map((progressItem) =>
+        buildBudgetListItemState(
+          progressItem,
           resolvedCurrencyCode,
           countryCode,
-          spentAmount,
-        );
-      })
+        ),
+      )
       .filter((budgetItem) => {
         const matchesSearch =
           normalizedSearchQuery.length === 0 ||
@@ -324,7 +327,7 @@ export const useBudgetViewModel = ({
         }
 
         if (selectedFilter === BudgetListFilter.ThisMonth) {
-          return budgetItem.monthLabel === formatBudgetMonth(getCurrentBudgetMonth());
+          return budgetItem.budgetMonth === getCurrentBudgetMonth();
         }
 
         if (selectedFilter === BudgetListFilter.Overspent) {
@@ -334,63 +337,58 @@ export const useBudgetViewModel = ({
         return true;
       });
   }, [
-    budgetPlans,
+    budgetProgressItems,
     countryCode,
     resolvedCurrencyCode,
     searchQuery,
     selectedFilter,
-    spentLookup,
   ]);
 
-  const summaryCards = useMemo<readonly BudgetSummaryCardState[]>(() => {
-    const currentMonth = getCurrentBudgetMonth();
-    let plannedAmount = 0;
-    let spentAmount = 0;
+  const summaryCards = useMemo<readonly BudgetSummaryCardState[]>(
+    () => {
+      const isMonthOverBudget = budgetSummary.currentMonthRemainingAmount < 0;
 
-    budgetPlans.forEach((budgetPlan) => {
-      if (budgetPlan.budgetMonth !== currentMonth) {
-        return;
-      }
-
-      plannedAmount += budgetPlan.plannedAmount;
-      const key = `${budgetPlan.budgetMonth}::${budgetPlan.categoryNameSnapshot
-        .trim()
-        .toLowerCase()}`;
-      spentAmount += spentLookup.get(key) ?? 0;
-    });
-
-    return [
-      {
-        id: "planned",
-        label: "This Month Planned",
-        value: formatCurrencyAmount({
-          amount: plannedAmount,
-          currencyCode: resolvedCurrencyCode,
-          countryCode,
-        }),
-        tone: "neutral",
-      },
-      {
-        id: "spent",
-        label: "Spent This Month",
-        value: formatCurrencyAmount({
-          amount: spentAmount,
-          currencyCode: resolvedCurrencyCode,
-          countryCode,
-        }),
-        tone: spentAmount > plannedAmount ? "alert" : "neutral",
-      },
-    ] as const;
-  }, [budgetPlans, countryCode, resolvedCurrencyCode, spentLookup]);
-
-  const monthLabel = useMemo(
-    () => formatBudgetMonth(getCurrentBudgetMonth()),
-    [],
+      return [
+        {
+          id: "planned",
+          label: "This Month Planned",
+          value: formatCurrencyAmount({
+            amount: budgetSummary.currentMonthPlannedAmount,
+            currencyCode: resolvedCurrencyCode,
+            countryCode,
+          }),
+          tone: "neutral",
+        },
+        {
+          id: "spent",
+          label: "Spent This Month",
+          value: formatCurrencyAmount({
+            amount: budgetSummary.currentMonthSpentAmount,
+            currencyCode: resolvedCurrencyCode,
+            countryCode,
+          }),
+          tone: budgetSummary.hasOverspentBudget ? "alert" : "neutral",
+        },
+        {
+          id: "remaining",
+          label: isMonthOverBudget ? "Over This Month" : "Left This Month",
+          value: formatCurrencyAmount({
+            amount: Math.abs(budgetSummary.currentMonthRemainingAmount),
+            currencyCode: resolvedCurrencyCode,
+            countryCode,
+          }),
+          tone: isMonthOverBudget ? "alert" : "success",
+        },
+      ] as const;
+    },
+    [budgetSummary, countryCode, resolvedCurrencyCode],
   );
+
+  const monthLabel = useMemo(() => formatBudgetMonth(getCurrentBudgetMonth()), []);
 
   const emptyStateMessage = useMemo(() => {
     if (expenseCategories.length === 0) {
-      return "Create at least one expense category before adding budgets.";
+      return "No expense categories yet. Add one inside the budget form to start planning.";
     }
 
     if (searchQuery.trim().length > 0 || selectedFilter !== BudgetListFilter.All) {
@@ -399,6 +397,11 @@ export const useBudgetViewModel = ({
 
     return "No budget categories added yet.";
   }, [expenseCategories.length, searchQuery, selectedFilter]);
+
+  const emptyStateActionLabel = useMemo(
+    () => (expenseCategories.length === 0 ? "Create New Budget" : null),
+    [expenseCategories.length],
+  );
 
   const categoryOptions = useMemo(
     () =>
@@ -410,16 +413,12 @@ export const useBudgetViewModel = ({
     [expenseCategories],
   );
 
-  const onOpenCreate = useCallback(() => {
+  const onPressEmptyStateAction = useCallback(() => {
     setSuccessMessage(null);
+    setDeleteErrorMessage(null);
 
     if (!ownerUserRemoteId || !accountRemoteId) {
       setErrorMessage("A personal account is required to manage budgets.");
-      return;
-    }
-
-    if (categoryOptions.length === 0) {
-      setErrorMessage("Create at least one expense category before adding budgets.");
       return;
     }
 
@@ -428,34 +427,79 @@ export const useBudgetViewModel = ({
       visible: true,
       categoryRemoteId: categoryOptions[0]?.remoteId ?? "",
     });
+    setQuickCategoryState(EMPTY_QUICK_CATEGORY_STATE);
+    setErrorMessage(null);
+  }, [accountRemoteId, categoryOptions, ownerUserRemoteId]);
+
+  const onOpenCreate = useCallback(() => {
+    setSuccessMessage(null);
+    setDeleteErrorMessage(null);
+
+    if (!ownerUserRemoteId || !accountRemoteId) {
+      setErrorMessage("A personal account is required to manage budgets.");
+      return;
+    }
+
+    setEditorState({
+      ...EMPTY_EDITOR_STATE,
+      visible: true,
+      categoryRemoteId: categoryOptions[0]?.remoteId ?? "",
+    });
+    setQuickCategoryState(EMPTY_QUICK_CATEGORY_STATE);
     setErrorMessage(null);
   }, [accountRemoteId, categoryOptions, ownerUserRemoteId]);
 
   const onOpenDetail = useCallback(async (remoteId: string) => {
     setSuccessMessage(null);
+    setDeleteErrorMessage(null);
 
-    const result = await getBudgetPlanByRemoteIdUseCase.execute(remoteId);
+    if (!accountRemoteId) {
+      setErrorMessage("Account context is required.");
+      return;
+    }
+
+    const result = await getBudgetPlanByRemoteIdUseCase.execute({
+      accountRemoteId,
+      remoteId,
+    });
 
     if (!result.success) {
       setErrorMessage(result.error.message);
       return;
     }
 
-    const key = `${result.value.budgetMonth}::${result.value.categoryNameSnapshot
-      .trim()
-      .toLowerCase()}`;
-    const spentAmount = spentLookup.get(key) ?? 0;
+    const progressItem =
+      budgetProgressByRemoteId.get(result.value.remoteId) ??
+      buildFallbackProgressItem(result.value);
+
     setDetailState(
-      buildDetailState(result.value, resolvedCurrencyCode, countryCode, spentAmount),
+      buildDetailState(progressItem, resolvedCurrencyCode, countryCode),
     );
     setActiveDetailRemoteId(result.value.remoteId);
+    setDeleteConfirmationVisible(false);
+    setPendingDeleteBudgetRemoteId(null);
     setErrorMessage(null);
-  }, [countryCode, getBudgetPlanByRemoteIdUseCase, resolvedCurrencyCode, spentLookup]);
+  }, [
+    accountRemoteId,
+    budgetProgressByRemoteId,
+    countryCode,
+    getBudgetPlanByRemoteIdUseCase,
+    resolvedCurrencyCode,
+  ]);
 
   const onOpenEdit = useCallback(async (remoteId: string) => {
     setSuccessMessage(null);
+    setDeleteErrorMessage(null);
 
-    const result = await getBudgetPlanByRemoteIdUseCase.execute(remoteId);
+    if (!accountRemoteId) {
+      setErrorMessage("Account context is required.");
+      return;
+    }
+
+    const result = await getBudgetPlanByRemoteIdUseCase.execute({
+      accountRemoteId,
+      remoteId,
+    });
 
     if (!result.success) {
       setErrorMessage(result.error.message);
@@ -463,11 +507,13 @@ export const useBudgetViewModel = ({
     }
 
     setEditorState(mapBudgetPlanToEditorState(result.value));
+    setQuickCategoryState(EMPTY_QUICK_CATEGORY_STATE);
     setErrorMessage(null);
-  }, [getBudgetPlanByRemoteIdUseCase]);
+  }, [accountRemoteId, getBudgetPlanByRemoteIdUseCase]);
 
   const onCloseEditor = useCallback(() => {
     setEditorState(EMPTY_EDITOR_STATE);
+    setQuickCategoryState(EMPTY_QUICK_CATEGORY_STATE);
     setSuccessMessage(null);
   }, []);
 
@@ -486,6 +532,92 @@ export const useBudgetViewModel = ({
     [],
   );
 
+  const onQuickCategoryNameChange = useCallback((value: string) => {
+    setSuccessMessage(null);
+    setQuickCategoryState((currentState) => ({
+      ...currentState,
+      name: value,
+      errorMessage: null,
+    }));
+  }, []);
+
+  const onCreateQuickExpenseCategory = useCallback(async () => {
+    if (!ownerUserRemoteId || !accountRemoteId) {
+      setQuickCategoryState((currentState) => ({
+        ...currentState,
+        errorMessage: "A personal account is required to add categories.",
+      }));
+      return;
+    }
+
+    const categoryName = quickCategoryState.name.trim();
+
+    if (!categoryName) {
+      setQuickCategoryState((currentState) => ({
+        ...currentState,
+        errorMessage: "Expense category name is required.",
+      }));
+      return;
+    }
+
+    setQuickCategoryState((currentState) => ({
+      ...currentState,
+      isSaving: true,
+      errorMessage: null,
+    }));
+
+    const result = await saveCategoryUseCase.execute({
+      remoteId: Crypto.randomUUID(),
+      ownerUserRemoteId,
+      accountRemoteId,
+      accountType: AccountType.Personal,
+      scope: CategoryScope.Personal,
+      kind: CategoryKind.Expense,
+      name: categoryName,
+      description: null,
+      isSystem: false,
+    });
+
+    if (!result.success) {
+      setQuickCategoryState((currentState) => ({
+        ...currentState,
+        isSaving: false,
+        errorMessage: result.error.message,
+      }));
+      return;
+    }
+
+    const createdCategory = result.value;
+
+    setExpenseCategories((currentCategories) => {
+      const existingIndex = currentCategories.findIndex(
+        (category) => category.remoteId === createdCategory.remoteId,
+      );
+
+      if (existingIndex === -1) {
+        return [...currentCategories, createdCategory].sort((left, right) =>
+          left.name.localeCompare(right.name),
+        );
+      }
+
+      return currentCategories.map((category, index) =>
+        index === existingIndex ? createdCategory : category,
+      );
+    });
+    setEditorState((currentState) => ({
+      ...currentState,
+      categoryRemoteId: createdCategory.remoteId,
+      errorMessage: null,
+    }));
+    setQuickCategoryState(EMPTY_QUICK_CATEGORY_STATE);
+    setErrorMessage(null);
+  }, [
+    accountRemoteId,
+    ownerUserRemoteId,
+    quickCategoryState.name,
+    saveCategoryUseCase,
+  ]);
+
   const onSubmit = useCallback(async () => {
     if (!ownerUserRemoteId || !accountRemoteId) {
       setEditorState((currentState) => ({
@@ -502,7 +634,7 @@ export const useBudgetViewModel = ({
     if (!selectedCategory) {
       setEditorState((currentState) => ({
         ...currentState,
-        errorMessage: "Please choose an expense category.",
+        errorMessage: "Please choose or create an expense category.",
       }));
       return;
     }
@@ -565,35 +697,81 @@ export const useBudgetViewModel = ({
   const onCloseDetail = useCallback(() => {
     setDetailState(null);
     setActiveDetailRemoteId(null);
+    setDeleteConfirmationVisible(false);
+    setPendingDeleteBudgetRemoteId(null);
+    setDeleteErrorMessage(null);
     setSuccessMessage(null);
   }, []);
 
-  const onDeleteActiveBudget = useCallback(async () => {
-    setSuccessMessage(null);
-
+  const onRequestDeleteBudget = useCallback(() => {
     if (!activeDetailRemoteId) {
       return;
     }
 
-    const result = await deleteBudgetPlanUseCase.execute(activeDetailRemoteId);
+    setDeleteConfirmationVisible(true);
+    setPendingDeleteBudgetRemoteId(activeDetailRemoteId);
+    setDeleteErrorMessage(null);
+  }, [activeDetailRemoteId]);
 
-    if (!result.success) {
-      setErrorMessage(result.error.message);
+  const onCancelDeleteBudget = useCallback(() => {
+    if (isDeleting) {
       return;
     }
 
-    onCloseDetail();
+    setDeleteConfirmationVisible(false);
+    setPendingDeleteBudgetRemoteId(null);
+    setDeleteErrorMessage(null);
+  }, [isDeleting]);
+
+  const onConfirmDeleteBudget = useCallback(async () => {
+    if (!accountRemoteId || !pendingDeleteBudgetRemoteId) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteErrorMessage(null);
+    setSuccessMessage(null);
+
+    const result = await deleteBudgetPlanUseCase.execute({
+      accountRemoteId,
+      remoteId: pendingDeleteBudgetRemoteId,
+    });
+
+    setIsDeleting(false);
+
+    if (!result.success) {
+      setDeleteErrorMessage(result.error.message);
+      return;
+    }
+
+    if (!result.value) {
+      setDeleteErrorMessage("The requested budget was not found.");
+      return;
+    }
+
+    setDeleteConfirmationVisible(false);
+    setPendingDeleteBudgetRemoteId(null);
+    setDeleteErrorMessage(null);
+    setDetailState(null);
+    setActiveDetailRemoteId(null);
     await loadBudgetData();
     setSuccessMessage("Budget deleted.");
-  }, [activeDetailRemoteId, deleteBudgetPlanUseCase, loadBudgetData, onCloseDetail]);
+  }, [
+    accountRemoteId,
+    deleteBudgetPlanUseCase,
+    loadBudgetData,
+    pendingDeleteBudgetRemoteId,
+  ]);
 
   const onEditFromDetail = useCallback(async () => {
     if (!activeDetailRemoteId) {
       return;
     }
 
+    const budgetRemoteId = activeDetailRemoteId;
     onCloseDetail();
-    await onOpenEdit(activeDetailRemoteId);
+    await Promise.resolve();
+    await onOpenEdit(budgetRemoteId);
   }, [activeDetailRemoteId, onCloseDetail, onOpenEdit]);
 
   return useMemo<BudgetViewModel>(
@@ -607,44 +785,64 @@ export const useBudgetViewModel = ({
       selectedFilter,
       searchQuery,
       emptyStateMessage,
+      emptyStateActionLabel,
       categoryOptions,
       editorState,
+      quickCategoryState,
       detailState,
       isDetailVisible: detailState !== null,
-      canCreate: Boolean(ownerUserRemoteId && accountRemoteId && categoryOptions.length > 0),
+      deleteConfirmationVisible,
+      deleteErrorMessage,
+      isDeleting,
+      canCreate: Boolean(ownerUserRemoteId && accountRemoteId),
       onRefresh: loadBudgetData,
       onChangeFilter: setSelectedFilter,
       onChangeSearchQuery: setSearchQuery,
+      onPressEmptyStateAction,
       onOpenCreate,
       onOpenDetail,
       onOpenEdit,
       onCloseEditor,
       onEditorFieldChange,
+      onQuickCategoryNameChange,
+      onCreateQuickExpenseCategory,
       onSubmit,
       onCloseDetail,
-      onDeleteActiveBudget,
+      onRequestDeleteBudget,
+      onCancelDeleteBudget,
+      onConfirmDeleteBudget,
       onEditFromDetail,
     }),
     [
       accountRemoteId,
       budgetItems,
       categoryOptions,
+      deleteConfirmationVisible,
+      deleteErrorMessage,
       detailState,
       editorState,
+      quickCategoryState,
+      emptyStateActionLabel,
       emptyStateMessage,
       errorMessage,
       successMessage,
+      isDeleting,
       isLoading,
       loadBudgetData,
       monthLabel,
+      onCancelDeleteBudget,
       onCloseDetail,
       onCloseEditor,
-      onDeleteActiveBudget,
+      onConfirmDeleteBudget,
+      onCreateQuickExpenseCategory,
       onEditFromDetail,
+      onEditorFieldChange,
+      onQuickCategoryNameChange,
       onOpenCreate,
       onOpenDetail,
       onOpenEdit,
-      onEditorFieldChange,
+      onPressEmptyStateAction,
+      onRequestDeleteBudget,
       onSubmit,
       ownerUserRemoteId,
       searchQuery,
