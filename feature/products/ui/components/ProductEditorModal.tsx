@@ -4,10 +4,14 @@ import {
   ProductFormState,
 } from "@/feature/products/viewModel/products.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
+import {
+  DefaultSection,
+  MoreDetailsSection,
+} from "@/shared/components/reusable/Form/FormSections";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
+import { StickyActionFooter } from "@/shared/components/reusable/Form/StickyActionFooter";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
@@ -50,6 +54,10 @@ export function ProductEditorModal({
   const isItemKind = form.kind === ProductKind.Item;
   const title = mode === "create" ? "New Product" : "Edit Product";
   const productImageUrl = form.imageUrl.trim();
+  const shouldExpandMoreDetails =
+    productImageUrl.length > 0 ||
+    form.skuOrBarcode.trim().length > 0 ||
+    form.description.trim().length > 0;
 
   const categoryDropdownOptions = [
     { label: "No category", value: "" },
@@ -82,7 +90,7 @@ export function ProductEditorModal({
       presentation="bottom-sheet"
       contentContainerStyle={styles.content}
       footer={
-        <FormModalActionFooter>
+        <StickyActionFooter>
           <AppButton
             label="Cancel"
             variant="secondary"
@@ -98,157 +106,168 @@ export function ProductEditorModal({
               void onSubmit();
             }}
           />
-        </FormModalActionFooter>
+        </StickyActionFooter>
       }
     >
-      <View style={styles.fieldWrap}>
-        <Text style={styles.inputLabel}>Product Image</Text>
-        <Pressable
-          onPress={() => {
-            void handlePickImage();
-          }}
-          style={styles.imagePreview}
-          accessibilityRole="button"
-        >
-          {productImageUrl.length > 0 ? (
-            <Image
-              source={{ uri: productImageUrl }}
-              style={styles.imagePreviewImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <Box size={20} color={theme.colors.mutedForeground} />
-              <Text style={styles.imagePlaceholderText}>No image selected</Text>
-            </View>
-          )}
-        </Pressable>
-        <View style={styles.imageActions}>
-          <AppButton
-            label={isPickingImage ? "Selecting..." : "Choose from gallery"}
-            variant="secondary"
-            size="sm"
-            leadingIcon={<Camera size={14} color={theme.colors.primary} />}
+      <DefaultSection
+        title="Product Details"
+        subtitle="Keep required catalog and pricing fields visible by default."
+      >
+        <LabeledTextInput
+          label="Product Name"
+          value={form.name}
+          placeholder="Enter product name"
+          onChangeText={(value) => onChange("name", value)}
+          autoCapitalize="words"
+          errorText={fieldErrors.name}
+        />
+
+        <LabeledDropdownField
+          label="Type"
+          value={form.kind}
+          options={[
+            { label: "Item", value: ProductKind.Item },
+            { label: "Service", value: ProductKind.Service },
+          ]}
+          onChange={(value) => onChange("kind", value)}
+          placeholder="Select type"
+          modalTitle="Select product type"
+          disabled={mode === "edit"}
+        />
+
+        <LabeledDropdownField
+          label="Category"
+          value={form.categoryName}
+          options={categoryDropdownOptions}
+          onChange={(value) => onChange("categoryName", value)}
+          placeholder="No category"
+          modalTitle="Select category"
+        />
+
+        <LabeledTextInput
+          label="Sale Price"
+          value={form.salePrice}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          onChangeText={(value) => onChange("salePrice", value)}
+          errorText={fieldErrors.salePrice}
+        />
+
+        <LabeledTextInput
+          label="Cost Price"
+          value={form.costPrice}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          onChangeText={(value) => onChange("costPrice", value)}
+          errorText={fieldErrors.costPrice}
+        />
+
+        {mode === "create" && isItemKind ? (
+          <LabeledTextInput
+            label="Opening Stock"
+            value={form.openingStockQuantity}
+            placeholder="0"
+            keyboardType="decimal-pad"
+            onChangeText={(value) => onChange("openingStockQuantity", value)}
+            errorText={fieldErrors.openingStockQuantity}
+          />
+        ) : null}
+
+        <LabeledDropdownField
+          label="Unit"
+          value={form.unitLabel}
+          options={unitOptions.map((unitLabel) => ({
+            label: unitLabel,
+            value: unitLabel,
+          }))}
+          onChange={(value) => onChange("unitLabel", value)}
+          placeholder="Select unit"
+          modalTitle="Select unit"
+          disabled={!isItemKind}
+          errorText={isItemKind ? fieldErrors.unitLabel : undefined}
+        />
+      </DefaultSection>
+
+      <MoreDetailsSection
+        title="More Details"
+        subtitle="Optional image, SKU, tax, and description."
+        defaultExpanded={shouldExpandMoreDetails}
+      >
+        <View style={styles.fieldWrap}>
+          <Text style={styles.inputLabel}>Product Image</Text>
+          <Pressable
             onPress={() => {
               void handlePickImage();
             }}
-            disabled={isPickingImage}
-            style={styles.imageActionButton}
-          />
-          {productImageUrl.length > 0 ? (
+            style={styles.imagePreview}
+            accessibilityRole="button"
+          >
+            {productImageUrl.length > 0 ? (
+              <Image
+                source={{ uri: productImageUrl }}
+                style={styles.imagePreviewImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Box size={20} color={theme.colors.mutedForeground} />
+                <Text style={styles.imagePlaceholderText}>No image selected</Text>
+              </View>
+            )}
+          </Pressable>
+          <View style={styles.imageActions}>
             <AppButton
-              label="Remove"
+              label={isPickingImage ? "Selecting..." : "Choose from gallery"}
               variant="secondary"
               size="sm"
-              onPress={onClearImage}
+              leadingIcon={<Camera size={14} color={theme.colors.primary} />}
+              onPress={() => {
+                void handlePickImage();
+              }}
+              disabled={isPickingImage}
               style={styles.imageActionButton}
-              labelStyle={styles.removeImageLabel}
             />
-          ) : null}
+            {productImageUrl.length > 0 ? (
+              <AppButton
+                label="Remove"
+                variant="secondary"
+                size="sm"
+                onPress={onClearImage}
+                style={styles.imageActionButton}
+                labelStyle={styles.removeImageLabel}
+              />
+            ) : null}
+          </View>
         </View>
-      </View>
 
-      <LabeledTextInput
-        label="Product Name"
-        value={form.name}
-        placeholder="Enter product name"
-        onChangeText={(value) => onChange("name", value)}
-        autoCapitalize="words"
-        errorText={fieldErrors.name}
-      />
-
-      <LabeledDropdownField
-        label="Type"
-        value={form.kind}
-        options={[
-          { label: "Item", value: ProductKind.Item },
-          { label: "Service", value: ProductKind.Service },
-        ]}
-        onChange={(value) => onChange("kind", value)}
-        placeholder="Select type"
-        modalTitle="Select product type"
-        disabled={mode === "edit"}
-      />
-
-      <LabeledDropdownField
-        label="Category"
-        value={form.categoryName}
-        options={categoryDropdownOptions}
-        onChange={(value) => onChange("categoryName", value)}
-        placeholder="No category"
-        modalTitle="Select category"
-      />
-
-      <LabeledTextInput
-        label="Sale Price"
-        value={form.salePrice}
-        placeholder="0"
-        keyboardType="decimal-pad"
-        onChangeText={(value) => onChange("salePrice", value)}
-        errorText={fieldErrors.salePrice}
-      />
-
-      <LabeledTextInput
-        label="Cost Price"
-        value={form.costPrice}
-        placeholder="0"
-        keyboardType="decimal-pad"
-        onChangeText={(value) => onChange("costPrice", value)}
-        errorText={fieldErrors.costPrice}
-      />
-
-      {mode === "create" && isItemKind ? (
         <LabeledTextInput
-          label="Opening Stock"
-          value={form.openingStockQuantity}
-          placeholder="0"
-          keyboardType="decimal-pad"
-          onChangeText={(value) => onChange("openingStockQuantity", value)}
-          errorText={fieldErrors.openingStockQuantity}
+          label="SKU / Barcode"
+          value={form.skuOrBarcode}
+          placeholder="Optional SKU or barcode"
+          onChangeText={(value) => onChange("skuOrBarcode", value)}
         />
-      ) : null}
 
-      <LabeledDropdownField
-        label="Unit"
-        value={form.unitLabel}
-        options={unitOptions.map((unitLabel) => ({
-          label: unitLabel,
-          value: unitLabel,
-        }))}
-        onChange={(value) => onChange("unitLabel", value)}
-        placeholder="Select unit"
-        modalTitle="Select unit"
-        disabled={!isItemKind}
-        errorText={isItemKind ? fieldErrors.unitLabel : undefined}
-      />
+        <LabeledDropdownField
+          label="Tax Rate"
+          value={form.taxRateLabel}
+          options={taxRateOptions.map((taxRate) => ({
+            label: taxRate,
+            value: taxRate,
+          }))}
+          onChange={(value) => onChange("taxRateLabel", value)}
+          placeholder="Select tax rate"
+          modalTitle="Select tax rate"
+        />
 
-      <LabeledTextInput
-        label="SKU / Barcode"
-        value={form.skuOrBarcode}
-        placeholder="Optional SKU or barcode"
-        onChangeText={(value) => onChange("skuOrBarcode", value)}
-      />
-
-      <LabeledDropdownField
-        label="Tax Rate"
-        value={form.taxRateLabel}
-        options={taxRateOptions.map((taxRate) => ({
-          label: taxRate,
-          value: taxRate,
-        }))}
-        onChange={(value) => onChange("taxRateLabel", value)}
-        placeholder="Select tax rate"
-        modalTitle="Select tax rate"
-      />
-
-      <LabeledTextInput
-        label="Description"
-        value={form.description}
-        placeholder="Optional description"
-        onChangeText={(value) => onChange("description", value)}
-        multiline={true}
-        numberOfLines={4}
-      />
+        <LabeledTextInput
+          label="Description"
+          value={form.description}
+          placeholder="Optional description"
+          onChangeText={(value) => onChange("description", value)}
+          multiline={true}
+          numberOfLines={4}
+        />
+      </MoreDetailsSection>
     </FormSheetModal>
   );
 }
@@ -256,7 +275,7 @@ export function ProductEditorModal({
 const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
   StyleSheet.create({
     content: {
-      gap: theme.scaleSpace(spacing.sm),
+      gap: theme.scaleSpace(spacing.md),
       paddingBottom: theme.scaleSpace(spacing.xl),
     },
     fieldWrap: {

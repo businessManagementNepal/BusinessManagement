@@ -1,16 +1,17 @@
+import { UserManagementPermission } from "../../types/userManagement.types";
+import { UserManagementRoleEditorFieldErrors } from "@/feature/userManagement/viewModel/userManagement.state";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
-import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
+import { DefaultSection } from "@/shared/components/reusable/Form/FormSections";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
+import { StickyActionFooter } from "@/shared/components/reusable/Form/StickyActionFooter";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { Check, CircleDashed } from "lucide-react-native";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { UserManagementPermission } from "../../types/userManagement.types";
-import { UserManagementRoleEditorFieldErrors } from "@/feature/userManagement/viewModel/userManagement.state";
 
 export type RoleEditorPermissionGroup = {
   module: string;
@@ -58,7 +59,7 @@ export function RoleEditorModal({
       contentContainerStyle={styles.content}
       presentation="bottom-sheet"
       footer={
-        <FormModalActionFooter>
+        <StickyActionFooter>
           <AppButton
             label="Cancel"
             variant="secondary"
@@ -75,63 +76,70 @@ export function RoleEditorModal({
             onPress={onSave}
             disabled={isSaving}
           />
-        </FormModalActionFooter>
+        </StickyActionFooter>
       }
     >
-      <LabeledTextInput
-        label="Role Name"
-        value={roleName}
-        onChangeText={onRoleNameChange}
-        placeholder="Enter role name"
-        editable={!isSaving}
-        errorText={fieldErrors.roleName}
-      />
-
-      <Text style={styles.permissionSelectorTitle}>Permissions</Text>
-      <ScrollView
-        style={styles.permissionScroll}
-        contentContainerStyle={styles.permissionScrollContent}
-        nestedScrollEnabled={true}
-        showsVerticalScrollIndicator={false}
+      <DefaultSection
+        title="Role Details"
+        subtitle="Role name and permission selection stay visible by default."
       >
-        {permissionGroups.map((permissionGroup) => (
-          <Card key={permissionGroup.module} style={styles.permissionGroupWrap}>
-            <Text style={styles.permissionGroupTitle}>{permissionGroup.module}</Text>
-            {permissionGroup.permissions.map((permission) => {
-              const isSelected = selectedPermissionCodes.includes(permission.code);
+        <LabeledTextInput
+          label="Role Name"
+          value={roleName}
+          onChangeText={onRoleNameChange}
+          placeholder="Enter role name"
+          editable={!isSaving}
+          errorText={fieldErrors.roleName}
+        />
 
-              return (
-                <Pressable
-                  key={permission.code}
-                  style={styles.permissionRow}
-                  onPress={() => onTogglePermission(permission.code)}
-                  disabled={isSaving}
-                  accessibilityRole="button"
-                >
-                  <View
-                    style={[
-                      styles.permissionToggleIconWrap,
-                      isSelected ? styles.permissionToggleSelected : null,
-                    ]}
-                  >
-                    {isSelected ? (
-                      <Check size={14} color={theme.colors.primaryForeground} />
-                    ) : (
-                      <CircleDashed size={14} color={theme.colors.mutedForeground} />
-                    )}
-                  </View>
-                  <View style={styles.permissionRowTextWrap}>
-                    <Text style={styles.permissionRowTitle}>{permission.label}</Text>
-                    <Text style={styles.permissionRowSubtitle}>
-                      {permission.description}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </Card>
-        ))}
-      </ScrollView>
+        <View style={styles.permissionSection}>
+          <Text style={styles.permissionSelectorTitle}>Permissions</Text>
+          <ScrollView
+            style={styles.permissionScroll}
+            contentContainerStyle={styles.permissionScrollContent}
+            nestedScrollEnabled={true}
+            showsVerticalScrollIndicator={false}
+          >
+            {permissionGroups.map((permissionGroup) => (
+              <Card key={permissionGroup.module} style={styles.permissionGroupWrap}>
+                <Text style={styles.permissionGroupTitle}>{permissionGroup.module}</Text>
+                {permissionGroup.permissions.map((permission) => {
+                  const isSelected = selectedPermissionCodes.includes(permission.code);
+
+                  return (
+                    <Pressable
+                      key={permission.code}
+                      style={styles.permissionRow}
+                      onPress={() => onTogglePermission(permission.code)}
+                      disabled={isSaving}
+                      accessibilityRole="button"
+                    >
+                      <View
+                        style={[
+                          styles.permissionToggleIconWrap,
+                          isSelected ? styles.permissionToggleSelected : null,
+                        ]}
+                      >
+                        {isSelected ? (
+                          <Check size={14} color={theme.colors.primaryForeground} />
+                        ) : (
+                          <CircleDashed size={14} color={theme.colors.mutedForeground} />
+                        )}
+                      </View>
+                      <View style={styles.permissionRowTextWrap}>
+                        <Text style={styles.permissionRowTitle}>{permission.label}</Text>
+                        <Text style={styles.permissionRowSubtitle}>
+                          {permission.description}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </Card>
+            ))}
+          </ScrollView>
+        </View>
+      </DefaultSection>
     </FormSheetModal>
   );
 }
@@ -139,8 +147,11 @@ export function RoleEditorModal({
 const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
   StyleSheet.create({
     content: {
-      gap: theme.scaleSpace(spacing.sm),
+      gap: theme.scaleSpace(spacing.md),
       paddingBottom: theme.scaleSpace(spacing.md),
+    },
+    permissionSection: {
+      gap: theme.scaleSpace(spacing.sm),
     },
     permissionSelectorTitle: {
       color: theme.colors.cardForeground,

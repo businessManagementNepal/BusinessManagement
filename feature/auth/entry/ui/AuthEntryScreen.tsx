@@ -7,6 +7,7 @@ import {
   type DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { DefaultSection } from "@/shared/components/reusable/Form/FormSections";
 import { KeyboardSafeEditableScreen } from "@/shared/components/reusable/ScreenLayouts/KeyboardSafeEditableScreen";
 import { TextField } from "@/shared/components/reusable/Form/TextField";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
@@ -342,7 +343,11 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
             </View>
 
             {!isLoginMode ? (
-              <View key="signup-form" style={styles.form}>
+              <DefaultSection
+                key="signup-form"
+                title={t("auth.entry.tabs.signUp")}
+                contentStyle={styles.form}
+              >
                 <Text style={styles.inputLabel}>
                   {t("auth.entry.fields.profileType")}
                 </Text>
@@ -501,9 +506,13 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                 />
 
                 {signUpError ? <Text style={styles.submitError}>{signUpError}</Text> : null}
-              </View>
+              </DefaultSection>
             ) : (
-              <View key="login-form" style={styles.form}>
+              <DefaultSection
+                key="login-form"
+                title={t("auth.entry.tabs.login")}
+                contentStyle={styles.form}
+              >
                 <View style={styles.phoneInputRow}>
                   <View style={styles.phoneCountryDropdownWrap}>
                     <Dropdown
@@ -579,7 +588,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                 ) : null}
 
                 {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
-              </View>
+              </DefaultSection>
             )}
 
             <AppButton

@@ -5,9 +5,15 @@ import {
 } from "@/feature/orders/types/order.state.types";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Dropdown, DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
+import {
+  DefaultSection,
+  MoreDetailsSection,
+  SummarySection,
+} from "@/shared/components/reusable/Form/FormSections";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
+import { StickyActionFooter } from "@/shared/components/reusable/Form/StickyActionFooter";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
@@ -79,6 +85,7 @@ export function OrderEditorModal({
   const selectedCustomerPhone = form.customerRemoteId
     ? customerPhoneByRemoteId[form.customerRemoteId] ?? ""
     : "";
+  const shouldExpandMoreDetails = form.notes.trim().length > 0;
 
   return (
     <FormSheetModal
@@ -88,173 +95,197 @@ export function OrderEditorModal({
       presentation="bottom-sheet"
       contentContainerStyle={styles.content}
       footer={
-        <AppButton
-          label={mode === "create" ? "Create Order" : "Update Order"}
-          size="lg"
-          style={styles.submitButton}
-          onPress={() => void onSubmit()}
-          disabled={!canManage}
-        />
+        <StickyActionFooter>
+          <AppButton
+            label={mode === "create" ? "Create Order" : "Update Order"}
+            size="lg"
+            style={styles.submitButton}
+            onPress={() => void onSubmit()}
+            disabled={!canManage}
+          />
+        </StickyActionFooter>
       }
     >
-      <LabeledDropdownField
-        label="Customer"
-        value={form.customerRemoteId}
-        options={customerOptions}
-        onChange={(value) => onChange("customerRemoteId", value)}
-        placeholder="Customer name"
-        modalTitle="Select customer"
-      />
+      <DefaultSection
+        title="Order Details"
+        subtitle="Customer, items, and payment method stay visible by default."
+      >
+        <LabeledDropdownField
+          label="Customer"
+          value={form.customerRemoteId}
+          options={customerOptions}
+          onChange={(value) => onChange("customerRemoteId", value)}
+          placeholder="Customer name"
+          modalTitle="Select customer"
+        />
 
-      <LabeledTextInput
-        label="Phone"
-        value={selectedCustomerPhone}
-        placeholder="Phone number"
-        editable={false}
-      />
-
-      <View style={styles.itemsHeaderRow}>
-        <Text style={styles.fieldLabel}>Items</Text>
-        {form.fieldErrors.items ? (
-          <Text style={styles.sectionErrorText}>{form.fieldErrors.items}</Text>
-        ) : null}
-      </View>
-
-      <View style={styles.itemsTableHeader}>
-        <Text style={[styles.tableHeaderText, styles.itemNameWrap]}>Item</Text>
-        <Text style={[styles.tableHeaderText, styles.quantityWrap]}>Qty</Text>
-        <Text style={[styles.tableHeaderText, styles.priceWrap]}>Price</Text>
-        <View style={styles.itemActionSpacer} />
-      </View>
-
-      <View style={styles.itemsWrap}>
-        {lineItems.map((item) => {
-          const salePriceAmount = productPriceByRemoteId[item.productRemoteId] ?? 0;
-          const hasInlineError =
-            Boolean(item.fieldErrors.productRemoteId) ||
-            Boolean(item.fieldErrors.quantity);
-
-          return (
-            <View key={item.remoteId} style={styles.itemBlock}>
-              <View style={styles.itemRow}>
-                <View style={styles.itemNameWrap}>
-                  <Dropdown
-                    value={item.productRemoteId}
-                    options={productOptions}
-                    onChange={(value) =>
-                      onLineItemChange(item.remoteId, "productRemoteId", value)
-                    }
-                    placeholder="Item name"
-                    modalTitle="Select item"
-                    showLeadingIcon={false}
-                  />
-                </View>
-
-                <LabeledTextInput
-                  label=""
-                  value={item.quantity}
-                  onChangeText={(value) =>
-                    onLineItemChange(item.remoteId, "quantity", value)
-                  }
-                  keyboardType="decimal-pad"
-                  placeholder="1"
-                  containerStyle={styles.quantityWrap}
-                  inputStyle={styles.centeredInput}
-                />
-
-                <LabeledTextInput
-                  label=""
-                  value={formatCompactAmount(salePriceAmount)}
-                  editable={false}
-                  containerStyle={styles.priceWrap}
-                  inputStyle={styles.centeredInput}
-                />
-
-                {lineItems.length > 1 ? (
-                  <Pressable
-                    style={styles.removeItemIconButton}
-                    onPress={() => onRemoveLineItem(item.remoteId)}
-                  >
-                    <Trash2 size={14} color={theme.colors.destructive} />
-                  </Pressable>
-                ) : null}
-              </View>
-
-              {hasInlineError ? (
-                <View style={styles.itemErrorRow}>
-                  <View style={styles.itemNameWrap}>
-                    {item.fieldErrors.productRemoteId ? (
-                      <Text style={styles.inlineErrorText}>
-                        {item.fieldErrors.productRemoteId}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <View style={styles.quantityWrap}>
-                    {item.fieldErrors.quantity ? (
-                      <Text style={[styles.inlineErrorText, styles.centeredErrorText]}>
-                        {item.fieldErrors.quantity}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <View style={styles.priceWrap} />
-                  <View style={styles.itemActionSpacer} />
-                </View>
-              ) : null}
-            </View>
-          );
-        })}
-      </View>
-
-      <Pressable style={styles.addItemButton} onPress={onAddLineItem} disabled={!canManage}>
-        <Plus size={14} color={theme.colors.success} />
-        <Text style={styles.addItemText}>Add Item</Text>
-      </Pressable>
-
-      <View style={styles.twoColumnGrid}>
-        <LabeledTextInput label="Discount" value="0" editable={false} />
         <LabeledTextInput
-          label="Paid Amount"
-          value={formatCompactAmount(formPricingPreview.paidAmount)}
+          label="Phone"
+          value={selectedCustomerPhone}
+          placeholder="Phone number"
           editable={false}
         />
-      </View>
 
-      <LabeledDropdownField
-        label="Payment Method"
-        value={form.tags}
-        options={paymentMethodOptions}
-        onChange={(value) => onChange("tags", value)}
-        placeholder="Select payment method"
-        modalTitle="Select payment method"
-      />
+        <View style={styles.itemsSection}>
+          <View style={styles.itemsHeaderRow}>
+            <Text style={styles.fieldLabel}>Items</Text>
+            {form.fieldErrors.items ? (
+              <Text style={styles.sectionErrorText}>{form.fieldErrors.items}</Text>
+            ) : null}
+          </View>
 
-      <LabeledTextInput
-        label="Notes"
-        value={form.notes}
-        onChangeText={(value) => onChange("notes", value)}
-        placeholder="Order notes..."
-        multiline
-      />
+          <View style={styles.itemsTableHeader}>
+            <Text style={[styles.tableHeaderText, styles.itemNameWrap]}>Item</Text>
+            <Text style={[styles.tableHeaderText, styles.quantityWrap]}>Qty</Text>
+            <Text style={[styles.tableHeaderText, styles.priceWrap]}>Price</Text>
+            <View style={styles.itemActionSpacer} />
+          </View>
 
-      <View style={styles.totalCard}>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Subtotal</Text>
-          <Text style={styles.totalValue}>{formPricingPreview.subtotalLabel}</Text>
+          <View style={styles.itemsWrap}>
+            {lineItems.map((item) => {
+              const salePriceAmount = productPriceByRemoteId[item.productRemoteId] ?? 0;
+              const hasInlineError =
+                Boolean(item.fieldErrors.productRemoteId) ||
+                Boolean(item.fieldErrors.quantity);
+
+              return (
+                <View key={item.remoteId} style={styles.itemBlock}>
+                  <View style={styles.itemRow}>
+                    <View style={styles.itemNameWrap}>
+                      <Dropdown
+                        value={item.productRemoteId}
+                        options={productOptions}
+                        onChange={(value) =>
+                          onLineItemChange(item.remoteId, "productRemoteId", value)
+                        }
+                        placeholder="Item name"
+                        modalTitle="Select item"
+                        showLeadingIcon={false}
+                      />
+                    </View>
+
+                    <LabeledTextInput
+                      label=""
+                      value={item.quantity}
+                      onChangeText={(value) =>
+                        onLineItemChange(item.remoteId, "quantity", value)
+                      }
+                      keyboardType="decimal-pad"
+                      placeholder="1"
+                      containerStyle={styles.quantityWrap}
+                      inputStyle={styles.centeredInput}
+                    />
+
+                    <LabeledTextInput
+                      label=""
+                      value={formatCompactAmount(salePriceAmount)}
+                      editable={false}
+                      containerStyle={styles.priceWrap}
+                      inputStyle={styles.centeredInput}
+                    />
+
+                    {lineItems.length > 1 ? (
+                      <Pressable
+                        style={styles.removeItemIconButton}
+                        onPress={() => onRemoveLineItem(item.remoteId)}
+                      >
+                        <Trash2 size={14} color={theme.colors.destructive} />
+                      </Pressable>
+                    ) : null}
+                  </View>
+
+                  {hasInlineError ? (
+                    <View style={styles.itemErrorRow}>
+                      <View style={styles.itemNameWrap}>
+                        {item.fieldErrors.productRemoteId ? (
+                          <Text style={styles.inlineErrorText}>
+                            {item.fieldErrors.productRemoteId}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <View style={styles.quantityWrap}>
+                        {item.fieldErrors.quantity ? (
+                          <Text style={[styles.inlineErrorText, styles.centeredErrorText]}>
+                            {item.fieldErrors.quantity}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <View style={styles.priceWrap} />
+                      <View style={styles.itemActionSpacer} />
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+
+          <Pressable
+            style={styles.addItemButton}
+            onPress={onAddLineItem}
+            disabled={!canManage}
+          >
+            <Plus size={14} color={theme.colors.success} />
+            <Text style={styles.addItemText}>Add Item</Text>
+          </Pressable>
         </View>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Tax ({formPricingPreview.taxRateLabel})</Text>
-          <Text style={styles.totalValue}>{formPricingPreview.taxLabel}</Text>
+
+        <LabeledDropdownField
+          label="Payment Method"
+          value={form.tags}
+          options={paymentMethodOptions}
+          onChange={(value) => onChange("tags", value)}
+          placeholder="Select payment method"
+          modalTitle="Select payment method"
+        />
+      </DefaultSection>
+
+      <MoreDetailsSection
+        title="More Details"
+        subtitle="Optional order notes."
+        defaultExpanded={shouldExpandMoreDetails}
+      >
+        <LabeledTextInput
+          label="Notes"
+          value={form.notes}
+          onChangeText={(value) => onChange("notes", value)}
+          placeholder="Order notes..."
+          multiline={true}
+        />
+      </MoreDetailsSection>
+
+      <SummarySection
+        title="Summary"
+        subtitle="Read-only pricing totals remain visible."
+      >
+        <View style={styles.twoColumnGrid}>
+          <LabeledTextInput label="Discount" value="0" editable={false} />
+          <LabeledTextInput
+            label="Paid Amount"
+            value={formatCompactAmount(formPricingPreview.paidAmount)}
+            editable={false}
+          />
         </View>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Discount</Text>
-          <Text style={styles.discountValue}>-{formPricingPreview.discountLabel}</Text>
+
+        <View style={styles.totalCard}>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Subtotal</Text>
+            <Text style={styles.totalValue}>{formPricingPreview.subtotalLabel}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Tax ({formPricingPreview.taxRateLabel})</Text>
+            <Text style={styles.totalValue}>{formPricingPreview.taxLabel}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Discount</Text>
+            <Text style={styles.discountValue}>-{formPricingPreview.discountLabel}</Text>
+          </View>
+          <View style={styles.totalDivider} />
+          <View style={styles.totalRow}>
+            <Text style={styles.finalTotalLabel}>Total</Text>
+            <Text style={styles.finalTotalValue}>{formPricingPreview.totalLabel}</Text>
+          </View>
         </View>
-        <View style={styles.totalDivider} />
-        <View style={styles.totalRow}>
-          <Text style={styles.finalTotalLabel}>Total</Text>
-          <Text style={styles.finalTotalValue}>{formPricingPreview.totalLabel}</Text>
-        </View>
-      </View>
+      </SummarySection>
     </FormSheetModal>
   );
 }
@@ -262,10 +293,13 @@ export function OrderEditorModal({
 const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
   StyleSheet.create({
     content: {
-      gap: theme.scaleSpace(spacing.sm),
+      gap: theme.scaleSpace(spacing.md),
     },
     submitButton: {
       width: "100%",
+    },
+    itemsSection: {
+      gap: theme.scaleSpace(spacing.sm),
     },
     fieldLabel: {
       color: theme.colors.mutedForeground,
@@ -290,7 +324,6 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       marginBottom: theme.scaleSpace(spacing.xs),
     },
     itemsHeaderRow: {
-      marginTop: theme.scaleSpace(spacing.xs),
       gap: theme.scaleSpace(4),
     },
     sectionErrorText: {

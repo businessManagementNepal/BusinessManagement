@@ -1,5 +1,9 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
+import {
+  DefaultSection,
+  SummarySection,
+} from "@/shared/components/reusable/Form/FormSections";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
@@ -138,70 +142,80 @@ export function PosPaymentModal({
       footerContainerStyle={styles.footer}
       minHeight={360}
     >
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Grand Total</Text>
-        <Text style={styles.summaryValue}>
-          {formatCurrency(totals.grandTotal, currencyCode, countryCode)}
-        </Text>
-      </View>
-
-      {selectedCustomer ? (
-        <View style={styles.customerSummaryCard}>
-          <Text style={styles.customerSummaryLabel}>Customer</Text>
-          <Text style={styles.customerSummaryName}>
-            {selectedCustomer.fullName}
-          </Text>
-          {selectedCustomer.phone ? (
-            <Text style={styles.customerSummaryPhone}>
-              {selectedCustomer.phone}
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
-
-      <View style={styles.fieldWrap}>
-        <Text style={styles.fieldLabel}>Settlement Account</Text>
-        <Dropdown
-          value={selectedSettlementAccountRemoteId}
-          options={moneyAccountOptions}
-          onChange={onSettlementAccountChange}
-          placeholder="Select settlement account"
-          modalTitle="Select settlement account"
-          showLeadingIcon={false}
-          disabled={isSubmitting}
-        />
-      </View>
-
-      <View style={styles.fieldWrap}>
-        <Text style={styles.fieldLabel}>Paid Amount</Text>
-        <TextInput
-          value={paidAmount}
-          onChangeText={onPaidAmountChange}
-          keyboardType="decimal-pad"
-          placeholder="0"
-          placeholderTextColor={theme.colors.mutedForeground}
-          style={styles.input}
-          editable={!isSubmitting}
-        />
-      </View>
-
-      <View
-        style={[
-          styles.dueAmountCard,
-          { backgroundColor: dueCardTone.backgroundColor },
-        ]}
+      <SummarySection
+        title="Payment Summary"
+        subtitle="Read-only payment totals and customer context."
       >
-        <Text style={styles.dueAmountLabel}>{dueCardTone.label}</Text>
-        <Text
-          style={[styles.dueAmountValue, { color: dueCardTone.valueColor }]}
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>Grand Total</Text>
+          <Text style={styles.summaryValue}>
+            {formatCurrency(totals.grandTotal, currencyCode, countryCode)}
+          </Text>
+        </View>
+
+        {selectedCustomer ? (
+          <View style={styles.customerSummaryCard}>
+            <Text style={styles.customerSummaryLabel}>Customer</Text>
+            <Text style={styles.customerSummaryName}>
+              {selectedCustomer.fullName}
+            </Text>
+            {selectedCustomer.phone ? (
+              <Text style={styles.customerSummaryPhone}>
+                {selectedCustomer.phone}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        <View
+          style={[
+            styles.dueAmountCard,
+            { backgroundColor: dueCardTone.backgroundColor },
+          ]}
         >
-          {formatCurrency(
-            dueAmount > 0 ? dueAmount : dueAmount === 0 ? grandTotal : Math.abs(dueAmount),
-            currencyCode,
-            countryCode,
-          )}
-        </Text>
-      </View>
+          <Text style={styles.dueAmountLabel}>{dueCardTone.label}</Text>
+          <Text
+            style={[styles.dueAmountValue, { color: dueCardTone.valueColor }]}
+          >
+            {formatCurrency(
+              dueAmount > 0 ? dueAmount : dueAmount === 0 ? grandTotal : Math.abs(dueAmount),
+              currencyCode,
+              countryCode,
+            )}
+          </Text>
+        </View>
+      </SummarySection>
+
+      <DefaultSection
+        title="Payment Details"
+        subtitle="Settlement account and paid amount stay visible together."
+      >
+        <View style={styles.fieldWrap}>
+          <Text style={styles.fieldLabel}>Settlement Account</Text>
+          <Dropdown
+            value={selectedSettlementAccountRemoteId}
+            options={moneyAccountOptions}
+            onChange={onSettlementAccountChange}
+            placeholder="Select settlement account"
+            modalTitle="Select settlement account"
+            showLeadingIcon={false}
+            disabled={isSubmitting}
+          />
+        </View>
+
+        <View style={styles.fieldWrap}>
+          <Text style={styles.fieldLabel}>Paid Amount</Text>
+          <TextInput
+            value={paidAmount}
+            onChangeText={onPaidAmountChange}
+            keyboardType="decimal-pad"
+            placeholder="0"
+            placeholderTextColor={theme.colors.mutedForeground}
+            style={styles.input}
+            editable={!isSubmitting}
+          />
+        </View>
+      </DefaultSection>
     </CenteredDialogFormModal>
   );
 }

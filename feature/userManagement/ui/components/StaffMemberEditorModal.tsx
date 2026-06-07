@@ -2,25 +2,29 @@ import {
   SignUpPhoneCountryCode,
   SignUpPhoneCountryOption,
 } from "@/feature/auth/signUp/types/signUp.types";
+import { UserManagementMemberEditorFieldErrors } from "@/feature/userManagement/viewModel/userManagement.state";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import {
   ChipSelectorField,
   ChipSelectorOption,
 } from "@/shared/components/reusable/Form/ChipSelectorField";
-import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
+import {
+  DefaultSection,
+  MoreDetailsSection,
+} from "@/shared/components/reusable/Form/FormSections";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import {
   RoleOptionGrid,
   RoleOptionGridItem,
 } from "@/shared/components/reusable/Form/RoleOptionGrid";
+import { StickyActionFooter } from "@/shared/components/reusable/Form/StickyActionFooter";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { UserManagementMemberEditorFieldErrors } from "@/feature/userManagement/viewModel/userManagement.state";
 
 export type StaffMemberRoleOption = {
   remoteId: string;
@@ -85,6 +89,7 @@ export function StaffMemberEditorModal({
 }: StaffMemberEditorModalProps) {
   const styles = useThemedStyles(createStyles);
   const title = mode === "create" ? "Add Staff Member" : "Edit Staff Member";
+  const shouldExpandMoreDetails = email.trim().length > 0;
   const phoneCountrySelectorOptions: ChipSelectorOption<SignUpPhoneCountryCode>[] =
     phoneCountryOptions.map((phoneCountryOption) => ({
       value: phoneCountryOption.code,
@@ -111,7 +116,7 @@ export function StaffMemberEditorModal({
       contentContainerStyle={styles.content}
       presentation="bottom-sheet"
       footer={
-        <FormModalActionFooter>
+        <StickyActionFooter>
           <AppButton
             label="Cancel"
             variant="secondary"
@@ -128,108 +133,119 @@ export function StaffMemberEditorModal({
             onPress={onSave}
             disabled={isSaving}
           />
-        </FormModalActionFooter>
+        </StickyActionFooter>
       }
     >
-      <LabeledTextInput
-        label="Full Name"
-        value={fullName}
-        onChangeText={onChangeFullName}
-        placeholder="Enter full name"
-        editable={!isSaving}
-        errorText={fieldErrors.fullName}
-      />
+      <DefaultSection
+        title="Staff Details"
+        subtitle="Identity, phone, password, and role stay visible by default."
+      >
+        <LabeledTextInput
+          label="Full Name"
+          value={fullName}
+          onChangeText={onChangeFullName}
+          placeholder="Enter full name"
+          editable={!isSaving}
+          errorText={fieldErrors.fullName}
+        />
 
-      <ChipSelectorField
-        label="Phone Country"
-        options={phoneCountrySelectorOptions}
-        selectedValue={phoneCountryCode}
-        onSelect={onChangeSelectedPhoneCountry}
-        disabled={isSaving}
-      />
+        <ChipSelectorField
+          label="Phone Country"
+          options={phoneCountrySelectorOptions}
+          selectedValue={phoneCountryCode}
+          onSelect={onChangeSelectedPhoneCountry}
+          disabled={isSaving}
+        />
 
-      <LabeledTextInput
-        label="Phone Number"
-        value={phone}
-        onChangeText={onChangePhone}
-        placeholder="Enter local phone number"
-        keyboardType="phone-pad"
-        editable={!isSaving}
-        errorText={fieldErrors.phone}
-      />
+        <LabeledTextInput
+          label="Phone Number"
+          value={phone}
+          onChangeText={onChangePhone}
+          placeholder="Enter local phone number"
+          keyboardType="phone-pad"
+          editable={!isSaving}
+          errorText={fieldErrors.phone}
+        />
 
-      <LabeledTextInput
-        label="Email (Optional)"
-        value={email}
-        onChangeText={onChangeEmail}
-        placeholder="Enter email"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        editable={!isSaving}
-      />
+        <LabeledTextInput
+          label={mode === "create" ? "Password" : "Reset Password (Optional)"}
+          value={password}
+          onChangeText={onChangePassword}
+          placeholder={
+            mode === "create" ? "Set password" : "Leave blank to keep current password"
+          }
+          secureTextEntry={true}
+          editable={!isSaving}
+          errorText={fieldErrors.password}
+        />
 
-      <LabeledTextInput
-        label={mode === "create" ? "Password" : "Reset Password (Optional)"}
-        value={password}
-        onChangeText={onChangePassword}
-        placeholder={
-          mode === "create" ? "Set password" : "Leave blank to keep current password"
-        }
-        secureTextEntry={true}
-        editable={!isSaving}
-        errorText={fieldErrors.password}
-      />
+        <View style={styles.roleSectionWrap}>
+          <View style={styles.roleSectionHeader}>
+            <Text style={styles.inlineFieldLabel}>Select Role</Text>
+            {canManageRolePermissions ? (
+              <AppButton
+                label="Create Custom Role"
+                variant="secondary"
+                size="sm"
+                onPress={onStartCreateCustomRole}
+                disabled={isSaving || isSavingRole}
+              />
+            ) : null}
+          </View>
 
-      <View style={styles.roleSectionWrap}>
-        <View style={styles.roleSectionHeader}>
-          <Text style={styles.inlineFieldLabel}>Select Role</Text>
-          {canManageRolePermissions ? (
-            <AppButton
-              label="Create Custom Role"
-              variant="secondary"
-              size="sm"
-              onPress={onStartCreateCustomRole}
-              disabled={isSaving || isSavingRole}
+          {roleGridOptions.length === 0 ? (
+            <Text style={styles.noRoleText}>
+              No roles available. Create a custom role to continue.
+            </Text>
+          ) : (
+            <RoleOptionGrid
+              options={roleGridOptions}
+              selectedValue={roleRemoteId}
+              onSelect={onChangeRole}
+              disabled={isSaving}
+              isOptionDisabled={() => !canAssignRoles}
             />
+          )}
+
+          {fieldErrors.roleRemoteId ? (
+            <Text style={styles.inlineErrorText}>{fieldErrors.roleRemoteId}</Text>
           ) : null}
         </View>
+      </DefaultSection>
 
-        {roleGridOptions.length === 0 ? (
-          <Text style={styles.noRoleText}>
-            No roles available. Create a custom role to continue.
-          </Text>
-        ) : (
-          <RoleOptionGrid
-            options={roleGridOptions}
-            selectedValue={roleRemoteId}
-            onSelect={onChangeRole}
-            disabled={isSaving}
-            isOptionDisabled={() => !canAssignRoles}
-          />
-        )}
-
-        {fieldErrors.roleRemoteId ? (
-          <Text style={styles.inlineErrorText}>{fieldErrors.roleRemoteId}</Text>
-        ) : null}
-      </View>
-
-      <Card style={styles.permissionCard}>
-        <Text style={styles.permissionCardTitle}>Permission Access</Text>
-        <Text style={styles.permissionCardSubtitle}>
-          {selectedRole
-            ? `You can view or modify permissions for ${selectedRole.label}.`
-            : "Select a role first, then manage its permissions."}
-        </Text>
-
-        <AppButton
-          label={isSavingRole ? "Opening..." : "Manage Permission"}
-          variant="secondary"
-          size="md"
-          style={styles.permissionButton}
-          onPress={onManageRolePermissions}
-          disabled={isSaving || isSavingRole || !canManageSelectedRolePermissions}
+      <MoreDetailsSection
+        title="More Details"
+        subtitle="Optional email and permission management."
+        defaultExpanded={shouldExpandMoreDetails}
+      >
+        <LabeledTextInput
+          label="Email (Optional)"
+          value={email}
+          onChangeText={onChangeEmail}
+          placeholder="Enter email"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          editable={!isSaving}
         />
-      </Card>
+
+        <Card style={styles.permissionCard}>
+          <Text style={styles.permissionCardTitle}>Permission Access</Text>
+          <Text style={styles.permissionCardSubtitle}>
+            {selectedRole
+              ? `You can view or modify permissions for ${selectedRole.label}.`
+              : "Select a role first, then manage its permissions."}
+          </Text>
+
+          <AppButton
+            label={isSavingRole ? "Opening..." : "Manage Permission"}
+            variant="secondary"
+            size="md"
+            style={styles.permissionButton}
+            onPress={onManageRolePermissions}
+            disabled={isSaving || isSavingRole || !canManageSelectedRolePermissions}
+          />
+        </Card>
+      </MoreDetailsSection>
     </FormSheetModal>
   );
 }
@@ -237,7 +253,7 @@ export function StaffMemberEditorModal({
 const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
   StyleSheet.create({
     content: {
-      gap: theme.scaleSpace(spacing.sm),
+      gap: theme.scaleSpace(spacing.md),
       paddingBottom: theme.scaleSpace(spacing.xl),
     },
     inlineFieldLabel: {

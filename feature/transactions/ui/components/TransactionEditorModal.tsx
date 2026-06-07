@@ -6,10 +6,14 @@ import { TransactionEditorViewModel } from "@/feature/transactions/viewModel/tra
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { DualCalendarDatePicker } from "@/shared/components/reusable/Form/DualCalendarDatePicker";
-import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
+import {
+  DefaultSection,
+  MoreDetailsSection,
+} from "@/shared/components/reusable/Form/FormSections";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
+import { StickyActionFooter } from "@/shared/components/reusable/Form/StickyActionFooter";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import React from "react";
@@ -24,11 +28,12 @@ export function TransactionEditorModal({
 }: TransactionEditorModalProps) {
   const theme = useAppTheme();
   const { state } = viewModel;
+  const shouldExpandMoreDetails = state.note.trim().length > 0;
   const styles = React.useMemo(
     () =>
       StyleSheet.create({
         content: {
-          gap: theme.scaleSpace(spacing.sm),
+          gap: theme.scaleSpace(spacing.md),
           paddingBottom: theme.scaleSpace(spacing.xl),
         },
         fieldWrap: {
@@ -127,7 +132,7 @@ export function TransactionEditorModal({
       presentation="bottom-sheet"
       contentContainerStyle={styles.content}
       footer={
-        <FormModalActionFooter>
+        <StickyActionFooter>
           <AppButton
             label="Cancel"
             variant="secondary"
@@ -144,130 +149,141 @@ export function TransactionEditorModal({
             onPress={() => void viewModel.submit()}
             disabled={state.isSaving}
           />
-        </FormModalActionFooter>
+        </StickyActionFooter>
       }
     >
-      <View style={styles.fieldWrap}>
-        <Text style={styles.fieldLabel}>Type</Text>
-        <View style={styles.typeChipRow}>
-          {viewModel.availableTypes.map((typeOption) => {
-            const isSelected = typeOption.value === state.type;
+      <DefaultSection
+        title="Transaction Details"
+        subtitle="Posted amount, account, and date stay visible by default."
+      >
+        <View style={styles.fieldWrap}>
+          <Text style={styles.fieldLabel}>Type</Text>
+          <View style={styles.typeChipRow}>
+            {viewModel.availableTypes.map((typeOption) => {
+              const isSelected = typeOption.value === state.type;
 
-            return (
-              <Pressable
-                key={typeOption.value}
-                style={[
-                  styles.typeChip,
-                  isSelected ? styles.typeChipSelected : null,
-                ]}
-                onPress={() => viewModel.onChangeType(typeOption.value)}
-                disabled={state.isSaving}
-              >
-                <Text
+              return (
+                <Pressable
+                  key={typeOption.value}
                   style={[
-                    styles.typeChipText,
-                    isSelected ? styles.typeChipTextSelected : null,
+                    styles.typeChip,
+                    isSelected ? styles.typeChipSelected : null,
                   ]}
+                  onPress={() => viewModel.onChangeType(typeOption.value)}
+                  disabled={state.isSaving}
                 >
-                  {typeOption.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+                  <Text
+                    style={[
+                      styles.typeChipText,
+                      isSelected ? styles.typeChipTextSelected : null,
+                    ]}
+                  >
+                    {typeOption.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
-      </View>
 
-      {showDirectionControl ? (
-        <LabeledDropdownField
-          label="Direction"
-          value={state.direction}
-          options={directionOptions}
-          onChange={(value) => {
-            if (
-              value === TransactionDirection.In ||
-              value === TransactionDirection.Out
-            ) {
-              viewModel.onChangeDirection(value);
-            }
-          }}
-          placeholder="Select direction"
-          modalTitle="Select direction"
-          disabled={state.isSaving}
+        {showDirectionControl ? (
+          <LabeledDropdownField
+            label="Direction"
+            value={state.direction}
+            options={directionOptions}
+            onChange={(value) => {
+              if (
+                value === TransactionDirection.In ||
+                value === TransactionDirection.Out
+              ) {
+                viewModel.onChangeDirection(value);
+              }
+            }}
+            placeholder="Select direction"
+            modalTitle="Select direction"
+            disabled={state.isSaving}
+          />
+        ) : null}
+
+        <LabeledTextInput
+          label="Title"
+          value={state.title}
+          onChangeText={viewModel.onChangeTitle}
+          placeholder="Example: Salary, House Rent, Grocery"
+          editable={!state.isSaving}
+          errorText={state.fieldErrors.title}
         />
-      ) : null}
 
-      <LabeledTextInput
-        label="Title"
-        value={state.title}
-        onChangeText={viewModel.onChangeTitle}
-        placeholder="Example: Salary, House Rent, Grocery"
-        editable={!state.isSaving}
-        errorText={state.fieldErrors.title}
-      />
-
-      <LabeledTextInput
-        label="Amount"
-        value={state.amount}
-        onChangeText={viewModel.onChangeAmount}
-        placeholder="0"
-        keyboardType="decimal-pad"
-        editable={!state.isSaving}
-        errorText={state.fieldErrors.amount}
-      />
-
-      <LabeledDropdownField
-        label="Account"
-        value={state.accountRemoteId}
-        options={accountOptions}
-        onChange={viewModel.onChangeAccountRemoteId}
-        placeholder="Select account"
-        modalTitle="Select account"
-        disabled={state.isSaving}
-        errorText={state.fieldErrors.accountRemoteId}
-      />
-
-      <LabeledDropdownField
-        label="Money Account"
-        value={state.settlementMoneyAccountRemoteId}
-        options={moneyAccountOptions}
-        onChange={viewModel.onChangeSettlementMoneyAccountRemoteId}
-        placeholder="Select money account"
-        modalTitle="Select money account"
-        disabled={state.isSaving}
-        errorText={state.fieldErrors.settlementMoneyAccountRemoteId}
-      />
-
-      {state.type !== TransactionType.Transfer ? (
-        <LabeledDropdownField
-          label="Category"
-          value={state.categoryRemoteId}
-          options={categoryOptions}
-          onChange={viewModel.onChangeCategoryRemoteId}
-          placeholder="Select category"
-          modalTitle="Select category"
-          disabled={state.isSaving}
-          errorText={state.fieldErrors.categoryRemoteId}
+        <LabeledTextInput
+          label="Amount"
+          value={state.amount}
+          onChangeText={viewModel.onChangeAmount}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          editable={!state.isSaving}
+          errorText={state.fieldErrors.amount}
         />
-      ) : null}
 
-      <DualCalendarDatePicker
-        label="Date"
-        value={state.happenedAt}
-        onChangeText={viewModel.onChangeHappenedAt}
-        placeholder="YYYY-MM-DD"
-        editable={!state.isSaving}
-        errorText={state.fieldErrors.happenedAt}
-      />
+        <LabeledDropdownField
+          label="Account"
+          value={state.accountRemoteId}
+          options={accountOptions}
+          onChange={viewModel.onChangeAccountRemoteId}
+          placeholder="Select account"
+          modalTitle="Select account"
+          disabled={state.isSaving}
+          errorText={state.fieldErrors.accountRemoteId}
+        />
 
-      <LabeledTextInput
-        label="Note (optional)"
-        value={state.note}
-        onChangeText={viewModel.onChangeNote}
-        placeholder="Add a short note"
-        editable={!state.isSaving}
-        multiline={true}
-        numberOfLines={4}
-      />
+        <LabeledDropdownField
+          label="Money Account"
+          value={state.settlementMoneyAccountRemoteId}
+          options={moneyAccountOptions}
+          onChange={viewModel.onChangeSettlementMoneyAccountRemoteId}
+          placeholder="Select money account"
+          modalTitle="Select money account"
+          disabled={state.isSaving}
+          errorText={state.fieldErrors.settlementMoneyAccountRemoteId}
+        />
+
+        {state.type !== TransactionType.Transfer ? (
+          <LabeledDropdownField
+            label="Category"
+            value={state.categoryRemoteId}
+            options={categoryOptions}
+            onChange={viewModel.onChangeCategoryRemoteId}
+            placeholder="Select category"
+            modalTitle="Select category"
+            disabled={state.isSaving}
+            errorText={state.fieldErrors.categoryRemoteId}
+          />
+        ) : null}
+
+        <DualCalendarDatePicker
+          label="Date"
+          value={state.happenedAt}
+          onChangeText={viewModel.onChangeHappenedAt}
+          placeholder="YYYY-MM-DD"
+          editable={!state.isSaving}
+          errorText={state.fieldErrors.happenedAt}
+        />
+      </DefaultSection>
+
+      <MoreDetailsSection
+        title="More Details"
+        subtitle="Optional transaction note."
+        defaultExpanded={shouldExpandMoreDetails}
+      >
+        <LabeledTextInput
+          label="Note (Optional)"
+          value={state.note}
+          onChangeText={viewModel.onChangeNote}
+          placeholder="Add a short note"
+          editable={!state.isSaving}
+          multiline={true}
+          numberOfLines={4}
+        />
+      </MoreDetailsSection>
 
       {state.errorMessage ? (
         <Text style={styles.errorText}>{state.errorMessage}</Text>

@@ -1,16 +1,22 @@
 import {
-    InventoryAdjustmentReasonValue,
-    InventoryMovementType,
-    InventoryMovementTypeValue,
+  InventoryAdjustmentReasonValue,
+  InventoryMovementType,
+  InventoryMovementTypeValue,
 } from "@/feature/inventory/types/inventory.types";
 import { InventoryMovementFormState } from "@/feature/inventory/viewModel/inventory.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { DualCalendarDatePicker } from "@/shared/components/reusable/Form/DualCalendarDatePicker";
-import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
+import {
+  DefaultSection,
+  MoreDetailsSection,
+} from "@/shared/components/reusable/Form/FormSections";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
+import { StickyActionFooter } from "@/shared/components/reusable/Form/StickyActionFooter";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
 import { StyleSheet } from "react-native";
 
@@ -41,6 +47,9 @@ export function InventoryMovementModal({
   onChange,
   onSubmit,
 }: InventoryMovementModalProps) {
+  const styles = useThemedStyles(createStyles);
+  const shouldExpandMoreDetails = form.remark.trim().length > 0;
+
   return (
     <FormSheetModal
       visible={visible}
@@ -51,7 +60,7 @@ export function InventoryMovementModal({
       presentation="bottom-sheet"
       contentContainerStyle={styles.content}
       footer={
-        <FormModalActionFooter>
+        <StickyActionFooter>
           <AppButton
             label="Cancel"
             variant="secondary"
@@ -68,73 +77,85 @@ export function InventoryMovementModal({
             }}
             disabled={!canManage}
           />
-        </FormModalActionFooter>
+        </StickyActionFooter>
       }
     >
-      <LabeledDropdownField
-        label="Product"
-        value={form.productRemoteId}
-        options={productOptions}
-        onChange={(value) => onChange("productRemoteId", value)}
-        placeholder="Select product"
-        modalTitle="Select product"
-      />
-
-      <LabeledTextInput
-        label="Quantity"
-        value={form.quantity}
-        placeholder="0"
-        keyboardType="decimal-pad"
-        onChangeText={(value) => onChange("quantity", value)}
-      />
-
-      <LabeledTextInput
-        label={`Unit Rate (${currencyPrefix})`}
-        value={form.unitRate}
-        placeholder="0"
-        keyboardType="decimal-pad"
-        onChangeText={(value) => onChange("unitRate", value)}
-      />
-
-      {editorType === InventoryMovementType.Adjustment ? (
+      <DefaultSection
+        title="Movement Details"
+        subtitle="Product, quantity, value, and movement date stay visible by default."
+      >
         <LabeledDropdownField
-          label="Adjustment Reason"
-          value={form.reason}
-          options={adjustmentReasonOptions.map((adjustmentReasonOption) => ({
-            label: adjustmentReasonOption.label,
-            value: adjustmentReasonOption.value,
-          }))}
-          onChange={(value) => onChange("reason", value)}
-          placeholder="Select reason"
-          modalTitle="Select adjustment reason"
+          label="Product"
+          value={form.productRemoteId}
+          options={productOptions}
+          onChange={(value) => onChange("productRemoteId", value)}
+          placeholder="Select product"
+          modalTitle="Select product"
         />
-      ) : null}
 
-      <DualCalendarDatePicker
-        label="Movement Date"
-        value={form.movementDate}
-        placeholder="YYYY-MM-DD"
-        onChangeText={(value) => onChange("movementDate", value)}
-      />
+        <LabeledTextInput
+          label="Quantity"
+          value={form.quantity}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          onChangeText={(value) => onChange("quantity", value)}
+        />
 
-      <LabeledTextInput
-        label="Remark"
-        value={form.remark}
-        placeholder="Optional remark"
-        onChangeText={(value) => onChange("remark", value)}
-        multiline={true}
-        numberOfLines={4}
-      />
+        <LabeledTextInput
+          label={`Unit Rate (${currencyPrefix})`}
+          value={form.unitRate}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          onChangeText={(value) => onChange("unitRate", value)}
+        />
+
+        {editorType === InventoryMovementType.Adjustment ? (
+          <LabeledDropdownField
+            label="Adjustment Reason"
+            value={form.reason}
+            options={adjustmentReasonOptions.map((adjustmentReasonOption) => ({
+              label: adjustmentReasonOption.label,
+              value: adjustmentReasonOption.value,
+            }))}
+            onChange={(value) => onChange("reason", value)}
+            placeholder="Select reason"
+            modalTitle="Select adjustment reason"
+          />
+        ) : null}
+
+        <DualCalendarDatePicker
+          label="Movement Date"
+          value={form.movementDate}
+          placeholder="YYYY-MM-DD"
+          onChangeText={(value) => onChange("movementDate", value)}
+        />
+      </DefaultSection>
+
+      <MoreDetailsSection
+        title="More Details"
+        subtitle="Optional movement remark."
+        defaultExpanded={shouldExpandMoreDetails}
+      >
+        <LabeledTextInput
+          label="Remark"
+          value={form.remark}
+          placeholder="Optional remark"
+          onChangeText={(value) => onChange("remark", value)}
+          multiline={true}
+          numberOfLines={4}
+        />
+      </MoreDetailsSection>
     </FormSheetModal>
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  actionButton: {
-    flex: 1,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.md),
+      paddingBottom: theme.scaleSpace(spacing.xl),
+    },
+    actionButton: {
+      flex: 1,
+    },
+  });

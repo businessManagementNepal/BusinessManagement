@@ -1,10 +1,12 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { X } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { DefaultSection } from "@/shared/components/reusable/Form/FormSections";
+import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { CenteredDialogFormModal } from "@/shared/components/reusable/Modals/CenteredDialogFormModal";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
-import { radius, spacing } from "@/shared/components/theme/spacing";
+import { spacing } from "@/shared/components/theme/spacing";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type PosAdjustAmountModalProps = {
@@ -45,15 +47,18 @@ export function PosAdjustAmountModal({
       footerContainerStyle={styles.footer}
       minHeight={260}
     >
-      <Text style={styles.label}>Enter amount</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        keyboardType="decimal-pad"
-        placeholder="0"
-        placeholderTextColor={theme.colors.mutedForeground}
-        style={styles.input}
-      />
+      <DefaultSection
+        title="Amount"
+        subtitle="Enter the adjusted amount below."
+      >
+        <LabeledTextInput
+          label="Enter Amount"
+          value={value}
+          onChangeText={onChange}
+          keyboardType="decimal-pad"
+          placeholder="0"
+        />
+      </DefaultSection>
     </CenteredDialogFormModal>
   );
 }
@@ -92,21 +97,5 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       color: theme.colors.cardForeground,
       fontFamily: "InterBold",
       fontSize: theme.scaleText(18),
-    },
-    label: {
-      color: theme.colors.mutedForeground,
-      fontSize: theme.scaleText(13),
-      fontFamily: "InterMedium",
-    },
-    input: {
-      minHeight: theme.scaleSpace(52),
-      borderRadius: radius.lg,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      backgroundColor: theme.colors.secondary,
-      paddingHorizontal: theme.scaleSpace(spacing.md),
-      color: theme.colors.cardForeground,
-      fontSize: theme.scaleText(15),
-      fontFamily: "InterMedium",
     },
   });

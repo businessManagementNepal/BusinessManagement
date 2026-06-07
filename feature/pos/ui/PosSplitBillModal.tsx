@@ -1,5 +1,9 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
+import {
+  DefaultSection,
+  SummarySection,
+} from "@/shared/components/reusable/Form/FormSections";
 import { BottomSheetFormModal } from "@/shared/components/reusable/Modals/BottomSheetFormModal";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
@@ -159,36 +163,43 @@ export function PosSplitBillModal({
       footerContainerStyle={styles.footer}
       minHeight={460}
     >
-      <View style={styles.summaryStrip}>
-        <View style={styles.summaryPill}>
-          <Text style={styles.summaryPillLabel}>Total</Text>
-          <Text style={styles.summaryPillValue}>
-            {formatCurrency(grandTotal, currencyCode, countryCode)}
-          </Text>
-        </View>
+      <SummarySection
+        title="Split Summary"
+        subtitle="Read-only totals for the current split."
+      >
+        <View style={styles.summaryStrip}>
+          <View style={styles.summaryPill}>
+            <Text style={styles.summaryPillLabel}>Total</Text>
+            <Text style={styles.summaryPillValue}>
+              {formatCurrency(grandTotal, currencyCode, countryCode)}
+            </Text>
+          </View>
 
-        <View style={styles.summaryPill}>
-          <Text style={styles.summaryPillLabel}>Paid</Text>
-          <Text style={styles.summaryPillValue}>
-            {formatCurrency(allocatedAmount, currencyCode, countryCode)}
-          </Text>
-        </View>
+          <View style={styles.summaryPill}>
+            <Text style={styles.summaryPillLabel}>Paid</Text>
+            <Text style={styles.summaryPillValue}>
+              {formatCurrency(allocatedAmount, currencyCode, countryCode)}
+            </Text>
+          </View>
 
-        <View style={styles.summaryPill}>
-          <Text style={styles.summaryPillLabel}>Remaining</Text>
-          <Text
-            style={[
-              styles.summaryPillValue,
-              remainingAmount > 0 ? styles.remainingValue : null,
-            ]}
-          >
-            {formatCurrency(remainingAmount, currencyCode, countryCode)}
-          </Text>
+          <View style={styles.summaryPill}>
+            <Text style={styles.summaryPillLabel}>Remaining</Text>
+            <Text
+              style={[
+                styles.summaryPillValue,
+                remainingAmount > 0 ? styles.remainingValue : null,
+              ]}
+            >
+              {formatCurrency(remainingAmount, currencyCode, countryCode)}
+            </Text>
+          </View>
         </View>
-      </View>
+      </SummarySection>
 
-      <View style={styles.quickSplitSection}>
-        <Text style={styles.sectionTitle}>Quick Split</Text>
+      <DefaultSection
+        title="Quick Split"
+        subtitle="Apply an equal split or add another part."
+      >
         <View style={styles.quickSplitRow}>
           <Pressable
             style={[
@@ -235,7 +246,7 @@ export function PosSplitBillModal({
             <Text style={styles.addChipText}>Add</Text>
           </Pressable>
         </View>
-      </View>
+      </DefaultSection>
 
       {errorMessage ? (
         <View style={styles.errorBanner}>
@@ -243,7 +254,11 @@ export function PosSplitBillModal({
         </View>
       ) : null}
 
-      <View style={styles.partsSection}>
+      <DefaultSection
+        title="Payment Parts"
+        subtitle="Adjust each payer amount and settlement method."
+      >
+        <View style={styles.partsSection}>
         {parts.map((part, index) => {
           const isExpanded = expandedPartIds.includes(part.paymentPartId);
 
@@ -258,7 +273,7 @@ export function PosSplitBillModal({
                     onPress={() => toggleAdvanced(part.paymentPartId)}
                   >
                     <Text style={styles.moreButtonText}>
-                      {isExpanded ? "Hide name" : "Add name"}
+                      {isExpanded ? "Hide Details" : "More Details"}
                     </Text>
                     <ChevronDown size={14} color={theme.colors.mutedForeground} />
                   </Pressable>
@@ -350,7 +365,8 @@ export function PosSplitBillModal({
             </View>
           );
         })}
-      </View>
+        </View>
+      </DefaultSection>
     </BottomSheetFormModal>
   );
 }

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { X } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
+import { DefaultSection } from "@/shared/components/reusable/Form/FormSections";
 import { CenteredDialogFormModal } from "@/shared/components/reusable/Modals/CenteredDialogFormModal";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
@@ -65,15 +66,20 @@ export function BusinessNotesModal({
       footerContainerStyle={styles.footer}
       minHeight={320}
     >
-      <AppTextInput
-        value={notesInput}
-        onChangeText={onNotesChange}
-        placeholder={placeholder}
-        multiline
-        numberOfLines={8}
-        containerStyle={styles.inputWrap}
-        style={styles.inputText}
-      />
+      <DefaultSection
+        title="Notes"
+        subtitle="Edit the note content below."
+      >
+        <AppTextInput
+          value={notesInput}
+          onChangeText={onNotesChange}
+          placeholder={placeholder}
+          multiline
+          numberOfLines={8}
+          containerStyle={styles.inputWrap}
+          style={styles.inputText}
+        />
+      </DefaultSection>
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
     </CenteredDialogFormModal>

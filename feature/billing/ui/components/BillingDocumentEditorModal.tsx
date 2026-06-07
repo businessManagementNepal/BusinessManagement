@@ -6,10 +6,15 @@ import {
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
 import { DualCalendarDatePicker } from "@/shared/components/reusable/Form/DualCalendarDatePicker";
-import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
+import {
+  DefaultSection,
+  MoreDetailsSection,
+  SummarySection,
+} from "@/shared/components/reusable/Form/FormSections";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
+import { StickyActionFooter } from "@/shared/components/reusable/Form/StickyActionFooter";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
@@ -75,6 +80,7 @@ export function BillingDocumentEditorModal({
   const pendingAmount = Number(
     Math.max(draftTotals.totalAmount - paidNowAmount, 0).toFixed(2),
   );
+  const shouldExpandMoreDetails = form.notes.trim().length > 0;
 
   return (
     <FormSheetModal
@@ -86,7 +92,7 @@ export function BillingDocumentEditorModal({
       presentation="bottom-sheet"
       contentContainerStyle={styles.formWrap}
       footer={
-        <FormModalActionFooter style={styles.actionFooter}>
+        <StickyActionFooter style={styles.actionFooter}>
           <AppButton
             label="Save"
             size="lg"
@@ -102,241 +108,263 @@ export function BillingDocumentEditorModal({
             leadingIcon={<Printer size={16} color={theme.colors.primary} />}
             onPress={onPrintPreview}
           />
-        </FormModalActionFooter>
+        </StickyActionFooter>
       }
     >
-      <LabeledTextInput
-        label="Customer Name"
-        value={form.customerName}
-        onChangeText={(value) => onChange("customerName", value)}
-        placeholder="Enter customer name"
-        editable={canManage}
-        errorText={form.fieldErrors.customerName}
-      />
+      <DefaultSection
+        title="Billing Details"
+        subtitle="Customer, items, tax, dates, and payment stay visible by default."
+      >
+        <LabeledTextInput
+          label="Customer Name"
+          value={form.customerName}
+          onChangeText={(value) => onChange("customerName", value)}
+          placeholder="Enter customer name"
+          editable={canManage}
+          errorText={form.fieldErrors.customerName}
+        />
 
-      <View style={styles.itemsHeaderWrap}>
-        <Text style={styles.sectionLabel}>Items</Text>
-        {form.fieldErrors.items ? (
-          <Text style={styles.sectionErrorText}>{form.fieldErrors.items}</Text>
-        ) : null}
-      </View>
-
-      <View style={styles.lineItemHeaderRow}>
-        <Text style={[styles.lineItemHeaderText, styles.lineItemName]}>Item</Text>
-        <Text style={[styles.lineItemHeaderText, styles.lineItemQty]}>Qty</Text>
-        <Text style={[styles.lineItemHeaderText, styles.lineItemRate]}>Rate</Text>
-        <View style={styles.lineItemActionSpacer} />
-      </View>
-
-      {lineItems.map((item) => {
-        const hasInlineError =
-          Boolean(item.fieldErrors.itemName) ||
-          Boolean(item.fieldErrors.quantity) ||
-          Boolean(item.fieldErrors.unitRate);
-
-        return (
-          <View key={item.remoteId} style={styles.lineItemWrap}>
-            <View style={styles.lineItemRow}>
-              <AppTextInput
-                value={item.itemName}
-                onChangeText={(value) =>
-                  onLineItemChange(item.remoteId, "itemName", value)
-                }
-                placeholder="Item"
-                containerStyle={styles.lineItemName}
-                editable={canManage}
-              />
-              <AppTextInput
-                value={item.quantity}
-                onChangeText={(value) =>
-                  onLineItemChange(item.remoteId, "quantity", value)
-                }
-                placeholder="1"
-                keyboardType="decimal-pad"
-                containerStyle={styles.lineItemQty}
-                editable={canManage}
-              />
-              <AppTextInput
-                value={item.unitRate}
-                onChangeText={(value) =>
-                  onLineItemChange(item.remoteId, "unitRate", value)
-                }
-                placeholder="Rate"
-                keyboardType="decimal-pad"
-                containerStyle={styles.lineItemRate}
-                editable={canManage}
-              />
-              {lineItems.length > 1 ? (
-                <Pressable
-                  style={styles.removeItemButton}
-                  onPress={() => onRemoveLineItem(item.remoteId)}
-                  disabled={!canManage}
-                >
-                  <Trash2 size={16} color={theme.colors.destructive} />
-                </Pressable>
-              ) : null}
-            </View>
-
-            {hasInlineError ? (
-              <View style={styles.lineItemErrorRow}>
-                <View style={styles.lineItemName}>
-                  {item.fieldErrors.itemName ? (
-                    <Text style={styles.inlineErrorText}>
-                      {item.fieldErrors.itemName}
-                    </Text>
-                  ) : null}
-                </View>
-                <View style={styles.lineItemQty}>
-                  {item.fieldErrors.quantity ? (
-                    <Text style={[styles.inlineErrorText, styles.centeredInlineError]}>
-                      {item.fieldErrors.quantity}
-                    </Text>
-                  ) : null}
-                </View>
-                <View style={styles.lineItemRate}>
-                  {item.fieldErrors.unitRate ? (
-                    <Text style={[styles.inlineErrorText, styles.centeredInlineError]}>
-                      {item.fieldErrors.unitRate}
-                    </Text>
-                  ) : null}
-                </View>
-                <View style={styles.lineItemActionSpacer} />
-              </View>
+        <View style={styles.itemsSection}>
+          <View style={styles.itemsHeaderWrap}>
+            <Text style={styles.sectionLabel}>Items</Text>
+            {form.fieldErrors.items ? (
+              <Text style={styles.sectionErrorText}>{form.fieldErrors.items}</Text>
             ) : null}
           </View>
-        );
-      })}
 
-      <Pressable
-        style={[styles.addItemRow, !canManage ? styles.disabledAction : null]}
-        onPress={onAddLineItem}
-        disabled={!canManage}
-      >
-        <Plus size={16} color={theme.colors.primary} />
-        <Text style={styles.addItemText}>Add Item</Text>
-      </Pressable>
+          <View style={styles.lineItemHeaderRow}>
+            <Text style={[styles.lineItemHeaderText, styles.lineItemName]}>Item</Text>
+            <Text style={[styles.lineItemHeaderText, styles.lineItemQty]}>Qty</Text>
+            <Text style={[styles.lineItemHeaderText, styles.lineItemRate]}>Rate</Text>
+            <View style={styles.lineItemActionSpacer} />
+          </View>
 
-      <LabeledDropdownField
-        label="Tax Rate (%)"
-        value={form.taxRatePercent}
-        options={taxRateOptions.map((option) => ({
-          label: `${option}%`,
-          value: option,
-        }))}
-        onChange={(value) => onChange("taxRatePercent", value)}
-        modalTitle="Select tax rate"
-        disabled={!canManage}
-      />
+          {lineItems.map((item) => {
+            const hasInlineError =
+              Boolean(item.fieldErrors.itemName) ||
+              Boolean(item.fieldErrors.quantity) ||
+              Boolean(item.fieldErrors.unitRate);
 
-      <DualCalendarDatePicker
-        label="Issue Date"
-        value={form.issuedAt}
-        onChangeText={(value) => onChange("issuedAt", value)}
-        placeholder="YYYY-MM-DD"
-        editable={canManage}
-        errorText={form.fieldErrors.issuedAt}
-      />
+            return (
+              <View key={item.remoteId} style={styles.lineItemWrap}>
+                <View style={styles.lineItemRow}>
+                  <AppTextInput
+                    value={item.itemName}
+                    onChangeText={(value) =>
+                      onLineItemChange(item.remoteId, "itemName", value)
+                    }
+                    placeholder="Item"
+                    containerStyle={styles.lineItemName}
+                    editable={canManage}
+                  />
+                  <AppTextInput
+                    value={item.quantity}
+                    onChangeText={(value) =>
+                      onLineItemChange(item.remoteId, "quantity", value)
+                    }
+                    placeholder="1"
+                    keyboardType="decimal-pad"
+                    containerStyle={styles.lineItemQty}
+                    editable={canManage}
+                  />
+                  <AppTextInput
+                    value={item.unitRate}
+                    onChangeText={(value) =>
+                      onLineItemChange(item.remoteId, "unitRate", value)
+                    }
+                    placeholder="Rate"
+                    keyboardType="decimal-pad"
+                    containerStyle={styles.lineItemRate}
+                    editable={canManage}
+                  />
+                  {lineItems.length > 1 ? (
+                    <Pressable
+                      style={styles.removeItemButton}
+                      onPress={() => onRemoveLineItem(item.remoteId)}
+                      disabled={!canManage}
+                    >
+                      <Trash2 size={16} color={theme.colors.destructive} />
+                    </Pressable>
+                  ) : null}
+                </View>
 
-      <LabeledTextInput
-        label="Paid Now"
-        value={form.paidNowAmount}
-        onChangeText={(value) => onChange("paidNowAmount", value)}
-        placeholder="0"
-        keyboardType="decimal-pad"
-        editable={canManage}
-        errorText={form.fieldErrors.paidNowAmount}
-      />
+                {hasInlineError ? (
+                  <View style={styles.lineItemErrorRow}>
+                    <View style={styles.lineItemName}>
+                      {item.fieldErrors.itemName ? (
+                        <Text style={styles.inlineErrorText}>
+                          {item.fieldErrors.itemName}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.lineItemQty}>
+                      {item.fieldErrors.quantity ? (
+                        <Text
+                          style={[styles.inlineErrorText, styles.centeredInlineError]}
+                        >
+                          {item.fieldErrors.quantity}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.lineItemRate}>
+                      {item.fieldErrors.unitRate ? (
+                        <Text
+                          style={[styles.inlineErrorText, styles.centeredInlineError]}
+                        >
+                          {item.fieldErrors.unitRate}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.lineItemActionSpacer} />
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
 
-      {paidNowAmount > 0 ? (
+          <Pressable
+            style={[styles.addItemRow, !canManage ? styles.disabledAction : null]}
+            onPress={onAddLineItem}
+            disabled={!canManage}
+          >
+            <Plus size={16} color={theme.colors.primary} />
+            <Text style={styles.addItemText}>Add Item</Text>
+          </Pressable>
+        </View>
+
         <LabeledDropdownField
-          label="Money Account"
-          value={form.settlementAccountRemoteId}
-          options={availableSettlementAccounts.map((account) => ({
-            label: account.label,
-            value: account.remoteId,
+          label="Tax Rate (%)"
+          value={form.taxRatePercent}
+          options={taxRateOptions.map((option) => ({
+            label: `${option}%`,
+            value: option,
           }))}
-          onChange={(value) => onChange("settlementAccountRemoteId", value)}
-          modalTitle="Select money account"
-          placeholder="Select money account"
+          onChange={(value) => onChange("taxRatePercent", value)}
+          modalTitle="Select tax rate"
           disabled={!canManage}
-          errorText={form.fieldErrors.settlementAccountRemoteId}
         />
-      ) : null}
 
-      <DualCalendarDatePicker
-        label="Due Date"
-        value={form.dueAt}
-        onChangeText={(value) => onChange("dueAt", value)}
-        placeholder="YYYY-MM-DD"
-        editable={canManage}
-        errorText={form.fieldErrors.dueAt}
-      />
+        <DualCalendarDatePicker
+          label="Issue Date"
+          value={form.issuedAt}
+          onChangeText={(value) => onChange("issuedAt", value)}
+          placeholder="YYYY-MM-DD"
+          editable={canManage}
+          errorText={form.fieldErrors.issuedAt}
+        />
 
-      <LabeledTextInput
-        label="Notes"
-        value={form.notes}
-        onChangeText={(value) => onChange("notes", value)}
-        placeholder="Payment terms, thank you message..."
-        multiline={true}
-        numberOfLines={4}
-        editable={canManage}
-      />
+        <LabeledTextInput
+          label="Paid Now"
+          value={form.paidNowAmount}
+          onChangeText={(value) => onChange("paidNowAmount", value)}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          editable={canManage}
+          errorText={form.fieldErrors.paidNowAmount}
+        />
 
-      <View style={styles.totalCard}>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Subtotal</Text>
-          <Text style={styles.totalValue}>
-            {formatCurrencyAmount({
-              amount: draftTotals.subtotalAmount,
-              currencyCode,
-              countryCode,
-            })}
-          </Text>
+        {paidNowAmount > 0 ? (
+          <LabeledDropdownField
+            label="Money Account"
+            value={form.settlementAccountRemoteId}
+            options={availableSettlementAccounts.map((account) => ({
+              label: account.label,
+              value: account.remoteId,
+            }))}
+            onChange={(value) => onChange("settlementAccountRemoteId", value)}
+            modalTitle="Select money account"
+            placeholder="Select money account"
+            disabled={!canManage}
+            errorText={form.fieldErrors.settlementAccountRemoteId}
+          />
+        ) : null}
+
+        <DualCalendarDatePicker
+          label="Due Date"
+          value={form.dueAt}
+          onChangeText={(value) => onChange("dueAt", value)}
+          placeholder="YYYY-MM-DD"
+          editable={canManage}
+          errorText={form.fieldErrors.dueAt}
+        />
+      </DefaultSection>
+
+      <MoreDetailsSection
+        title="More Details"
+        subtitle="Optional document notes."
+        defaultExpanded={shouldExpandMoreDetails}
+      >
+        <LabeledTextInput
+          label="Notes"
+          value={form.notes}
+          onChangeText={(value) => onChange("notes", value)}
+          placeholder="Payment terms, thank you message..."
+          multiline={true}
+          numberOfLines={4}
+          editable={canManage}
+        />
+      </MoreDetailsSection>
+
+      <SummarySection
+        title="Summary"
+        subtitle="Read-only billing totals remain visible."
+      >
+        <View style={styles.totalCard}>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Subtotal</Text>
+            <Text style={styles.totalValue}>
+              {formatCurrencyAmount({
+                amount: draftTotals.subtotalAmount,
+                currencyCode,
+                countryCode,
+              })}
+            </Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>
+              {taxLabel} ({form.taxRatePercent || "0"}%)
+            </Text>
+            <Text style={styles.totalValue}>
+              {formatCurrencyAmount({
+                amount: draftTotals.taxAmount,
+                currencyCode,
+                countryCode,
+              })}
+            </Text>
+          </View>
+          <View style={styles.totalDivider} />
+          <View style={styles.totalRow}>
+            <Text style={styles.totalHeading}>Total</Text>
+            <Text style={styles.totalHeadingValue}>
+              {formatCurrencyAmount({
+                amount: draftTotals.totalAmount,
+                currencyCode,
+                countryCode,
+              })}
+            </Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Paid</Text>
+            <Text style={styles.totalValue}>
+              {formatCurrencyAmount({
+                amount: paidNowAmount,
+                currencyCode,
+                countryCode,
+              })}
+            </Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Pending</Text>
+            <Text style={styles.totalValue}>
+              {formatCurrencyAmount({
+                amount: pendingAmount,
+                currencyCode,
+                countryCode,
+              })}
+            </Text>
+          </View>
         </View>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>
-            {taxLabel} ({form.taxRatePercent || "0"}%)
-          </Text>
-          <Text style={styles.totalValue}>
-            {formatCurrencyAmount({
-              amount: draftTotals.taxAmount,
-              currencyCode,
-              countryCode,
-            })}
-          </Text>
-        </View>
-        <View style={styles.totalDivider} />
-        <View style={styles.totalRow}>
-          <Text style={styles.totalHeading}>Total</Text>
-          <Text style={styles.totalHeadingValue}>
-            {formatCurrencyAmount({
-              amount: draftTotals.totalAmount,
-              currencyCode,
-              countryCode,
-            })}
-          </Text>
-        </View>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Paid</Text>
-          <Text style={styles.totalValue}>
-            {formatCurrencyAmount({
-              amount: paidNowAmount,
-              currencyCode,
-              countryCode,
-            })}
-          </Text>
-        </View>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Pending</Text>
-          <Text style={styles.totalValue}>
-            {formatCurrencyAmount({
-              amount: pendingAmount,
-              currencyCode,
-              countryCode,
-            })}
-          </Text>
-        </View>
-      </View>
+      </SummarySection>
     </FormSheetModal>
   );
 }
@@ -344,6 +372,9 @@ export function BillingDocumentEditorModal({
 const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
   StyleSheet.create({
     formWrap: {
+      gap: theme.scaleSpace(spacing.md),
+    },
+    itemsSection: {
       gap: theme.scaleSpace(spacing.sm),
     },
     itemsHeaderWrap: {

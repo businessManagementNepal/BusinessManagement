@@ -1,15 +1,15 @@
-import {
-  MONEY_ACCOUNT_TYPE_OPTIONS,
-} from "@/feature/accounts/types/moneyAccount.types";
+import { MONEY_ACCOUNT_TYPE_OPTIONS } from "@/feature/accounts/types/moneyAccount.types";
 import { MoneyAccountsViewModel } from "@/feature/accounts/viewModel/moneyAccounts.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import {
-  DropdownOption,
-} from "@/shared/components/reusable/DropDown/Dropdown";
-import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
+  DefaultSection,
+  MoreDetailsSection,
+} from "@/shared/components/reusable/Form/FormSections";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
+import { StickyActionFooter } from "@/shared/components/reusable/Form/StickyActionFooter";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
@@ -34,6 +34,7 @@ export function MoneyAccountEditorModal({
   const title =
     viewModel.editorMode === "create" ? "New Account" : "Edit Account";
   const isOpeningBalanceEditable = viewModel.editorMode === "create";
+  const shouldExpandMoreDetails = viewModel.form.description.trim().length > 0;
 
   return (
     <FormSheetModal
@@ -44,7 +45,7 @@ export function MoneyAccountEditorModal({
       presentation="bottom-sheet"
       contentContainerStyle={styles.content}
       footer={
-        <FormModalActionFooter>
+        <StickyActionFooter>
           {viewModel.editorMode === "edit" ? (
             <AppButton
               label={viewModel.isDeleting ? "Deleting..." : "Delete"}
@@ -71,79 +72,90 @@ export function MoneyAccountEditorModal({
             onPress={() => void viewModel.onSubmit()}
             disabled={!viewModel.canManage}
           />
-        </FormModalActionFooter>
+        </StickyActionFooter>
       }
     >
-      <LabeledTextInput
-        label="Account Name *"
-        value={viewModel.form.name}
-        onChangeText={(value) => viewModel.onFormChange("name", value)}
-        placeholder="Account Name"
-        errorText={viewModel.form.fieldErrors.name}
-      />
+      <DefaultSection
+        title="Account Details"
+        subtitle="Name, type, and balance stay visible by default."
+      >
+        <LabeledTextInput
+          label="Account Name *"
+          value={viewModel.form.name}
+          onChangeText={(value) => viewModel.onFormChange("name", value)}
+          placeholder="Account Name"
+          errorText={viewModel.form.fieldErrors.name}
+        />
 
-      <LabeledDropdownField
-        label="Account Type"
-        value={viewModel.form.type}
-        options={accountTypeOptions}
-        onChange={(value) => {
-          if (value === "cash" || value === "bank" || value === "wallet") {
-            viewModel.onFormChange("type", value);
+        <LabeledDropdownField
+          label="Account Type"
+          value={viewModel.form.type}
+          options={accountTypeOptions}
+          onChange={(value) => {
+            if (value === "cash" || value === "bank" || value === "wallet") {
+              viewModel.onFormChange("type", value);
+            }
+          }}
+          placeholder="Select type"
+          modalTitle="Choose account type"
+        />
+
+        <LabeledTextInput
+          label={`${
+            isOpeningBalanceEditable ? "Opening Balance" : "Current Balance"
+          } (${viewModel.currencyLabel})`}
+          value={viewModel.form.balance}
+          onChangeText={(value) => viewModel.onFormChange("balance", value)}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          editable={isOpeningBalanceEditable}
+          helperText={
+            isOpeningBalanceEditable
+              ? "Set the starting amount for this cash, bank, or wallet account."
+              : "Current balance changes through posted money movements."
           }
-        }}
-        placeholder="Select type"
-        modalTitle="Choose account type"
-      />
+          errorText={
+            isOpeningBalanceEditable
+              ? viewModel.form.fieldErrors.balance
+              : undefined
+          }
+        />
 
-      <LabeledTextInput
-        label={`${
-          isOpeningBalanceEditable ? "Opening Balance" : "Current Balance"
-        } (${viewModel.currencyLabel})`}
-        value={viewModel.form.balance}
-        onChangeText={(value) => viewModel.onFormChange("balance", value)}
-        placeholder="0"
-        keyboardType="decimal-pad"
-        editable={isOpeningBalanceEditable}
-        helperText={
-          isOpeningBalanceEditable
-            ? "Set the starting amount for this cash, bank, or wallet account."
-            : "Current balance changes through posted money movements."
-        }
-        errorText={
-          isOpeningBalanceEditable
-            ? viewModel.form.fieldErrors.balance
-            : undefined
-        }
-      />
+        {!isOpeningBalanceEditable ? (
+          <View style={styles.balanceActionRow}>
+            <AppButton
+              label="View History"
+              variant="secondary"
+              size="md"
+              style={styles.balanceActionButton}
+              onPress={viewModel.onOpenHistoryForCurrent}
+            />
+            <AppButton
+              label="Correct Balance"
+              variant="secondary"
+              size="md"
+              style={styles.balanceActionButton}
+              onPress={viewModel.onOpenAdjustmentForCurrent}
+              disabled={!viewModel.canManage}
+            />
+          </View>
+        ) : null}
+      </DefaultSection>
 
-      {!isOpeningBalanceEditable ? (
-        <View style={styles.balanceActionRow}>
-          <AppButton
-            label="View History"
-            variant="secondary"
-            size="md"
-            style={styles.balanceActionButton}
-            onPress={viewModel.onOpenHistoryForCurrent}
-          />
-          <AppButton
-            label="Correct Balance"
-            variant="secondary"
-            size="md"
-            style={styles.balanceActionButton}
-            onPress={viewModel.onOpenAdjustmentForCurrent}
-            disabled={!viewModel.canManage}
-          />
-        </View>
-      ) : null}
-
-      <LabeledTextInput
-        label="Description"
-        value={viewModel.form.description}
-        onChangeText={(value) => viewModel.onFormChange("description", value)}
-        placeholder="Description"
-        multiline={true}
-        numberOfLines={4}
-      />
+      <MoreDetailsSection
+        title="More Details"
+        subtitle="Optional description."
+        defaultExpanded={shouldExpandMoreDetails}
+      >
+        <LabeledTextInput
+          label="Description"
+          value={viewModel.form.description}
+          onChangeText={(value) => viewModel.onFormChange("description", value)}
+          placeholder="Description"
+          multiline={true}
+          numberOfLines={4}
+        />
+      </MoreDetailsSection>
 
       {viewModel.errorMessage ? (
         <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
@@ -155,7 +167,7 @@ export function MoneyAccountEditorModal({
 const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
   StyleSheet.create({
     content: {
-      gap: theme.scaleSpace(spacing.sm),
+      gap: theme.scaleSpace(spacing.md),
       paddingBottom: theme.scaleSpace(spacing.xl),
     },
     errorText: {

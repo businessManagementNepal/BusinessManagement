@@ -1,11 +1,15 @@
-import { BudgetViewModel } from "@/feature/budget/viewModel/budget.viewModel";
 import { BudgetMonthPickerField } from "@/feature/budget/ui/components/BudgetMonthPickerField";
+import { BudgetViewModel } from "@/feature/budget/viewModel/budget.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
-import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
+import {
+  DefaultSection,
+  MoreDetailsSection,
+} from "@/shared/components/reusable/Form/FormSections";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
+import { StickyActionFooter } from "@/shared/components/reusable/Form/StickyActionFooter";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
@@ -21,6 +25,7 @@ export function BudgetEditorModal({
 }: BudgetEditorModalProps) {
   const styles = useThemedStyles(createStyles);
   const { editorState } = viewModel;
+  const shouldExpandMoreDetails = editorState.note.trim().length > 0;
 
   const categoryOptions = useMemo<DropdownOption[]>(
     () =>
@@ -44,7 +49,7 @@ export function BudgetEditorModal({
       sheetStyle={styles.sheet}
       presentation="bottom-sheet"
       footer={
-        <FormModalActionFooter style={styles.footerActions}>
+        <StickyActionFooter style={styles.footerActions}>
           <AppButton
             label="Cancel"
             variant="secondary"
@@ -65,91 +70,102 @@ export function BudgetEditorModal({
               editorState.isSaving || viewModel.quickCategoryState.isSaving
             }
           />
-        </FormModalActionFooter>
+        </StickyActionFooter>
       }
     >
-      <BudgetMonthPickerField
-        label="Budget Month *"
-        value={editorState.budgetMonth}
-        onChange={(value) =>
-          viewModel.onEditorFieldChange("budgetMonth", value)
-        }
-        disabled={editorState.isSaving}
-      />
-
-      <LabeledDropdownField
-        label="Category"
-        value={editorState.categoryRemoteId}
-        options={categoryOptions}
-        onChange={(value) =>
-          viewModel.onEditorFieldChange("categoryRemoteId", String(value))
-        }
-        placeholder={
-          categoryOptions.length > 0
-            ? "Choose category"
-            : "Add an expense category below first"
-        }
-        modalTitle="Select budget category"
-        disabled={
-          editorState.isSaving ||
-          viewModel.quickCategoryState.isSaving ||
-          categoryOptions.length === 0
-        }
-      />
-
-      <View style={styles.quickCategoryCard}>
-        <Text style={styles.quickCategoryTitle}>Add Expense Category</Text>
-        <Text style={styles.quickCategoryHelper}>
-          Create a category here when the budget needs a new spending bucket.
-        </Text>
-        <LabeledTextInput
-          label="Category Name"
-          value={viewModel.quickCategoryState.name}
-          onChangeText={viewModel.onQuickCategoryNameChange}
-          placeholder="Example: Groceries"
-          editable={
-            !editorState.isSaving && !viewModel.quickCategoryState.isSaving
+      <DefaultSection
+        title="Budget Details"
+        subtitle="Month, category, and amount stay visible by default."
+      >
+        <BudgetMonthPickerField
+          label="Budget Month *"
+          value={editorState.budgetMonth}
+          onChange={(value) =>
+            viewModel.onEditorFieldChange("budgetMonth", value)
           }
-          errorText={viewModel.quickCategoryState.errorMessage ?? undefined}
+          disabled={editorState.isSaving}
         />
-        <AppButton
-          label={
-            viewModel.quickCategoryState.isSaving
-              ? "Adding..."
-              : "Add Category"
+
+        <LabeledDropdownField
+          label="Category"
+          value={editorState.categoryRemoteId}
+          options={categoryOptions}
+          onChange={(value) =>
+            viewModel.onEditorFieldChange("categoryRemoteId", String(value))
           }
-          variant="secondary"
-          size="md"
-          style={styles.quickCategoryButton}
-          onPress={() => void viewModel.onCreateQuickExpenseCategory()}
+          placeholder={
+            categoryOptions.length > 0
+              ? "Choose category"
+              : "Add an expense category below first"
+          }
+          modalTitle="Select budget category"
           disabled={
             editorState.isSaving ||
             viewModel.quickCategoryState.isSaving ||
-            viewModel.quickCategoryState.name.trim().length === 0
+            categoryOptions.length === 0
           }
         />
-      </View>
 
-      <LabeledTextInput
-        label="Planned Amount *"
-        value={editorState.plannedAmount}
-        onChangeText={(value) =>
-          viewModel.onEditorFieldChange("plannedAmount", value)
-        }
-        placeholder="0"
-        keyboardType="decimal-pad"
-        editable={!editorState.isSaving}
-      />
+        <View style={styles.quickCategoryCard}>
+          <Text style={styles.quickCategoryTitle}>Add Expense Category</Text>
+          <Text style={styles.quickCategoryHelper}>
+            Create a category here when the budget needs a new spending bucket.
+          </Text>
+          <LabeledTextInput
+            label="Category Name"
+            value={viewModel.quickCategoryState.name}
+            onChangeText={viewModel.onQuickCategoryNameChange}
+            placeholder="Example: Groceries"
+            editable={
+              !editorState.isSaving && !viewModel.quickCategoryState.isSaving
+            }
+            errorText={viewModel.quickCategoryState.errorMessage ?? undefined}
+          />
+          <AppButton
+            label={
+              viewModel.quickCategoryState.isSaving
+                ? "Adding..."
+                : "Add Category"
+            }
+            variant="secondary"
+            size="md"
+            style={styles.quickCategoryButton}
+            onPress={() => void viewModel.onCreateQuickExpenseCategory()}
+            disabled={
+              editorState.isSaving ||
+              viewModel.quickCategoryState.isSaving ||
+              viewModel.quickCategoryState.name.trim().length === 0
+            }
+          />
+        </View>
 
-      <LabeledTextInput
-        label="Note"
-        value={editorState.note}
-        onChangeText={(value) => viewModel.onEditorFieldChange("note", value)}
-        placeholder="Optional note"
-        multiline={true}
-        numberOfLines={4}
-        editable={!editorState.isSaving}
-      />
+        <LabeledTextInput
+          label="Planned Amount *"
+          value={editorState.plannedAmount}
+          onChangeText={(value) =>
+            viewModel.onEditorFieldChange("plannedAmount", value)
+          }
+          placeholder="0"
+          keyboardType="decimal-pad"
+          editable={!editorState.isSaving}
+        />
+      </DefaultSection>
+
+      <MoreDetailsSection
+        title="More Details"
+        subtitle="Optional budget note."
+        defaultExpanded={shouldExpandMoreDetails}
+      >
+        <LabeledTextInput
+          label="Note"
+          value={editorState.note}
+          onChangeText={(value) => viewModel.onEditorFieldChange("note", value)}
+          placeholder="Optional note"
+          multiline={true}
+          numberOfLines={4}
+          editable={!editorState.isSaving}
+        />
+      </MoreDetailsSection>
 
       {editorState.errorMessage ? (
         <Text style={styles.errorText}>{editorState.errorMessage}</Text>
@@ -165,7 +181,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       width: "100%",
     },
     content: {
-      gap: theme.scaleSpace(spacing.sm),
+      gap: theme.scaleSpace(spacing.md),
       paddingBottom: theme.scaleSpace(spacing.xl),
     },
     quickCategoryCard: {

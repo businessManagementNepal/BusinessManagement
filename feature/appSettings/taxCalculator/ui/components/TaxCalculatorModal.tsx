@@ -5,6 +5,10 @@ import {
 } from "@/feature/appSettings/taxCalculator/types/taxCalculator.types";
 import { TaxCalculationSummaryState } from "@/feature/appSettings/taxCalculator/viewModel/taxCalculator.viewModel";
 import { Card } from "@/shared/components/reusable/Cards/Card";
+import {
+  DefaultSection,
+  SummarySection,
+} from "@/shared/components/reusable/Form/FormSections";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
@@ -56,72 +60,82 @@ export function TaxCalculatorModal({
       presentation="bottom-sheet"
       contentContainerStyle={styles.content}
     >
-      <View style={styles.segmentWrap}>
-        {TAX_CALCULATION_MODE_OPTIONS.map((option) => {
-          const isSelected = option.value === selectedMode;
+      <DefaultSection
+        title="Calculation Details"
+        subtitle="Mode, amount, and preset stay visible together."
+      >
+        <View style={styles.segmentWrap}>
+          {TAX_CALCULATION_MODE_OPTIONS.map((option) => {
+            const isSelected = option.value === selectedMode;
 
-          return (
-            <Pressable
-              key={option.value}
-              style={[styles.segmentButton, isSelected ? styles.segmentButtonActive : null]}
-              onPress={() => onModeChange(option.value)}
-              accessibilityRole="button"
-            >
-              <Text
-                style={[
-                  styles.segmentLabel,
-                  isSelected ? styles.segmentLabelActive : null,
-                ]}
+            return (
+              <Pressable
+                key={option.value}
+                style={[styles.segmentButton, isSelected ? styles.segmentButtonActive : null]}
+                onPress={() => onModeChange(option.value)}
+                accessibilityRole="button"
               >
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+                <Text
+                  style={[
+                    styles.segmentLabel,
+                    isSelected ? styles.segmentLabelActive : null,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
-      <LabeledTextInput
-        label="Amount"
-        value={amountInput}
-        onChangeText={onAmountChange}
-        keyboardType="decimal-pad"
-        placeholder={amountInputPlaceholder}
-      />
+        <LabeledTextInput
+          label="Amount"
+          value={amountInput}
+          onChangeText={onAmountChange}
+          keyboardType="decimal-pad"
+          placeholder={amountInputPlaceholder}
+        />
 
-      <LabeledDropdownField
-        label="Tax Preset"
-        value={selectedPresetCode}
-        options={[...presetOptions]}
-        onChange={onPresetChange}
-        placeholder="Select tax preset"
-        modalTitle="Select tax preset"
-      />
+        <LabeledDropdownField
+          label="Tax Preset"
+          value={selectedPresetCode}
+          options={[...presetOptions]}
+          onChange={onPresetChange}
+          placeholder="Select tax preset"
+          modalTitle="Select tax preset"
+        />
+      </DefaultSection>
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
       {calculationSummary ? (
-        <Card style={styles.resultCard}>
-          <View style={styles.resultHeaderRow}>
-            <View style={styles.resultBadge}>
-              <Calculator size={14} color={theme.colors.primary} />
-              <Text style={styles.resultBadgeText}>{calculationSummary.presetLabel}</Text>
+        <SummarySection
+          title="Summary"
+          subtitle="Read-only tax breakdown."
+        >
+          <Card style={styles.resultCard}>
+            <View style={styles.resultHeaderRow}>
+              <View style={styles.resultBadge}>
+                <Calculator size={14} color={theme.colors.primary} />
+                <Text style={styles.resultBadgeText}>{calculationSummary.presetLabel}</Text>
+              </View>
+              <Text style={styles.resultModeText}>{calculationSummary.modeLabel}</Text>
             </View>
-            <Text style={styles.resultModeText}>{calculationSummary.modeLabel}</Text>
-          </View>
 
-          <View style={styles.resultRow}>
-            <Text style={styles.resultLabel}>Subtotal</Text>
-            <Text style={styles.resultValue}>{calculationSummary.subtotalLabel}</Text>
-          </View>
-          <View style={styles.resultRow}>
-            <Text style={styles.resultLabel}>Tax Amount</Text>
-            <Text style={styles.resultValue}>{calculationSummary.taxAmountLabel}</Text>
-          </View>
-          <View style={[styles.resultRow, styles.resultRowTotal]}>
-            <Text style={styles.resultTotalLabel}>Total Amount</Text>
-            <Text style={styles.resultTotalValue}>{calculationSummary.totalAmountLabel}</Text>
-          </View>
-        </Card>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultLabel}>Subtotal</Text>
+              <Text style={styles.resultValue}>{calculationSummary.subtotalLabel}</Text>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultLabel}>Tax Amount</Text>
+              <Text style={styles.resultValue}>{calculationSummary.taxAmountLabel}</Text>
+            </View>
+            <View style={[styles.resultRow, styles.resultRowTotal]}>
+              <Text style={styles.resultTotalLabel}>Total Amount</Text>
+              <Text style={styles.resultTotalValue}>{calculationSummary.totalAmountLabel}</Text>
+            </View>
+          </Card>
+        </SummarySection>
       ) : null}
     </FormSheetModal>
   );
@@ -130,7 +144,7 @@ export function TaxCalculatorModal({
 const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
   StyleSheet.create({
     content: {
-      gap: theme.scaleSpace(spacing.sm),
+      gap: theme.scaleSpace(spacing.md),
       paddingBottom: theme.scaleSpace(spacing.xl),
     },
     segmentWrap: {
