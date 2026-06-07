@@ -1,32 +1,23 @@
-﻿import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow";
+import { CenteredDialogFormModal } from "@/shared/components/reusable/Modals/CenteredDialogFormModal";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import {
-    AlertTriangle,
-    ArrowLeft,
-    Clock,
-    FileText,
-    RefreshCcw,
-    ShieldAlert,
-    X,
+  AlertTriangle,
+  ArrowLeft,
+  Clock,
+  FileText,
+  RefreshCcw,
+  ShieldAlert,
+  X,
 } from "lucide-react-native";
 import React from "react";
-import {
-    ActivityIndicator,
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import type {
-    PosSaleHistoryItem,
-    PosSaleReconciliation,
+  PosSaleHistoryItem,
+  PosSaleReconciliation,
 } from "../types/posSaleHistory.entity.types";
 import { PosArtifactReconciliationStatus } from "../types/posSaleHistory.entity.types";
 import {
@@ -194,7 +185,8 @@ export function PosSaleHistory({
         </View>
 
         <Text style={styles.recoverySubtitle}>
-          Inspect linked inventory and accounting artifacts, retry pending POS sales, or clean up failed/partial sales safely.
+          Inspect linked inventory and accounting artifacts, retry pending POS
+          sales, or clean up failed/partial sales safely.
         </Text>
 
         {recoveryMessage ? (
@@ -276,7 +268,9 @@ export function PosSaleHistory({
             label={isReconciling ? "Checking..." : "Refresh Status"}
             variant="secondary"
             style={styles.recoveryActionButton}
-            leadingIcon={<RefreshCcw size={16} color={colors.mutedForeground} />}
+            leadingIcon={
+              <RefreshCcw size={16} color={colors.mutedForeground} />
+            }
             onPress={() => {
               void onRefreshReconciliation();
             }}
@@ -286,7 +280,9 @@ export function PosSaleHistory({
             label={isRetrying ? "Retrying..." : "Retry Posting"}
             variant="secondary"
             style={styles.recoveryActionButton}
-            leadingIcon={<RefreshCcw size={16} color={colors.mutedForeground} />}
+            leadingIcon={
+              <RefreshCcw size={16} color={colors.mutedForeground} />
+            }
             onPress={() => {
               void onRetryAbnormalSale();
             }}
@@ -311,146 +307,141 @@ export function PosSaleHistory({
       </View>
     ) : null;
 
+  const modalCloseHandler =
+    activeModal === "detail" ? onCloseDetail : onCloseHistory;
+
   return (
-    <Modal
+    <CenteredDialogFormModal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={activeModal === "detail" ? onCloseDetail : onCloseHistory}
-    >
-      <KeyboardAvoidingView
-        style={styles.keyboardSafeArea}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <View style={styles.overlay}>
-          <View style={styles.modalCard}>
-            {activeModal === "detail" && selectedReceipt ? (
-              <>
-                <View style={styles.headerRow}>
-                  <Pressable
-                    style={styles.backButton}
-                    onPress={onCloseDetail}
-                    accessibilityRole="button"
-                    accessibilityLabel="Back to sale history"
-                  >
-                    <ArrowLeft size={20} color={colors.mutedForeground} />
-                  </Pressable>
-                  <Text style={styles.title}>Receipt Detail</Text>
-                  <Pressable
-                    style={styles.closeButton}
-                    onPress={onCloseHistory}
-                    accessibilityRole="button"
-                    accessibilityLabel="Close sale history"
-                  >
-                    <X size={20} color={colors.mutedForeground} />
-                  </Pressable>
-                </View>
-
-                <View style={styles.detailPanel}>
-                  <PosReceiptDetail
-                    receipt={selectedReceipt.document}
-                    currencyCode={currencyCode}
-                    countryCode={countryCode}
-                    onPrintReceipt={() => {
-                      void onPrintReceipt(selectedReceipt);
-                    }}
-                    onShareReceipt={() => {
-                      void onShareReceipt(selectedReceipt);
-                    }}
-                    extraContent={recoveryPanel}
-                  />
-                </View>
-              </>
-            ) : (
-              <>
-                <View style={styles.headerRow}>
-                  <Text style={styles.title}>Sale History</Text>
-                  <Pressable
-                    style={styles.closeButton}
-                    onPress={onCloseHistory}
-                    accessibilityRole="button"
-                    accessibilityLabel="Close sale history"
-                  >
-                    <X size={20} color={colors.mutedForeground} />
-                  </Pressable>
-                </View>
-
-                <SearchInputRow
-                  value={searchTerm}
-                  onChangeText={onSearchChange}
-                  placeholder="Search by receipt or customer..."
-                  containerStyle={styles.searchInput}
-                />
-
-                {errorMessage ? (
-                  <View style={styles.errorBanner}>
-                    <Text style={styles.errorText}>{errorMessage}</Text>
-                  </View>
-                ) : null}
-
-                {isLoading ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator color={colors.primary} />
-                  </View>
-                ) : (
-                  <FlatList
-                    data={receipts}
-                    renderItem={renderReceiptItem}
-                    keyExtractor={(item) => item.sale.remoteId}
-                    style={styles.list}
-                    contentContainerStyle={styles.listContent}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                    ListEmptyComponent={
-                      <View style={styles.emptyContainer}>
-                        <FileText size={48} color={colors.mutedForeground} />
-                        <Text style={styles.emptyTitle}>
-                          {searchTerm.trim() ? "No receipts found" : "No sales yet"}
-                        </Text>
-                        <Text style={styles.emptySubtitle}>
-                          {searchTerm.trim()
-                            ? "Try a different receipt number or customer name."
-                            : "Completed sales will appear here."}
-                        </Text>
-                      </View>
-                    }
-                  />
-                )}
-              </>
-            )}
+      onClose={modalCloseHandler}
+      closeOnBackdropPress={false}
+      header={
+        activeModal === "detail" && selectedReceipt ? (
+          <View style={styles.headerRow}>
+            <Pressable
+              style={styles.backButton}
+              onPress={onCloseDetail}
+              accessibilityRole="button"
+              accessibilityLabel="Back to sale history"
+            >
+              <ArrowLeft size={20} color={colors.mutedForeground} />
+            </Pressable>
+            <Text style={styles.title}>Receipt Detail</Text>
+            <Pressable
+              style={styles.closeButton}
+              onPress={onCloseHistory}
+              accessibilityRole="button"
+              accessibilityLabel="Close sale history"
+            >
+              <X size={20} color={colors.mutedForeground} />
+            </Pressable>
           </View>
+        ) : (
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>Sale History</Text>
+            <Pressable
+              style={styles.closeButton}
+              onPress={onCloseHistory}
+              accessibilityRole="button"
+              accessibilityLabel="Close sale history"
+            >
+              <X size={20} color={colors.mutedForeground} />
+            </Pressable>
+          </View>
+        )
+      }
+      headerContainerStyle={styles.headerContainer}
+      bodyStyle={styles.modalBody}
+      contentContainerStyle={styles.bodyContent}
+      cardStyle={styles.modalCard}
+      scrollEnabled={false}
+      minHeight={420}
+    >
+      {activeModal === "detail" && selectedReceipt ? (
+        <View style={styles.detailPanel}>
+          <PosReceiptDetail
+            receipt={selectedReceipt.document}
+            currencyCode={currencyCode}
+            countryCode={countryCode}
+            onPrintReceipt={() => {
+              void onPrintReceipt(selectedReceipt);
+            }}
+            onShareReceipt={() => {
+              void onShareReceipt(selectedReceipt);
+            }}
+            extraContent={recoveryPanel}
+          />
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      ) : (
+        <View style={styles.historyContent}>
+          <SearchInputRow
+            value={searchTerm}
+            onChangeText={onSearchChange}
+            placeholder="Search by receipt or customer..."
+            containerStyle={styles.searchInput}
+          />
+
+          {errorMessage ? (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
+
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : (
+            <FlatList
+              data={receipts}
+              renderItem={renderReceiptItem}
+              keyExtractor={(item) => item.sale.remoteId}
+              style={styles.list}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <FileText size={48} color={colors.mutedForeground} />
+                  <Text style={styles.emptyTitle}>
+                    {searchTerm.trim() ? "No receipts found" : "No sales yet"}
+                  </Text>
+                  <Text style={styles.emptySubtitle}>
+                    {searchTerm.trim()
+                      ? "Try a different receipt number or customer name."
+                      : "Completed sales will appear here."}
+                  </Text>
+                </View>
+              }
+            />
+          )}
+        </View>
+      )}
+    </CenteredDialogFormModal>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardSafeArea: {
-    flex: 1,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: "center",
-    alignItems: "center",
+  headerContainer: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   modalCard: {
-    width: "100%",
     maxWidth: 720,
-    maxHeight: "82%",
     minHeight: 0,
-    backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    gap: spacing.md,
+  },
+  modalBody: {
+    flex: 1,
+    minHeight: 0,
+  },
+  bodyContent: {
+    flex: 1,
+    minHeight: 0,
   },
   list: {
-    flexGrow: 0,
+    flex: 1,
+    minHeight: 0,
   },
   listContent: {
     paddingBottom: spacing.sm,
@@ -459,6 +450,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  historyContent: {
+    flex: 1,
+    minHeight: 0,
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
   title: {
     color: colors.cardForeground,
@@ -680,6 +678,8 @@ const styles = StyleSheet.create({
   detailPanel: {
     flex: 1,
     minHeight: 0,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
   recoveryActionsRow: {
     flexDirection: "row",

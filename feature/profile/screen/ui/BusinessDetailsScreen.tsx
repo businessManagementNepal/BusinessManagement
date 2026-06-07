@@ -3,8 +3,9 @@ import { ProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profi
 import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
 import { PrimaryHeader } from "@/shared/components/reusable/ScreenLayouts/PrimaryHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { resolveActiveAccountType } from "./profileScreen.util";
@@ -18,6 +19,9 @@ type BusinessDetailsScreenProps = {
 export function BusinessDetailsScreen({
   viewModel,
 }: BusinessDetailsScreenProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   useToastMessage({
     message: viewModel.successMessage,
     type: "success",
@@ -48,10 +52,11 @@ export function BusinessDetailsScreen({
       }
       contentContainerStyle={styles.scrollContent}
       baseBottomPadding={spacing.xxl}
+      keyboardSafe={true}
     >
       {viewModel.isLoading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={theme.colors.primary} />
           <Text style={styles.loadingText}>Loading business details...</Text>
         </View>
       ) : null}
@@ -100,26 +105,27 @@ export function BusinessDetailsScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    gap: spacing.sm,
-  },
-  loadingWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  loadingText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontFamily: "InterMedium",
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 13,
-    fontFamily: "InterSemiBold",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    scrollContent: {
+      paddingHorizontal: theme.scaleSpace(spacing.lg),
+      paddingTop: theme.scaleSpace(spacing.lg),
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    loadingWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+      paddingVertical: theme.scaleSpace(spacing.sm),
+    },
+    loadingText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterMedium",
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterSemiBold",
+    },
+  });

@@ -7,10 +7,11 @@ import {
   type DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { KeyboardSafeEditableScreen } from "@/shared/components/reusable/ScreenLayouts/KeyboardSafeEditableScreen";
 import { TextField } from "@/shared/components/reusable/Form/TextField";
-import { KeyboardSafeScrollView } from "@/shared/components/reusable/ScreenLayouts/KeyboardSafeScrollView";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { isSupportedLanguageCode, useTranslation } from "@/shared/i18n/resources";
 import { LoginFormInput } from "@/feature/auth/login/types/login.types";
 import {
@@ -75,6 +76,8 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
     submit: onSubmitSignUp,
   } = signUp;
 
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const isLoginMode = mode.isLoginMode;
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -253,11 +256,18 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
             {
               paddingTop:
                 insets.top +
-                (isKeyboardVisible ? spacing.md : spacing.xxl + spacing.sm),
+                (isKeyboardVisible
+                  ? theme.scaleSpace(spacing.md)
+                  : theme.scaleSpace(spacing.xxl + spacing.sm)),
             },
           ]}
         >
-          <View style={[styles.languageDropdownWrap, { top: insets.top + spacing.xs }]}>
+          <View
+            style={[
+              styles.languageDropdownWrap,
+              { top: insets.top + theme.scaleSpace(spacing.xs) },
+            ]}
+          >
             <Dropdown
               value={selectedLanguageCode}
               options={dropdownOptions}
@@ -288,9 +298,9 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
 
         <View style={styles.divider} />
 
-        <KeyboardSafeScrollView
+        <KeyboardSafeEditableScreen
           contentContainerStyle={styles.scrollContent}
-          bottomInset={insets.bottom}
+          bottomInsetPadding={theme.scaleSpace(spacing.xxl) + insets.bottom}
         >
           <View style={styles.content}>
             <View style={styles.tabContainer}>
@@ -419,7 +429,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                   control={signUpControl}
                   name="fullName"
                   placeholder={t("auth.entry.fields.fullName")}
-                  leftIcon={<User size={18} color={colors.mutedForeground} />}
+                  leftIcon={<User size={18} color={theme.colors.mutedForeground} />}
                   autoCapitalize="words"
                   autoComplete="off"
                   importantForAutofill="no"
@@ -448,7 +458,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                       control={signUpControl}
                       name="phoneNumber"
                       placeholder={t("auth.entry.fields.phoneNumber")}
-                      leftIcon={<Phone size={18} color={colors.mutedForeground} />}
+                      leftIcon={<Phone size={18} color={theme.colors.mutedForeground} />}
                       keyboardType="number-pad"
                       autoComplete="off"
                       importantForAutofill="no"
@@ -466,7 +476,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                   control={signUpControl}
                   name="password"
                   placeholder={t("auth.entry.fields.password")}
-                  leftIcon={<Lock size={18} color={colors.mutedForeground} />}
+                  leftIcon={<Lock size={18} color={theme.colors.mutedForeground} />}
                   secureTextEntry={!isSignUpPasswordVisible}
                   keyboardType="default"
                   autoComplete="off"
@@ -482,9 +492,9 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                       accessibilityLabel="Toggle sign up password visibility"
                     >
                       {isSignUpPasswordVisible ? (
-                        <EyeOff size={18} color={colors.mutedForeground} />
+                        <EyeOff size={18} color={theme.colors.mutedForeground} />
                       ) : (
-                        <Eye size={18} color={colors.mutedForeground} />
+                        <Eye size={18} color={theme.colors.mutedForeground} />
                       )}
                     </Pressable>
                   }
@@ -514,7 +524,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                       control={loginControl}
                       name="phoneNumber"
                       placeholder={t("auth.entry.fields.phoneNumber")}
-                      leftIcon={<Phone size={18} color={colors.mutedForeground} />}
+                      leftIcon={<Phone size={18} color={theme.colors.mutedForeground} />}
                       keyboardType="number-pad"
                       autoComplete="off"
                       importantForAutofill="no"
@@ -532,7 +542,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                   control={loginControl}
                   name="password"
                   placeholder={t("auth.entry.fields.password")}
-                  leftIcon={<Lock size={18} color={colors.mutedForeground} />}
+                  leftIcon={<Lock size={18} color={theme.colors.mutedForeground} />}
                   secureTextEntry={!isPasswordVisible}
                   keyboardType="default"
                   autoComplete={isAndroid ? "off" : "password"}
@@ -548,9 +558,9 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                       accessibilityLabel="Toggle password visibility"
                     >
                       {isPasswordVisible ? (
-                        <EyeOff size={18} color={colors.mutedForeground} />
+                        <EyeOff size={18} color={theme.colors.mutedForeground} />
                       ) : (
-                        <Eye size={18} color={colors.mutedForeground} />
+                        <Eye size={18} color={theme.colors.mutedForeground} />
                       )}
                     </Pressable>
                   }
@@ -600,7 +610,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
               </Pressable>
             </View>
           </View>
-        </KeyboardSafeScrollView>
+        </KeyboardSafeEditableScreen>
       </View>
     </SafeAreaView>
   );
@@ -608,216 +618,217 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
 
 export const AuthEntryScreen = React.memo(AuthEntryScreenComponent);
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  languageDropdownWrap: {
-    position: "absolute",
-    right: spacing.md,
-    zIndex: 2,
-    minWidth: 120,
-  },
-  header: {
-    backgroundColor: colors.header,
-    alignItems: "center",
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxl + spacing.sm,
-    position: "relative",
-  },
-  headerCompact: {
-    paddingBottom: spacing.md,
-  },
-  logoBox: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.xl,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.md,
-  },
-  logoBoxCompact: {
-    width: 44,
-    height: 44,
-    marginBottom: spacing.xs,
-  },
-  logoText: {
-    color: colors.headerForeground,
-    fontSize: 24,
-    fontFamily: "InterBold",
-    lineHeight: 28,
-  },
-  logoTextCompact: {
-    fontSize: 20,
-    lineHeight: 24,
-  },
-  brand: {
-    color: colors.headerForeground,
-    fontSize: 24,
-    fontFamily: "InterBold",
-    lineHeight: 28,
-  },
-  brandCompact: {
-    fontSize: 20,
-    lineHeight: 24,
-  },
-  brandSub: {
-    color: "rgba(255,255,255,0.8)",
-    marginTop: 4,
-    fontSize: 14,
-    fontFamily: "InterMedium",
-    textAlign: "center",
-  },
-  divider: {
-    height: 4,
-    backgroundColor: colors.destructive,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  content: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
-  },
-  tabContainer: {
-    flexDirection: "row",
-    backgroundColor: colors.muted,
-    borderRadius: radius.lg,
-    padding: 4,
-    marginBottom: spacing.xl,
-  },
-  tabButton: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  tabButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  tabLabel: {
-    color: colors.mutedForeground,
-    fontSize: 14,
-    fontFamily: "InterSemiBold",
-  },
-  tabLabelActive: {
-    color: colors.primaryForeground,
-  },
-  form: {
-    gap: spacing.md,
-  },
-  inputLabel: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontFamily: "InterSemiBold",
-  },
-  profileTypeRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  profileTypeButton: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.secondary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  profileTypeButtonActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.accent,
-  },
-  profileTypeButtonText: {
-    color: colors.foreground,
-    fontSize: 14,
-    fontFamily: "InterSemiBold",
-  },
-  profileTypeButtonTextActive: {
-    color: colors.primary,
-    fontFamily: "InterBold",
-  },
-  businessTypeWrap: {
-    gap: spacing.xs,
-  },
-  phoneInputRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-  },
-  phoneCountryDropdownWrap: {
-    width: 152,
-  },
-  phoneCountryDropdownTrigger: {
-    minHeight: 54,
-    borderRadius: radius.lg,
-  },
-  phoneCountryDropdownText: {
-    fontSize: 13,
-    fontFamily: "InterSemiBold",
-    color: colors.cardForeground,
-  },
-  phoneNumberInputWrap: {
-    flex: 1,
-  },
-  forgotWrapper: {
-    alignSelf: "flex-end",
-  },
-  forgot: {
-    color: colors.primary,
-    textAlign: "right",
-    fontSize: 14,
-    fontFamily: "InterMedium",
-  },
-  submitError: {
-    color: colors.destructive,
-    fontSize: 14,
-    fontFamily: "InterSemiBold",
-  },
-  primaryButton: {
-    marginTop: spacing.md,
-  },
-  separatorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginTop: spacing.xl,
-    marginBottom: spacing.xl,
-  },
-  separatorLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  separatorLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  footerRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  footerText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  footerLink: {
-    color: colors.primary,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    languageDropdownWrap: {
+      position: "absolute",
+      right: theme.scaleSpace(spacing.md),
+      zIndex: 2,
+      minWidth: 120,
+    },
+    header: {
+      backgroundColor: theme.colors.header,
+      alignItems: "center",
+      paddingHorizontal: theme.scaleSpace(spacing.xl),
+      paddingBottom: theme.scaleSpace(spacing.xxl + spacing.sm),
+      position: "relative",
+    },
+    headerCompact: {
+      paddingBottom: theme.scaleSpace(spacing.md),
+    },
+    logoBox: {
+      width: 64,
+      height: 64,
+      borderRadius: radius.xl,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: theme.scaleSpace(spacing.md),
+    },
+    logoBoxCompact: {
+      width: 44,
+      height: 44,
+      marginBottom: theme.scaleSpace(spacing.xs),
+    },
+    logoText: {
+      color: theme.colors.headerForeground,
+      fontSize: theme.scaleText(24),
+      fontFamily: "InterBold",
+      lineHeight: theme.scaleLineHeight(28),
+    },
+    logoTextCompact: {
+      fontSize: theme.scaleText(20),
+      lineHeight: theme.scaleLineHeight(24),
+    },
+    brand: {
+      color: theme.colors.headerForeground,
+      fontSize: theme.scaleText(24),
+      fontFamily: "InterBold",
+      lineHeight: theme.scaleLineHeight(28),
+    },
+    brandCompact: {
+      fontSize: theme.scaleText(20),
+      lineHeight: theme.scaleLineHeight(24),
+    },
+    brandSub: {
+      color: "rgba(255,255,255,0.8)",
+      marginTop: 4,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterMedium",
+      textAlign: "center",
+    },
+    divider: {
+      height: 4,
+      backgroundColor: theme.colors.destructive,
+    },
+    scrollContent: {
+      flexGrow: 1,
+    },
+    content: {
+      paddingHorizontal: theme.scaleSpace(spacing.lg),
+      paddingTop: theme.scaleSpace(spacing.xl),
+      paddingBottom: theme.scaleSpace(spacing.md),
+    },
+    tabContainer: {
+      flexDirection: "row",
+      backgroundColor: theme.colors.muted,
+      borderRadius: radius.lg,
+      padding: 4,
+      marginBottom: theme.scaleSpace(spacing.xl),
+    },
+    tabButton: {
+      flex: 1,
+      minHeight: 44,
+      borderRadius: radius.md,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    tabButtonActive: {
+      backgroundColor: theme.colors.primary,
+    },
+    tabLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterSemiBold",
+    },
+    tabLabelActive: {
+      color: theme.colors.primaryForeground,
+    },
+    form: {
+      gap: theme.scaleSpace(spacing.md),
+    },
+    inputLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterSemiBold",
+    },
+    profileTypeRow: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    profileTypeButton: {
+      flex: 1,
+      minHeight: 44,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.secondary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    profileTypeButtonActive: {
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.accent,
+    },
+    profileTypeButtonText: {
+      color: theme.colors.foreground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterSemiBold",
+    },
+    profileTypeButtonTextActive: {
+      color: theme.colors.primary,
+      fontFamily: "InterBold",
+    },
+    businessTypeWrap: {
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    phoneInputRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    phoneCountryDropdownWrap: {
+      width: 152,
+    },
+    phoneCountryDropdownTrigger: {
+      minHeight: 54,
+      borderRadius: radius.lg,
+    },
+    phoneCountryDropdownText: {
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterSemiBold",
+      color: theme.colors.cardForeground,
+    },
+    phoneNumberInputWrap: {
+      flex: 1,
+    },
+    forgotWrapper: {
+      alignSelf: "flex-end",
+    },
+    forgot: {
+      color: theme.colors.primary,
+      textAlign: "right",
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterMedium",
+    },
+    submitError: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterSemiBold",
+    },
+    primaryButton: {
+      marginTop: theme.scaleSpace(spacing.md),
+    },
+    separatorRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+      marginTop: theme.scaleSpace(spacing.xl),
+      marginBottom: theme.scaleSpace(spacing.xl),
+    },
+    separatorLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: theme.colors.border,
+    },
+    separatorLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterMedium",
+    },
+    footerRow: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    footerText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterMedium",
+    },
+    footerLink: {
+      color: theme.colors.primary,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterSemiBold",
+    },
+  });
 
 

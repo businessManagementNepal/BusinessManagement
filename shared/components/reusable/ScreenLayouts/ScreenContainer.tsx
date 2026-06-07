@@ -9,6 +9,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { useAppTheme } from "../../theme/AppThemeProvider";
+import { KeyboardSafeEditableScreen } from "./KeyboardSafeEditableScreen";
 
 interface ScreenContainerProps {
   children: React.ReactNode;
@@ -20,6 +21,7 @@ interface ScreenContainerProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
   scrollProps?: Omit<ScrollViewProps, "contentContainerStyle">;
   baseBottomPadding?: number;
+  keyboardSafe?: boolean;
 }
 
 export function ScreenContainer({
@@ -32,6 +34,7 @@ export function ScreenContainer({
   contentContainerStyle,
   scrollProps,
   baseBottomPadding = 110,
+  keyboardSafe = false,
 }: ScreenContainerProps) {
   const theme = useAppTheme();
   const styles = React.useMemo(
@@ -67,21 +70,35 @@ export function ScreenContainer({
           style={[styles.divider, { backgroundColor: resolvedDividerColor }]}
         />
       ) : null}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: theme.scaleSpace(baseBottomPadding) },
-          padded ? styles.padded : null,
-          contentContainerStyle,
-        ]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-        {...scrollProps}
-      >
-        {children}
-      </ScrollView>
+      {keyboardSafe ? (
+        <KeyboardSafeEditableScreen
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: theme.scaleSpace(baseBottomPadding) },
+            padded ? styles.padded : null,
+            contentContainerStyle,
+          ]}
+        >
+          {children}
+        </KeyboardSafeEditableScreen>
+      ) : (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: theme.scaleSpace(baseBottomPadding) },
+            padded ? styles.padded : null,
+            contentContainerStyle,
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          {...scrollProps}
+        >
+          {children}
+        </ScrollView>
+      )}
       {footer}
     </View>
   );

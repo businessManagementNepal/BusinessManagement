@@ -9,8 +9,9 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import {
   AD_MONTH_NAMES,
   BS_MONTH_NAMES,
@@ -124,6 +125,8 @@ export function DualCalendarDatePicker({
   editable = true,
   containerStyle,
 }: DualCalendarDatePickerProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [isPickerVisible, setIsPickerVisible] = useState(false);
   const [calendarMode, setCalendarMode] = useState<CalendarMode>("ad");
   const [visibleAdMonth, setVisibleAdMonth] = useState<CalendarDateParts>(
@@ -274,7 +277,7 @@ export function DualCalendarDatePicker({
         >
           {displayLabel}
         </Text>
-        <CalendarDays size={18} color={colors.mutedForeground} />
+        <CalendarDays size={18} color={theme.colors.mutedForeground} />
       </Pressable>
 
       {errorText ? (
@@ -306,7 +309,7 @@ export function DualCalendarDatePicker({
                 onPress={closePicker}
                 style={styles.iconButton}
               >
-                <X size={18} color={colors.mutedForeground} />
+                <X size={18} color={theme.colors.mutedForeground} />
               </Pressable>
             </View>
 
@@ -349,7 +352,7 @@ export function DualCalendarDatePicker({
                 onPress={goToPreviousMonth}
                 style={styles.iconButton}
               >
-                <ChevronLeft size={18} color={colors.cardForeground} />
+                <ChevronLeft size={18} color={theme.colors.cardForeground} />
               </Pressable>
 
               <Text style={styles.monthTitle}>{monthTitle}</Text>
@@ -360,7 +363,7 @@ export function DualCalendarDatePicker({
                 onPress={goToNextMonth}
                 style={styles.iconButton}
               >
-                <ChevronRight size={18} color={colors.cardForeground} />
+                <ChevronRight size={18} color={theme.colors.cardForeground} />
               </Pressable>
 
               <Pressable
@@ -444,229 +447,230 @@ export function DualCalendarDatePicker({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    gap: 6,
-  },
-  label: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
-  },
-  input: {
-    minHeight: 50,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.background,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  inputDisabled: {
-    opacity: 0.72,
-  },
-  inputError: {
-    borderColor: colors.destructive,
-  },
-  inputText: {
-    flex: 1,
-    color: colors.cardForeground,
-    fontSize: 14,
-    lineHeight: 18,
-    fontFamily: "InterMedium",
-  },
-  placeholderText: {
-    color: colors.mutedForeground,
-  },
-  disabledText: {
-    color: colors.mutedForeground,
-  },
-  helperText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterMedium",
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterSemiBold",
-  },
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: colors.overlay,
-    paddingHorizontal: spacing.lg,
-  },
-  modalDismissArea: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  modalCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.xl,
-    backgroundColor: colors.card,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  modalTitleWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  modalTitle: {
-    color: colors.cardForeground,
-    fontSize: 18,
-    fontFamily: "InterBold",
-  },
-  modalSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterMedium",
-  },
-  iconButton: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modeTabs: {
-    flexDirection: "row",
-    gap: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.pill,
-    backgroundColor: colors.secondary,
-    padding: 4,
-  },
-  modeTab: {
-    flex: 1,
-    minHeight: 36,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.sm,
-  },
-  modeTabActive: {
-    backgroundColor: colors.primary,
-  },
-  modeTabText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterBold",
-  },
-  modeTabTextActive: {
-    color: colors.primaryForeground,
-  },
-  monthHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.xs,
-  },
-  yearJumpButton: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  yearJumpText: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-  monthTitle: {
-    flex: 1,
-    textAlign: "center",
-    color: colors.cardForeground,
-    fontSize: 15,
-    fontFamily: "InterBold",
-  },
-  weekdayRow: {
-    flexDirection: "row",
-  },
-  weekdayText: {
-    width: "14.2857%",
-    textAlign: "center",
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-  },
-  calendarGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  dayCell: {
-    width: "14.2857%",
-    aspectRatio: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: radius.md,
-  },
-  emptyDayCell: {
-    opacity: 0,
-  },
-  selectedDayCell: {
-    backgroundColor: colors.primary,
-  },
-  dayText: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterSemiBold",
-  },
-  selectedDayText: {
-    color: colors.primaryForeground,
-  },
-  unsupportedText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterSemiBold",
-    textAlign: "center",
-    paddingVertical: spacing.lg,
-  },
-  modalFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingTop: spacing.xs,
-  },
-  clearButton: {
-    minHeight: 40,
-    justifyContent: "center",
-    paddingHorizontal: spacing.sm,
-  },
-  clearButtonText: {
-    color: colors.destructive,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-  cancelButton: {
-    minHeight: 40,
-    justifyContent: "center",
-    borderRadius: radius.pill,
-    backgroundColor: colors.secondary,
-    paddingHorizontal: spacing.md,
-  },
-  cancelButtonText: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    container: {
+      gap: 6,
+    },
+    label: {
+      color: theme.colors.mutedForeground,
+      fontSize: 11,
+      fontFamily: "InterBold",
+      textTransform: "uppercase",
+      letterSpacing: 0.45,
+    },
+    input: {
+      minHeight: 50,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: radius.lg,
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.sm,
+    },
+    inputDisabled: {
+      opacity: 0.72,
+    },
+    inputError: {
+      borderColor: theme.colors.destructive,
+    },
+    inputText: {
+      flex: 1,
+      color: theme.colors.cardForeground,
+      fontSize: 14,
+      lineHeight: 18,
+      fontFamily: "InterMedium",
+    },
+    placeholderText: {
+      color: theme.colors.mutedForeground,
+    },
+    disabledText: {
+      color: theme.colors.mutedForeground,
+    },
+    helperText: {
+      color: theme.colors.mutedForeground,
+      fontSize: 12,
+      lineHeight: 16,
+      fontFamily: "InterMedium",
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: 12,
+      lineHeight: 16,
+      fontFamily: "InterSemiBold",
+    },
+    modalBackdrop: {
+      flex: 1,
+      justifyContent: "center",
+      backgroundColor: theme.colors.overlay,
+      paddingHorizontal: spacing.lg,
+    },
+    modalDismissArea: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    modalCard: {
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: radius.xl,
+      backgroundColor: theme.colors.card,
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
+    modalHeader: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: spacing.sm,
+    },
+    modalTitleWrap: {
+      flex: 1,
+      gap: 2,
+    },
+    modalTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: 18,
+      fontFamily: "InterBold",
+    },
+    modalSubtitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: 12,
+      lineHeight: 16,
+      fontFamily: "InterMedium",
+    },
+    iconButton: {
+      width: 34,
+      height: 34,
+      borderRadius: radius.pill,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    modeTabs: {
+      flexDirection: "row",
+      gap: spacing.xs,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.secondary,
+      padding: 4,
+    },
+    modeTab: {
+      flex: 1,
+      minHeight: 36,
+      borderRadius: radius.pill,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: spacing.sm,
+    },
+    modeTabActive: {
+      backgroundColor: theme.colors.primary,
+    },
+    modeTabText: {
+      color: theme.colors.mutedForeground,
+      fontSize: 12,
+      fontFamily: "InterBold",
+    },
+    modeTabTextActive: {
+      color: theme.colors.primaryForeground,
+    },
+    monthHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.xs,
+    },
+    yearJumpButton: {
+      width: 34,
+      height: 34,
+      borderRadius: radius.pill,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    yearJumpText: {
+      color: theme.colors.cardForeground,
+      fontSize: 13,
+      fontFamily: "InterBold",
+    },
+    monthTitle: {
+      flex: 1,
+      textAlign: "center",
+      color: theme.colors.cardForeground,
+      fontSize: 15,
+      fontFamily: "InterBold",
+    },
+    weekdayRow: {
+      flexDirection: "row",
+    },
+    weekdayText: {
+      width: "14.2857%",
+      textAlign: "center",
+      color: theme.colors.mutedForeground,
+      fontSize: 11,
+      fontFamily: "InterBold",
+    },
+    calendarGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+    },
+    dayCell: {
+      width: "14.2857%",
+      aspectRatio: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: radius.md,
+    },
+    emptyDayCell: {
+      opacity: 0,
+    },
+    selectedDayCell: {
+      backgroundColor: theme.colors.primary,
+    },
+    dayText: {
+      color: theme.colors.cardForeground,
+      fontSize: 14,
+      fontFamily: "InterSemiBold",
+    },
+    selectedDayText: {
+      color: theme.colors.primaryForeground,
+    },
+    unsupportedText: {
+      color: theme.colors.destructive,
+      fontSize: 12,
+      lineHeight: 16,
+      fontFamily: "InterSemiBold",
+      textAlign: "center",
+      paddingVertical: spacing.lg,
+    },
+    modalFooter: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingTop: spacing.xs,
+    },
+    clearButton: {
+      minHeight: 40,
+      justifyContent: "center",
+      paddingHorizontal: spacing.sm,
+    },
+    clearButtonText: {
+      color: theme.colors.destructive,
+      fontSize: 13,
+      fontFamily: "InterBold",
+    },
+    cancelButton: {
+      minHeight: 40,
+      justifyContent: "center",
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.secondary,
+      paddingHorizontal: spacing.md,
+    },
+    cancelButtonText: {
+      color: theme.colors.cardForeground,
+      fontSize: 13,
+      fontFamily: "InterBold",
+    },
+  });

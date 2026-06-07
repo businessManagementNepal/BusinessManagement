@@ -10,8 +10,9 @@ import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormMod
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -22,6 +23,7 @@ type MoneyAccountEditorModalProps = {
 export function MoneyAccountEditorModal({
   viewModel,
 }: MoneyAccountEditorModalProps): React.ReactElement {
+  const styles = useThemedStyles(createStyles);
   const accountTypeOptions: DropdownOption[] = MONEY_ACCOUNT_TYPE_OPTIONS.map(
     (option) => ({
       label: option.label,
@@ -85,11 +87,7 @@ export function MoneyAccountEditorModal({
         value={viewModel.form.type}
         options={accountTypeOptions}
         onChange={(value) => {
-          if (
-            value === "cash" ||
-            value === "bank" ||
-            value === "wallet"
-          ) {
+          if (value === "cash" || value === "bank" || value === "wallet") {
             viewModel.onFormChange("type", value);
           }
         }}
@@ -154,32 +152,33 @@ export function MoneyAccountEditorModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterSemiBold",
-  },
-  actionButton: {
-    flex: 1,
-  },
-  balanceActionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  balanceActionButton: {
-    flex: 1,
-  },
-  deleteActionButton: {
-    borderColor: colors.destructive,
-    backgroundColor: "#FDECEC",
-  },
-  deleteActionLabel: {
-    color: colors.destructive,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+      paddingBottom: theme.scaleSpace(spacing.xl),
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterSemiBold",
+    },
+    actionButton: {
+      flex: 1,
+    },
+    balanceActionRow: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    balanceActionButton: {
+      flex: 1,
+    },
+    deleteActionButton: {
+      borderColor: theme.colors.destructive,
+      backgroundColor: theme.isDarkMode ? "rgba(255, 107, 107, 0.14)" : "#FDECEC",
+    },
+    deleteActionLabel: {
+      color: theme.colors.destructive,
+    },
+  });

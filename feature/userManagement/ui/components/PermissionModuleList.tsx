@@ -1,14 +1,10 @@
 import React from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Check, Circle } from "lucide-react-native";
 import { Card } from "@/shared/components/reusable/Cards/Card";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { UserManagementPermission } from "../../types/userManagement.types";
 
 export type PermissionModuleGroup = {
@@ -31,6 +27,9 @@ export function PermissionModuleList({
   disabled,
   onTogglePermission,
 }: PermissionModuleListProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <>
       {permissionGroups.map((permissionGroup) => (
@@ -41,6 +40,24 @@ export function PermissionModuleList({
             const isSelected = selectedPermissionCodes.includes(permission.code);
             const canToggle = editable && !disabled;
 
+            const content = (
+              <>
+                <View style={styles.permissionToggleIconWrap}>
+                  {isSelected ? (
+                    <Check size={15} color={theme.colors.success} />
+                  ) : (
+                    <Circle size={15} color={theme.colors.mutedForeground} />
+                  )}
+                </View>
+                <View style={styles.permissionRowTextWrap}>
+                  <Text style={styles.permissionRowTitle}>{permission.label}</Text>
+                  <Text style={styles.permissionRowSubtitle}>
+                    {permission.description}
+                  </Text>
+                </View>
+              </>
+            );
+
             return canToggle ? (
               <Pressable
                 key={permission.code}
@@ -48,31 +65,11 @@ export function PermissionModuleList({
                 onPress={() => onTogglePermission(permission.code)}
                 accessibilityRole="button"
               >
-                <View style={styles.permissionToggleIconWrap}>
-                  {isSelected ? (
-                    <Check size={15} color={colors.success} />
-                  ) : (
-                    <Circle size={15} color={colors.mutedForeground} />
-                  )}
-                </View>
-                <View style={styles.permissionRowTextWrap}>
-                  <Text style={styles.permissionRowTitle}>{permission.label}</Text>
-                  <Text style={styles.permissionRowSubtitle}>{permission.description}</Text>
-                </View>
+                {content}
               </Pressable>
             ) : (
               <View key={permission.code} style={styles.permissionRow}>
-                <View style={styles.permissionToggleIconWrap}>
-                  {isSelected ? (
-                    <Check size={15} color={colors.success} />
-                  ) : (
-                    <Circle size={15} color={colors.mutedForeground} />
-                  )}
-                </View>
-                <View style={styles.permissionRowTextWrap}>
-                  <Text style={styles.permissionRowTitle}>{permission.label}</Text>
-                  <Text style={styles.permissionRowSubtitle}>{permission.description}</Text>
-                </View>
+                {content}
               </View>
             );
           })}
@@ -82,42 +79,43 @@ export function PermissionModuleList({
   );
 }
 
-const styles = StyleSheet.create({
-  permissionGroupWrap: {
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    gap: spacing.xs,
-  },
-  permissionGroupTitle: {
-    color: colors.primary,
-    fontSize: 12,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  permissionRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.xs,
-    paddingVertical: 4,
-  },
-  permissionToggleIconWrap: {
-    width: 20,
-    alignItems: "center",
-    paddingTop: 2,
-  },
-  permissionRowTextWrap: {
-    flex: 1,
-  },
-  permissionRowTitle: {
-    color: colors.cardForeground,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-  },
-  permissionRowSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    marginTop: 2,
-    lineHeight: 15,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    permissionGroupWrap: {
+      borderRadius: radius.md,
+      padding: theme.scaleSpace(spacing.sm),
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    permissionGroupTitle: {
+      color: theme.colors.primary,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterBold",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    permissionRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: theme.scaleSpace(spacing.xs),
+      paddingVertical: theme.scaleSpace(4),
+    },
+    permissionToggleIconWrap: {
+      width: theme.scaleSpace(20),
+      alignItems: "center",
+      paddingTop: theme.scaleSpace(2),
+    },
+    permissionRowTextWrap: {
+      flex: 1,
+    },
+    permissionRowTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterSemiBold",
+    },
+    permissionRowSubtitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(11),
+      marginTop: theme.scaleSpace(2),
+      lineHeight: theme.scaleLineHeight(15),
+    },
+  });

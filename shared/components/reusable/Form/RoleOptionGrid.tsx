@@ -1,14 +1,9 @@
 import React, { useMemo } from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Circle, CircleDot } from "lucide-react-native";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 export type RoleOptionGridItem<TValue extends string> = {
   value: TValue;
@@ -43,6 +38,9 @@ function RoleCategorySection<TValue extends string>({
   disabled,
   isOptionDisabled,
 }: RoleCategorySectionProps<TValue>) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   if (options.length === 0) {
     return null;
   }
@@ -58,7 +56,8 @@ function RoleCategorySection<TValue extends string>({
       >
         {options.map((option) => {
           const isSelected = option.value === selectedValue;
-          const optionDisabled = disabled || isOptionDisabled?.(option.value) === true;
+          const optionDisabled =
+            disabled || isOptionDisabled?.(option.value) === true;
 
           return (
             <Pressable
@@ -83,9 +82,9 @@ function RoleCategorySection<TValue extends string>({
               </Text>
 
               {isSelected ? (
-                <CircleDot size={14} color={colors.primaryForeground} />
+                <CircleDot size={14} color={theme.colors.primaryForeground} />
               ) : (
-                <Circle size={14} color={colors.mutedForeground} />
+                <Circle size={14} color={theme.colors.mutedForeground} />
               )}
             </Pressable>
           );
@@ -104,6 +103,7 @@ export function RoleOptionGrid<TValue extends string>({
   defaultCategoryLabel = "Default Roles",
   customCategoryLabel = "Custom Roles",
 }: RoleOptionGridProps<TValue>) {
+  const styles = useThemedStyles(createStyles);
   const defaultOptions = useMemo(
     () => options.filter((option) => option.category === "default"),
     [options],
@@ -135,51 +135,53 @@ export function RoleOptionGrid<TValue extends string>({
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    gap: spacing.sm,
-  },
-  sectionWrap: {
-    gap: spacing.xs,
-  },
-  sectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 12,
-    fontFamily: "InterBold",
-  },
-  row: {
-    gap: spacing.xs,
-    alignItems: "center",
-    paddingVertical: 2,
-    paddingRight: spacing.md,
-  },
-  optionCard: {
-    minHeight: 38,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.pill,
-    backgroundColor: colors.secondary,
-    paddingHorizontal: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.xs,
-  },
-  optionCardSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  optionCardDisabled: {
-    opacity: 0.45,
-  },
-  optionLabel: {
-    color: colors.foreground,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterSemiBold",
-    flexShrink: 1,
-  },
-  optionLabelSelected: {
-    color: colors.primaryForeground,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    wrap: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    sectionWrap: {
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    sectionTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterBold",
+    },
+    row: {
+      gap: theme.scaleSpace(spacing.xs),
+      alignItems: "center",
+      paddingVertical: theme.scaleSpace(2),
+      paddingRight: theme.scaleSpace(spacing.md),
+    },
+    optionCard: {
+      minHeight: theme.scaleSpace(38),
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.secondary,
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    optionCardSelected: {
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.primary,
+    },
+    optionCardDisabled: {
+      opacity: 0.45,
+    },
+    optionLabel: {
+      color: theme.colors.foreground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterSemiBold",
+      flexShrink: 1,
+    },
+    optionLabelSelected: {
+      color: theme.colors.primaryForeground,
+    },
+  });

@@ -23,8 +23,9 @@ import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGro
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
 import { PrimaryHeader } from "@/shared/components/reusable/ScreenLayouts/PrimaryHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { UserManagementPermission } from "../types/userManagement.types";
 import { UserManagementViewModel } from "../viewModel/userManagement.viewModel";
 import { SIGN_UP_PHONE_COUNTRY_OPTIONS } from "@/feature/auth/signUp/types/signUp.types";
@@ -87,6 +88,8 @@ const getInitials = (value: string): string => {
 };
 
 export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const permissionGroups = useMemo(
     () => groupPermissionsByModule(viewModel.permissions),
     [viewModel.permissions],
@@ -94,10 +97,10 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
   const roleOptions = useMemo<StaffMemberRoleOption[]>(
     () =>
       viewModel.memberRoleOptions.map((roleOption) => ({
-          remoteId: roleOption.remoteId,
-          label: roleOption.label,
-          category: roleOption.isBusinessDefault ? "default" : "custom",
-        })),
+        remoteId: roleOption.remoteId,
+        label: roleOption.label,
+        category: roleOption.isBusinessDefault ? "default" : "custom",
+      })),
     [viewModel.memberRoleOptions],
   );
   const roleFilterOptions = useMemo(
@@ -131,7 +134,9 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
               variant="primary"
               size="lg"
               style={styles.primaryActionButton}
-              leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
+              leadingIcon={
+                <Plus size={18} color={theme.colors.primaryForeground} />
+              }
               onPress={() => viewModel.onStartCreateMember()}
             />
           </BottomTabAwareFooter>
@@ -152,10 +157,10 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
               const isSuccess = summaryCard.tone === "success";
               const isDanger = summaryCard.tone === "danger";
               const toneColor = isDanger
-                ? colors.destructive
+                ? theme.colors.destructive
                 : isSuccess
-                  ? colors.success
-                  : colors.foreground;
+                  ? theme.colors.success
+                  : theme.colors.foreground;
 
               return (
                 <StatCard
@@ -261,8 +266,8 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
                             size={15}
                             color={
                               memberListItem.canEdit
-                                ? colors.success
-                                : colors.mutedForeground
+                                ? theme.colors.success
+                                : theme.colors.mutedForeground
                             }
                           />
                         </AppIconButton>
@@ -318,8 +323,8 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
                             size={15}
                             color={
                               memberListItem.isActive
-                                ? colors.warning
-                                : colors.success
+                                ? theme.colors.warning
+                                : theme.colors.success
                             }
                           />
                         </AppIconButton>
@@ -354,7 +359,7 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
                           disabled={viewModel.isDeletingMember}
                           accessibilityRole="button"
                         >
-                          <Trash2 size={15} color={colors.destructive} />
+                          <Trash2 size={15} color={theme.colors.destructive} />
                         </AppIconButton>
                       ) : null}
                     </View>
@@ -367,7 +372,7 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
           {viewModel.canManageRoles ? (
             <Card style={styles.roleListCard}>
               <View style={styles.roleListHeader}>
-                <Shield size={14} color={colors.primary} />
+                <Shield size={14} color={theme.colors.primary} />
                 <Text style={styles.roleListHeaderText}>Roles</Text>
               </View>
 
@@ -408,7 +413,7 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
                           onPress={() => viewModel.onStartEditRole(roleListItem.roleRemoteId)}
                           accessibilityRole="button"
                         >
-                          <Pencil size={15} color={colors.success} />
+                          <Pencil size={15} color={theme.colors.success} />
                         </AppIconButton>
                       ) : null}
 
@@ -442,8 +447,8 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
                           size={15}
                           color={
                             isDeleteDisabled
-                              ? colors.mutedForeground
-                            : colors.destructive
+                              ? theme.colors.mutedForeground
+                              : theme.colors.destructive
                           }
                         />
                       </AppIconButton>
@@ -547,262 +552,287 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  contentContainer: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    gap: spacing.sm,
-  },
-  primaryActionButton: {
-    width: "100%",
-  },
-  summaryRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  filterRow: {
-    gap: spacing.xs,
-    paddingVertical: 4,
-    paddingRight: spacing.md,
-    alignItems: "center",
-  },
-  filterScroll: {
-    minHeight: 42,
-    maxHeight: 42,
-    flexGrow: 0,
-    flexShrink: 0,
-  },
-  filterChip: {
-    minHeight: 34,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.pill,
-    backgroundColor: colors.secondary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  filterChipActive: {
-    backgroundColor: colors.primary,
-  },
-  filterChipText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterSemiBold",
-  },
-  filterChipTextActive: {
-    color: colors.primaryForeground,
-  },
-  listCard: {
-    padding: 0,
-    overflow: "hidden",
-  },
-  roleListCard: {
-    padding: 0,
-    overflow: "hidden",
-  },
-  roleListHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  roleListHeaderText: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-  roleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  roleRowLast: {
-    borderBottomWidth: 0,
-  },
-  roleBody: {
-    flex: 1,
-    minWidth: 0,
-  },
-  roleTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    flexWrap: "wrap",
-  },
-  roleName: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterSemiBold",
-  },
-  roleTag: {
-    backgroundColor: colors.accent,
-    borderRadius: radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  roleTagText: {
-    color: colors.primary,
-    fontSize: 10,
-    fontFamily: "InterBold",
-  },
-  roleMeta: {
-    marginTop: 3,
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterMedium",
-  },
-  emptyStateWrap: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.lg,
-  },
-  loadingText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontFamily: "InterMedium",
-  },
-  emptyStateText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontFamily: "InterMedium",
-  },
-  memberRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.sm + 1,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  memberRowLast: {
-    borderBottomWidth: 0,
-  },
-  avatarWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {
-    color: colors.primary,
-    fontSize: 15,
-    fontFamily: "InterBold",
-  },
-  memberBody: {
-    flex: 1,
-    minWidth: 0,
-  },
-  memberTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  memberName: {
-    color: colors.cardForeground,
-    fontSize: 15,
-    lineHeight: 20,
-    fontFamily: "InterSemiBold",
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: radius.pill,
-  },
-  statusDotActive: {
-    backgroundColor: colors.success,
-  },
-  statusDotInactive: {
-    backgroundColor: colors.mutedForeground,
-  },
-  memberSubtitle: {
-    marginTop: 2,
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterMedium",
-  },
-  memberMetaRow: {
-    marginTop: 3,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  rolePill: {
-    backgroundColor: colors.accent,
-    borderRadius: radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  rolePillText: {
-    color: colors.primary,
-    fontSize: 11,
-    fontFamily: "InterBold",
-  },
-  memberMetaText: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterMedium",
-    flexShrink: 1,
-  },
-  actionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  iconButton: {
-    width: 30,
-    height: 30,
-  },
-  iconButtonSuccess: {
-    backgroundColor: "#E4F4EA",
-  },
-  iconButtonWarning: {
-    backgroundColor: "#FFF2D7",
-  },
-  iconButtonDanger: {
-    backgroundColor: "#FBE4E4",
-  },
-  iconButtonDisabled: {
-    opacity: 0.45,
-  },
-  permissionWarningText: {
-    color: colors.warning,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-    paddingHorizontal: 2,
-  },
-  feedbackCardError: {
-    borderColor: "#F6D1D1",
-    backgroundColor: "#FFF2F2",
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.sm,
-  },
-  feedbackErrorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-    lineHeight: 18,
-  },
-  feedbackCardSuccess: {
-    borderColor: "#CCEBD8",
-    backgroundColor: "#F0FAF4",
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.sm,
-  },
-  feedbackSuccessText: {
-    color: colors.success,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-    lineHeight: 18,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    contentContainer: {
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingTop: theme.scaleSpace(spacing.md),
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    primaryActionButton: {
+      width: "100%",
+    },
+    summaryRow: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    filterRow: {
+      gap: theme.scaleSpace(spacing.xs),
+      paddingVertical: theme.scaleSpace(4),
+      paddingRight: theme.scaleSpace(spacing.md),
+      alignItems: "center",
+    },
+    filterScroll: {
+      minHeight: theme.scaleSpace(42),
+      maxHeight: theme.scaleSpace(42),
+      flexGrow: 0,
+      flexShrink: 0,
+    },
+    filterChip: {
+      minHeight: theme.scaleSpace(34),
+      paddingHorizontal: theme.scaleSpace(12),
+      paddingVertical: theme.scaleSpace(6),
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.secondary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    filterChipActive: {
+      backgroundColor: theme.colors.primary,
+    },
+    filterChipText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterSemiBold",
+    },
+    filterChipTextActive: {
+      color: theme.colors.primaryForeground,
+    },
+    listCard: {
+      padding: 0,
+      overflow: "hidden",
+    },
+    roleListCard: {
+      padding: 0,
+      overflow: "hidden",
+    },
+    roleListHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.xs),
+      paddingHorizontal: theme.scaleSpace(spacing.sm + 2),
+      paddingVertical: theme.scaleSpace(spacing.sm),
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    roleListHeaderText: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(13),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterBold",
+    },
+    roleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+      paddingHorizontal: theme.scaleSpace(spacing.sm + 2),
+      paddingVertical: theme.scaleSpace(spacing.sm),
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    roleRowLast: {
+      borderBottomWidth: 0,
+    },
+    roleBody: {
+      flex: 1,
+      minWidth: 0,
+    },
+    roleTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.xs),
+      flexWrap: "wrap",
+    },
+    roleName: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      lineHeight: theme.scaleLineHeight(18),
+      fontFamily: "InterSemiBold",
+    },
+    roleTag: {
+      backgroundColor: theme.colors.accent,
+      borderRadius: radius.pill,
+      paddingHorizontal: theme.scaleSpace(8),
+      paddingVertical: theme.scaleSpace(2),
+    },
+    roleTagText: {
+      color: theme.colors.accentForeground,
+      fontSize: theme.scaleText(10),
+      lineHeight: theme.scaleLineHeight(13),
+      fontFamily: "InterBold",
+    },
+    roleMeta: {
+      marginTop: theme.scaleSpace(3),
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(11),
+      lineHeight: theme.scaleLineHeight(14),
+      fontFamily: "InterMedium",
+    },
+    emptyStateWrap: {
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.lg),
+    },
+    loadingText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterMedium",
+    },
+    emptyStateText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterMedium",
+    },
+    memberRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+      paddingHorizontal: theme.scaleSpace(spacing.sm + 2),
+      paddingVertical: theme.scaleSpace(spacing.sm + 1),
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    memberRowLast: {
+      borderBottomWidth: 0,
+    },
+    avatarWrap: {
+      width: theme.scaleSpace(42),
+      height: theme.scaleSpace(42),
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.accent,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    avatarText: {
+      color: theme.colors.accentForeground,
+      fontSize: theme.scaleText(15),
+      lineHeight: theme.scaleLineHeight(19),
+      fontFamily: "InterBold",
+    },
+    memberBody: {
+      flex: 1,
+      minWidth: 0,
+    },
+    memberTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(6),
+    },
+    memberName: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(15),
+      lineHeight: theme.scaleLineHeight(20),
+      fontFamily: "InterSemiBold",
+    },
+    statusDot: {
+      width: theme.scaleSpace(8),
+      height: theme.scaleSpace(8),
+      borderRadius: radius.pill,
+    },
+    statusDotActive: {
+      backgroundColor: theme.colors.success,
+    },
+    statusDotInactive: {
+      backgroundColor: theme.colors.mutedForeground,
+    },
+    memberSubtitle: {
+      marginTop: theme.scaleSpace(2),
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterMedium",
+    },
+    memberMetaRow: {
+      marginTop: theme.scaleSpace(3),
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    rolePill: {
+      backgroundColor: theme.colors.accent,
+      borderRadius: radius.pill,
+      paddingHorizontal: theme.scaleSpace(8),
+      paddingVertical: theme.scaleSpace(2),
+    },
+    rolePillText: {
+      color: theme.colors.accentForeground,
+      fontSize: theme.scaleText(11),
+      lineHeight: theme.scaleLineHeight(14),
+      fontFamily: "InterBold",
+    },
+    memberMetaText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(11),
+      lineHeight: theme.scaleLineHeight(14),
+      fontFamily: "InterMedium",
+      flexShrink: 1,
+    },
+    actionRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    iconButton: {
+      width: theme.scaleSpace(30),
+      height: theme.scaleSpace(30),
+    },
+    iconButtonSuccess: {
+      backgroundColor: theme.isDarkMode
+        ? "rgba(99, 211, 148, 0.16)"
+        : "#E4F4EA",
+    },
+    iconButtonWarning: {
+      backgroundColor: theme.isDarkMode
+        ? "rgba(244, 193, 93, 0.18)"
+        : "#FFF2D7",
+    },
+    iconButtonDanger: {
+      backgroundColor: theme.isDarkMode
+        ? "rgba(255, 107, 107, 0.16)"
+        : "#FBE4E4",
+    },
+    iconButtonDisabled: {
+      opacity: 0.45,
+    },
+    permissionWarningText: {
+      color: theme.colors.warning,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterSemiBold",
+      paddingHorizontal: theme.scaleSpace(2),
+    },
+    feedbackCardError: {
+      borderColor: theme.isDarkMode
+        ? "rgba(255, 107, 107, 0.28)"
+        : "#F6D1D1",
+      backgroundColor: theme.isDarkMode
+        ? "rgba(255, 107, 107, 0.12)"
+        : "#FFF2F2",
+      paddingHorizontal: theme.scaleSpace(spacing.sm + 2),
+      paddingVertical: theme.scaleSpace(spacing.sm),
+    },
+    feedbackErrorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(18),
+      fontFamily: "InterSemiBold",
+    },
+    feedbackCardSuccess: {
+      borderColor: theme.isDarkMode
+        ? "rgba(99, 211, 148, 0.28)"
+        : "#CCEBD8",
+      backgroundColor: theme.isDarkMode
+        ? "rgba(99, 211, 148, 0.14)"
+        : "#F0FAF4",
+      paddingHorizontal: theme.scaleSpace(spacing.sm + 2),
+      paddingVertical: theme.scaleSpace(spacing.sm),
+    },
+    feedbackSuccessText: {
+      color: theme.colors.success,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(18),
+      fontFamily: "InterSemiBold",
+    },
+  });

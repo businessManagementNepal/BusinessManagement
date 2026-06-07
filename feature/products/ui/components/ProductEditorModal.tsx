@@ -8,8 +8,9 @@ import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormMod
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { Box, Camera } from "lucide-react-native";
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
@@ -43,6 +44,8 @@ export function ProductEditorModal({
   onClearImage,
   onSubmit,
 }: ProductEditorModalProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [isPickingImage, setIsPickingImage] = React.useState(false);
   const isItemKind = form.kind === ProductKind.Item;
   const title = mode === "create" ? "New Product" : "Edit Product";
@@ -115,7 +118,7 @@ export function ProductEditorModal({
             />
           ) : (
             <View style={styles.imagePlaceholder}>
-              <Box size={20} color={colors.mutedForeground} />
+              <Box size={20} color={theme.colors.mutedForeground} />
               <Text style={styles.imagePlaceholderText}>No image selected</Text>
             </View>
           )}
@@ -125,7 +128,7 @@ export function ProductEditorModal({
             label={isPickingImage ? "Selecting..." : "Choose from gallery"}
             variant="secondary"
             size="sm"
-            leadingIcon={<Camera size={14} color={colors.primary} />}
+            leadingIcon={<Camera size={14} color={theme.colors.primary} />}
             onPress={() => {
               void handlePickImage();
             }}
@@ -250,59 +253,60 @@ export function ProductEditorModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  fieldWrap: {
-    gap: 6,
-  },
-  inputLabel: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
-  },
-  actionButton: {
-    flex: 1,
-  },
-  imagePreview: {
-    width: "100%",
-    height: 142,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.background,
-    overflow: "hidden",
-  },
-  imagePreviewImage: {
-    width: "100%",
-    height: "100%",
-  },
-  imagePlaceholder: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-  },
-  imagePlaceholderText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  imageActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    flexWrap: "wrap",
-  },
-  imageActionButton: {
-    minWidth: 126,
-  },
-  removeImageLabel: {
-    color: colors.destructive,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+      paddingBottom: theme.scaleSpace(spacing.xl),
+    },
+    fieldWrap: {
+      gap: theme.scaleSpace(6),
+    },
+    inputLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(11),
+      fontFamily: "InterBold",
+      textTransform: "uppercase",
+      letterSpacing: 0.45,
+    },
+    actionButton: {
+      flex: 1,
+    },
+    imagePreview: {
+      width: "100%",
+      height: theme.scaleSpace(142),
+      borderWidth: 1,
+      borderStyle: "dashed",
+      borderColor: theme.colors.border,
+      borderRadius: radius.lg,
+      backgroundColor: theme.colors.background,
+      overflow: "hidden",
+    },
+    imagePreviewImage: {
+      width: "100%",
+      height: "100%",
+    },
+    imagePlaceholder: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    imagePlaceholderText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterMedium",
+    },
+    imageActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+      flexWrap: "wrap",
+    },
+    imageActionButton: {
+      minWidth: theme.scaleSpace(126),
+    },
+    removeImageLabel: {
+      color: theme.colors.destructive,
+    },
+  });

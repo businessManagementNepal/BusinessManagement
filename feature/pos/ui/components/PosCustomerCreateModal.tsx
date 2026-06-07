@@ -1,8 +1,9 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -29,6 +30,8 @@ export function PosCustomerCreateModal({
   isSubmitting = false,
   canSubmit = false,
 }: PosCustomerCreateModalProps) {
+  const styles = useThemedStyles(createStyles);
+
   const handleSubmit = async () => {
     await onSubmit();
   };
@@ -100,32 +103,33 @@ export function PosCustomerCreateModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.lg,
-  },
-  form: {
-    gap: spacing.md,
-  },
-  inputGroup: {
-    gap: spacing.xs,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: colors.foreground,
-  },
-  input: {
-    minHeight: 50,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  cancelButton: {
-    flex: 1,
-  },
-  submitButton: {
-    flex: 1,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.lg),
+    },
+    form: {
+      gap: theme.scaleSpace(spacing.md),
+    },
+    inputGroup: {
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    inputLabel: {
+      fontSize: theme.scaleText(14),
+      fontWeight: "500",
+      color: theme.colors.foreground,
+    },
+    input: {
+      minHeight: 50,
+    },
+    actions: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    cancelButton: {
+      flex: 1,
+    },
+    submitButton: {
+      flex: 1,
+    },
+  });

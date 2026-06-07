@@ -5,8 +5,9 @@ import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormMod
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
 import { StyleSheet } from "react-native";
 
@@ -47,6 +48,9 @@ export function CategoryEditorModal({
   onSubmit,
   onDelete,
 }: Props): React.ReactElement {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <FormSheetModal
       visible={visible}
@@ -115,18 +119,19 @@ export function CategoryEditorModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-  },
-  actionButton: {
-    flex: 1,
-  },
-  deleteActionButton: {
-    borderColor: colors.destructive,
-    backgroundColor: "#FDECEC",
-  },
-  deleteActionLabel: {
-    color: colors.destructive,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    actionButton: {
+      flex: 1,
+    },
+    deleteActionButton: {
+      borderColor: theme.colors.destructive,
+      backgroundColor: theme.isDarkMode ? "rgba(255, 107, 107, 0.14)" : "#FDECEC",
+    },
+    deleteActionLabel: {
+      color: theme.colors.destructive,
+    },
+  });

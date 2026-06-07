@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../../theme/colors';
+import { useAppTheme } from '../../theme/AppThemeProvider';
 import { radius } from '../../theme/spacing';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 
 interface PillProps {
@@ -10,12 +11,9 @@ interface PillProps {
 }
 
 export function Pill({ label, tone = 'neutral' }: PillProps) {
-  const palette = {
-    success: { backgroundColor: '#E4F4EA', color: colors.success },
-    warning: { backgroundColor: '#FFF2D7', color: colors.warning },
-    danger: { backgroundColor: '#FBE4E4', color: colors.destructive },
-    neutral: { backgroundColor: colors.muted, color: colors.cardForeground },
-  }[tone];
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+  const palette = resolveTonePalette(theme, tone);
 
   return (
     <View style={[styles.pill, { backgroundColor: palette.backgroundColor }]}>
@@ -24,16 +22,54 @@ export function Pill({ label, tone = 'neutral' }: PillProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  pill: {
-    borderRadius: radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    alignSelf: 'flex-start',
-  },
-  label: {
-    fontSize: 11,
-    fontFamily: "InterBold",
-  },
-});
+const resolveTonePalette = (
+  theme: ReturnType<typeof useAppTheme>,
+  tone: PillProps["tone"],
+): { backgroundColor: string; color: string } => {
+  switch (tone) {
+    case "success":
+      return {
+        backgroundColor: theme.isDarkMode
+          ? "rgba(99, 211, 148, 0.16)"
+          : "#E4F4EA",
+        color: theme.colors.success,
+      };
+    case "warning":
+      return {
+        backgroundColor: theme.isDarkMode
+          ? "rgba(244, 193, 93, 0.18)"
+          : "#FFF2D7",
+        color: theme.colors.warning,
+      };
+    case "danger":
+      return {
+        backgroundColor: theme.isDarkMode
+          ? "rgba(255, 107, 107, 0.16)"
+          : "#FBE4E4",
+        color: theme.colors.destructive,
+      };
+    case "neutral":
+    default:
+      return {
+        backgroundColor: theme.colors.muted,
+        color: theme.colors.cardForeground,
+      };
+  }
+};
+
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    pill: {
+      borderRadius: radius.pill,
+      paddingHorizontal: theme.scaleSpace(10),
+      paddingVertical: theme.scaleSpace(6),
+      alignSelf: 'flex-start',
+    },
+    label: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(11),
+      lineHeight: theme.scaleLineHeight(14),
+      fontFamily: "InterBold",
+    },
+  });
 

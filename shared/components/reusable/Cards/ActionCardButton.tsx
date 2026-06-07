@@ -1,8 +1,9 @@
 import React from "react";
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { CardPressable } from "@/shared/components/reusable/Cards/Card";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type ActionCardButtonProps = {
   title: string;
@@ -23,6 +24,8 @@ export function ActionCardButton({
   disabled,
   style,
 }: ActionCardButtonProps) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <CardPressable
       onPress={onPress}
@@ -39,43 +42,44 @@ export function ActionCardButton({
   );
 }
 
-const styles = StyleSheet.create({
-  cardButton: {
-    minHeight: 66,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  leadingIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  trailingIconWrap: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  copyWrap: {
-    flex: 1,
-  },
-  title: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  subtitle: {
-    marginTop: 2,
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterMedium",
-  },
-  disabled: {
-    opacity: 0.6,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    cardButton: {
+      minHeight: 66,
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.sm),
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    leadingIconWrap: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: theme.colors.accent,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    trailingIconWrap: {
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    copyWrap: {
+      flex: 1,
+    },
+    title: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterBold",
+    },
+    subtitle: {
+      marginTop: 2,
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterMedium",
+    },
+    disabled: {
+      opacity: 0.6,
+    },
+  });

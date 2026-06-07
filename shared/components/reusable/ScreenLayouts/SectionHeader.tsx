@@ -1,7 +1,8 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
-import { colors } from "../../theme/colors";
+import { useAppTheme } from "../../theme/AppThemeProvider";
+import { useThemedStyles } from "../../theme/useThemedStyles";
 
 interface SectionHeaderProps {
   title: string;
@@ -14,42 +15,48 @@ export function SectionHeader({
   actionLabel,
   onActionPress,
 }: SectionHeaderProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.row}>
       <Text style={styles.title}>{title}</Text>
       {actionLabel ? (
         <Pressable style={styles.action} onPress={onActionPress}>
           <Text style={styles.actionLabel}>{actionLabel}</Text>
-          <ChevronRight size={14} color={colors.primary} />
+          <ChevronRight size={14} color={theme.colors.primary} />
         </Pressable>
       ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  title: {
-    color: colors.foreground,
-    fontSize: 17,
-    fontFamily: "InterBold",
-  },
-  action: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  actionLabel: {
-    color: colors.primary,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    row: {
+      paddingHorizontal: theme.scaleSpace(16),
+      paddingTop: theme.scaleSpace(18),
+      paddingBottom: theme.scaleSpace(8),
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    title: {
+      color: theme.colors.foreground,
+      fontSize: theme.scaleText(17),
+      lineHeight: theme.scaleLineHeight(21),
+      fontFamily: "InterBold",
+    },
+    action: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(4),
+    },
+    actionLabel: {
+      color: theme.colors.primary,
+      fontSize: theme.scaleText(13),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterBold",
+    },
+  });
 

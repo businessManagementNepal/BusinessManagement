@@ -4,15 +4,13 @@ import {
   OrderLineFormState,
 } from "@/feature/orders/types/order.state.types";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import {
-  Dropdown,
-  DropdownOption,
-} from "@/shared/components/reusable/DropDown/Dropdown";
+import { Dropdown, DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { Plus, Trash2 } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -73,6 +71,8 @@ export function OrderEditorModal({
   onRemoveLineItem,
   onSubmit,
 }: Props) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const title =
     mode === "create" ? "Create Order" : `Edit ${form.orderNumber || "Order"}`;
   const lineItems = Array.isArray(form.items) ? form.items : [];
@@ -175,7 +175,7 @@ export function OrderEditorModal({
                     style={styles.removeItemIconButton}
                     onPress={() => onRemoveLineItem(item.remoteId)}
                   >
-                    <Trash2 size={14} color={colors.destructive} />
+                    <Trash2 size={14} color={theme.colors.destructive} />
                   </Pressable>
                 ) : null}
               </View>
@@ -206,7 +206,7 @@ export function OrderEditorModal({
       </View>
 
       <Pressable style={styles.addItemButton} onPress={onAddLineItem} disabled={!canManage}>
-        <Plus size={14} color={colors.success} />
+        <Plus size={14} color={theme.colors.success} />
         <Text style={styles.addItemText}>Add Item</Text>
       </Pressable>
 
@@ -259,155 +259,160 @@ export function OrderEditorModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-  },
-  submitButton: {
-    width: "100%",
-  },
-  fieldLabel: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
-  },
-  tableHeaderText: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
-  },
-  itemsTableHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingBottom: spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    marginBottom: spacing.xs,
-  },
-  itemsHeaderRow: {
-    marginTop: spacing.xs,
-    gap: 4,
-  },
-  sectionErrorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  itemsWrap: {
-    gap: spacing.sm,
-  },
-  itemBlock: {
-    gap: 4,
-  },
-  itemRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: spacing.xs,
-  },
-  itemErrorRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.xs,
-  },
-  itemNameWrap: {
-    flex: 1,
-  },
-  quantityWrap: {
-    width: 58,
-  },
-  priceWrap: {
-    width: 66,
-  },
-  itemActionSpacer: {
-    width: 30,
-  },
-  centeredInput: {
-    textAlign: "center",
-    paddingHorizontal: spacing.xs,
-  },
-  centeredErrorText: {
-    textAlign: "center",
-  },
-  inlineErrorText: {
-    color: colors.destructive,
-    fontSize: 11,
-    lineHeight: 14,
-    fontFamily: "InterMedium",
-  },
-  removeItemIconButton: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.card,
-    marginBottom: 10,
-  },
-  addItemButton: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  addItemText: {
-    color: colors.success,
-    fontSize: 14,
-    fontFamily: "InterSemiBold",
-  },
-  twoColumnGrid: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  totalCard: {
-    borderWidth: 1,
-    borderColor: "rgba(31, 99, 64, 0.08)",
-    backgroundColor: "#EAF4EF",
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: 4,
-  },
-  totalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  totalLabel: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontFamily: "InterMedium",
-  },
-  totalValue: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterMedium",
-  },
-  discountValue: {
-    color: colors.success,
-    fontSize: 14,
-    fontFamily: "InterSemiBold",
-  },
-  totalDivider: {
-    marginTop: 2,
-    marginBottom: 2,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  finalTotalLabel: {
-    color: colors.cardForeground,
-    fontSize: 15,
-    fontFamily: "InterBold",
-  },
-  finalTotalValue: {
-    color: colors.cardForeground,
-    fontSize: 22,
-    fontFamily: "InterBold",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    submitButton: {
+      width: "100%",
+    },
+    fieldLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(11),
+      fontFamily: "InterBold",
+      textTransform: "uppercase",
+      letterSpacing: 0.45,
+    },
+    tableHeaderText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(11),
+      fontFamily: "InterBold",
+      textTransform: "uppercase",
+      letterSpacing: 0.45,
+    },
+    itemsTableHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingBottom: theme.scaleSpace(spacing.xs),
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      marginBottom: theme.scaleSpace(spacing.xs),
+    },
+    itemsHeaderRow: {
+      marginTop: theme.scaleSpace(spacing.xs),
+      gap: theme.scaleSpace(4),
+    },
+    sectionErrorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterMedium",
+    },
+    itemsWrap: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    itemBlock: {
+      gap: theme.scaleSpace(4),
+    },
+    itemRow: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    itemErrorRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    itemNameWrap: {
+      flex: 1,
+    },
+    quantityWrap: {
+      width: theme.scaleSpace(58),
+    },
+    priceWrap: {
+      width: theme.scaleSpace(66),
+    },
+    itemActionSpacer: {
+      width: theme.scaleSpace(30),
+    },
+    centeredInput: {
+      textAlign: "center",
+      paddingHorizontal: theme.scaleSpace(spacing.xs),
+    },
+    centeredErrorText: {
+      textAlign: "center",
+    },
+    inlineErrorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(11),
+      lineHeight: theme.scaleLineHeight(14),
+      fontFamily: "InterMedium",
+    },
+    removeItemIconButton: {
+      width: theme.scaleSpace(30),
+      height: theme.scaleSpace(30),
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.colors.card,
+      marginBottom: theme.scaleSpace(10),
+    },
+    addItemButton: {
+      alignSelf: "flex-start",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(6),
+    },
+    addItemText: {
+      color: theme.colors.success,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterSemiBold",
+    },
+    twoColumnGrid: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    totalCard: {
+      borderWidth: 1,
+      borderColor: theme.isDarkMode
+        ? "rgba(99, 211, 148, 0.22)"
+        : "rgba(31, 99, 64, 0.08)",
+      backgroundColor: theme.isDarkMode
+        ? "rgba(99, 211, 148, 0.12)"
+        : "#EAF4EF",
+      borderRadius: radius.lg,
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.md),
+      gap: theme.scaleSpace(4),
+    },
+    totalRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    totalLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterMedium",
+    },
+    totalValue: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterMedium",
+    },
+    discountValue: {
+      color: theme.colors.success,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterSemiBold",
+    },
+    totalDivider: {
+      marginTop: theme.scaleSpace(2),
+      marginBottom: theme.scaleSpace(2),
+      height: 1,
+      backgroundColor: theme.colors.border,
+    },
+    finalTotalLabel: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(15),
+      fontFamily: "InterBold",
+    },
+    finalTotalValue: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(22),
+      fontFamily: "InterBold",
+    },
+  });

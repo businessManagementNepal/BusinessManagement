@@ -1,18 +1,9 @@
 import React from "react";
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleProp,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
-} from "react-native";
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { X } from "lucide-react-native";
 import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
+import { BottomSheetFormModal } from "@/shared/components/reusable/Modals/BottomSheetFormModal";
+import { CenteredDialogFormModal } from "@/shared/components/reusable/Modals/CenteredDialogFormModal";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 
@@ -49,59 +40,19 @@ export function FormSheetModal({
 }: FormSheetModalProps) {
   const isDialogPresentation = presentation === "dialog";
   const theme = useAppTheme();
-  const keyboardBehavior: "height" | "padding" | "position" | undefined =
-    Platform.OS === "ios"
-      ? "padding"
-      : Platform.OS === "android"
-        ? "position"
-        : undefined;
   const styles = React.useMemo(
     () =>
       StyleSheet.create({
-        backdrop: {
-          flex: 1,
-          backgroundColor: theme.colors.overlay,
+        title: {
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(18),
+          fontFamily: "InterBold",
         },
-        sheetBackdrop: {
-          justifyContent: "flex-end",
-        },
-        dialogBackdrop: {
-          justifyContent: "center",
-          paddingHorizontal: theme.scaleSpace(spacing.lg),
-        },
-        sheetDismissArea: {
-          flex: 1,
-        },
-        dialogDismissArea: {
-          ...StyleSheet.absoluteFillObject,
-        },
-        dialogKeyboardWrap: {
-          width: "100%",
-        },
-        keyboardWrap: {
-          maxHeight: "100%",
-          width: "100%",
-        },
-        sheet: {
-          backgroundColor: theme.colors.card,
-          borderWidth: 1,
-          borderColor: theme.colors.border,
-        },
-        bottomSheet: {
-          maxHeight: "92%",
-          width: "100%",
-          borderTopLeftRadius: radius.xl,
-          borderTopRightRadius: radius.xl,
-          paddingHorizontal: theme.scaleSpace(spacing.lg),
-          paddingTop: theme.scaleSpace(spacing.xs),
-          paddingBottom: theme.scaleSpace(spacing.xl),
-        },
-        dialogSheet: {
-          maxHeight: "86%",
-          borderRadius: radius.xl,
-          paddingHorizontal: theme.scaleSpace(spacing.md),
-          paddingTop: theme.scaleSpace(spacing.md),
-          paddingBottom: theme.scaleSpace(spacing.md),
+        subtitle: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(18),
+          fontFamily: "InterMedium",
         },
         handle: {
           width: theme.scaleSpace(42),
@@ -116,131 +67,123 @@ export function FormSheetModal({
           justifyContent: "space-between",
           alignItems: "flex-start",
           gap: theme.scaleSpace(spacing.sm),
-          marginBottom: theme.scaleSpace(spacing.sm),
         },
         headerTextWrap: {
           flex: 1,
           gap: 2,
         },
-        title: {
-          color: theme.colors.cardForeground,
-          fontSize: theme.scaleText(18),
-          fontFamily: "InterBold",
+        bottomSheetHeader: {
+          paddingHorizontal: theme.scaleSpace(spacing.lg),
+          paddingTop: theme.scaleSpace(spacing.xs),
+          paddingBottom: theme.scaleSpace(spacing.sm),
         },
-        subtitle: {
-          color: theme.colors.mutedForeground,
-          fontSize: theme.scaleText(12),
-          lineHeight: theme.scaleLineHeight(18),
-          fontFamily: "InterMedium",
+        dialogHeader: {
+          paddingHorizontal: theme.scaleSpace(spacing.md),
+          paddingTop: theme.scaleSpace(spacing.md),
+          paddingBottom: theme.scaleSpace(spacing.sm),
         },
-        body: {
-          flexShrink: 1,
-        },
-        scroll: {
-          flexShrink: 1,
-        },
-        content: {
+        bottomSheetContent: {
           gap: theme.scaleSpace(spacing.sm),
+          paddingHorizontal: theme.scaleSpace(spacing.lg),
+          paddingBottom: theme.scaleSpace(spacing.md),
+        },
+        dialogContent: {
+          gap: theme.scaleSpace(spacing.sm),
+          paddingHorizontal: theme.scaleSpace(spacing.md),
           paddingBottom: theme.scaleSpace(spacing.md),
         },
         contentWithFooter: {
           paddingBottom: theme.scaleSpace(spacing.sm),
         },
-        footer: {
+        bottomSheetFooter: {
           borderTopWidth: 1,
           borderTopColor: theme.colors.border,
           paddingTop: theme.scaleSpace(spacing.sm),
+          paddingHorizontal: theme.scaleSpace(spacing.lg),
+          backgroundColor: theme.colors.card,
+        },
+        dialogFooter: {
+          borderTopWidth: 1,
+          borderTopColor: theme.colors.border,
+          paddingTop: theme.scaleSpace(spacing.sm),
+          paddingHorizontal: theme.scaleSpace(spacing.md),
           backgroundColor: theme.colors.card,
         },
       }),
     [theme],
   );
 
-  return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType={isDialogPresentation ? "fade" : "slide"}
-      onRequestClose={onClose}
-    >
-      <View
-        style={[
-          styles.backdrop,
-          isDialogPresentation ? styles.dialogBackdrop : styles.sheetBackdrop,
-          backdropStyle,
-        ]}
-      >
-        <Pressable
-          style={isDialogPresentation ? styles.dialogDismissArea : styles.sheetDismissArea}
+  const resolvedContentContainerStyle = React.useMemo(
+    () => [
+      isDialogPresentation ? styles.dialogContent : styles.bottomSheetContent,
+      footer ? styles.contentWithFooter : null,
+      contentContainerStyle,
+    ],
+    [
+      contentContainerStyle,
+      footer,
+      isDialogPresentation,
+      styles.bottomSheetContent,
+      styles.contentWithFooter,
+      styles.dialogContent,
+    ],
+  );
+
+  const headerContent = (
+    <>
+      {isDialogPresentation ? null : <View style={styles.handle} />}
+
+      <View style={styles.headerRow}>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.title}>{title}</Text>
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        </View>
+
+        <AppIconButton
+          size="md"
           onPress={onClose}
-        />
-
-        <KeyboardAvoidingView
-          behavior={keyboardBehavior}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
-          enabled={true}
-          style={[
-            isDialogPresentation ? styles.dialogKeyboardWrap : null,
-            styles.keyboardWrap,
-          ]}
+          accessibilityRole="button"
+          accessibilityLabel={closeAccessibilityLabel}
         >
-          <View
-            style={[
-              styles.sheet,
-              isDialogPresentation ? styles.dialogSheet : styles.bottomSheet,
-              sheetStyle,
-            ]}
-          >
-            {isDialogPresentation ? null : <View style={styles.handle} />}
-
-            <View style={styles.headerRow}>
-              <View style={styles.headerTextWrap}>
-                <Text style={styles.title}>{title}</Text>
-                {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-              </View>
-
-              <AppIconButton
-                size="md"
-                onPress={onClose}
-                accessibilityRole="button"
-                accessibilityLabel={closeAccessibilityLabel}
-              >
-                <X size={18} color={theme.colors.mutedForeground} />
-              </AppIconButton>
-            </View>
-
-            <View style={styles.body}>
-              {scrollEnabled ? (
-                <ScrollView
-                  style={styles.scroll}
-                  showsVerticalScrollIndicator={false}
-                  automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
-                  keyboardShouldPersistTaps="handled"
-                  keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-                  contentContainerStyle={[
-                    styles.content,
-                    footer ? styles.contentWithFooter : null,
-                    contentContainerStyle,
-                  ]}
-                >
-                  {children}
-                </ScrollView>
-              ) : (
-                <View
-                  style={[
-                    styles.content,
-                    footer ? styles.contentWithFooter : null,
-                    contentContainerStyle,
-                  ]}
-                >
-                  {children}
-                </View>
-              )}
-            </View>
-            {footer ? <View style={styles.footer}>{footer}</View> : null}
-          </View>
-        </KeyboardAvoidingView>
+          <X size={18} color={theme.colors.mutedForeground} />
+        </AppIconButton>
       </View>
-    </Modal>
+    </>
+  );
+
+  if (isDialogPresentation) {
+    return (
+      <CenteredDialogFormModal
+        visible={visible}
+        onClose={onClose}
+        header={headerContent}
+        headerContainerStyle={styles.dialogHeader}
+        contentContainerStyle={resolvedContentContainerStyle}
+        footer={footer}
+        footerContainerStyle={styles.dialogFooter}
+        cardStyle={sheetStyle}
+        backdropStyle={backdropStyle}
+        scrollEnabled={scrollEnabled}
+      >
+        {children}
+      </CenteredDialogFormModal>
+    );
+  }
+
+  return (
+    <BottomSheetFormModal
+      visible={visible}
+      onClose={onClose}
+      header={headerContent}
+      headerContainerStyle={styles.bottomSheetHeader}
+      contentContainerStyle={resolvedContentContainerStyle}
+      footer={footer}
+      footerContainerStyle={styles.bottomSheetFooter}
+      sheetStyle={sheetStyle}
+      backdropStyle={backdropStyle}
+      scrollEnabled={scrollEnabled}
+    >
+      {children}
+    </BottomSheetFormModal>
   );
 }

@@ -1,23 +1,28 @@
 import {
-    getLedgerEntryTypeLabel,
-    getLedgerPartyLabel,
-    requiresDueDate,
-    requiresPaymentMode,
+  getLedgerEntryTypeLabel,
+  getLedgerPartyLabel,
+  requiresDueDate,
+  requiresPaymentMode,
 } from "@/feature/ledger/viewModel/ledger.shared";
 import { LedgerEditorViewModel } from "@/feature/ledger/viewModel/ledgerEditor.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import {
-    DropdownOption
-} from "@/shared/components/reusable/DropDown/Dropdown";
+import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { ChipSelectorField } from "@/shared/components/reusable/Form/ChipSelectorField";
 import { DualCalendarDatePicker } from "@/shared/components/reusable/Form/DualCalendarDatePicker";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
-import { ChevronDown, ChevronUp, Link2, Paperclip, Trash2 } from "lucide-react-native";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
+import {
+  ChevronDown,
+  ChevronUp,
+  Link2,
+  Paperclip,
+  Trash2,
+} from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -28,6 +33,8 @@ type LedgerEntryEditorModalProps = {
 export function LedgerEntryEditorModal({
   viewModel,
 }: LedgerEntryEditorModalProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { state } = viewModel;
 
   const settlementAccountOptions: DropdownOption[] =
@@ -161,9 +168,9 @@ export function LedgerEntryEditorModal({
           <Text style={styles.moreDetailsSubtitle}>Bill/ref, note, reminder, attachment</Text>
         </View>
         {state.showMoreDetails ? (
-          <ChevronUp size={18} color={colors.mutedForeground} />
+          <ChevronUp size={18} color={theme.colors.mutedForeground} />
         ) : (
-          <ChevronDown size={18} color={colors.mutedForeground} />
+          <ChevronDown size={18} color={theme.colors.mutedForeground} />
         )}
       </Pressable>
 
@@ -202,7 +209,7 @@ export function LedgerEntryEditorModal({
             {state.attachmentUri.trim().length > 0 ? (
               <View style={styles.attachmentPreview}>
                 <View style={styles.attachmentMeta}>
-                  <Link2 size={14} color={colors.primary} />
+                  <Link2 size={14} color={theme.colors.primary} />
                   <Text style={styles.attachmentText} numberOfLines={1}>
                     {state.attachmentUri}
                   </Text>
@@ -212,7 +219,7 @@ export function LedgerEntryEditorModal({
                   onPress={viewModel.clearAttachment}
                   disabled={state.isSaving}
                 >
-                  <Trash2 size={14} color={colors.destructive} />
+                  <Trash2 size={14} color={theme.colors.destructive} />
                 </Pressable>
               </View>
             ) : null}
@@ -223,7 +230,7 @@ export function LedgerEntryEditorModal({
               size="md"
               onPress={() => void viewModel.pickAttachment()}
               disabled={state.isSaving}
-              leadingIcon={<Paperclip size={14} color={colors.foreground} />}
+              leadingIcon={<Paperclip size={14} color={theme.colors.foreground} />}
             />
           </View>
         </View>
@@ -236,109 +243,110 @@ export function LedgerEntryEditorModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  inputLabel: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
-  },
-  partySuggestionsWrap: {
-    marginTop: -spacing.xs,
-    marginBottom: spacing.xs,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  partySuggestionButton: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-  },
-  partySuggestionText: {
-    color: colors.cardForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  moreDetailsToggle: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.background,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  moreDetailsTitle: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-  moreDetailsSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  moreDetailsContent: {
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.secondary,
-    padding: spacing.sm,
-  },
-  attachmentWrap: {
-    gap: spacing.xs,
-  },
-  attachmentPreview: {
-    minHeight: 42,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.sm,
-    backgroundColor: colors.card,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  attachmentMeta: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  attachmentText: {
-    flex: 1,
-    color: colors.cardForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  removeAttachmentButton: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterSemiBold",
-  },
-  actionButton: {
-    flex: 1,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+      paddingBottom: theme.scaleSpace(spacing.xl),
+    },
+    inputLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(11),
+      fontFamily: "InterBold",
+      textTransform: "uppercase",
+      letterSpacing: 0.45,
+    },
+    partySuggestionsWrap: {
+      marginTop: theme.scaleSpace(-spacing.xs),
+      marginBottom: theme.scaleSpace(spacing.xs),
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    partySuggestionButton: {
+      paddingHorizontal: theme.scaleSpace(spacing.sm),
+      paddingVertical: theme.scaleSpace(6),
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.card,
+    },
+    partySuggestionText: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterMedium",
+    },
+    moreDetailsToggle: {
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: radius.lg,
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.sm),
+      backgroundColor: theme.colors.background,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    moreDetailsTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterBold",
+    },
+    moreDetailsSubtitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      marginTop: theme.scaleSpace(2),
+    },
+    moreDetailsContent: {
+      gap: theme.scaleSpace(spacing.sm),
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: radius.lg,
+      backgroundColor: theme.colors.secondary,
+      padding: theme.scaleSpace(spacing.sm),
+    },
+    attachmentWrap: {
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    attachmentPreview: {
+      minHeight: theme.scaleSpace(42),
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: theme.scaleSpace(spacing.sm),
+      backgroundColor: theme.colors.card,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    attachmentMeta: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(6),
+    },
+    attachmentText: {
+      flex: 1,
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterMedium",
+    },
+    removeAttachmentButton: {
+      width: theme.scaleSpace(30),
+      height: theme.scaleSpace(30),
+      borderRadius: radius.pill,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterSemiBold",
+    },
+    actionButton: {
+      flex: 1,
+    },
+  });

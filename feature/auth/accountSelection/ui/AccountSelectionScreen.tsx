@@ -4,8 +4,9 @@ import { Briefcase, ChevronRight, Sparkles, User } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { CardPressable } from "@/shared/components/reusable/Cards/Card";
 import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { AccountType } from "../types/accountSelection.types";
 import { AccountSelectionViewModel } from "../viewModel/accountSelection.viewModel";
 
@@ -22,6 +23,8 @@ const getAccountTypeLabel = (accountType: string): string => {
 };
 
 export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const {
     accounts,
     selectedAccountRemoteId,
@@ -56,7 +59,7 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerIconWrap}>
-          <Sparkles size={28} color={colors.headerForeground} />
+          <Sparkles size={28} color={theme.colors.headerForeground} />
         </View>
         <Text style={styles.headerTitle}>Welcome to eLekha</Text>
         <Text style={styles.headerSubtitle}>
@@ -78,7 +81,9 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
           <View style={styles.accountsList}>
             {accounts.map((account) => {
               const isSelected = selectedAccountRemoteId === account.remoteId;
-              const iconColor = isSelected ? colors.primary : colors.mutedForeground;
+              const iconColor = isSelected
+                ? theme.colors.primary
+                : theme.colors.mutedForeground;
               const accountMetaLocation = account.cityOrLocation?.trim();
 
               return (
@@ -110,7 +115,7 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
                     ) : null}
                   </View>
 
-                  <ChevronRight size={18} color={colors.mutedForeground} />
+                  <ChevronRight size={18} color={theme.colors.mutedForeground} />
                 </CardPressable>
               );
             })}
@@ -150,124 +155,125 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    backgroundColor: colors.header,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxl * 2,
-    paddingBottom: spacing.xxl,
-    gap: spacing.xs,
-  },
-  headerIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.lg,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.sm,
-  },
-  headerTitle: {
-    color: colors.headerForeground,
-    fontSize: 28,
-    fontFamily: "InterBold",
-  },
-  headerSubtitle: {
-    color: colors.headerForeground,
-    fontSize: 13,
-    fontFamily: "InterMedium",
-    opacity: 0.9,
-  },
-  headerDivider: {
-    height: 4,
-    width: "100%",
-    backgroundColor: colors.destructive,
-  },
-  scrollArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    width: "100%",
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xl,
-    gap: spacing.sm,
-  },
-  sectionTitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterBold",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    marginBottom: spacing.xs,
-  },
-  infoText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontFamily: "InterMedium",
-  },
-  accountsList: {
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  accountItem: {
-    paddingVertical: spacing.md + 2,
-    paddingHorizontal: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  accountItemSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.accent,
-  },
-  accountIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.pill,
-    backgroundColor: colors.secondary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  accountBody: {
-    flex: 1,
-    gap: 2,
-  },
-  accountTitle: {
-    color: colors.cardForeground,
-    fontSize: 15,
-    fontFamily: "InterBold",
-  },
-  accountMeta: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  defaultLabel: {
-    color: colors.primary,
-    fontSize: 12,
-    fontFamily: "InterBold",
-  },
-  emptyStateText: {
-    color: colors.mutedForeground,
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: spacing.md,
-  },
-  primaryButton: {
-    marginTop: spacing.md,
-  },
-  primaryButtonDisabled: {
-    opacity: 0.6,
-  },
-  secondaryButton: {
-    marginTop: spacing.xs,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    header: {
+      backgroundColor: theme.colors.header,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: theme.scaleSpace(spacing.xl),
+      paddingTop: theme.scaleSpace(spacing.xxl * 2),
+      paddingBottom: theme.scaleSpace(spacing.xxl),
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    headerIconWrap: {
+      width: 64,
+      height: 64,
+      borderRadius: radius.lg,
+      backgroundColor: "rgba(255,255,255,0.18)",
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: theme.scaleSpace(spacing.sm),
+    },
+    headerTitle: {
+      color: theme.colors.headerForeground,
+      fontSize: theme.scaleText(28),
+      fontFamily: "InterBold",
+    },
+    headerSubtitle: {
+      color: theme.colors.headerForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterMedium",
+      opacity: 0.9,
+    },
+    headerDivider: {
+      height: 4,
+      width: "100%",
+      backgroundColor: theme.colors.destructive,
+    },
+    scrollArea: {
+      flex: 1,
+    },
+    scrollContent: {
+      width: "100%",
+      paddingHorizontal: theme.scaleSpace(spacing.lg),
+      paddingTop: theme.scaleSpace(spacing.lg),
+      paddingBottom: theme.scaleSpace(spacing.xl),
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    sectionTitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterBold",
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      marginBottom: theme.scaleSpace(spacing.xs),
+    },
+    infoText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterMedium",
+    },
+    accountsList: {
+      gap: theme.scaleSpace(spacing.sm),
+      marginBottom: theme.scaleSpace(spacing.md),
+    },
+    accountItem: {
+      paddingVertical: theme.scaleSpace(spacing.md) + 2,
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    accountItemSelected: {
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.accent,
+    },
+    accountIconWrap: {
+      width: 48,
+      height: 48,
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.secondary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    accountBody: {
+      flex: 1,
+      gap: 2,
+    },
+    accountTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(15),
+      fontFamily: "InterBold",
+    },
+    accountMeta: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterMedium",
+    },
+    defaultLabel: {
+      color: theme.colors.primary,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterBold",
+    },
+    emptyStateText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(14),
+      lineHeight: theme.scaleLineHeight(20),
+      marginBottom: theme.scaleSpace(spacing.md),
+    },
+    primaryButton: {
+      marginTop: theme.scaleSpace(spacing.md),
+    },
+    primaryButtonDisabled: {
+      opacity: 0.6,
+    },
+    secondaryButton: {
+      marginTop: theme.scaleSpace(spacing.xs),
+    },
+  });
 

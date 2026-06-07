@@ -10,7 +10,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { Control, Controller, FieldValues, Path } from "react-hook-form";
-import { colors } from "../../theme/colors";
+import { useAppTheme } from "../../theme/AppThemeProvider";
 import { radius } from "../../theme/spacing";
 
 interface TextFieldProps<TFieldValues extends FieldValues>
@@ -44,6 +44,48 @@ function TextFieldComponent<TFieldValues extends FieldValues>({
   style,
   ...inputProps
 }: TextFieldProps<TFieldValues>) {
+  const theme = useAppTheme();
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        wrapper: {
+          minHeight: theme.scaleSpace(54),
+          backgroundColor: theme.colors.card,
+          borderRadius: radius.lg,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          paddingHorizontal: theme.scaleSpace(12),
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.scaleSpace(10),
+        },
+        wrapperError: {
+          borderColor: theme.colors.destructive,
+        },
+        side: {
+          minWidth: theme.scaleSpace(20),
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        input: {
+          flex: 1,
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(14),
+          lineHeight: theme.scaleLineHeight(18),
+          paddingVertical: theme.scaleSpace(14),
+          fontFamily: "InterMedium",
+        },
+        errorText: {
+          color: theme.colors.destructive,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(16),
+          fontFamily: "InterMedium",
+          marginTop: theme.scaleSpace(6),
+        },
+      }),
+    [theme],
+  );
+
   return (
     <Controller
       control={control}
@@ -61,7 +103,7 @@ function TextFieldComponent<TFieldValues extends FieldValues>({
               <TextInput
                 {...inputProps}
                 placeholder={placeholder}
-                placeholderTextColor={colors.mutedForeground}
+                placeholderTextColor={theme.colors.mutedForeground}
                 style={[styles.input, style, inputStyle]}
                 secureTextEntry={secureTextEntry}
                 autoCapitalize={autoCapitalize}
@@ -96,38 +138,4 @@ function TextFieldComponent<TFieldValues extends FieldValues>({
 export const TextField = React.memo(
   TextFieldComponent,
 ) as typeof TextFieldComponent;
-
-const styles = StyleSheet.create({
-  wrapper: {
-    minHeight: 54,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  wrapperError: {
-    borderColor: colors.destructive,
-  },
-  side: {
-    minWidth: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  input: {
-    flex: 1,
-    color: colors.cardForeground,
-    fontSize: 14,
-    paddingVertical: 14,
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-    marginTop: 6,
-  },
-});
 

@@ -2,11 +2,12 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Calculator, ChevronRight } from "lucide-react-native";
 import { Card } from "@/shared/components/reusable/Cards/Card";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { DashboardInfoCard, DashboardTabScaffold } from "@/feature/dashboard/shared/ui/DashboardTabScaffold";
 import { TaxCalculatorModal } from "./components/TaxCalculatorModal";
 import { TaxCalculatorScreenViewModel } from "@/feature/appSettings/taxCalculator/viewModel/taxCalculator.viewModel";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type TaxCalculatorSettingsScreenProps = {
   viewModel: TaxCalculatorScreenViewModel;
@@ -15,6 +16,9 @@ type TaxCalculatorSettingsScreenProps = {
 export function TaxCalculatorSettingsScreen({
   viewModel,
 }: TaxCalculatorSettingsScreenProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <>
       <DashboardTabScaffold
@@ -39,7 +43,7 @@ export function TaxCalculatorSettingsScreen({
                 accessibilityRole="button"
               >
                 <View style={styles.iconWrap}>
-                  <Calculator size={18} color={colors.primary} />
+                  <Calculator size={18} color={theme.colors.primary} />
                 </View>
 
                 <View style={styles.rowBody}>
@@ -47,7 +51,7 @@ export function TaxCalculatorSettingsScreen({
                   <Text style={styles.rowSubtitle}>{viewModel.taxToolSubtitle}</Text>
                 </View>
 
-                <ChevronRight size={16} color={colors.mutedForeground} />
+                <ChevronRight size={16} color={theme.colors.mutedForeground} />
               </Pressable>
             </Card>
           )}
@@ -79,49 +83,50 @@ export function TaxCalculatorSettingsScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  sectionWrap: {
-    gap: spacing.sm,
-  },
-  sectionTitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterBold",
-    letterSpacing: 0.7,
-    textTransform: "uppercase",
-  },
-  sectionCard: {
-    padding: 0,
-  },
-  row: {
-    minHeight: 72,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.accent,
-  },
-  rowBody: {
-    flex: 1,
-  },
-  rowTitle: {
-    color: colors.cardForeground,
-    fontSize: 15,
-    fontFamily: "InterBold",
-    marginBottom: 2,
-  },
-  rowSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: "InterMedium",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    sectionWrap: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    sectionTitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterBold",
+      letterSpacing: 0.7,
+      textTransform: "uppercase",
+    },
+    sectionCard: {
+      padding: 0,
+    },
+    row: {
+      minHeight: 72,
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.md),
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    iconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.pill,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.colors.accent,
+    },
+    rowBody: {
+      flex: 1,
+    },
+    rowTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(15),
+      fontFamily: "InterBold",
+      marginBottom: 2,
+    },
+    rowSubtitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterMedium",
+    },
+  });

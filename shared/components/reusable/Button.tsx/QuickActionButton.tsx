@@ -1,7 +1,8 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Card } from '../Cards/Card';
-import { colors } from '../../theme/colors';
+import { useAppTheme } from '../../theme/AppThemeProvider';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 
 interface QuickActionButtonProps {
@@ -11,6 +12,8 @@ interface QuickActionButtonProps {
 }
 
 export function QuickActionButton({ label, icon, onPress }: QuickActionButtonProps) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <Pressable onPress={onPress} style={styles.pressable}>
       <Card style={styles.card}>
@@ -21,24 +24,26 @@ export function QuickActionButton({ label, icon, onPress }: QuickActionButtonPro
   );
 }
 
-const styles = StyleSheet.create({
-  pressable: {
-    width: '23.5%',
-  },
-  card: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 88,
-    paddingHorizontal: 8,
-  },
-  icon: {
-    marginBottom: 8,
-  },
-  label: {
-    color: colors.cardForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textAlign: 'center',
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    pressable: {
+      width: '23.5%',
+    },
+    card: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: theme.scaleSpace(88),
+      paddingHorizontal: theme.scaleSpace(8),
+    },
+    icon: {
+      marginBottom: theme.scaleSpace(8),
+    },
+    label: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(11),
+      lineHeight: theme.scaleLineHeight(14),
+      fontFamily: "InterBold",
+      textAlign: 'center',
+    },
+  });
 

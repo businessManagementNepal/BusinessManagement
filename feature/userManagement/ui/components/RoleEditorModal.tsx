@@ -3,17 +3,12 @@ import { Card } from "@/shared/components/reusable/Cards/Card";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { Check, CircleDashed } from "lucide-react-native";
 import React from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { UserManagementPermission } from "../../types/userManagement.types";
 import { UserManagementRoleEditorFieldErrors } from "@/feature/userManagement/viewModel/userManagement.state";
 
@@ -49,6 +44,8 @@ export function RoleEditorModal({
   onCancel,
   onSave,
 }: RoleEditorModalProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const modalTitle = mode === "create" ? "Create Role" : "Edit Role";
 
   return (
@@ -118,9 +115,9 @@ export function RoleEditorModal({
                     ]}
                   >
                     {isSelected ? (
-                      <Check size={14} color={colors.primaryForeground} />
+                      <Check size={14} color={theme.colors.primaryForeground} />
                     ) : (
-                      <CircleDashed size={14} color={colors.mutedForeground} />
+                      <CircleDashed size={14} color={theme.colors.mutedForeground} />
                     )}
                   </View>
                   <View style={styles.permissionRowTextWrap}>
@@ -139,75 +136,76 @@ export function RoleEditorModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-    paddingBottom: spacing.md,
-  },
-  permissionSelectorTitle: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-  permissionScroll: {
-    minHeight: 220,
-    maxHeight: 380,
-  },
-  permissionScrollContent: {
-    gap: spacing.sm,
-    paddingBottom: spacing.sm,
-  },
-  permissionGroupWrap: {
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  permissionGroupTitle: {
-    color: colors.primary,
-    fontSize: 11,
-    lineHeight: 14,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.55,
-  },
-  permissionRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-    paddingVertical: 3,
-  },
-  permissionToggleIconWrap: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.secondary,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginTop: 1,
-  },
-  permissionToggleSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  permissionRowTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  permissionRowTitle: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    lineHeight: 17,
-    fontFamily: "InterSemiBold",
-  },
-  permissionRowSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    lineHeight: 16,
-    fontFamily: "InterMedium",
-  },
-  actionButton: {
-    flex: 1,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+      paddingBottom: theme.scaleSpace(spacing.md),
+    },
+    permissionSelectorTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterBold",
+    },
+    permissionScroll: {
+      minHeight: theme.scaleSpace(220),
+      maxHeight: theme.scaleSpace(380),
+    },
+    permissionScrollContent: {
+      gap: theme.scaleSpace(spacing.sm),
+      paddingBottom: theme.scaleSpace(spacing.sm),
+    },
+    permissionGroupWrap: {
+      borderRadius: radius.lg,
+      padding: theme.scaleSpace(spacing.md),
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    permissionGroupTitle: {
+      color: theme.colors.primary,
+      fontSize: theme.scaleText(11),
+      lineHeight: theme.scaleLineHeight(14),
+      fontFamily: "InterBold",
+      textTransform: "uppercase",
+      letterSpacing: 0.55,
+    },
+    permissionRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: theme.scaleSpace(spacing.sm),
+      paddingVertical: theme.scaleSpace(3),
+    },
+    permissionToggleIconWrap: {
+      width: theme.scaleSpace(22),
+      height: theme.scaleSpace(22),
+      borderRadius: radius.pill,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.colors.secondary,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginTop: theme.scaleSpace(1),
+    },
+    permissionToggleSelected: {
+      backgroundColor: theme.colors.primary,
+      borderColor: theme.colors.primary,
+    },
+    permissionRowTextWrap: {
+      flex: 1,
+      gap: theme.scaleSpace(2),
+    },
+    permissionRowTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(13),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterSemiBold",
+    },
+    permissionRowSubtitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(11),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterMedium",
+    },
+    actionButton: {
+      flex: 1,
+    },
+  });

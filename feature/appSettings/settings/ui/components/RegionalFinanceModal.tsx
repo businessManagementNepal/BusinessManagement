@@ -2,8 +2,9 @@ import { SettingsViewModel } from "@/feature/appSettings/settings/viewModel/sett
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -44,6 +45,8 @@ export function RegionalFinanceModal({
   onChangeTaxMode,
   onSave,
 }: RegionalFinanceModalProps) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <FormSheetModal
       visible={visible}
@@ -120,20 +123,21 @@ export function RegionalFinanceModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 13,
-    fontFamily: "InterSemiBold",
-  },
-  footer: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  footerButton: {
-    flex: 1,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterSemiBold",
+    },
+    footer: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    footerButton: {
+      flex: 1,
+    },
+  });

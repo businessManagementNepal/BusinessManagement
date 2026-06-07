@@ -1,8 +1,9 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { Star } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -30,6 +31,9 @@ export function RateELekhaModal({
   onReviewChange,
   onSubmit,
 }: RateELekhaModalProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <FormSheetModal
       visible={visible}
@@ -43,24 +47,24 @@ export function RateELekhaModal({
         <Text style={styles.helperText}>How would you rate your experience?</Text>
 
         <View style={styles.starRow}>
-        {[1, 2, 3, 4, 5].map((value) => {
-          const isActive = value <= ratingValue;
+          {[1, 2, 3, 4, 5].map((value) => {
+            const isActive = value <= ratingValue;
 
-          return (
-            <Pressable
-              key={value}
-              style={styles.starButton}
-              onPress={() => onSelectRating(value)}
-              accessibilityRole="button"
-            >
-              <Star
-                size={34}
-                color={isActive ? colors.warning : colors.border}
-                fill={isActive ? colors.warning : "transparent"}
-              />
-            </Pressable>
-          );
-        })}
+            return (
+              <Pressable
+                key={value}
+                style={styles.starButton}
+                onPress={() => onSelectRating(value)}
+                accessibilityRole="button"
+              >
+                <Star
+                  size={34}
+                  color={isActive ? theme.colors.warning : theme.colors.border}
+                  fill={isActive ? theme.colors.warning : "transparent"}
+                />
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
@@ -87,45 +91,46 @@ export function RateELekhaModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.md,
-  },
-  fieldWrap: {
-    gap: spacing.xs,
-  },
-  fieldLabel: {
-    color: colors.cardForeground,
-    fontFamily: "InterSemiBold",
-    fontSize: 14,
-  },
-  helperText: {
-    color: colors.mutedForeground,
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: "InterMedium",
-    textAlign: "center",
-  },
-  starRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-  },
-  starButton: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: "InterSemiBold",
-  },
-  submitButton: {
-    marginTop: spacing.xs,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.md),
+    },
+    fieldWrap: {
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    fieldLabel: {
+      color: theme.colors.cardForeground,
+      fontFamily: "InterSemiBold",
+      fontSize: theme.scaleText(14),
+    },
+    helperText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(14),
+      lineHeight: theme.scaleLineHeight(20),
+      fontFamily: "InterMedium",
+      textAlign: "center",
+    },
+    starRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    starButton: {
+      width: theme.scaleSpace(48),
+      height: theme.scaleSpace(48),
+      borderRadius: radius.pill,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterSemiBold",
+    },
+    submitButton: {
+      marginTop: theme.scaleSpace(spacing.xs),
+    },
+  });

@@ -6,8 +6,9 @@ import { DualCalendarDatePicker } from "@/shared/components/reusable/Form/DualCa
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
 import { StyleSheet, Switch, Text, View } from "react-native";
 
@@ -18,6 +19,8 @@ type EmiPlanEditorModalProps = {
 export function EmiPlanEditorModal({
   viewModel,
 }: EmiPlanEditorModalProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { state } = viewModel;
   const counterpartyLabel =
     state.planMode === "business" && state.planType === "customer_installment"
@@ -138,8 +141,11 @@ export function EmiPlanEditorModal({
           <Switch
             value={state.reminderEnabled}
             onValueChange={viewModel.onToggleReminder}
-            trackColor={{ true: colors.primary, false: colors.border }}
-            thumbColor={colors.card}
+            trackColor={{
+              true: theme.colors.primary,
+              false: theme.colors.border,
+            }}
+            thumbColor={theme.colors.card}
             disabled={state.isSaving}
           />
         </View>
@@ -174,43 +180,44 @@ export function EmiPlanEditorModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  switchCard: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  switchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  switchTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  switchTitle: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-  switchSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: "InterMedium",
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterSemiBold",
-  },
-  actionButton: {
-    flex: 1,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+      paddingBottom: theme.scaleSpace(spacing.xl),
+    },
+    switchCard: {
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.md),
+    },
+    switchRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.scaleSpace(spacing.md),
+    },
+    switchTextWrap: {
+      flex: 1,
+      gap: theme.scaleSpace(2),
+    },
+    switchTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterBold",
+    },
+    switchSubtitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterMedium",
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterSemiBold",
+    },
+    actionButton: {
+      flex: 1,
+    },
+  });

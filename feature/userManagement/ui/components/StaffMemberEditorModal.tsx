@@ -15,8 +15,9 @@ import {
   RoleOptionGrid,
   RoleOptionGridItem,
 } from "@/shared/components/reusable/Form/RoleOptionGrid";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { UserManagementMemberEditorFieldErrors } from "@/feature/userManagement/viewModel/userManagement.state";
@@ -82,6 +83,7 @@ export function StaffMemberEditorModal({
   onCancel,
   onSave,
 }: StaffMemberEditorModalProps) {
+  const styles = useThemedStyles(createStyles);
   const title = mode === "create" ? "Add Staff Member" : "Edit Staff Member";
   const phoneCountrySelectorOptions: ChipSelectorOption<SignUpPhoneCountryCode>[] =
     phoneCountryOptions.map((phoneCountryOption) => ({
@@ -232,58 +234,59 @@ export function StaffMemberEditorModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  inlineFieldLabel: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    lineHeight: 17,
-    fontFamily: "InterBold",
-  },
-  roleSectionWrap: {
-    gap: spacing.xs,
-  },
-  roleSectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.xs,
-  },
-  noRoleText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: "InterMedium",
-  },
-  inlineErrorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterMedium",
-  },
-  permissionCard: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: spacing.xs,
-  },
-  permissionCardTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  permissionCardSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 18,
-    fontFamily: "InterMedium",
-  },
-  permissionButton: {
-    marginTop: spacing.xs,
-  },
-  actionButton: {
-    flex: 1,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+      paddingBottom: theme.scaleSpace(spacing.xl),
+    },
+    inlineFieldLabel: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(13),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterBold",
+    },
+    roleSectionWrap: {
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    roleSectionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    noRoleText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterMedium",
+    },
+    inlineErrorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterMedium",
+    },
+    permissionCard: {
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.md),
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    permissionCardTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterBold",
+    },
+    permissionCardSubtitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(18),
+      fontFamily: "InterMedium",
+    },
+    permissionButton: {
+      marginTop: theme.scaleSpace(spacing.xs),
+    },
+    actionButton: {
+      flex: 1,
+    },
+  });

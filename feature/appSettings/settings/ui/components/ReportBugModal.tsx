@@ -3,8 +3,9 @@ import { Card } from "@/shared/components/reusable/Cards/Card";
 import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { BUG_SEVERITY_OPTIONS } from "../../types/settings.types";
@@ -33,6 +34,8 @@ export function ReportBugModal({
   onChange,
   onSubmit,
 }: ReportBugModalProps) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <FormSheetModal
       visible={visible}
@@ -87,34 +90,35 @@ export function ReportBugModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.md,
-  },
-  fieldWrap: {
-    gap: 6,
-  },
-  fieldLabel: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
-  },
-  metaCard: {
-    backgroundColor: colors.accent,
-    gap: 6,
-  },
-  metaText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: "InterMedium",
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: "InterSemiBold",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.md),
+    },
+    fieldWrap: {
+      gap: theme.scaleSpace(6),
+    },
+    fieldLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(11),
+      fontFamily: "InterBold",
+      textTransform: "uppercase",
+      letterSpacing: 0.45,
+    },
+    metaCard: {
+      backgroundColor: theme.colors.accent,
+      gap: theme.scaleSpace(6),
+    },
+    metaText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterMedium",
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterSemiBold",
+    },
+  });

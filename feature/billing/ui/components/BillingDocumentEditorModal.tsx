@@ -10,8 +10,9 @@ import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormMod
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import { Plus, Printer, Trash2 } from "lucide-react-native";
 import React from "react";
@@ -61,6 +62,9 @@ export function BillingDocumentEditorModal({
   availableSettlementAccounts: readonly BillingSettlementAccountOption[];
   draftTotals: { subtotalAmount: number; taxAmount: number; totalAmount: number };
 }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   const parseNumber = (value: string): number => {
     const parsed = Number(value.trim());
     return Number.isFinite(parsed) ? parsed : 0;
@@ -95,7 +99,7 @@ export function BillingDocumentEditorModal({
             size="lg"
             variant="secondary"
             style={styles.utilityActionButton}
-            leadingIcon={<Printer size={16} color={colors.primary} />}
+            leadingIcon={<Printer size={16} color={theme.colors.primary} />}
             onPress={onPrintPreview}
           />
         </FormModalActionFooter>
@@ -168,7 +172,7 @@ export function BillingDocumentEditorModal({
                   onPress={() => onRemoveLineItem(item.remoteId)}
                   disabled={!canManage}
                 >
-                  <Trash2 size={16} color={colors.destructive} />
+                  <Trash2 size={16} color={theme.colors.destructive} />
                 </Pressable>
               ) : null}
             </View>
@@ -208,7 +212,7 @@ export function BillingDocumentEditorModal({
         onPress={onAddLineItem}
         disabled={!canManage}
       >
-        <Plus size={16} color={colors.primary} />
+        <Plus size={16} color={theme.colors.primary} />
         <Text style={styles.addItemText}>Add Item</Text>
       </Pressable>
 
@@ -337,138 +341,139 @@ export function BillingDocumentEditorModal({
   );
 }
 
-const styles = StyleSheet.create({
-  formWrap: {
-    gap: spacing.sm,
-  },
-  itemsHeaderWrap: {
-    gap: 4,
-  },
-  sectionLabel: {
-    color: colors.cardForeground,
-    fontFamily: "InterSemiBold",
-    fontSize: 14,
-  },
-  sectionErrorText: {
-    color: colors.destructive,
-    fontFamily: "InterMedium",
-    fontSize: 12,
-  },
-  lineItemHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingBottom: spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    marginBottom: spacing.xs,
-  },
-  lineItemHeaderText: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
-  },
-  lineItemName: {
-    flex: 1,
-  },
-  lineItemQty: {
-    width: 80,
-  },
-  lineItemRate: {
-    width: 110,
-  },
-  lineItemActionSpacer: {
-    width: 34,
-  },
-  lineItemWrap: {
-    gap: spacing.xs,
-  },
-  lineItemRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    alignItems: "center",
-  },
-  lineItemErrorRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    alignItems: "flex-start",
-  },
-  inlineErrorText: {
-    color: colors.destructive,
-    fontSize: 11,
-    lineHeight: 14,
-    fontFamily: "InterMedium",
-  },
-  centeredInlineError: {
-    textAlign: "center",
-  },
-  removeItemButton: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.secondary,
-  },
-  addItemRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    paddingVertical: 4,
-  },
-  addItemText: {
-    color: colors.primary,
-    fontFamily: "InterBold",
-    fontSize: 14,
-  },
-  totalCard: {
-    backgroundColor: colors.secondary,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.xs,
-  },
-  totalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  totalLabel: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-  },
-  totalValue: {
-    color: colors.cardForeground,
-    fontFamily: "InterSemiBold",
-    fontSize: 13,
-  },
-  totalDivider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginVertical: 2,
-  },
-  totalHeading: {
-    color: colors.cardForeground,
-    fontFamily: "InterBold",
-    fontSize: 17,
-  },
-  totalHeadingValue: {
-    color: colors.primary,
-    fontFamily: "InterBold",
-    fontSize: 17,
-  },
-  actionFooter: {
-    gap: spacing.xs,
-  },
-  primaryActionButton: {
-    flex: 1,
-  },
-  utilityActionButton: {
-    flex: 0.72,
-  },
-  disabledAction: {
-    opacity: 0.6,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    formWrap: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    itemsHeaderWrap: {
+      gap: 4,
+    },
+    sectionLabel: {
+      color: theme.colors.cardForeground,
+      fontFamily: "InterSemiBold",
+      fontSize: theme.scaleText(14),
+    },
+    sectionErrorText: {
+      color: theme.colors.destructive,
+      fontFamily: "InterMedium",
+      fontSize: theme.scaleText(12),
+    },
+    lineItemHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingBottom: theme.scaleSpace(spacing.xs),
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      marginBottom: theme.scaleSpace(spacing.xs),
+    },
+    lineItemHeaderText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(11),
+      fontFamily: "InterBold",
+      textTransform: "uppercase",
+      letterSpacing: 0.45,
+    },
+    lineItemName: {
+      flex: 1,
+    },
+    lineItemQty: {
+      width: 80,
+    },
+    lineItemRate: {
+      width: 110,
+    },
+    lineItemActionSpacer: {
+      width: 34,
+    },
+    lineItemWrap: {
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    lineItemRow: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+      alignItems: "center",
+    },
+    lineItemErrorRow: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+      alignItems: "flex-start",
+    },
+    inlineErrorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(11),
+      lineHeight: theme.scaleLineHeight(14),
+      fontFamily: "InterMedium",
+    },
+    centeredInlineError: {
+      textAlign: "center",
+    },
+    removeItemButton: {
+      width: 34,
+      height: 34,
+      borderRadius: radius.pill,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.colors.secondary,
+    },
+    addItemRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.xs),
+      paddingVertical: 4,
+    },
+    addItemText: {
+      color: theme.colors.primary,
+      fontFamily: "InterBold",
+      fontSize: theme.scaleText(14),
+    },
+    totalCard: {
+      backgroundColor: theme.colors.secondary,
+      borderRadius: radius.xl,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      padding: theme.scaleSpace(spacing.md),
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    totalRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    totalLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+    },
+    totalValue: {
+      color: theme.colors.cardForeground,
+      fontFamily: "InterSemiBold",
+      fontSize: theme.scaleText(13),
+    },
+    totalDivider: {
+      height: 1,
+      backgroundColor: theme.colors.border,
+      marginVertical: 2,
+    },
+    totalHeading: {
+      color: theme.colors.cardForeground,
+      fontFamily: "InterBold",
+      fontSize: theme.scaleText(17),
+    },
+    totalHeadingValue: {
+      color: theme.colors.primary,
+      fontFamily: "InterBold",
+      fontSize: theme.scaleText(17),
+    },
+    actionFooter: {
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    primaryActionButton: {
+      flex: 1,
+    },
+    utilityActionButton: {
+      flex: 0.72,
+    },
+    disabledAction: {
+      opacity: 0.6,
+    },
+  });

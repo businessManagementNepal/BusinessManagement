@@ -11,8 +11,9 @@ import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
@@ -48,42 +49,44 @@ const buildOpeningBalanceLabel = (
   )}`;
 
   if (contact.openingBalanceDirection === ContactBalanceDirection.Receive) {
-    return `${amountLabel} • To Receive`;
+    return `${amountLabel} - To Receive`;
   }
 
   if (contact.openingBalanceDirection === ContactBalanceDirection.Pay) {
-    return `${amountLabel} • To Pay`;
+    return `${amountLabel} - To Pay`;
   }
 
   return amountLabel;
 };
 
 const getSummaryToneColor = (
+  theme: ReturnType<typeof useAppTheme>,
   tone: ContactDetailSummaryCardState["tone"],
 ): string => {
   if (tone === "positive") {
-    return colors.success;
+    return theme.colors.success;
   }
 
   if (tone === "negative") {
-    return colors.destructive;
+    return theme.colors.destructive;
   }
 
-  return colors.cardForeground;
+  return theme.colors.cardForeground;
 };
 
 const getTimelineAmountColor = (
+  theme: ReturnType<typeof useAppTheme>,
   tone: ContactDetailTimelineItemState["amountTone"],
 ): string => {
   if (tone === "positive") {
-    return colors.success;
+    return theme.colors.success;
   }
 
   if (tone === "negative") {
-    return colors.destructive;
+    return theme.colors.destructive;
   }
 
-  return colors.cardForeground;
+  return theme.colors.cardForeground;
 };
 
 export function ContactDetailsModal({
@@ -99,6 +102,8 @@ export function ContactDetailsModal({
   onClose,
   onEdit,
 }: Props): React.ReactElement {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const openingBalanceLabel = selectedContact
     ? buildOpeningBalanceLabel(selectedContact, currencyPrefix)
     : null;
@@ -189,7 +194,7 @@ export function ContactDetailsModal({
             <Text
               style={[
                 styles.summaryValue,
-                { color: getSummaryToneColor(card.tone) },
+                { color: getSummaryToneColor(theme, card.tone) },
               ]}
             >
               {card.value}
@@ -203,7 +208,7 @@ export function ContactDetailsModal({
 
         {isLoading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={theme.colors.primary} />
           </View>
         ) : null}
 
@@ -247,7 +252,9 @@ export function ContactDetailsModal({
                     <Text
                       style={[
                         styles.timelineAmount,
-                        { color: getTimelineAmountColor(item.amountTone) },
+                        {
+                          color: getTimelineAmountColor(theme, item.amountTone),
+                        },
                       ]}
                     >
                       {item.amountLabel}
@@ -262,151 +269,168 @@ export function ContactDetailsModal({
   );
 }
 
-const styles = StyleSheet.create({
-  footerButton: {
-    flex: 1,
-  },
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  contactName: {
-    flex: 1,
-    color: colors.cardForeground,
-    fontSize: 18,
-    fontFamily: "InterBold",
-  },
-  archivedBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-  },
-  archivedBadgeText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontFamily: "InterBold",
-  },
-  contactType: {
-    marginTop: spacing.xs,
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontFamily: "InterMedium",
-  },
-  contactInfoGroup: {
-    marginTop: spacing.sm,
-    gap: 6,
-  },
-  contactInfoLine: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterMedium",
-  },
-  summaryGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  summaryCard: {
-    width: "47%",
-  },
-  summaryLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  summaryValue: {
-    marginTop: 6,
-    fontSize: 16,
-    fontFamily: "InterBold",
-  },
-  sectionWrap: {
-    gap: spacing.sm,
-  },
-  sectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 16,
-    fontFamily: "InterBold",
-  },
-  loadingWrap: {
-    paddingVertical: spacing.md,
-    alignItems: "center",
-  },
-  errorCard: {
-    backgroundColor: "#FFF6F6",
-    borderColor: "#F4D0D0",
-  },
-  errorTitle: {
-    color: colors.destructive,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  errorMessage: {
-    marginTop: 6,
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  emptyText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontFamily: "InterMedium",
-  },
-  timelineCard: {
-    gap: spacing.sm,
-  },
-  timelineHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  eventBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-    alignSelf: "flex-start",
-  },
-  eventBadgeText: {
-    color: colors.primary,
-    fontSize: 11,
-    fontFamily: "InterBold",
-  },
-  happenedAtText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  timelineBodyRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-  },
-  timelineTextWrap: {
-    flex: 1,
-    gap: 4,
-  },
-  timelineTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  timelineSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  timelineStatus: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  timelineAmount: {
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    footerButton: {
+      flex: 1,
+    },
+    headerTopRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    contactName: {
+      flex: 1,
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(18),
+      lineHeight: theme.scaleLineHeight(22),
+      fontFamily: "InterBold",
+    },
+    archivedBadge: {
+      paddingHorizontal: theme.scaleSpace(10),
+      paddingVertical: theme.scaleSpace(4),
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.accent,
+    },
+    archivedBadgeText: {
+      color: theme.colors.accentForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterBold",
+    },
+    contactType: {
+      marginTop: theme.scaleSpace(spacing.xs),
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterMedium",
+    },
+    contactInfoGroup: {
+      marginTop: theme.scaleSpace(spacing.sm),
+      gap: theme.scaleSpace(6),
+    },
+    contactInfoLine: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(13),
+      lineHeight: theme.scaleLineHeight(18),
+      fontFamily: "InterMedium",
+    },
+    summaryGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    summaryCard: {
+      width: "47%",
+    },
+    summaryLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterMedium",
+    },
+    summaryValue: {
+      marginTop: theme.scaleSpace(6),
+      fontSize: theme.scaleText(16),
+      lineHeight: theme.scaleLineHeight(20),
+      fontFamily: "InterBold",
+    },
+    sectionWrap: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    sectionTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(16),
+      lineHeight: theme.scaleLineHeight(20),
+      fontFamily: "InterBold",
+    },
+    loadingWrap: {
+      paddingVertical: theme.scaleSpace(spacing.md),
+      alignItems: "center",
+    },
+    errorCard: {
+      backgroundColor: theme.isDarkMode ? "rgba(228, 71, 71, 0.12)" : "#FFF6F6",
+      borderColor: theme.isDarkMode ? "rgba(228, 71, 71, 0.25)" : "#F4D0D0",
+    },
+    errorTitle: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(14),
+      lineHeight: theme.scaleLineHeight(18),
+      fontFamily: "InterBold",
+    },
+    errorMessage: {
+      marginTop: theme.scaleSpace(6),
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterMedium",
+    },
+    emptyText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterMedium",
+    },
+    timelineCard: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    timelineHeaderRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    eventBadge: {
+      paddingHorizontal: theme.scaleSpace(10),
+      paddingVertical: theme.scaleSpace(4),
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.accent,
+      alignSelf: "flex-start",
+    },
+    eventBadgeText: {
+      color: theme.colors.accentForeground,
+      fontSize: theme.scaleText(11),
+      lineHeight: theme.scaleLineHeight(14),
+      fontFamily: "InterBold",
+    },
+    happenedAtText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterMedium",
+    },
+    timelineBodyRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    timelineTextWrap: {
+      flex: 1,
+      gap: theme.scaleSpace(4),
+    },
+    timelineTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      lineHeight: theme.scaleLineHeight(18),
+      fontFamily: "InterBold",
+    },
+    timelineSubtitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterMedium",
+    },
+    timelineStatus: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterMedium",
+    },
+    timelineAmount: {
+      fontSize: theme.scaleText(13),
+      lineHeight: theme.scaleLineHeight(17),
+      fontFamily: "InterBold",
+    },
+  });

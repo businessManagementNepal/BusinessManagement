@@ -10,10 +10,11 @@ import {
 import { DualCalendarDatePicker } from "@/shared/components/reusable/Form/DualCalendarDatePicker";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { colors } from "@/shared/components/theme/colors";
 
 type Props = {
   form: OrderMoneyFormState;
@@ -39,6 +40,8 @@ export function OrderMoneyActionModal({
   onChange,
   onSubmit,
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <FormSheetModal
       visible={form.visible}
@@ -104,27 +107,28 @@ export function OrderMoneyActionModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-  },
-  label: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginBottom: -4,
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterMedium",
-    marginTop: -2,
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  actionButton: {
-    flex: 1,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    label: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      marginBottom: theme.scaleSpace(-4),
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterMedium",
+      marginTop: theme.scaleSpace(-2),
+    },
+    actionRow: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    actionButton: {
+      flex: 1,
+    },
+  });

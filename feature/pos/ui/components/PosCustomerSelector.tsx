@@ -1,7 +1,8 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { Plus, User, X } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -29,6 +30,8 @@ export function PosCustomerSelector({
   onOpenCustomerCreateModal,
   disabled = false,
 }: PosCustomerSelectorProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
 
   return (
     <View style={styles.container}>
@@ -47,7 +50,7 @@ export function PosCustomerSelector({
           style={styles.addButton}
           disabled={disabled}
           label=""
-          leadingIcon={<Plus size={16} color={colors.primary} />}
+          leadingIcon={<Plus size={16} color={theme.colors.primary} />}
         />
       </View>
 
@@ -83,7 +86,7 @@ export function PosCustomerSelector({
       {selectedCustomer && (
         <View style={styles.selectedCustomer}>
           <View style={styles.customerInfo}>
-            <User size={16} color={colors.mutedForeground} />
+            <User size={16} color={theme.colors.mutedForeground} />
             <Text style={styles.customerName}>{selectedCustomer.fullName}</Text>
             {selectedCustomer.phone && (
               <Text style={styles.customerPhone}>{selectedCustomer.phone}</Text>
@@ -95,7 +98,7 @@ export function PosCustomerSelector({
             onPress={onClearCustomer}
             disabled={disabled}
           >
-            <X size={16} color={colors.mutedForeground} />
+            <X size={16} color={theme.colors.mutedForeground} />
           </Pressable>
         </View>
       )}
@@ -103,87 +106,88 @@ export function PosCustomerSelector({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    gap: spacing.sm,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.foreground,
-  },
-  inputRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    alignItems: "center",
-  },
-  searchInput: {
-    flex: 1,
-  },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.lg,
-    backgroundColor: colors.accent,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  selectedCustomer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: spacing.sm,
-    backgroundColor: colors.accent,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  customerInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    flex: 1,
-  },
-  customerName: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: colors.foreground,
-    flex: 1,
-  },
-  customerPhone: {
-    fontSize: 12,
-    color: colors.mutedForeground,
-  },
-  clearButton: {
-    padding: spacing.xs,
-  },
-  resultsContainer: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.card,
-    maxHeight: 200,
-  },
-  resultRow: {
-    padding: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  resultName: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: colors.foreground,
-  },
-  resultPhone: {
-    fontSize: 12,
-    color: colors.mutedForeground,
-    marginTop: 2,
-  },
-  noResultsText: {
-    fontSize: 12,
-    color: colors.mutedForeground,
-    fontStyle: "italic",
-    padding: spacing.sm,
-    textAlign: "center",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    container: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    label: {
+      fontSize: theme.scaleText(14),
+      fontWeight: "600",
+      color: theme.colors.foreground,
+    },
+    inputRow: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+      alignItems: "center",
+    },
+    searchInput: {
+      flex: 1,
+    },
+    addButton: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.lg,
+      backgroundColor: theme.colors.accent,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    selectedCustomer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: theme.scaleSpace(spacing.sm),
+      backgroundColor: theme.colors.accent,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    customerInfo: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+      flex: 1,
+    },
+    customerName: {
+      fontSize: theme.scaleText(14),
+      fontWeight: "500",
+      color: theme.colors.foreground,
+      flex: 1,
+    },
+    customerPhone: {
+      fontSize: theme.scaleText(12),
+      color: theme.colors.mutedForeground,
+    },
+    clearButton: {
+      padding: theme.scaleSpace(spacing.xs),
+    },
+    resultsContainer: {
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: radius.lg,
+      backgroundColor: theme.colors.card,
+      maxHeight: 200,
+    },
+    resultRow: {
+      padding: theme.scaleSpace(spacing.sm),
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    resultName: {
+      fontSize: theme.scaleText(14),
+      fontWeight: "500",
+      color: theme.colors.foreground,
+    },
+    resultPhone: {
+      fontSize: theme.scaleText(12),
+      color: theme.colors.mutedForeground,
+      marginTop: 2,
+    },
+    noResultsText: {
+      fontSize: theme.scaleText(12),
+      color: theme.colors.mutedForeground,
+      fontStyle: "italic",
+      padding: theme.scaleSpace(spacing.sm),
+      textAlign: "center",
+    },
+  });

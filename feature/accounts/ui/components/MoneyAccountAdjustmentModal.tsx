@@ -4,8 +4,9 @@ import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { MoneyAccountsViewModel } from "@/feature/accounts/viewModel/moneyAccounts.viewModel";
 
 type MoneyAccountAdjustmentModalProps = {
@@ -15,6 +16,8 @@ type MoneyAccountAdjustmentModalProps = {
 export function MoneyAccountAdjustmentModal({
   viewModel,
 }: MoneyAccountAdjustmentModalProps): React.ReactElement {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <FormSheetModal
       visible={viewModel.isAdjustmentModalVisible}
@@ -43,9 +46,7 @@ export function MoneyAccountAdjustmentModal({
             size="lg"
             style={styles.actionButton}
             onPress={() => void viewModel.onSubmitAdjustment()}
-            disabled={
-              !viewModel.canManage || viewModel.adjustmentForm.isSaving
-            }
+            disabled={!viewModel.canManage || viewModel.adjustmentForm.isSaving}
           />
         </FormModalActionFooter>
       }
@@ -71,9 +72,7 @@ export function MoneyAccountAdjustmentModal({
       <LabeledTextInput
         label="Reason *"
         value={viewModel.adjustmentForm.reason}
-        onChangeText={(value) =>
-          viewModel.onAdjustmentFormChange("reason", value)
-        }
+        onChangeText={(value) => viewModel.onAdjustmentFormChange("reason", value)}
         placeholder="Example: cash counted at closing"
         errorText={viewModel.adjustmentForm.fieldErrors.reason}
       />
@@ -87,18 +86,19 @@ export function MoneyAccountAdjustmentModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterSemiBold",
-  },
-  actionButton: {
-    flex: 1,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+      paddingBottom: theme.scaleSpace(spacing.xl),
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+      fontFamily: "InterSemiBold",
+    },
+    actionButton: {
+      flex: 1,
+    },
+  });

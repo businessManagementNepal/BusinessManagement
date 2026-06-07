@@ -51,6 +51,7 @@ export function ProfileScreen({ viewModel }: ProfileScreenProps) {
       }
       contentContainerStyle={styles.scrollContent}
       baseBottomPadding={spacing.xxl}
+      keyboardSafe={true}
     >
       {viewModel.isLoading ? (
         <View style={styles.loadingWrap}>

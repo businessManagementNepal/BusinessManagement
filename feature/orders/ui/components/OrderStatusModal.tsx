@@ -1,8 +1,9 @@
 import { OrderStatusValue } from "@/feature/orders/types/order.types";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { CheckCircle2 } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -24,6 +25,9 @@ export function OrderStatusModal({
   onClose,
   onSubmit,
 }: Props) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <FormSheetModal
       visible={visible}
@@ -58,7 +62,7 @@ export function OrderStatusModal({
                 {option.label}
               </Text>
               {isSelected ? (
-                <CheckCircle2 size={16} color={colors.primaryForeground} />
+                <CheckCircle2 size={16} color={theme.colors.primaryForeground} />
               ) : null}
             </Pressable>
           );
@@ -68,36 +72,37 @@ export function OrderStatusModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-  },
-  optionList: {
-    gap: spacing.sm,
-  },
-  optionRow: {
-    minHeight: 50,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.secondary,
-    paddingHorizontal: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  optionRowSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  optionLabel: {
-    color: colors.cardForeground,
-    fontSize: 17,
-    fontFamily: "InterSemiBold",
-  },
-  optionLabelSelected: {
-    color: colors.primaryForeground,
-    fontFamily: "InterBold",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    optionList: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    optionRow: {
+      minHeight: theme.scaleSpace(50),
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.secondary,
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    optionRowSelected: {
+      backgroundColor: theme.colors.primary,
+      borderColor: theme.colors.primary,
+    },
+    optionLabel: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(17),
+      fontFamily: "InterSemiBold",
+    },
+    optionLabelSelected: {
+      color: theme.colors.primaryForeground,
+      fontFamily: "InterBold",
+    },
+  });

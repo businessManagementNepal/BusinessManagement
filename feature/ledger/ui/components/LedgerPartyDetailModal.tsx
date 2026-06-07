@@ -2,6 +2,7 @@ import React from "react";
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,8 +12,9 @@ import {
 import { Pencil, Share2, Trash2, X } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { LedgerPartyDetailViewModel } from "@/feature/ledger/viewModel/ledgerPartyDetail.viewModel";
 
 type LedgerPartyDetailModalProps = {
@@ -22,12 +24,16 @@ type LedgerPartyDetailModalProps = {
 export function LedgerPartyDetailModal({
   viewModel,
 }: LedgerPartyDetailModalProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <Modal
       visible={viewModel.visible}
       transparent={true}
       animationType="slide"
       onRequestClose={viewModel.close}
+      statusBarTranslucent={Platform.OS === "android"}
     >
       <View style={styles.modalBackdrop}>
         <Pressable style={styles.modalDismissArea} onPress={viewModel.close} />
@@ -51,13 +57,13 @@ export function LedgerPartyDetailModal({
               accessibilityRole="button"
               accessibilityLabel="Close party detail"
             >
-              <X size={18} color={colors.mutedForeground} />
+              <X size={18} color={theme.colors.mutedForeground} />
             </Pressable>
           </View>
 
           {viewModel.isLoading ? (
             <View style={styles.centerState}>
-              <ActivityIndicator color={colors.primary} />
+              <ActivityIndicator color={theme.colors.primary} />
             </View>
           ) : viewModel.errorMessage ? (
             <View style={styles.centerState}>
@@ -121,7 +127,7 @@ export function LedgerPartyDetailModal({
                   variant="secondary"
                   size="sm"
                   style={styles.statementActionButton}
-                  leadingIcon={<Share2 size={14} color={colors.foreground} />}
+                  leadingIcon={<Share2 size={14} color={theme.colors.foreground} />}
                   onPress={() => void viewModel.onShareStatement()}
                 />
               </View>
@@ -159,7 +165,7 @@ export function LedgerPartyDetailModal({
                         viewModel.onOpenEdit(entryItem.id);
                       }}
                     >
-                      <Pencil size={16} color={colors.primary} />
+                      <Pencil size={16} color={theme.colors.primary} />
                       <Text style={styles.entryActionLabel}>Edit</Text>
                     </Pressable>
 
@@ -170,7 +176,7 @@ export function LedgerPartyDetailModal({
                         viewModel.onOpenDelete(entryItem.id);
                       }}
                     >
-                      <Trash2 size={16} color={colors.destructive} />
+                      <Trash2 size={16} color={theme.colors.destructive} />
                       <Text style={[styles.entryActionLabel, styles.deleteActionLabel]}>
                         Delete
                       </Text>
@@ -190,174 +196,175 @@ export function LedgerPartyDetailModal({
   );
 }
 
-const styles = StyleSheet.create({
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(17, 24, 39, 0.3)",
-    justifyContent: "flex-end",
-  },
-  modalDismissArea: {
-    flex: 1,
-  },
-  modalSheet: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xl,
-    maxHeight: "88%",
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: radius.pill,
-    backgroundColor: colors.border,
-    alignSelf: "center",
-    marginBottom: spacing.md,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  modalTitle: {
-    color: colors.cardForeground,
-    fontSize: 18,
-    fontFamily: "InterBold",
-  },
-  modalSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginTop: 4,
-  },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.pill,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  centerState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.xl,
-  },
-  content: {
-    gap: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  summaryRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  summaryCard: {
-    flex: 1,
-    minWidth: 98,
-  },
-  summaryLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  summaryValue: {
-    color: colors.cardForeground,
-    fontSize: 16,
-    fontFamily: "InterBold",
-  },
-  receiveValue: {
-    color: colors.success,
-  },
-  payValue: {
-    color: colors.destructive,
-  },
-  quickActionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  quickActionButton: {
-    flex: 1,
-  },
-  statementActionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  statementActionButton: {
-    flex: 1,
-  },
-  sectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  entryCard: {
-    gap: spacing.sm,
-  },
-  entryTopRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  entryTextWrap: {
-    flex: 1,
-  },
-  entryTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  entrySubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginTop: 2,
-    lineHeight: 18,
-  },
-  entryAmountWrap: {
-    alignItems: "flex-end",
-    gap: 2,
-  },
-  entryAmount: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-  entryTypeLabel: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-  },
-  entryActionRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: spacing.md,
-  },
-  entryActionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  entryActionLabel: {
-    color: colors.primary,
-    fontSize: 12,
-    fontFamily: "InterBold",
-  },
-  deleteActionLabel: {
-    color: colors.destructive,
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 13,
-    textAlign: "center",
-  },
-  emptyText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    textAlign: "center",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: "flex-end",
+    },
+    modalDismissArea: {
+      flex: 1,
+    },
+    modalSheet: {
+      backgroundColor: theme.colors.background,
+      borderTopLeftRadius: radius.xl,
+      borderTopRightRadius: radius.xl,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      paddingHorizontal: theme.scaleSpace(spacing.lg),
+      paddingTop: theme.scaleSpace(spacing.sm),
+      paddingBottom: theme.scaleSpace(spacing.xl),
+      maxHeight: "88%",
+    },
+    modalHandle: {
+      width: 40,
+      height: 4,
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.border,
+      alignSelf: "center",
+      marginBottom: theme.scaleSpace(spacing.md),
+    },
+    modalHeader: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: theme.scaleSpace(spacing.md),
+      marginBottom: theme.scaleSpace(spacing.md),
+    },
+    modalTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(18),
+      fontFamily: "InterBold",
+    },
+    modalSubtitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      marginTop: 4,
+    },
+    closeButton: {
+      width: 36,
+      height: 36,
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    centerState: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: theme.scaleSpace(spacing.xl),
+    },
+    content: {
+      gap: theme.scaleSpace(spacing.md),
+      paddingBottom: theme.scaleSpace(spacing.xl),
+    },
+    summaryRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    summaryCard: {
+      flex: 1,
+      minWidth: 98,
+    },
+    summaryLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      marginBottom: 4,
+    },
+    summaryValue: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(16),
+      fontFamily: "InterBold",
+    },
+    receiveValue: {
+      color: theme.colors.success,
+    },
+    payValue: {
+      color: theme.colors.destructive,
+    },
+    quickActionRow: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    quickActionButton: {
+      flex: 1,
+    },
+    statementActionRow: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    statementActionButton: {
+      flex: 1,
+    },
+    sectionTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterBold",
+    },
+    entryCard: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    entryTopRow: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    entryTextWrap: {
+      flex: 1,
+    },
+    entryTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterBold",
+    },
+    entrySubtitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      marginTop: 2,
+      lineHeight: theme.scaleLineHeight(18),
+    },
+    entryAmountWrap: {
+      alignItems: "flex-end",
+      gap: 2,
+    },
+    entryAmount: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterBold",
+    },
+    entryTypeLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(11),
+    },
+    entryActionRow: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      gap: theme.scaleSpace(spacing.md),
+    },
+    entryActionButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    entryActionLabel: {
+      color: theme.colors.primary,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterBold",
+    },
+    deleteActionLabel: {
+      color: theme.colors.destructive,
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(13),
+      textAlign: "center",
+    },
+    emptyText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+      textAlign: "center",
+    },
+  });

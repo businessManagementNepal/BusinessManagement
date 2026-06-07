@@ -1,23 +1,19 @@
 import {
-    TAX_CALCULATION_MODE_OPTIONS,
-    TaxCalculationModeValue,
-    TaxToolPresetOption,
+  TAX_CALCULATION_MODE_OPTIONS,
+  TaxCalculationModeValue,
+  TaxToolPresetOption,
 } from "@/feature/appSettings/taxCalculator/types/taxCalculator.types";
 import { TaxCalculationSummaryState } from "@/feature/appSettings/taxCalculator/viewModel/taxCalculator.viewModel";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { Calculator } from "lucide-react-native";
 import React from "react";
-import {
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type TaxCalculatorModalProps = {
   visible: boolean;
@@ -48,6 +44,9 @@ export function TaxCalculatorModal({
   onPresetChange,
   onClose,
 }: TaxCalculatorModalProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <FormSheetModal
       visible={visible}
@@ -104,7 +103,7 @@ export function TaxCalculatorModal({
         <Card style={styles.resultCard}>
           <View style={styles.resultHeaderRow}>
             <View style={styles.resultBadge}>
-              <Calculator size={14} color={colors.primary} />
+              <Calculator size={14} color={theme.colors.primary} />
               <Text style={styles.resultBadgeText}>{calculationSummary.presetLabel}</Text>
             </View>
             <Text style={styles.resultModeText}>{calculationSummary.modeLabel}</Text>
@@ -128,106 +127,107 @@ export function TaxCalculatorModal({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  segmentWrap: {
-    backgroundColor: colors.secondary,
-    borderRadius: radius.lg,
-    padding: 4,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  segmentButton: {
-    flex: 1,
-    minHeight: 40,
-    borderRadius: radius.lg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  segmentButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  segmentLabel: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontFamily: "InterSemiBold",
-  },
-  segmentLabelActive: {
-    color: colors.primaryForeground,
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 18,
-    fontFamily: "InterMedium",
-  },
-  resultCard: {
-    padding: spacing.md,
-    gap: spacing.sm,
-    backgroundColor: colors.accent,
-    borderColor: colors.border,
-  },
-  resultHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  resultBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: spacing.sm,
-    minHeight: 28,
-    borderRadius: radius.pill,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  resultBadgeText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontFamily: "InterBold",
-  },
-  resultModeText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-  },
-  resultRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  resultRowTotal: {
-    marginTop: 2,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  resultLabel: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontFamily: "InterMedium",
-  },
-  resultValue: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterSemiBold",
-  },
-  resultTotalLabel: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  resultTotalValue: {
-    color: colors.primary,
-    fontSize: 18,
-    fontFamily: "InterBold",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+      paddingBottom: theme.scaleSpace(spacing.xl),
+    },
+    segmentWrap: {
+      backgroundColor: theme.colors.secondary,
+      borderRadius: radius.lg,
+      padding: theme.scaleSpace(4),
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(4),
+    },
+    segmentButton: {
+      flex: 1,
+      minHeight: theme.scaleSpace(40),
+      borderRadius: radius.lg,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    segmentButtonActive: {
+      backgroundColor: theme.colors.primary,
+    },
+    segmentLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterSemiBold",
+    },
+    segmentLabelActive: {
+      color: theme.colors.primaryForeground,
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(18),
+      fontFamily: "InterMedium",
+    },
+    resultCard: {
+      padding: theme.scaleSpace(spacing.md),
+      gap: theme.scaleSpace(spacing.sm),
+      backgroundColor: theme.colors.accent,
+      borderColor: theme.colors.border,
+    },
+    resultHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    resultBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(6),
+      paddingHorizontal: theme.scaleSpace(spacing.sm),
+      minHeight: theme.scaleSpace(28),
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    resultBadgeText: {
+      color: theme.colors.primary,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterBold",
+    },
+    resultModeText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterSemiBold",
+    },
+    resultRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    resultRowTotal: {
+      marginTop: theme.scaleSpace(2),
+      paddingTop: theme.scaleSpace(spacing.sm),
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+    },
+    resultLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterMedium",
+    },
+    resultValue: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterSemiBold",
+    },
+    resultTotalLabel: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterBold",
+    },
+    resultTotalValue: {
+      color: theme.colors.primary,
+      fontSize: theme.scaleText(18),
+      fontFamily: "InterBold",
+    },
+  });

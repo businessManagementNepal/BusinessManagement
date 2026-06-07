@@ -14,22 +14,35 @@ import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGro
 import { Pill } from "@/shared/components/reusable/List/Pill";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
 import { ConfirmDeleteModal } from "@/shared/components/reusable/Modals/ConfirmDeleteModal";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { CategoryEditorModal } from "./components/CategoryEditorModal";
 
 const getCategoryTint = (
+  theme: ReturnType<typeof useAppTheme>,
   kind: string,
 ): { backgroundColor: string; iconColor: string } => {
   switch (kind) {
     case CategoryKind.Income:
     case CategoryKind.Business:
     case CategoryKind.Product:
-      return { backgroundColor: colors.accent, iconColor: colors.primary };
+      return {
+        backgroundColor: theme.colors.accent,
+        iconColor: theme.colors.primary,
+      };
     case CategoryKind.Expense:
-      return { backgroundColor: "#FBE4E4", iconColor: colors.destructive };
+      return {
+        backgroundColor: theme.isDarkMode
+          ? "rgba(255, 107, 107, 0.16)"
+          : "#FBE4E4",
+        iconColor: theme.colors.destructive,
+      };
     default:
-      return { backgroundColor: colors.accent, iconColor: colors.primary };
+      return {
+        backgroundColor: theme.colors.accent,
+        iconColor: theme.colors.primary,
+      };
   }
 };
 
@@ -42,6 +55,9 @@ export function CategoriesScreen({
 }: {
   viewModel: CategoriesViewModel;
 }): React.ReactElement {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <>
       <DashboardTabScaffold
@@ -52,7 +68,9 @@ export function CategoriesScreen({
               variant="primary"
               size="lg"
               style={styles.primaryActionButton}
-              leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
+              leadingIcon={
+                <Plus size={18} color={theme.colors.primaryForeground} />
+              }
               onPress={viewModel.onOpenCreate}
               disabled={!viewModel.canCreate}
             />
@@ -66,7 +84,9 @@ export function CategoriesScreen({
           options={CATEGORY_FILTER_OPTIONS.filter(
             (option) =>
               option.value === "all" ||
-              viewModel.categories.some((category) => category.kind === option.value),
+              viewModel.categories.some(
+                (category) => category.kind === option.value,
+              ),
           )}
           selectedValue={viewModel.selectedKind}
           onSelect={viewModel.onFilterChange}
@@ -85,13 +105,13 @@ export function CategoriesScreen({
         <Card style={styles.listCard}>
           {viewModel.isLoading ? (
             <View style={styles.centerState}>
-              <ActivityIndicator color={colors.primary} />
+              <ActivityIndicator color={theme.colors.primary} />
             </View>
           ) : viewModel.filteredCategories.length === 0 ? (
             <Text style={styles.emptyText}>No categories available yet.</Text>
           ) : (
             viewModel.filteredCategories.map((category, index) => {
-              const tint = getCategoryTint(category.kind);
+              const tint = getCategoryTint(theme, category.kind);
               const isLast = index === viewModel.filteredCategories.length - 1;
 
               return (
@@ -152,96 +172,97 @@ export function CategoriesScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-  },
-  primaryActionButton: {
-    width: "100%",
-  },
-  filterScroll: {
-    flexGrow: 0,
-    flexShrink: 0,
-    minHeight: 42,
-    maxHeight: 42,
-  },
-  filterRow: {
-    gap: spacing.xs,
-    alignItems: "center",
-    paddingVertical: 2,
-  },
-  filterChip: {
-    minHeight: 34,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    paddingHorizontal: spacing.md,
-  },
-  filterChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  filterChipText: {
-    color: colors.foreground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  filterChipTextActive: {
-    color: colors.primaryForeground,
-  },
-  listCard: {
-    paddingVertical: 0,
-    paddingHorizontal: 0,
-    overflow: "hidden",
-    borderRadius: radius.lg,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  rowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  iconWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rowTextWrap: {
-    flex: 1,
-    gap: 4,
-  },
-  rowTitle: {
-    color: colors.cardForeground,
-    fontSize: 15,
-    fontFamily: "InterBold",
-  },
-  rowSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  centerState: {
-    minHeight: 150,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.md,
-  },
-  emptyText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontFamily: "InterMedium",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.lg,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    primaryActionButton: {
+      width: "100%",
+    },
+    filterScroll: {
+      flexGrow: 0,
+      flexShrink: 0,
+      minHeight: theme.scaleSpace(42),
+      maxHeight: theme.scaleSpace(42),
+    },
+    filterRow: {
+      gap: theme.scaleSpace(spacing.xs),
+      alignItems: "center",
+      paddingVertical: theme.scaleSpace(2),
+    },
+    filterChip: {
+      minHeight: theme.scaleSpace(34),
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.card,
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+    },
+    filterChipActive: {
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.primary,
+    },
+    filterChipText: {
+      color: theme.colors.foreground,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterMedium",
+    },
+    filterChipTextActive: {
+      color: theme.colors.primaryForeground,
+    },
+    listCard: {
+      paddingVertical: 0,
+      paddingHorizontal: 0,
+      overflow: "hidden",
+      borderRadius: radius.lg,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.md),
+    },
+    rowBorder: {
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    iconWrap: {
+      width: theme.scaleSpace(46),
+      height: theme.scaleSpace(46),
+      borderRadius: radius.pill,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    rowTextWrap: {
+      flex: 1,
+      gap: theme.scaleSpace(4),
+    },
+    rowTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(15),
+      fontFamily: "InterBold",
+    },
+    rowSubtitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterMedium",
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterMedium",
+    },
+    centerState: {
+      minHeight: theme.scaleSpace(150),
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+    },
+    emptyText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterMedium",
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.lg),
+    },
+  });

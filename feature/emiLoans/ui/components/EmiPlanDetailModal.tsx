@@ -2,6 +2,7 @@ import React from "react";
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,8 +13,9 @@ import { BellRing, Phone, X } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { EmiPaymentDirection } from "@/feature/emiLoans/types/emi.entity.types";
 import { EmiPlanDetailViewModel } from "@/feature/emiLoans/viewModel/emiPlanDetail.viewModel";
 
@@ -24,6 +26,8 @@ type EmiPlanDetailModalProps = {
 export function EmiPlanDetailModal({
   viewModel,
 }: EmiPlanDetailModalProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const detailState = viewModel.state;
 
   return (
@@ -32,6 +36,7 @@ export function EmiPlanDetailModal({
       transparent={true}
       animationType="slide"
       onRequestClose={viewModel.close}
+      statusBarTranslucent={Platform.OS === "android"}
     >
       <View style={styles.modalBackdrop}>
         <Pressable style={styles.dismissArea} onPress={viewModel.close} />
@@ -48,13 +53,13 @@ export function EmiPlanDetailModal({
             </View>
 
             <Pressable style={styles.closeButton} onPress={viewModel.close}>
-              <X size={18} color={colors.mutedForeground} />
+              <X size={18} color={theme.colors.mutedForeground} />
             </Pressable>
           </View>
 
           {viewModel.isLoading ? (
             <View style={styles.centerState}>
-              <ActivityIndicator color={colors.primary} />
+              <ActivityIndicator color={theme.colors.primary} />
             </View>
           ) : viewModel.errorMessage ? (
             <View style={styles.centerState}>
@@ -104,7 +109,7 @@ export function EmiPlanDetailModal({
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Phone</Text>
                     <View style={styles.phoneWrap}>
-                      <Phone size={14} color={colors.mutedForeground} />
+                      <Phone size={14} color={theme.colors.mutedForeground} />
                       <Text style={styles.infoValue}>{detailState.counterpartyPhone}</Text>
                     </View>
                   </View>
@@ -112,7 +117,7 @@ export function EmiPlanDetailModal({
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Reminder</Text>
                   <View style={styles.phoneWrap}>
-                    <BellRing size={14} color={colors.mutedForeground} />
+                    <BellRing size={14} color={theme.colors.mutedForeground} />
                     <Text style={styles.infoValue}>{detailState.reminderLabel}</Text>
                   </View>
                 </View>
@@ -201,189 +206,190 @@ export function EmiPlanDetailModal({
   );
 }
 
-const styles = StyleSheet.create({
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(17, 24, 39, 0.28)",
-    justifyContent: "flex-end",
-  },
-  dismissArea: {
-    flex: 1,
-  },
-  modalSheet: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xl,
-    maxHeight: "90%",
-  },
-  handle: {
-    width: 44,
-    height: 4,
-    borderRadius: radius.pill,
-    backgroundColor: colors.border,
-    alignSelf: "center",
-    marginBottom: spacing.md,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  headerTextWrap: {
-    flex: 1,
-  },
-  title: {
-    color: colors.cardForeground,
-    fontSize: 18,
-    fontFamily: "InterBold",
-  },
-  subtitle: {
-    marginTop: 4,
-    color: colors.mutedForeground,
-    fontSize: 13,
-  },
-  closeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.secondary,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  centerState: {
-    paddingVertical: spacing.xl,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-  emptyText: {
-    color: colors.mutedForeground,
-    fontSize: 14,
-  },
-  content: {
-    gap: spacing.md,
-    paddingBottom: spacing.md,
-  },
-  summaryGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  summaryCard: {
-    width: "48%",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  summaryLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginBottom: 6,
-  },
-  summaryValue: {
-    color: colors.cardForeground,
-    fontSize: 16,
-    fontFamily: "InterBold",
-  },
-  infoCard: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  infoBlock: {
-    gap: spacing.xs,
-  },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: spacing.md,
-  },
-  infoLabel: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-  },
-  infoValue: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-  phoneWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  sectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  helperText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-  },
-  installmentCard: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  installmentTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  installmentTextWrap: {
-    flex: 1,
-    gap: 4,
-  },
-  installmentTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  installmentSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-  },
-  installmentAmountWrap: {
-    alignItems: "flex-end",
-    gap: 4,
-  },
-  installmentAmount: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  installmentStatus: {
-    fontSize: 12,
-    fontFamily: "InterBold",
-  },
-  closedStatus: {
-    color: colors.success,
-  },
-  overdueStatus: {
-    color: colors.destructive,
-  },
-  dueStatus: {
-    color: colors.primary,
-  },
-  installmentActionRow: {
-    alignItems: "flex-end",
-  },
-  installmentActionButton: {
-    minWidth: 118,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: "flex-end",
+    },
+    dismissArea: {
+      flex: 1,
+    },
+    modalSheet: {
+      backgroundColor: theme.colors.background,
+      borderTopLeftRadius: radius.xl,
+      borderTopRightRadius: radius.xl,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      paddingHorizontal: theme.scaleSpace(spacing.lg),
+      paddingTop: theme.scaleSpace(spacing.sm),
+      paddingBottom: theme.scaleSpace(spacing.xl),
+      maxHeight: "90%",
+    },
+    handle: {
+      width: 44,
+      height: 4,
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.border,
+      alignSelf: "center",
+      marginBottom: theme.scaleSpace(spacing.md),
+    },
+    headerRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: theme.scaleSpace(spacing.md),
+      marginBottom: theme.scaleSpace(spacing.md),
+    },
+    headerTextWrap: {
+      flex: 1,
+    },
+    title: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(18),
+      fontFamily: "InterBold",
+    },
+    subtitle: {
+      marginTop: 4,
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+    },
+    closeButton: {
+      width: 34,
+      height: 34,
+      borderRadius: radius.md,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.colors.secondary,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    centerState: {
+      paddingVertical: theme.scaleSpace(spacing.xl),
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterBold",
+    },
+    emptyText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(14),
+    },
+    content: {
+      gap: theme.scaleSpace(spacing.md),
+      paddingBottom: theme.scaleSpace(spacing.md),
+    },
+    summaryGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    summaryCard: {
+      width: "48%",
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.md),
+    },
+    summaryLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      marginBottom: 6,
+    },
+    summaryValue: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(16),
+      fontFamily: "InterBold",
+    },
+    infoCard: {
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.md),
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    infoBlock: {
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    infoRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.md),
+    },
+    infoLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+    },
+    infoValue: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterBold",
+    },
+    phoneWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.xs),
+    },
+    sectionTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterBold",
+    },
+    helperText: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+    },
+    installmentCard: {
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.md),
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    installmentTopRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    installmentTextWrap: {
+      flex: 1,
+      gap: 4,
+    },
+    installmentTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterBold",
+    },
+    installmentSubtitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+    },
+    installmentAmountWrap: {
+      alignItems: "flex-end",
+      gap: 4,
+    },
+    installmentAmount: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterBold",
+    },
+    installmentStatus: {
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterBold",
+    },
+    closedStatus: {
+      color: theme.colors.success,
+    },
+    overdueStatus: {
+      color: theme.colors.destructive,
+    },
+    dueStatus: {
+      color: theme.colors.primary,
+    },
+    installmentActionRow: {
+      alignItems: "flex-end",
+    },
+    installmentActionButton: {
+      minWidth: 118,
+    },
+  });
