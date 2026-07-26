@@ -3,14 +3,14 @@ import {
   LoginFormInput,
   LoginPhoneCountryCode,
 } from "@/feature/auth/login/types/login.types";
-import { SignUpPhoneCountryOption } from "@/feature/auth/signUp/types/signUp.types";
+import { AuthPhoneCountryOption } from "@/shared/constants/authPhone.constants";
 
 export interface AuthEntryLoginViewModel {
   control: Control<LoginFormInput>;
   selectedPhoneCountryCode: LoginPhoneCountryCode;
   selectedPhoneDialCode: string;
   phoneNumberMaxLength: number;
-  phoneCountryOptions: readonly SignUpPhoneCountryOption[];
+  phoneCountryOptions: readonly AuthPhoneCountryOption[];
   onChangeSelectedPhoneCountry: (countryCode: LoginPhoneCountryCode) => void;
   clearSubmitError: () => void;
   isPasswordVisible: boolean;

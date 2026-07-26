@@ -1,12 +1,15 @@
 import { z } from "zod";
 import { normalizeE164PhoneNumber } from "@/shared/utils/auth/phoneNumber.util";
 import {
-  getInvalidSignUpPhoneMessageForCountry,
-  isValidSignUpPhoneForCountry,
-  sanitizeSignUpPhoneDigits,
-} from "@/feature/auth/signUp/utils/signUpPhoneNumber.util";
+  AUTH_PHONE_COUNTRY_CODES,
+} from "@/shared/constants/authPhone.constants";
+import {
+  getInvalidAuthPhoneMessageForCountry,
+  isValidAuthPhoneForCountry,
+  sanitizeAuthPhoneDigits,
+} from "@/shared/utils/auth/authPhoneNumber.util";
 
-const phoneCountryCodeSchema = z.enum(["NP", "IN"]);
+const phoneCountryCodeSchema = z.enum(AUTH_PHONE_COUNTRY_CODES);
 
 const loginPhoneNumberSchema = z
   .string()
@@ -26,7 +29,7 @@ export const loginFormSchema = z.object({
   phoneNumber: z.string(),
   password: passwordSchema,
 }).superRefine((value, context) => {
-  const phoneDigits = sanitizeSignUpPhoneDigits(value.phoneNumber);
+  const phoneDigits = sanitizeAuthPhoneDigits(value.phoneNumber);
 
   if (phoneDigits.length === 0) {
     context.addIssue({
@@ -37,10 +40,10 @@ export const loginFormSchema = z.object({
     return;
   }
 
-  if (!isValidSignUpPhoneForCountry(phoneDigits, value.phoneCountryCode)) {
+  if (!isValidAuthPhoneForCountry(phoneDigits, value.phoneCountryCode)) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
-      message: getInvalidSignUpPhoneMessageForCountry(value.phoneCountryCode),
+      message: getInvalidAuthPhoneMessageForCountry(value.phoneCountryCode),
       path: ["phoneNumber"],
     });
   }
@@ -48,5 +51,5 @@ export const loginFormSchema = z.object({
 
 export const loginInputSchema = z.object({
   phoneNumber: loginPhoneNumberSchema.transform(normalizeE164PhoneNumber),
-  password: passwordSchema.transform((value) => value.trim()),
+  password: passwordSchema,
 });

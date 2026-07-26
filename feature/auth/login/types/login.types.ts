@@ -2,10 +2,10 @@ import { VerifiedLocalCredential } from "@/feature/session/types/authSession.typ
 import { Result } from "@/shared/types/result.types";
 import { Status } from "@/shared/types/status.types";
 import {
-  SignUpPhoneCountryCode,
-  SignUpPhoneCountryOption,
-  SIGN_UP_PHONE_COUNTRY_OPTIONS,
-} from "@/feature/auth/signUp/types/signUp.types";
+  AUTH_PHONE_COUNTRY_OPTIONS,
+  AuthPhoneCountryCode,
+  AuthPhoneCountryOption,
+} from "@/shared/constants/authPhone.constants";
 
 export const LoginErrorType = {
   ValidationError: "VALIDATION_ERROR",
@@ -50,7 +50,7 @@ export type LoginInput = {
   password: string;
 };
 
-export type LoginPhoneCountryCode = SignUpPhoneCountryCode;
+export type LoginPhoneCountryCode = AuthPhoneCountryCode;
 
 export type LoginFormInput = {
   phoneCountryCode: LoginPhoneCountryCode;
@@ -58,8 +58,8 @@ export type LoginFormInput = {
   password: string;
 };
 
-export const LOGIN_PHONE_COUNTRY_OPTIONS: readonly SignUpPhoneCountryOption[] =
-  SIGN_UP_PHONE_COUNTRY_OPTIONS;
+export const LOGIN_PHONE_COUNTRY_OPTIONS: readonly AuthPhoneCountryOption[] =
+  AUTH_PHONE_COUNTRY_OPTIONS;
 
 export type LoginResult = Result<VerifiedLocalCredential, LoginError>;
 

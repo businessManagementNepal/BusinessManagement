@@ -13,9 +13,9 @@ import {
 import { loginFormSchema } from "../validation/login.schema";
 import { LoginViewModel, UseLoginViewModelOptions } from "./login.viewModel";
 import {
-  getSignUpPhoneLengthForCountry,
-  sanitizeSignUpPhoneDigits,
-} from "@/feature/auth/signUp/utils/signUpPhoneNumber.util";
+  getAuthPhoneLengthForCountry,
+  sanitizeAuthPhoneDigits,
+} from "@/shared/utils/auth/authPhoneNumber.util";
 
 const DEFAULT_PHONE_COUNTRY_CODE: LoginPhoneCountryCode = "NP";
 
@@ -47,7 +47,7 @@ export const useLoginViewModel = (
     },
     resolver: zodResolver(loginFormSchema),
     mode: "onBlur",
-    reValidateMode: "onBlur",
+    reValidateMode: "onChange",
   });
 
   const selectedPhoneCountryCode =
@@ -62,7 +62,7 @@ export const useLoginViewModel = (
   );
 
   const phoneNumberMaxLength = useMemo(
-    () => getSignUpPhoneLengthForCountry(selectedPhoneCountryCode),
+    () => getAuthPhoneLengthForCountry(selectedPhoneCountryCode),
     [selectedPhoneCountryCode],
   );
 
@@ -86,8 +86,8 @@ export const useLoginViewModel = (
         return;
       }
 
-      const nextPhoneMaxLength = getSignUpPhoneLengthForCountry(countryCode);
-      const currentPhoneNumber = sanitizeSignUpPhoneDigits(getValues("phoneNumber"));
+      const nextPhoneMaxLength = getAuthPhoneLengthForCountry(countryCode);
+      const currentPhoneNumber = sanitizeAuthPhoneDigits(getValues("phoneNumber"));
 
       setValue("phoneNumber", currentPhoneNumber.slice(0, nextPhoneMaxLength), {
         shouldDirty: true,
@@ -113,8 +113,8 @@ export const useLoginViewModel = (
       message: string;
     }) => {
       const nextCountryCode = params.phoneCountryCode;
-      const nextPhoneLength = getSignUpPhoneLengthForCountry(nextCountryCode);
-      const normalizedPhoneDigits = sanitizeSignUpPhoneDigits(params.phoneNumber);
+      const nextPhoneLength = getAuthPhoneLengthForCountry(nextCountryCode);
+      const normalizedPhoneDigits = sanitizeAuthPhoneDigits(params.phoneNumber);
 
       setValue("phoneCountryCode", nextCountryCode, {
         shouldDirty: false,
@@ -148,7 +148,7 @@ export const useLoginViewModel = (
         return;
       }
 
-      const normalizedPhoneDigits = sanitizeSignUpPhoneDigits(payload.phoneNumber);
+      const normalizedPhoneDigits = sanitizeAuthPhoneDigits(payload.phoneNumber);
       const selectedCountryOption = getCountryOptionByCode(payload.phoneCountryCode);
       const normalizedPhoneNumber = composePhoneNumberWithDialCode(
         normalizedPhoneDigits,

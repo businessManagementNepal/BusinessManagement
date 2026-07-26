@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Keyboard, Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { Eye, EyeOff, Lock, Phone, User } from "lucide-react-native";
+import { User } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Dropdown,
   type DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
+import { AuthAccountSwitchAction } from "@/shared/components/reusable/Auth/AuthAccountSwitchAction";
+import { AuthPasswordField } from "@/shared/components/reusable/Auth/AuthPasswordField";
+import { AuthPhoneNumberField } from "@/shared/components/reusable/Auth/AuthPhoneNumberField";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { DefaultSection } from "@/shared/components/reusable/Form/FormSections";
 import { KeyboardSafeEditableScreen } from "@/shared/components/reusable/ScreenLayouts/KeyboardSafeEditableScreen";
@@ -14,6 +17,7 @@ import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { isSupportedLanguageCode, useTranslation } from "@/shared/i18n/resources";
+import { AuthPhoneCountryCode } from "@/shared/constants/authPhone.constants";
 import { LoginFormInput } from "@/feature/auth/login/types/login.types";
 import {
   SignUpFormInput,
@@ -132,24 +136,6 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
     );
   }, [loginPhoneCountryOptions, selectedLoginPhoneCountryCode]);
 
-  const signUpPhoneCountryDropdownOptions = useMemo<DropdownOption[]>(
-    () =>
-      phoneCountryOptions.map((option) => ({
-        label: `${option.flag} ${option.label}`,
-        value: option.code,
-      })),
-    [phoneCountryOptions],
-  );
-
-  const loginPhoneCountryDropdownOptions = useMemo<DropdownOption[]>(
-    () =>
-      loginPhoneCountryOptions.map((option) => ({
-        label: `${option.flag} ${option.label}`,
-        value: option.code,
-      })),
-    [loginPhoneCountryOptions],
-  );
-
   const signUpBusinessTypeDropdownOptions = useMemo<DropdownOption[]>(
     () =>
       businessTypeOptions.map((option) => ({
@@ -171,33 +157,19 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
   );
 
   const handleSignUpPhoneCountryChange = useCallback(
-    (nextCountryCode: string): void => {
-      const selectedCountryOption = phoneCountryOptions.find(
-        (option) => option.code === nextCountryCode,
-      );
-
-      if (!selectedCountryOption) {
-        return;
-      }
-
-      onChangeSelectedPhoneCountry(selectedCountryOption.code);
+    (nextCountryCode: AuthPhoneCountryCode): void => {
+      onChangeSelectedPhoneCountry(nextCountryCode);
+      clearSignUpSubmitError();
     },
-    [onChangeSelectedPhoneCountry, phoneCountryOptions],
+    [clearSignUpSubmitError, onChangeSelectedPhoneCountry],
   );
 
   const handleLoginPhoneCountryChange = useCallback(
-    (nextCountryCode: string): void => {
-      const selectedCountryOption = loginPhoneCountryOptions.find(
-        (option) => option.code === nextCountryCode,
-      );
-
-      if (!selectedCountryOption) {
-        return;
-      }
-
-      onChangeLoginSelectedPhoneCountry(selectedCountryOption.code);
+    (nextCountryCode: AuthPhoneCountryCode): void => {
+      onChangeLoginSelectedPhoneCountry(nextCountryCode);
+      clearLoginSubmitError();
     },
-    [loginPhoneCountryOptions, onChangeLoginSelectedPhoneCountry],
+    [clearLoginSubmitError, onChangeLoginSelectedPhoneCountry],
   );
 
   const handleSignUpProfileTypeChange = useCallback(
@@ -253,48 +225,34 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
         <View
           style={[
             styles.header,
-            isKeyboardVisible ? styles.headerCompact : undefined,
-            {
-              paddingTop:
-                insets.top +
-                (isKeyboardVisible
-                  ? theme.scaleSpace(spacing.md)
-                  : theme.scaleSpace(spacing.xxl + spacing.sm)),
-            },
+            { paddingTop: insets.top + 12 },
           ]}
         >
-          <View
-            style={[
-              styles.languageDropdownWrap,
-              { top: insets.top + theme.scaleSpace(spacing.xs) },
-            ]}
-          >
+          <View style={styles.brandRow}>
+            <View style={styles.logoBox}>
+              <Text style={styles.logoText}>eL</Text>
+            </View>
+
+            <View style={styles.brandTextWrap}>
+              <Text style={styles.brand}>eLekha</Text>
+              {!isKeyboardVisible ? (
+                <Text style={styles.brandSub} numberOfLines={1}>
+                  {t("auth.entry.brand.subtitle")}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+
+          <View style={styles.languageDropdownWrap}>
             <Dropdown
               value={selectedLanguageCode}
               options={dropdownOptions}
               onChange={handleLanguageChange}
               placeholder={t("auth.entry.language.placeholder")}
               modalTitle="Choose language"
+              triggerStyle={styles.languageDropdownTrigger}
             />
           </View>
-
-          <View style={[styles.logoBox, isKeyboardVisible ? styles.logoBoxCompact : undefined]}>
-            <Text
-              style={[
-                styles.logoText,
-                isKeyboardVisible ? styles.logoTextCompact : undefined,
-              ]}
-            >
-              eL
-            </Text>
-          </View>
-
-          <Text style={[styles.brand, isKeyboardVisible ? styles.brandCompact : undefined]}>
-            eLekha
-          </Text>
-          {!isKeyboardVisible ? (
-            <Text style={styles.brandSub}>{t("auth.entry.brand.subtitle")}</Text>
-          ) : null}
         </View>
 
         <View style={styles.divider} />
@@ -345,7 +303,6 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
             {!isLoginMode ? (
               <DefaultSection
                 key="signup-form"
-                title={t("auth.entry.tabs.signUp")}
                 contentStyle={styles.form}
               >
                 <Text style={styles.inputLabel}>
@@ -439,70 +396,43 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                   autoComplete="off"
                   importantForAutofill="no"
                   onFocus={clearSignUpSubmitError}
+                  onValueChange={clearSignUpSubmitError}
                   editable={!isSigningUp}
                   accessibilityLabel={t("auth.entry.fields.fullName")}
                 />
 
-                <View style={styles.phoneInputRow}>
-                  <View style={styles.phoneCountryDropdownWrap}>
-                    <Dropdown
-                      value={selectedPhoneCountryCode}
-                      options={signUpPhoneCountryDropdownOptions}
-                      onChange={handleSignUpPhoneCountryChange}
-                      placeholder="Country"
-                      modalTitle="Choose country"
-                      showLeadingIcon={false}
-                      disabled={isSigningUp}
-                      triggerStyle={styles.phoneCountryDropdownTrigger}
-                      triggerTextStyle={styles.phoneCountryDropdownText}
-                    />
-                  </View>
-
-                  <View style={styles.phoneNumberInputWrap}>
-                    <TextField<SignUpFormInput>
-                      control={signUpControl}
-                      name="phoneNumber"
-                      placeholder={t("auth.entry.fields.phoneNumber")}
-                      leftIcon={<Phone size={18} color={theme.colors.mutedForeground} />}
-                      keyboardType="number-pad"
-                      autoComplete="off"
-                      importantForAutofill="no"
-                      maxLength={phoneNumberMaxLength}
-                      onFocus={clearSignUpSubmitError}
-                      editable={!isSigningUp}
-                      accessibilityLabel={`${selectedSignUpPhoneCountryLabel ?? ""} ${t(
-                        "auth.entry.fields.phoneNumber",
-                      )}`}
-                    />
-                  </View>
-                </View>
-
-                <TextField<SignUpFormInput>
+                <AuthPhoneNumberField<SignUpFormInput>
+                  accessibilityLabel={`${selectedSignUpPhoneCountryLabel ?? ""} ${t(
+                    "auth.entry.fields.phoneNumber",
+                  )}`}
                   control={signUpControl}
-                  name="password"
-                  placeholder={t("auth.entry.fields.password")}
-                  leftIcon={<Lock size={18} color={theme.colors.mutedForeground} />}
-                  secureTextEntry={!isSignUpPasswordVisible}
-                  keyboardType="default"
-                  autoComplete="off"
-                  importantForAutofill="no"
-                  textContentType={isAndroid ? "none" : undefined}
-                  onFocus={clearSignUpSubmitError}
+                  countryModalTitle="Choose country"
+                  countryPlaceholder="Country"
                   editable={!isSigningUp}
+                  name="phoneNumber"
+                  onChangeSelectedPhoneCountry={handleSignUpPhoneCountryChange}
+                  onFocus={clearSignUpSubmitError}
+                  onValueChange={clearSignUpSubmitError}
+                  phoneCountryOptions={phoneCountryOptions}
+                  phoneNumberMaxLength={phoneNumberMaxLength}
+                  placeholder={t("auth.entry.fields.phoneNumber")}
+                  selectedPhoneCountryCode={selectedPhoneCountryCode}
+                />
+
+                <AuthPasswordField<SignUpFormInput>
                   accessibilityLabel={t("auth.entry.fields.password")}
-                  rightIcon={
-                    <Pressable
-                      onPress={onToggleSignUpPasswordVisibility}
-                      accessibilityRole="button"
-                      accessibilityLabel="Toggle sign up password visibility"
-                    >
-                      {isSignUpPasswordVisible ? (
-                        <EyeOff size={18} color={theme.colors.mutedForeground} />
-                      ) : (
-                        <Eye size={18} color={theme.colors.mutedForeground} />
-                      )}
-                    </Pressable>
-                  }
+                  autoComplete="off"
+                  control={signUpControl}
+                  editable={!isSigningUp}
+                  importantForAutofill="no"
+                  name="password"
+                  onFocus={clearSignUpSubmitError}
+                  onTogglePasswordVisibility={onToggleSignUpPasswordVisibility}
+                  onValueChange={clearSignUpSubmitError}
+                  placeholder={t("auth.entry.fields.password")}
+                  textContentType={isAndroid ? "none" : undefined}
+                  visibilityAccessibilityLabel="Toggle sign up password visibility"
+                  isPasswordVisible={isSignUpPasswordVisible}
                 />
 
                 {signUpError ? <Text style={styles.submitError}>{signUpError}</Text> : null}
@@ -513,66 +443,38 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                 title={t("auth.entry.tabs.login")}
                 contentStyle={styles.form}
               >
-                <View style={styles.phoneInputRow}>
-                  <View style={styles.phoneCountryDropdownWrap}>
-                    <Dropdown
-                      value={selectedLoginPhoneCountryCode}
-                      options={loginPhoneCountryDropdownOptions}
-                      onChange={handleLoginPhoneCountryChange}
-                      placeholder="Country"
-                      modalTitle="Choose country"
-                      showLeadingIcon={false}
-                      disabled={isSubmitting}
-                      triggerStyle={styles.phoneCountryDropdownTrigger}
-                      triggerTextStyle={styles.phoneCountryDropdownText}
-                    />
-                  </View>
-
-                  <View style={styles.phoneNumberInputWrap}>
-                    <TextField<LoginFormInput>
-                      control={loginControl}
-                      name="phoneNumber"
-                      placeholder={t("auth.entry.fields.phoneNumber")}
-                      leftIcon={<Phone size={18} color={theme.colors.mutedForeground} />}
-                      keyboardType="number-pad"
-                      autoComplete="off"
-                      importantForAutofill="no"
-                      maxLength={loginPhoneNumberMaxLength}
-                      onFocus={clearLoginSubmitError}
-                      editable={!isSubmitting}
-                      accessibilityLabel={`${selectedLoginPhoneCountryLabel ?? ""} ${t(
-                        "auth.entry.fields.phoneNumber",
-                      )}`}
-                    />
-                  </View>
-                </View>
-
-                <TextField<LoginFormInput>
+                <AuthPhoneNumberField<LoginFormInput>
+                  accessibilityLabel={`${selectedLoginPhoneCountryLabel ?? ""} ${t(
+                    "auth.entry.fields.phoneNumber",
+                  )}`}
                   control={loginControl}
-                  name="password"
-                  placeholder={t("auth.entry.fields.password")}
-                  leftIcon={<Lock size={18} color={theme.colors.mutedForeground} />}
-                  secureTextEntry={!isPasswordVisible}
-                  keyboardType="default"
-                  autoComplete={isAndroid ? "off" : "password"}
-                  textContentType={isAndroid ? "none" : "password"}
-                  importantForAutofill={isAndroid ? "no" : "auto"}
-                  onFocus={clearLoginSubmitError}
+                  countryModalTitle="Choose country"
+                  countryPlaceholder="Country"
                   editable={!isSubmitting}
+                  name="phoneNumber"
+                  onChangeSelectedPhoneCountry={handleLoginPhoneCountryChange}
+                  onFocus={clearLoginSubmitError}
+                  onValueChange={clearLoginSubmitError}
+                  phoneCountryOptions={loginPhoneCountryOptions}
+                  phoneNumberMaxLength={loginPhoneNumberMaxLength}
+                  placeholder={t("auth.entry.fields.phoneNumber")}
+                  selectedPhoneCountryCode={selectedLoginPhoneCountryCode}
+                />
+
+                <AuthPasswordField<LoginFormInput>
                   accessibilityLabel={t("auth.entry.fields.password")}
-                  rightIcon={
-                    <Pressable
-                      onPress={onTogglePasswordVisibility}
-                      accessibilityRole="button"
-                      accessibilityLabel="Toggle password visibility"
-                    >
-                      {isPasswordVisible ? (
-                        <EyeOff size={18} color={theme.colors.mutedForeground} />
-                      ) : (
-                        <Eye size={18} color={theme.colors.mutedForeground} />
-                      )}
-                    </Pressable>
-                  }
+                  autoComplete={isAndroid ? "off" : "password"}
+                  control={loginControl}
+                  editable={!isSubmitting}
+                  importantForAutofill={isAndroid ? "no" : "auto"}
+                  name="password"
+                  onFocus={clearLoginSubmitError}
+                  onTogglePasswordVisibility={onTogglePasswordVisibility}
+                  onValueChange={clearLoginSubmitError}
+                  placeholder={t("auth.entry.fields.password")}
+                  textContentType={isAndroid ? "none" : "password"}
+                  visibilityAccessibilityLabel="Toggle password visibility"
+                  isPasswordVisible={isPasswordVisible}
                 />
 
                 {isForgotPasswordEnabled ? (
@@ -609,15 +511,11 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
               <View style={styles.separatorLine} />
             </View>
 
-            <View style={styles.footerRow}>
-              <Text style={styles.footerText}>{footerPrompt} </Text>
-              <Pressable
-                onPress={mode.toggleMode}
-                accessibilityRole="button"
-              >
-                <Text style={styles.footerLink}>{footerActionLabel}</Text>
-              </Pressable>
-            </View>
+            <AuthAccountSwitchAction
+              actionLabel={footerActionLabel}
+              message={footerPrompt}
+              onPress={mode.toggleMode}
+            />
           </View>
         </KeyboardSafeEditableScreen>
       </View>
@@ -638,61 +536,55 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       backgroundColor: theme.colors.background,
     },
     languageDropdownWrap: {
-      position: "absolute",
-      right: theme.scaleSpace(spacing.md),
-      zIndex: 2,
       minWidth: 120,
+    },
+    languageDropdownTrigger: {
+      minHeight: theme.scaleSpace(42),
     },
     header: {
       backgroundColor: theme.colors.header,
+      flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: theme.scaleSpace(spacing.xl),
-      paddingBottom: theme.scaleSpace(spacing.xxl + spacing.sm),
-      position: "relative",
+      justifyContent: "space-between",
+      gap: theme.scaleSpace(spacing.sm),
+      paddingHorizontal: theme.scaleSpace(16),
+      paddingBottom: theme.scaleSpace(18),
     },
-    headerCompact: {
-      paddingBottom: theme.scaleSpace(spacing.md),
+    brandRow: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(12),
     },
     logoBox: {
-      width: 64,
-      height: 64,
-      borderRadius: radius.xl,
+      width: theme.scaleSpace(42),
+      height: theme.scaleSpace(42),
+      borderRadius: radius.pill,
       backgroundColor: "rgba(255,255,255,0.2)",
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: theme.scaleSpace(spacing.md),
-    },
-    logoBoxCompact: {
-      width: 44,
-      height: 44,
-      marginBottom: theme.scaleSpace(spacing.xs),
     },
     logoText: {
       color: theme.colors.headerForeground,
-      fontSize: theme.scaleText(24),
+      fontSize: theme.scaleText(13),
       fontFamily: "InterBold",
-      lineHeight: theme.scaleLineHeight(28),
     },
-    logoTextCompact: {
-      fontSize: theme.scaleText(20),
-      lineHeight: theme.scaleLineHeight(24),
+    brandTextWrap: {
+      flex: 1,
+      minWidth: 0,
     },
     brand: {
       color: theme.colors.headerForeground,
-      fontSize: theme.scaleText(24),
-      fontFamily: "InterBold",
-      lineHeight: theme.scaleLineHeight(28),
-    },
-    brandCompact: {
       fontSize: theme.scaleText(20),
+      fontFamily: "InterBold",
       lineHeight: theme.scaleLineHeight(24),
     },
     brandSub: {
       color: "rgba(255,255,255,0.8)",
-      marginTop: 4,
-      fontSize: theme.scaleText(14),
+      marginTop: 2,
+      fontSize: theme.scaleText(11),
       fontFamily: "InterMedium",
-      textAlign: "center",
     },
     divider: {
       height: 4,
@@ -769,26 +661,6 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     businessTypeWrap: {
       gap: theme.scaleSpace(spacing.xs),
     },
-    phoneInputRow: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: theme.scaleSpace(spacing.sm),
-    },
-    phoneCountryDropdownWrap: {
-      width: 152,
-    },
-    phoneCountryDropdownTrigger: {
-      minHeight: 54,
-      borderRadius: radius.lg,
-    },
-    phoneCountryDropdownText: {
-      fontSize: theme.scaleText(13),
-      fontFamily: "InterSemiBold",
-      color: theme.colors.cardForeground,
-    },
-    phoneNumberInputWrap: {
-      flex: 1,
-    },
     forgotWrapper: {
       alignSelf: "flex-end",
     },
@@ -822,21 +694,6 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       color: theme.colors.mutedForeground,
       fontSize: theme.scaleText(12),
       fontFamily: "InterMedium",
-    },
-    footerRow: {
-      flexDirection: "row",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    footerText: {
-      color: theme.colors.mutedForeground,
-      fontSize: theme.scaleText(12),
-      fontFamily: "InterMedium",
-    },
-    footerLink: {
-      color: theme.colors.primary,
-      fontSize: theme.scaleText(12),
-      fontFamily: "InterSemiBold",
     },
   });
 

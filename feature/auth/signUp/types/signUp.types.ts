@@ -6,6 +6,11 @@ import {
   BusinessTypeOption,
   BusinessTypeValue,
 } from "@/shared/constants/businessType.constants";
+import {
+  AUTH_PHONE_COUNTRY_OPTIONS,
+  AuthPhoneCountryCode,
+  AuthPhoneCountryOption,
+} from "@/shared/constants/authPhone.constants";
 
 export const SignUpErrorType = {
   ValidationError: "VALIDATION_ERROR",
@@ -56,7 +61,7 @@ export type SignUpInput = {
   businessType: BusinessTypeValue | null;
 };
 
-export type SignUpPhoneCountryCode = "NP" | "IN";
+export type SignUpPhoneCountryCode = AuthPhoneCountryCode;
 
 export const SignUpProfileType = {
   Personal: "personal",
@@ -79,28 +84,10 @@ export type SignUpFormInput = Omit<SignUpInput, "businessType"> & {
   phoneCountryCode: SignUpPhoneCountryCode;
 };
 
-export type SignUpPhoneCountryOption = {
-  code: SignUpPhoneCountryCode;
-  dialCode: string;
-  label: string;
-  flag: string;
-};
+export type SignUpPhoneCountryOption = AuthPhoneCountryOption;
 
 export const SIGN_UP_PHONE_COUNTRY_OPTIONS: readonly SignUpPhoneCountryOption[] =
-  [
-    {
-      code: "NP",
-      dialCode: "+977",
-      label: "Nepal (+977)",
-      flag: "\uD83C\uDDF3\uD83C\uDDF5",
-    },
-    {
-      code: "IN",
-      dialCode: "+91",
-      label: "India (+91)",
-      flag: "\uD83C\uDDEE\uD83C\uDDF3",
-    },
-  ];
+  AUTH_PHONE_COUNTRY_OPTIONS;
 
 export const SIGN_UP_BUSINESS_TYPE_OPTIONS: readonly BusinessTypeOption[] =
   BUSINESS_TYPE_OPTIONS;

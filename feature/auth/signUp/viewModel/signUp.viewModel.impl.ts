@@ -54,7 +54,7 @@ export const useSignUpViewModel = (
     },
     resolver: zodResolver(signUpFormSchema),
     mode: "onBlur",
-    reValidateMode: "onBlur",
+    reValidateMode: "onChange",
   });
 
   const selectedPhoneCountryCode =
