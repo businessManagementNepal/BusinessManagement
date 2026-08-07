@@ -18,6 +18,9 @@
     "test:startup": "vitest run tests/describeDatabaseStartupFailure.test.ts tests/bootstrapStartup.useCase.test.ts tests/startupPresentationState.util.test.ts",
     "check:theme-colors": "node ./scripts/check-no-static-theme-colors.js",
     "typecheck": "tsc --noEmit",
+    "validate": "npm run lint && npm run typecheck && npm run check:theme-colors && npm test",
+    "build:android:production": "eas build --platform android --profile production",
+    "submit:android:internal": "eas submit --platform android --profile production --latest",
     "export:mobile": "expo export --platform ios && expo export --platform android"
   },
   "dependencies": {

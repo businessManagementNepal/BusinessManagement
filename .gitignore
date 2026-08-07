@@ -31,6 +31,9 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.*
+!.env.example
 .env*.local
 
 # typescript
@@ -41,3 +44,13 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Android release credentials
+*.keystore
+google-service-account*.json
+service-account*.json
+play-store-key.json
+
+# CI export output
+dist-ci/
+dist-release-check/
