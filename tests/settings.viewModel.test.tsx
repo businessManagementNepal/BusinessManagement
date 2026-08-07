@@ -122,12 +122,6 @@ type HarnessProps = {
   getSettingsBootstrapUseCase: {
     execute: ReturnType<typeof vi.fn>;
   };
-  updateBiometricLoginPreferenceUseCase: {
-    execute: ReturnType<typeof vi.fn>;
-  };
-  updateTwoFactorAuthPreferenceUseCase: {
-    execute: ReturnType<typeof vi.fn>;
-  };
   submitBugReportUseCase: {
     execute: ReturnType<typeof vi.fn>;
   };
@@ -165,10 +159,6 @@ function SettingsViewModelHarness(props: HarnessProps) {
     saveAppearancePreferencesUseCase:
       props.saveAppearancePreferencesUseCase as never,
     getSettingsBootstrapUseCase: props.getSettingsBootstrapUseCase as never,
-    updateBiometricLoginPreferenceUseCase:
-      props.updateBiometricLoginPreferenceUseCase as never,
-    updateTwoFactorAuthPreferenceUseCase:
-      props.updateTwoFactorAuthPreferenceUseCase as never,
     submitBugReportUseCase: props.submitBugReportUseCase as never,
     submitAppRatingUseCase: props.submitAppRatingUseCase as never,
     exportSettingsDataUseCase: props.exportSettingsDataUseCase as never,
@@ -231,12 +221,6 @@ describe("settings.viewModel", () => {
       },
       getSettingsBootstrapUseCase: {
         execute: vi.fn(async () => buildBootstrapResult()),
-      },
-      updateBiometricLoginPreferenceUseCase: {
-        execute: vi.fn(async () => ({ success: true as const, value: true })),
-      },
-      updateTwoFactorAuthPreferenceUseCase: {
-        execute: vi.fn(async () => ({ success: true as const, value: true })),
       },
       submitBugReportUseCase: {
         execute: vi.fn(async () => ({ success: true as const, value: true })),
@@ -305,7 +289,16 @@ describe("settings.viewModel", () => {
       "Light | Medium | Compact Off",
     );
     expect(latestViewModel?.regionalFinanceSummaryLabel).toContain("NPR");
-    expect(latestViewModel?.securitySessions).toHaveLength(1);
+    expect(
+      latestViewModel?.settingsSections
+        .find((section) => section.id === "security")
+        ?.rows.find((row) => row.id === "security")?.subtitle,
+    ).toBe("Change your local password");
+    expect(
+      latestViewModel?.settingsSections
+        .find((section) => section.id === "dataTools")
+        ?.rows.find((row) => row.id === "exportData")?.subtitle,
+    ).toBe("Export business data as CSV, Excel, PDF, or JSON file");
     expect(props.getAccountByRemoteIdUseCase?.execute).toHaveBeenCalledWith(
       "account-1",
     );

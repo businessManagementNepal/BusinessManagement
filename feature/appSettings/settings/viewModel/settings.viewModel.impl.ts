@@ -18,15 +18,11 @@ import {
 import { GetAccountByRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccountByRemoteId.useCase";
 import { SaveAccountUseCase } from "@/feature/auth/accountSelection/useCase/saveAccount.useCase";
 import {
-  SETTINGS_BIOMETRIC_COMING_SOON_MESSAGE,
-  SETTINGS_BIOMETRIC_LOGIN_AVAILABLE,
   SETTINGS_DEFAULT_APPEARANCE,
   SETTINGS_IMPORT_AVAILABLE,
   SETTINGS_IMPORT_DISABLED_MESSAGE,
   SETTINGS_OWNER_ADMIN_REQUIRED_MESSAGE,
   SETTINGS_PERMISSION_LOADING_MESSAGE,
-  SETTINGS_TWO_FACTOR_AUTH_AVAILABLE,
-  SETTINGS_TWO_FACTOR_COMING_SOON_MESSAGE,
 } from "@/feature/appSettings/settings/constants/settings.constants";
 import {
   IMPORTABLE_SETTINGS_DATA_TRANSFER_MODULES,
@@ -47,8 +43,6 @@ import { ExportSettingsDataUseCase } from "../useCase/exportSettingsData.useCase
 import { GetSettingsBootstrapUseCase } from "../useCase/getSettingsBootstrap.useCase";
 import { SubmitAppRatingUseCase } from "../useCase/submitAppRating.useCase";
 import { SubmitBugReportUseCase } from "../useCase/submitBugReport.useCase";
-import { UpdateBiometricLoginPreferenceUseCase } from "../useCase/updateBiometricLoginPreference.useCase";
-import { UpdateTwoFactorAuthPreferenceUseCase } from "../useCase/updateTwoFactorAuthPreference.useCase";
 import {
   buildTaxRateLabel,
   getRegionalFinanceCountryOptions,
@@ -110,7 +104,7 @@ const SETTINGS_SECTIONS: readonly SettingsSection[] = [
       {
         id: "exportData",
         title: "Export Data",
-        subtitle: "Download business data as CSV, Excel, PDF, or JSON backup",
+        subtitle: "Export business data as CSV, Excel, PDF, or JSON file",
       },
       {
         id: "importData",
@@ -126,7 +120,7 @@ const SETTINGS_SECTIONS: readonly SettingsSection[] = [
       {
         id: "security",
         title: "Security Controls",
-        subtitle: "Password, biometric login, active sessions",
+        subtitle: "Change your local password",
       },
       {
         id: "termsPrivacy",
@@ -249,8 +243,6 @@ type Params = {
   getAppearancePreferencesUseCase: GetAppearancePreferencesUseCase;
   saveAppearancePreferencesUseCase: SaveAppearancePreferencesUseCase;
   getSettingsBootstrapUseCase: GetSettingsBootstrapUseCase;
-  updateBiometricLoginPreferenceUseCase: UpdateBiometricLoginPreferenceUseCase;
-  updateTwoFactorAuthPreferenceUseCase: UpdateTwoFactorAuthPreferenceUseCase;
   submitBugReportUseCase: SubmitBugReportUseCase;
   submitAppRatingUseCase: SubmitAppRatingUseCase;
   exportSettingsDataUseCase: ExportSettingsDataUseCase;
@@ -270,8 +262,6 @@ export const useSettingsViewModel = ({
   getAppearancePreferencesUseCase,
   saveAppearancePreferencesUseCase,
   getSettingsBootstrapUseCase,
-  updateBiometricLoginPreferenceUseCase,
-  updateTwoFactorAuthPreferenceUseCase,
   submitBugReportUseCase,
   submitAppRatingUseCase,
   exportSettingsDataUseCase,
@@ -283,7 +273,6 @@ export const useSettingsViewModel = ({
   const isBusinessAccount = activeAccountType === AccountType.Business;
 
   const [isLoading, setIsLoading] = useState(true);
-  const [isSavingPreference, setIsSavingPreference] = useState(false);
   const [isSavingAppearance, setIsSavingAppearance] = useState(false);
   const [isSavingRegionalFinance, setIsSavingRegionalFinance] = useState(false);
   const [isExportingData, setIsExportingData] = useState(false);
@@ -308,11 +297,6 @@ export const useSettingsViewModel = ({
   const [dataRightItems, setDataRightItems] = useState<
     SettingsViewModel["dataRightItems"]
   >([]);
-  const [securitySessions, setSecuritySessions] = useState<
-    SettingsViewModel["securitySessions"]
-  >([]);
-  const [biometricLoginEnabled, setBiometricLoginEnabled] = useState(false);
-  const [twoFactorAuthEnabled, setTwoFactorAuthEnabled] = useState(false);
   const [appearancePreferences, setAppearancePreferences] =
     useState<AppearancePreferences>(DEFAULT_APPEARANCE_PREFERENCES);
   const [exportDataFormat, setExportDataFormat] =
@@ -400,13 +384,6 @@ export const useSettingsViewModel = ({
     setSupportContactItems(bootstrapResult.value.supportContactItems);
     setTermsDocumentItems(bootstrapResult.value.termsDocumentItems);
     setDataRightItems(bootstrapResult.value.dataRightItems);
-    setSecuritySessions(bootstrapResult.value.securitySessions);
-    setBiometricLoginEnabled(
-      bootstrapResult.value.securityPreferences.biometricLoginEnabled,
-    );
-    setTwoFactorAuthEnabled(
-      bootstrapResult.value.securityPreferences.twoFactorAuthEnabled,
-    );
     setPasswordChangedAt(bootstrapResult.value.passwordChangedAt);
     setDeviceInfoLabel(bootstrapResult.value.deviceInfo ?? "Unavailable");
     setAppVersionLabel(bootstrapResult.value.appVersion ?? "Unavailable");
@@ -688,52 +665,6 @@ export const useSettingsViewModel = ({
       });
     },
     [appearancePreferences, persistAppearancePreferences],
-  );
-
-  const onToggleBiometricLogin = useCallback(
-    async (value: boolean) => {
-      setIsSavingPreference(true);
-      const result = await updateBiometricLoginPreferenceUseCase.execute(value);
-
-      if (!result.success) {
-        setErrorMessage(result.error.message);
-        setIsSavingPreference(false);
-        return;
-      }
-
-      setBiometricLoginEnabled(value);
-      setErrorMessage(null);
-      setSuccessMessage(
-        value
-          ? "Biometric login preference updated."
-          : "Biometric login preference disabled.",
-      );
-      setIsSavingPreference(false);
-    },
-    [updateBiometricLoginPreferenceUseCase],
-  );
-
-  const onToggleTwoFactorAuth = useCallback(
-    async (value: boolean) => {
-      setIsSavingPreference(true);
-      const result = await updateTwoFactorAuthPreferenceUseCase.execute(value);
-
-      if (!result.success) {
-        setErrorMessage(result.error.message);
-        setIsSavingPreference(false);
-        return;
-      }
-
-      setTwoFactorAuthEnabled(value);
-      setErrorMessage(null);
-      setSuccessMessage(
-        value
-          ? "Two-factor auth preference updated."
-          : "Two-factor auth preference disabled.",
-      );
-      setIsSavingPreference(false);
-    },
-    [updateTwoFactorAuthPreferenceUseCase],
   );
 
   const onChangeRegionalFinanceCountry = useCallback(
@@ -1106,7 +1037,6 @@ export const useSettingsViewModel = ({
   return useMemo(
     () => ({
       isLoading,
-      isSavingPreference,
       isSavingAppearance,
       isSubmittingBugReport,
       isSubmittingRating,
@@ -1145,19 +1075,6 @@ export const useSettingsViewModel = ({
       supportContactItems,
       termsDocumentItems,
       dataRightItems,
-      securitySessions,
-      biometricLoginEnabled,
-      biometricLoginSubtitle: SETTINGS_BIOMETRIC_LOGIN_AVAILABLE
-        ? "Fingerprint or Face ID"
-        : SETTINGS_BIOMETRIC_COMING_SOON_MESSAGE,
-      biometricLoginToggleDisabled:
-        !SETTINGS_BIOMETRIC_LOGIN_AVAILABLE || isSavingPreference,
-      twoFactorAuthEnabled,
-      twoFactorAuthSubtitle: SETTINGS_TWO_FACTOR_AUTH_AVAILABLE
-        ? "Extra layer of security"
-        : SETTINGS_TWO_FACTOR_COMING_SOON_MESSAGE,
-      twoFactorAuthToggleDisabled:
-        !SETTINGS_TWO_FACTOR_AUTH_AVAILABLE || isSavingPreference,
       passwordChangedLabel: formatRelativeLabel(passwordChangedAt),
       deviceInfoLabel,
       appVersionLabel,
@@ -1186,8 +1103,6 @@ export const useSettingsViewModel = ({
       onOpenReportBug,
       onOpenChangePassword,
       onCloseModal,
-      onToggleBiometricLogin,
-      onToggleTwoFactorAuth,
       onSelectThemePreference,
       onSelectTextSizePreference,
       onToggleCompactMode,
@@ -1215,7 +1130,6 @@ export const useSettingsViewModel = ({
       activeUserRemoteId,
       appearancePreferences,
       appVersionLabel,
-      biometricLoginEnabled,
       changePasswordForm,
       dataRightItems,
       deviceInfoLabel,
@@ -1229,7 +1143,6 @@ export const useSettingsViewModel = ({
       isImportingData,
       isLoading,
       isSavingAppearance,
-      isSavingPreference,
       isSavingRegionalFinance,
       isSensitiveSettingsAccessLoading,
       isSubmittingBugReport,
@@ -1262,10 +1175,8 @@ export const useSettingsViewModel = ({
       onSubmitExportData,
       onSubmitPasswordChange,
       onSubmitRating,
-      onToggleBiometricLogin,
       onToggleCompactMode,
       onToggleExportDataModule,
-      onToggleTwoFactorAuth,
       passwordChangedAt,
       ratingReview,
       ratingValue,
@@ -1274,11 +1185,9 @@ export const useSettingsViewModel = ({
       regionalFinanceSettings,
       regionalFinanceTaxRateOptions,
       reportBugForm,
-      securitySessions,
       successMessage,
       supportContactItems,
       termsDocumentItems,
-      twoFactorAuthEnabled,
     ],
   );
 };

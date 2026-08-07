@@ -40,7 +40,6 @@ type SettingsScreenProps = {
   viewModel: SettingsViewModel;
   onBack: () => void;
   importDataFlow?: React.ReactNode;
-  syncStatusPanel?: React.ReactNode;
 };
 
 const getIcon = (
@@ -81,7 +80,6 @@ export function SettingsScreen({
   viewModel,
   onBack,
   importDataFlow,
-  syncStatusPanel,
 }: SettingsScreenProps) {
   useToastMessage({
     message:
@@ -224,8 +222,6 @@ export function SettingsScreen({
         contentContainerStyle={styles.content}
         baseBottomPadding={spacing.xxl}
       >
-        {syncStatusPanel}
-
         {viewModel.settingsSections.map((section) => (
           <View key={section.id} style={styles.sectionWrap}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
@@ -337,19 +333,9 @@ export function SettingsScreen({
         visible={viewModel.activeModal === SettingsModal.Security}
         errorMessage={viewModel.errorMessage}
         successMessage={viewModel.successMessage}
-        isSavingPreference={viewModel.isSavingPreference}
         passwordChangedLabel={viewModel.passwordChangedLabel}
-        biometricLoginEnabled={viewModel.biometricLoginEnabled}
-        biometricLoginSubtitle={viewModel.biometricLoginSubtitle}
-        biometricLoginToggleDisabled={viewModel.biometricLoginToggleDisabled}
-        twoFactorAuthEnabled={viewModel.twoFactorAuthEnabled}
-        twoFactorAuthSubtitle={viewModel.twoFactorAuthSubtitle}
-        twoFactorAuthToggleDisabled={viewModel.twoFactorAuthToggleDisabled}
-        securitySessions={viewModel.securitySessions}
         onClose={viewModel.onCloseModal}
         onOpenChangePassword={viewModel.onOpenChangePassword}
-        onToggleBiometricLogin={viewModel.onToggleBiometricLogin}
-        onToggleTwoFactorAuth={viewModel.onToggleTwoFactorAuth}
       />
 
       <ChangePasswordModal

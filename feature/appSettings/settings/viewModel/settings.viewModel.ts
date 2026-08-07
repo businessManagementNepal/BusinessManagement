@@ -11,7 +11,6 @@ import {
   SettingsDataTransferModuleOption,
   SettingsDataTransferModuleValue,
   RegionalFinanceSettings,
-  SecuritySessionItem,
   SettingsModalValue,
   SupportContactItem,
   TermsDocumentItem,
@@ -55,7 +54,6 @@ export type SettingsSection = {
 
 export interface SettingsViewModel {
   isLoading: boolean;
-  isSavingPreference: boolean;
   isSavingAppearance: boolean;
   isSubmittingBugReport: boolean;
   isSubmittingRating: boolean;
@@ -95,9 +93,6 @@ export interface SettingsViewModel {
   supportContactItems: readonly SupportContactItem[];
   termsDocumentItems: readonly TermsDocumentItem[];
   dataRightItems: readonly DataRightItem[];
-  securitySessions: readonly SecuritySessionItem[];
-  biometricLoginEnabled: boolean;
-  twoFactorAuthEnabled: boolean;
   passwordChangedLabel: string;
   deviceInfoLabel: string;
   appVersionLabel: string;
@@ -110,10 +105,6 @@ export interface SettingsViewModel {
   exportDataModalSubtitle: string;
   importDataModalSubtitle: string;
   importDataUnavailableMessage: string;
-  biometricLoginSubtitle: string;
-  biometricLoginToggleDisabled: boolean;
-  twoFactorAuthSubtitle: string;
-  twoFactorAuthToggleDisabled: boolean;
   activeAccountType: AccountTypeValue;
   onOpenSecurity: () => void;
   onOpenRegionalFinance: () => void;
@@ -126,8 +117,6 @@ export interface SettingsViewModel {
   onOpenReportBug: () => void;
   onOpenChangePassword: () => void;
   onCloseModal: () => void;
-  onToggleBiometricLogin: (value: boolean) => Promise<void>;
-  onToggleTwoFactorAuth: (value: boolean) => Promise<void>;
   onSelectThemePreference: (
     value: AppearanceThemePreferenceValue,
   ) => Promise<void>;

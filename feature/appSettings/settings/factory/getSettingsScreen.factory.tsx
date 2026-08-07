@@ -10,8 +10,6 @@ import { createChangePasswordUseCase } from "@/feature/appSettings/settings/useC
 import { createGetSettingsBootstrapUseCase } from "@/feature/appSettings/settings/useCase/getSettingsBootstrap.useCase.impl";
 import { createSubmitAppRatingUseCase } from "@/feature/appSettings/settings/useCase/submitAppRating.useCase.impl";
 import { createSubmitBugReportUseCase } from "@/feature/appSettings/settings/useCase/submitBugReport.useCase.impl";
-import { createUpdateBiometricLoginPreferenceUseCase } from "@/feature/appSettings/settings/useCase/updateBiometricLoginPreference.useCase.impl";
-import { createUpdateTwoFactorAuthPreferenceUseCase } from "@/feature/appSettings/settings/useCase/updateTwoFactorAuthPreference.useCase.impl";
 import { createExportSettingsDataUseCase } from "@/feature/appSettings/settings/useCase/exportSettingsData.useCase.impl";
 import { createImportSettingsDataUseCase } from "@/feature/appSettings/settings/useCase/importSettingsData.useCase.impl";
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
@@ -19,10 +17,6 @@ import { createAccountRepository } from "@/feature/auth/accountSelection/data/re
 import { createGetAccountByRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccountByRemoteId.useCase.impl";
 import { createSaveAccountUseCase } from "@/feature/auth/accountSelection/useCase/saveAccount.useCase.impl";
 import { useSettingsViewModel } from "@/feature/appSettings/settings/viewModel/settings.viewModel.impl";
-import { useSyncRuntimeFactory } from "@/feature/sync/factory/useSyncRuntime.factory";
-import { createRunManualSyncUseCase } from "@/feature/sync/useCase/runManualSync.useCase.impl";
-import { SyncStatusCard } from "@/feature/sync/ui/components/SyncStatusCard";
-import { useSyncStatusViewModel } from "@/feature/sync/viewModel/syncStatus.viewModel.impl";
 import { createLocalAuthCredentialDatasource } from "@/feature/session/data/dataSource/local.authCredential.datasource.impl";
 import { createAuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository.impl";
 import { createPasswordHashService } from "@/shared/utils/auth/passwordHash.service";
@@ -134,14 +128,6 @@ export function GetSettingsScreenFactory({
       ),
     [authCredentialRepository, settingsRepository],
   );
-  const updateBiometricLoginPreferenceUseCase = React.useMemo(
-    () => createUpdateBiometricLoginPreferenceUseCase(settingsRepository),
-    [settingsRepository],
-  );
-  const updateTwoFactorAuthPreferenceUseCase = React.useMemo(
-    () => createUpdateTwoFactorAuthPreferenceUseCase(settingsRepository),
-    [settingsRepository],
-  );
   const submitBugReportUseCase = React.useMemo(
     () => createSubmitBugReportUseCase(settingsRepository),
     [settingsRepository],
@@ -170,25 +156,6 @@ export function GetSettingsScreenFactory({
       ),
     [authCredentialRepository, passwordHashService],
   );
-  const syncRuntime = useSyncRuntimeFactory({
-    database: appDatabase,
-  });
-  const runManualSyncUseCase = React.useMemo(() => {
-    if (!syncRuntime.runtime || !syncRuntime.remoteSyncIdentityService) {
-      return null;
-    }
-
-    return createRunManualSyncUseCase({
-      ensureDatabaseReady: syncRuntime.ensureDatabaseReady,
-      getAccountByRemoteIdUseCase: syncRuntime.getAccountByRemoteIdUseCase,
-      getAccessToken: () => syncRuntime.authTokenStore.getAccessToken(),
-      getDeviceId: () => syncRuntime.deviceIdStore.getDeviceId(),
-      remoteSyncIdentityService: syncRuntime.remoteSyncIdentityService,
-      runSyncWorkflowUseCase: syncRuntime.runtime.runSyncWorkflowUseCase,
-      schemaVersion: syncRuntime.schemaVersion,
-    });
-  }, [syncRuntime]);
-
   const viewModel = useSettingsViewModel({
     activeUserRemoteId,
     activeAccountRemoteId,
@@ -199,8 +166,6 @@ export function GetSettingsScreenFactory({
     getAppearancePreferencesUseCase,
     saveAppearancePreferencesUseCase,
     getSettingsBootstrapUseCase,
-    updateBiometricLoginPreferenceUseCase,
-    updateTwoFactorAuthPreferenceUseCase,
     submitBugReportUseCase,
     submitAppRatingUseCase,
     exportSettingsDataUseCase,
@@ -209,27 +174,11 @@ export function GetSettingsScreenFactory({
     getAccountByRemoteIdUseCase,
     saveAccountUseCase,
   });
-  const syncStatusViewModel = useSyncStatusViewModel({
-    activeUserRemoteId,
-    activeAccountRemoteId,
-    runtimeError: syncRuntime.runtimeError,
-    getSyncFeatureFlagUseCase:
-      syncRuntime.runtime?.getSyncFeatureFlagUseCase ?? null,
-    updateSyncFeatureFlagUseCase:
-      syncRuntime.runtime?.updateSyncFeatureFlagUseCase ?? null,
-    getSyncStatusUseCase: syncRuntime.runtime?.getSyncStatusUseCase ?? null,
-    runManualSyncUseCase,
-    getAccountByRemoteIdUseCase: syncRuntime.getAccountByRemoteIdUseCase,
-    getDeviceId: () => syncRuntime.deviceIdStore.getDeviceId(),
-    getAccessToken: () => syncRuntime.authTokenStore.getAccessToken(),
-    schemaVersion: syncRuntime.schemaVersion,
-  });
 
   return (
     <SettingsScreen
       viewModel={viewModel}
       onBack={onBack}
-      syncStatusPanel={<SyncStatusCard viewModel={syncStatusViewModel} />}
       importDataFlow={
         <GetImportDataFlowFactory
           visible={viewModel.activeModal === "import_data"}
