@@ -25,8 +25,9 @@
       "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.elekha",
+      "package": "com.businessmanagementnepal.elekha",
       "versionCode": 1,
+      "allowBackup": false,
       "permissions": [],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
@@ -35,6 +36,20 @@
     "plugins": [
       "expo-router",
       "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": false
+          }
+        }
+      ],
       [
         "expo-splash-screen",
         {

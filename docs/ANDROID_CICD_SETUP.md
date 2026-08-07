@@ -105,26 +105,15 @@ database credentials, or server secrets in variables beginning with
 
 ## Android package decision
 
-The current Android package is:
-
-```text
-com.anonymous.elekha
-```
-
-This value is intentionally preserved because the linked EAS project already
-has production Android App Bundles. Before creating or selecting the Google
-Play application, confirm whether this exact package has already been
-registered.
-
-Only if no Play application or distributed build has ever used the current
-package may the team deliberately migrate to:
+The approved permanent Android package is:
 
 ```text
 com.businessmanagementnepal.elekha
 ```
 
-Changing the package after Play registration creates a different application
-and cannot update the existing listing.
+Use this exact package when creating or selecting the Google Play application.
+After Play registration, changing it would create a different application and
+would not update the existing listing.
 
 ## Google Play setup
 
