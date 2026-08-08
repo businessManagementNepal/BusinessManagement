@@ -37,7 +37,6 @@ export type SettingsRowId =
   | "security"
   | "helpFaq"
   | "termsPrivacy"
-  | "rateELekha"
   | "reportBug";
 
 export type SettingsRow = {
@@ -55,9 +54,9 @@ export type SettingsSection = {
 export interface SettingsViewModel {
   isLoading: boolean;
   isSavingAppearance: boolean;
-  isSubmittingBugReport: boolean;
-  isSubmittingRating: boolean;
+  isOpeningBugReportEmail: boolean;
   isChangingPassword: boolean;
+  isDeletingLocalData: boolean;
   activeModal: SettingsModalValue;
   errorMessage: string | null;
   successMessage: string | null;
@@ -97,9 +96,8 @@ export interface SettingsViewModel {
   deviceInfoLabel: string;
   appVersionLabel: string;
   reportBugForm: SettingsReportBugForm;
-  ratingValue: number;
-  ratingReview: string;
   changePasswordForm: SettingsChangePasswordForm;
+  deleteLocalDataConfirmation: string;
   canOpenSecurity: boolean;
   isSensitiveSettingsAccessLoading: boolean;
   exportDataModalSubtitle: string;
@@ -113,10 +111,12 @@ export interface SettingsViewModel {
   onOpenAppearance: () => void;
   onOpenHelpFaq: () => void;
   onOpenTermsPrivacy: () => void;
-  onOpenRateELekha: () => void;
+  onOpenDeleteLocalData: () => void;
   onOpenReportBug: () => void;
   onOpenChangePassword: () => void;
   onCloseModal: () => void;
+  onChangeDeleteLocalDataConfirmation: (value: string) => void;
+  onDeleteLocalData: () => Promise<void>;
   onSelectThemePreference: (
     value: AppearanceThemePreferenceValue,
   ) => Promise<void>;
@@ -137,10 +137,7 @@ export interface SettingsViewModel {
     field: keyof SettingsReportBugForm,
     value: string,
   ) => void;
-  onSubmitBugReport: () => Promise<void>;
-  onSelectRating: (value: number) => void;
-  onRatingReviewChange: (value: string) => void;
-  onSubmitRating: () => Promise<void>;
+  onEmailBugReport: () => Promise<void>;
   onChangePasswordField: (
     field: keyof SettingsChangePasswordForm,
     value: string,

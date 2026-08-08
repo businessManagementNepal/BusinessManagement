@@ -127,31 +127,41 @@ export const SETTINGS_TERMS_DOCUMENT_ITEMS: readonly TermsDocumentItem[] = [
 
 export const SETTINGS_DATA_RIGHT_ITEMS: readonly DataRightItem[] = [
   {
-    id: "access",
-    label: "Request access to your data",
-    description: "Ask support for a copy of the data tied to your current account.",
-    href: buildSupportMailtoLink("Data Access Request"),
-    actionLabel: "Email support",
+    id: "stored-on-device",
+    label: "Stored on this device",
+    description:
+      "Your eLekha profile and business records are stored locally on this device. eLekha V1 does not automatically upload your business records to eLekha servers.",
   },
   {
-    id: "correction",
-    label: "Request a correction",
-    description: "Report inaccurate profile or workspace information for review.",
-    href: buildSupportMailtoLink("Data Correction Request"),
-    actionLabel: "Email support",
+    id: "access-export",
+    label: "Access & Export",
+    description:
+      "View your information directly in eLekha or use Export Data to create a copy of supported records.",
   },
   {
-    id: "deletion",
-    label: "Request deletion",
-    description: "Ask for account or workspace deletion support and confirm the exact scope of deletion.",
-    href: buildSupportMailtoLink("Data Deletion Request"),
-    actionLabel: "Email support",
+    id: "correct-data",
+    label: "Correct Your Data",
+    description:
+      "Edit profile, business, customer, product, financial, and other editable records directly in the app.",
   },
   {
-    id: "consent",
-    label: "Update consent preferences",
-    description: "Contact support to update marketing or processing consent choices.",
-    href: buildSupportMailtoLink("Consent Preferences Request"),
+    id: "delete-profile-data",
+    label: "Delete Profile & All Data",
+    description:
+      "Permanently delete your local eLekha profile and all eLekha application data stored on this device.",
+  },
+  {
+    id: "permissions-choices",
+    label: "Permissions & Choices",
+    description:
+      "Manage supported app permissions through your device settings.",
+  },
+  {
+    id: "privacy-questions",
+    label: "Privacy Questions",
+    description:
+      "For privacy questions, contact support@e-lekha.com. Support cannot remotely retrieve data that exists only on this device.",
+    href: `mailto:${SETTINGS_SUPPORT_EMAIL}`,
     actionLabel: "Email support",
   },
 ] as const;

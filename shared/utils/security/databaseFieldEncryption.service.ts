@@ -126,6 +126,19 @@ export const warmDatabaseFieldEncryptionKey = async (): Promise<void> => {
   await getEncryptionKey();
 };
 
+export const clearDatabaseFieldEncryptionKey = async (): Promise<void> => {
+  if (pendingEncryptionKey) {
+    await pendingEncryptionKey.catch(() => undefined);
+  }
+
+  await SecureStore.deleteItemAsync(
+    ENCRYPTION_KEY_ALIAS,
+    getSecureStoreOptions(),
+  );
+  cachedEncryptionKey = null;
+  pendingEncryptionKey = null;
+};
+
 const buildEncryptedValue = (
   nonce: Uint8Array,
   ciphertext: Uint8Array,

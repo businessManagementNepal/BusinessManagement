@@ -16,11 +16,11 @@ type ReportBugModalProps = {
   form: SettingsReportBugForm;
   deviceInfoLabel: string;
   appVersionLabel: string;
-  isSubmitting: boolean;
+  isOpeningEmail: boolean;
   errorMessage: string | null;
   onClose: () => void;
   onChange: (field: keyof SettingsReportBugForm, value: string) => void;
-  onSubmit: () => Promise<void>;
+  onEmail: () => Promise<void>;
 };
 
 export function ReportBugModal({
@@ -28,11 +28,11 @@ export function ReportBugModal({
   form,
   deviceInfoLabel,
   appVersionLabel,
-  isSubmitting,
+  isOpeningEmail,
   errorMessage,
   onClose,
   onChange,
-  onSubmit,
+  onEmail,
 }: ReportBugModalProps) {
   const styles = useThemedStyles(createStyles);
 
@@ -79,12 +79,12 @@ export function ReportBugModal({
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
       <AppButton
-        label={isSubmitting ? "Submitting Report..." : "Submit Bug Report"}
+        label={isOpeningEmail ? "Opening Email..." : "Email Bug Report"}
         size="lg"
         onPress={() => {
-          void onSubmit();
+          void onEmail();
         }}
-        disabled={isSubmitting}
+        disabled={isOpeningEmail}
       />
     </FormSheetModal>
   );

@@ -8,10 +8,11 @@ import { createSettingsRepository } from "@/feature/appSettings/settings/data/re
 import { SettingsScreen } from "@/feature/appSettings/settings/ui/SettingsScreen";
 import { createChangePasswordUseCase } from "@/feature/appSettings/settings/useCase/changePassword.useCase.impl";
 import { createGetSettingsBootstrapUseCase } from "@/feature/appSettings/settings/useCase/getSettingsBootstrap.useCase.impl";
-import { createSubmitAppRatingUseCase } from "@/feature/appSettings/settings/useCase/submitAppRating.useCase.impl";
-import { createSubmitBugReportUseCase } from "@/feature/appSettings/settings/useCase/submitBugReport.useCase.impl";
+import { createOpenBugReportEmailUseCase } from "@/feature/appSettings/settings/useCase/openBugReportEmail.useCase.impl";
 import { createExportSettingsDataUseCase } from "@/feature/appSettings/settings/useCase/exportSettingsData.useCase.impl";
 import { createImportSettingsDataUseCase } from "@/feature/appSettings/settings/useCase/importSettingsData.useCase.impl";
+import { createDeleteLocalProfileDataUseCase } from "@/feature/appSettings/settings/useCase/deleteLocalProfileData.useCase.impl";
+import { createLocalProfileDataFilesStore } from "@/feature/appSettings/settings/data/localProfileDataFiles.store";
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
 import { createGetAccountByRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccountByRemoteId.useCase.impl";
@@ -21,6 +22,10 @@ import { createLocalAuthCredentialDatasource } from "@/feature/session/data/data
 import { createAuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository.impl";
 import { createPasswordHashService } from "@/shared/utils/auth/passwordHash.service";
 import appDatabase from "@/shared/database/appDatabase";
+import { createAuthTokenStore } from "@/shared/auth/authTokenStore";
+import { clearLedgerReminderNotifications } from "@/feature/ledger/reminder/ledgerReminder.scheduler";
+import { createDeviceIdStore } from "@/shared/device/deviceIdStore";
+import { clearDatabaseFieldEncryptionKey } from "@/shared/utils/security/databaseFieldEncryption.service";
 import React from "react";
 import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
@@ -36,6 +41,7 @@ type GetSettingsScreenFactoryProps = {
   activeAccountDisplayName: string;
   canManageSensitiveSettings: boolean;
   isSensitiveSettingsAccessLoading: boolean;
+  onLocalDataDeleted: () => Promise<void>;
   onBack: () => void;
 };
 
@@ -46,6 +52,7 @@ export function GetSettingsScreenFactory({
   activeAccountDisplayName,
   canManageSensitiveSettings,
   isSensitiveSettingsAccessLoading,
+  onLocalDataDeleted,
   onBack,
 }: GetSettingsScreenFactoryProps) {
   const sensitiveAccessGuard = React.useCallback((): string | null => {
@@ -128,13 +135,9 @@ export function GetSettingsScreenFactory({
       ),
     [authCredentialRepository, settingsRepository],
   );
-  const submitBugReportUseCase = React.useMemo(
-    () => createSubmitBugReportUseCase(settingsRepository),
-    [settingsRepository],
-  );
-  const submitAppRatingUseCase = React.useMemo(
-    () => createSubmitAppRatingUseCase(settingsRepository),
-    [settingsRepository],
+  const openBugReportEmailUseCase = React.useMemo(
+    () => createOpenBugReportEmailUseCase(),
+    [],
   );
   const exportSettingsDataUseCase = React.useMemo(
     () =>
@@ -156,6 +159,18 @@ export function GetSettingsScreenFactory({
       ),
     [authCredentialRepository, passwordHashService],
   );
+  const deleteLocalProfileDataUseCase = React.useMemo(
+    () =>
+      createDeleteLocalProfileDataUseCase({
+        database: appDatabase,
+        authTokenStore: createAuthTokenStore(),
+        deviceIdStore: createDeviceIdStore(),
+        localProfileDataFilesStore: createLocalProfileDataFilesStore(),
+        clearLedgerReminders: clearLedgerReminderNotifications,
+        clearDatabaseEncryptionKey: clearDatabaseFieldEncryptionKey,
+      }),
+    [],
+  );
   const viewModel = useSettingsViewModel({
     activeUserRemoteId,
     activeAccountRemoteId,
@@ -166,11 +181,12 @@ export function GetSettingsScreenFactory({
     getAppearancePreferencesUseCase,
     saveAppearancePreferencesUseCase,
     getSettingsBootstrapUseCase,
-    submitBugReportUseCase,
-    submitAppRatingUseCase,
+    openBugReportEmailUseCase,
     exportSettingsDataUseCase,
     importSettingsDataUseCase,
     changePasswordUseCase,
+    deleteLocalProfileDataUseCase,
+    onLocalDataDeleted,
     getAccountByRemoteIdUseCase,
     saveAccountUseCase,
   });

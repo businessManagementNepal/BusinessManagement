@@ -241,6 +241,12 @@ export const createInMemoryWatermelonDatabase = (params: {
       Promise.resolve(action()),
     read: async <T>(action: () => Promise<T> | T): Promise<T> =>
       Promise.resolve(action()),
+    unsafeResetDatabase: async (): Promise<void> => {
+      for (const records of tableMap.values()) {
+        records.splice(0, records.length);
+      }
+      localStore.clear();
+    },
   } as unknown as Database;
 
   return {

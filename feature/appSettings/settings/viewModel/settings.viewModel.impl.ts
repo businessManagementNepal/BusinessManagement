@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   APPEARANCE_TEXT_SIZE_OPTIONS,
   APPEARANCE_THEME_OPTIONS,
@@ -41,8 +41,8 @@ import { ImportSettingsDataUseCase } from "../useCase/importSettingsData.useCase
 import { ChangePasswordUseCase } from "../useCase/changePassword.useCase";
 import { ExportSettingsDataUseCase } from "../useCase/exportSettingsData.useCase";
 import { GetSettingsBootstrapUseCase } from "../useCase/getSettingsBootstrap.useCase";
-import { SubmitAppRatingUseCase } from "../useCase/submitAppRating.useCase";
-import { SubmitBugReportUseCase } from "../useCase/submitBugReport.useCase";
+import { OpenBugReportEmailUseCase } from "../useCase/openBugReportEmail.useCase";
+import { DeleteLocalProfileDataUseCase } from "../useCase/deleteLocalProfileData.useCase";
 import {
   buildTaxRateLabel,
   getRegionalFinanceCountryOptions,
@@ -55,6 +55,7 @@ import {
   SettingsSection,
   SettingsViewModel,
 } from "./settings.viewModel";
+import { isDeleteLocalDataConfirmationAccepted } from "./deleteLocalDataConfirmation.util";
 
 const DEFAULT_REPORT_BUG_FORM: SettingsReportBugForm = {
   title: "",
@@ -124,8 +125,8 @@ const SETTINGS_SECTIONS: readonly SettingsSection[] = [
       },
       {
         id: "termsPrivacy",
-        title: "Terms & Privacy",
-        subtitle: "Terms, privacy policy, and data rights",
+        title: "Data & Privacy",
+        subtitle: "Privacy policy, data controls, and local deletion",
       },
     ],
   },
@@ -142,11 +143,6 @@ const SETTINGS_SECTIONS: readonly SettingsSection[] = [
         id: "reportBug",
         title: "Report a Bug",
         subtitle: "Tell us what went wrong",
-      },
-      {
-        id: "rateELekha",
-        title: "Rate e-Lekha",
-        subtitle: "Share your experience with the app",
       },
     ],
   },
@@ -243,11 +239,12 @@ type Params = {
   getAppearancePreferencesUseCase: GetAppearancePreferencesUseCase;
   saveAppearancePreferencesUseCase: SaveAppearancePreferencesUseCase;
   getSettingsBootstrapUseCase: GetSettingsBootstrapUseCase;
-  submitBugReportUseCase: SubmitBugReportUseCase;
-  submitAppRatingUseCase: SubmitAppRatingUseCase;
+  openBugReportEmailUseCase: OpenBugReportEmailUseCase;
   exportSettingsDataUseCase: ExportSettingsDataUseCase;
   importSettingsDataUseCase: ImportSettingsDataUseCase;
   changePasswordUseCase: ChangePasswordUseCase;
+  deleteLocalProfileDataUseCase: DeleteLocalProfileDataUseCase;
+  onLocalDataDeleted: () => Promise<void>;
   getAccountByRemoteIdUseCase: GetAccountByRemoteIdUseCase;
   saveAccountUseCase: SaveAccountUseCase;
 };
@@ -262,11 +259,12 @@ export const useSettingsViewModel = ({
   getAppearancePreferencesUseCase,
   saveAppearancePreferencesUseCase,
   getSettingsBootstrapUseCase,
-  submitBugReportUseCase,
-  submitAppRatingUseCase,
+  openBugReportEmailUseCase,
   exportSettingsDataUseCase,
   importSettingsDataUseCase,
   changePasswordUseCase,
+  deleteLocalProfileDataUseCase,
+  onLocalDataDeleted,
   getAccountByRemoteIdUseCase,
   saveAccountUseCase,
 }: Params): SettingsViewModel => {
@@ -277,9 +275,11 @@ export const useSettingsViewModel = ({
   const [isSavingRegionalFinance, setIsSavingRegionalFinance] = useState(false);
   const [isExportingData, setIsExportingData] = useState(false);
   const [isImportingData, setIsImportingData] = useState(false);
-  const [isSubmittingBugReport, setIsSubmittingBugReport] = useState(false);
-  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+  const [isOpeningBugReportEmail, setIsOpeningBugReportEmail] =
+    useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isDeletingLocalData, setIsDeletingLocalData] = useState(false);
+  const deletionInFlightRef = useRef(false);
   const [activeModal, setActiveModal] = useState<SettingsModalValue>(
     SettingsModal.None,
   );
@@ -314,10 +314,10 @@ export const useSettingsViewModel = ({
   const [reportBugForm, setReportBugForm] = useState<SettingsReportBugForm>(
     DEFAULT_REPORT_BUG_FORM,
   );
-  const [ratingValue, setRatingValue] = useState(0);
-  const [ratingReview, setRatingReview] = useState("");
   const [changePasswordForm, setChangePasswordForm] =
     useState<SettingsChangePasswordForm>(DEFAULT_CHANGE_PASSWORD_FORM);
+  const [deleteLocalDataConfirmation, setDeleteLocalDataConfirmation] =
+    useState("");
 
   const sensitiveSettingsAccessMessage = useMemo(() => {
     if (!isBusinessAccount) {
@@ -520,7 +520,12 @@ export const useSettingsViewModel = ({
   );
 
   const onCloseModal = useCallback(() => {
+    if (deletionInFlightRef.current) {
+      return;
+    }
+
     setActiveModal(SettingsModal.None);
+    setDeleteLocalDataConfirmation("");
     clearFeedback();
   }, [clearFeedback]);
 
@@ -571,10 +576,61 @@ export const useSettingsViewModel = ({
     setActiveModal(SettingsModal.TermsPrivacy);
   }, [clearFeedback]);
 
-  const onOpenRateELekha = useCallback(() => {
+  const onOpenDeleteLocalData = useCallback(() => {
     clearFeedback();
-    setActiveModal(SettingsModal.RateELekha);
+    setDeleteLocalDataConfirmation("");
+    setActiveModal(SettingsModal.DeleteLocalData);
   }, [clearFeedback]);
+
+  const onChangeDeleteLocalDataConfirmation = useCallback((value: string) => {
+    if (deletionInFlightRef.current) {
+      return;
+    }
+
+    setDeleteLocalDataConfirmation(value);
+    setErrorMessage(null);
+  }, []);
+
+  const onDeleteLocalData = useCallback(async (): Promise<void> => {
+    if (
+      deletionInFlightRef.current ||
+      !isDeleteLocalDataConfirmationAccepted(deleteLocalDataConfirmation)
+    ) {
+      return;
+    }
+
+    deletionInFlightRef.current = true;
+    setIsDeletingLocalData(true);
+    setSuccessMessage(null);
+    setErrorMessage(null);
+
+    const result = await deleteLocalProfileDataUseCase.execute();
+
+    if (!result.success) {
+      deletionInFlightRef.current = false;
+      setIsDeletingLocalData(false);
+      setErrorMessage(result.error.message);
+      return;
+    }
+
+    try {
+      await onLocalDataDeleted();
+    } catch (error) {
+      console.error(
+        "Local data was deleted but session exit failed.",
+        error instanceof Error ? error.name : "UnknownError",
+      );
+      deletionInFlightRef.current = false;
+      setIsDeletingLocalData(false);
+      setErrorMessage(
+        "All local data was deleted, but eLekha could not return to login. Restart the app before continuing.",
+      );
+    }
+  }, [
+    deleteLocalDataConfirmation,
+    deleteLocalProfileDataUseCase,
+    onLocalDataDeleted,
+  ]);
 
   const onOpenReportBug = useCallback(() => {
     clearFeedback();
@@ -921,15 +977,10 @@ export const useSettingsViewModel = ({
     [],
   );
 
-  const onSubmitBugReport = useCallback(async () => {
-    if (!activeUserRemoteId) {
-      setErrorMessage("An active user is required to report a bug.");
-      return;
-    }
-
-    setIsSubmittingBugReport(true);
-    const result = await submitBugReportUseCase.execute({
-      userRemoteId: activeUserRemoteId,
+  const onEmailBugReport = useCallback(async () => {
+    setIsOpeningBugReportEmail(true);
+    setSuccessMessage(null);
+    const result = await openBugReportEmailUseCase.execute({
       title: reportBugForm.title,
       description: reportBugForm.description,
       severity: reportBugForm.severity,
@@ -939,61 +990,23 @@ export const useSettingsViewModel = ({
 
     if (!result.success) {
       setErrorMessage(result.error.message);
-      setIsSubmittingBugReport(false);
+      setIsOpeningBugReportEmail(false);
       return;
     }
 
     setReportBugForm(DEFAULT_REPORT_BUG_FORM);
     setErrorMessage(null);
-    setSuccessMessage("Bug report submitted successfully.");
-    setIsSubmittingBugReport(false);
+    setSuccessMessage("Bug report email opened.");
+    setIsOpeningBugReportEmail(false);
     setActiveModal(SettingsModal.None);
   }, [
-    activeUserRemoteId,
     appVersionLabel,
     deviceInfoLabel,
+    openBugReportEmailUseCase,
     reportBugForm.description,
     reportBugForm.severity,
     reportBugForm.title,
-    submitBugReportUseCase,
   ]);
-
-  const onSelectRating = useCallback((value: number) => {
-    setRatingValue(value);
-    setErrorMessage(null);
-  }, []);
-
-  const onRatingReviewChange = useCallback((value: string) => {
-    setRatingReview(value);
-    setErrorMessage(null);
-  }, []);
-
-  const onSubmitRating = useCallback(async () => {
-    if (!activeUserRemoteId) {
-      setErrorMessage("An active user is required to rate e-Lekha.");
-      return;
-    }
-
-    setIsSubmittingRating(true);
-    const result = await submitAppRatingUseCase.execute({
-      userRemoteId: activeUserRemoteId,
-      starCount: ratingValue,
-      review: ratingReview,
-    });
-
-    if (!result.success) {
-      setErrorMessage(result.error.message);
-      setIsSubmittingRating(false);
-      return;
-    }
-
-    setRatingValue(0);
-    setRatingReview("");
-    setErrorMessage(null);
-    setSuccessMessage("Thanks for rating e-Lekha.");
-    setIsSubmittingRating(false);
-    setActiveModal(SettingsModal.None);
-  }, [activeUserRemoteId, ratingReview, ratingValue, submitAppRatingUseCase]);
 
   const onChangePasswordField = useCallback(
     (field: keyof SettingsChangePasswordForm, value: string) => {
@@ -1038,9 +1051,9 @@ export const useSettingsViewModel = ({
     () => ({
       isLoading,
       isSavingAppearance,
-      isSubmittingBugReport,
-      isSubmittingRating,
+      isOpeningBugReportEmail,
       isChangingPassword,
+      isDeletingLocalData,
       activeModal,
       errorMessage,
       successMessage,
@@ -1079,9 +1092,8 @@ export const useSettingsViewModel = ({
       deviceInfoLabel,
       appVersionLabel,
       reportBugForm,
-      ratingValue,
-      ratingReview,
       changePasswordForm,
+      deleteLocalDataConfirmation,
       canOpenSecurity: Boolean(activeUserRemoteId),
       isSensitiveSettingsAccessLoading,
       exportDataModalSubtitle: activeAccountDisplayName.trim()
@@ -1099,10 +1111,12 @@ export const useSettingsViewModel = ({
       onOpenSecurity,
       onOpenHelpFaq,
       onOpenTermsPrivacy,
-      onOpenRateELekha,
+      onOpenDeleteLocalData,
       onOpenReportBug,
       onOpenChangePassword,
       onCloseModal,
+      onChangeDeleteLocalDataConfirmation,
+      onDeleteLocalData,
       onSelectThemePreference,
       onSelectTextSizePreference,
       onToggleCompactMode,
@@ -1116,10 +1130,7 @@ export const useSettingsViewModel = ({
       onSubmitExportData,
       onImportDataModule,
       onReportBugFieldChange,
-      onSubmitBugReport,
-      onSelectRating,
-      onRatingReviewChange,
-      onSubmitRating,
+      onEmailBugReport,
       onChangePasswordField,
       onSubmitPasswordChange,
     }),
@@ -1132,6 +1143,7 @@ export const useSettingsViewModel = ({
       appVersionLabel,
       changePasswordForm,
       dataRightItems,
+      deleteLocalDataConfirmation,
       deviceInfoLabel,
       errorMessage,
       exportDataFormat,
@@ -1139,16 +1151,17 @@ export const useSettingsViewModel = ({
       helpFaqItems,
       importDataModuleOptions,
       isChangingPassword,
+      isDeletingLocalData,
       isExportingData,
       isImportingData,
       isLoading,
       isSavingAppearance,
       isSavingRegionalFinance,
       isSensitiveSettingsAccessLoading,
-      isSubmittingBugReport,
-      isSubmittingRating,
+      isOpeningBugReportEmail,
       onChangeExportDataFormat,
       onChangePasswordField,
+      onChangeDeleteLocalDataConfirmation,
       onChangeRegionalFinanceCountry,
       onChangeRegionalFinanceCurrency,
       onChangeRegionalFinanceTaxMode,
@@ -1157,29 +1170,25 @@ export const useSettingsViewModel = ({
       onImportDataModule,
       onOpenAppearance,
       onOpenChangePassword,
+      onOpenDeleteLocalData,
       onOpenExportData,
       onOpenHelpFaq,
       onOpenImportData,
-      onOpenRateELekha,
       onOpenRegionalFinance,
       onOpenReportBug,
       onOpenSecurity,
       onOpenTermsPrivacy,
-      onRatingReviewChange,
+      onDeleteLocalData,
       onReportBugFieldChange,
       onSaveRegionalFinance,
-      onSelectRating,
       onSelectTextSizePreference,
       onSelectThemePreference,
-      onSubmitBugReport,
+      onEmailBugReport,
       onSubmitExportData,
       onSubmitPasswordChange,
-      onSubmitRating,
       onToggleCompactMode,
       onToggleExportDataModule,
       passwordChangedAt,
-      ratingReview,
-      ratingValue,
       regionalFinanceCountryOptions,
       regionalFinanceCurrencyOptions,
       regionalFinanceSettings,

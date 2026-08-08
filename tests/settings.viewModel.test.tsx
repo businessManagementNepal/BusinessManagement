@@ -6,6 +6,7 @@ import {
 } from "@/feature/appSettings/appearance/types/appearance.types";
 import { useSettingsViewModel } from "@/feature/appSettings/settings/viewModel/settings.viewModel.impl";
 import { SettingsModal } from "@/feature/appSettings/settings/types/settings.types";
+import { isDeleteLocalDataActionDisabled } from "@/feature/appSettings/settings/viewModel/deleteLocalDataConfirmation.util";
 import {
   AccountType,
   AccountTypeValue,
@@ -122,10 +123,7 @@ type HarnessProps = {
   getSettingsBootstrapUseCase: {
     execute: ReturnType<typeof vi.fn>;
   };
-  submitBugReportUseCase: {
-    execute: ReturnType<typeof vi.fn>;
-  };
-  submitAppRatingUseCase: {
+  openBugReportEmailUseCase: {
     execute: ReturnType<typeof vi.fn>;
   };
   exportSettingsDataUseCase: {
@@ -137,6 +135,10 @@ type HarnessProps = {
   changePasswordUseCase: {
     execute: ReturnType<typeof vi.fn>;
   };
+  deleteLocalProfileDataUseCase: {
+    execute: ReturnType<typeof vi.fn>;
+  };
+  onLocalDataDeleted: () => Promise<void>;
   getAccountByRemoteIdUseCase: {
     execute: ReturnType<typeof vi.fn>;
   };
@@ -159,11 +161,13 @@ function SettingsViewModelHarness(props: HarnessProps) {
     saveAppearancePreferencesUseCase:
       props.saveAppearancePreferencesUseCase as never,
     getSettingsBootstrapUseCase: props.getSettingsBootstrapUseCase as never,
-    submitBugReportUseCase: props.submitBugReportUseCase as never,
-    submitAppRatingUseCase: props.submitAppRatingUseCase as never,
+    openBugReportEmailUseCase: props.openBugReportEmailUseCase as never,
     exportSettingsDataUseCase: props.exportSettingsDataUseCase as never,
     importSettingsDataUseCase: props.importSettingsDataUseCase as never,
     changePasswordUseCase: props.changePasswordUseCase as never,
+    deleteLocalProfileDataUseCase:
+      props.deleteLocalProfileDataUseCase as never,
+    onLocalDataDeleted: props.onLocalDataDeleted,
     getAccountByRemoteIdUseCase: props.getAccountByRemoteIdUseCase as never,
     saveAccountUseCase: props.saveAccountUseCase as never,
   });
@@ -222,10 +226,7 @@ describe("settings.viewModel", () => {
       getSettingsBootstrapUseCase: {
         execute: vi.fn(async () => buildBootstrapResult()),
       },
-      submitBugReportUseCase: {
-        execute: vi.fn(async () => ({ success: true as const, value: true })),
-      },
-      submitAppRatingUseCase: {
+      openBugReportEmailUseCase: {
         execute: vi.fn(async () => ({ success: true as const, value: true })),
       },
       exportSettingsDataUseCase: {
@@ -250,6 +251,10 @@ describe("settings.viewModel", () => {
       changePasswordUseCase: {
         execute: vi.fn(async () => ({ success: true as const, value: true })),
       },
+      deleteLocalProfileDataUseCase: {
+        execute: vi.fn(async () => ({ success: true as const, value: true })),
+      },
+      onLocalDataDeleted: vi.fn(async () => undefined),
       getAccountByRemoteIdUseCase: {
         execute: vi.fn(async () => ({
           success: true as const,
@@ -299,6 +304,15 @@ describe("settings.viewModel", () => {
         .find((section) => section.id === "dataTools")
         ?.rows.find((row) => row.id === "exportData")?.subtitle,
     ).toBe("Export business data as CSV, Excel, PDF, or JSON file");
+    expect(
+      latestViewModel?.settingsSections
+        .find((section) => section.id === "support")
+        ?.rows.map((row) => row.id),
+    ).toEqual(["helpFaq", "reportBug"]);
+    expect(latestViewModel).not.toHaveProperty("ratingValue");
+    expect(latestViewModel).not.toHaveProperty("ratingReview");
+    expect(latestViewModel).not.toHaveProperty("onOpenRateELekha");
+    expect(latestViewModel).not.toHaveProperty("onSubmitRating");
     expect(props.getAccountByRemoteIdUseCase?.execute).toHaveBeenCalledWith(
       "account-1",
     );
@@ -402,5 +416,199 @@ describe("settings.viewModel", () => {
       "Regional finance settings updated.",
     );
     expect(latestViewModel?.activeModal).toBe(SettingsModal.None);
+  });
+
+  it("opens a bug report email without passing local identity or business data", async () => {
+    const execute = vi.fn(async (_payload: unknown) => ({
+      success: true as const,
+      value: true,
+    }));
+
+    await renderHarness({
+      openBugReportEmailUseCase: { execute },
+    });
+
+    await act(async () => {
+      latestViewModel?.onOpenReportBug();
+      latestViewModel?.onReportBugFieldChange(
+        "title",
+        "Invoice total incorrect",
+      );
+      latestViewModel?.onReportBugFieldChange(
+        "description",
+        "The invoice total differs from the displayed item total.",
+      );
+      latestViewModel?.onReportBugFieldChange("severity", "high");
+      await flushEffects();
+    });
+
+    await act(async () => {
+      await latestViewModel?.onEmailBugReport();
+      await flushEffects();
+    });
+
+    expect(execute).toHaveBeenCalledWith({
+      title: "Invoice total incorrect",
+      description:
+        "The invoice total differs from the displayed item total.",
+      severity: "high",
+      deviceInfo: "Platform: web",
+      appVersion: "1.0.0",
+    });
+    expect(execute.mock.calls[0]?.[0]).not.toHaveProperty("userRemoteId");
+    expect(execute.mock.calls[0]?.[0]).not.toHaveProperty(
+      "activeAccountRemoteId",
+    );
+    expect(latestViewModel?.successMessage).toBe(
+      "Bug report email opened.",
+    );
+    expect(latestViewModel?.activeModal).toBe(SettingsModal.None);
+  });
+
+  it("keeps Report a Bug open when the email draft cannot be opened", async () => {
+    const execute = vi.fn(async () => ({
+      success: false as const,
+      error: {
+        type: "VALIDATION_ERROR" as const,
+        message:
+          "No email app is available. Contact support@e-lekha.com manually.",
+      },
+    }));
+
+    await renderHarness({
+      openBugReportEmailUseCase: { execute },
+    });
+
+    await act(async () => {
+      latestViewModel?.onOpenReportBug();
+      latestViewModel?.onReportBugFieldChange("title", "Cannot save invoice");
+      latestViewModel?.onReportBugFieldChange(
+        "description",
+        "Save does not complete.",
+      );
+      await flushEffects();
+      await latestViewModel?.onEmailBugReport();
+      await flushEffects();
+    });
+
+    expect(latestViewModel?.activeModal).toBe(SettingsModal.ReportBug);
+    expect(latestViewModel?.errorMessage).toContain(
+      "support@e-lekha.com",
+    );
+    expect(latestViewModel?.successMessage).toBeNull();
+  });
+
+  it("requires DELETE confirmation before local data deletion is enabled", async () => {
+    const props = await renderHarness();
+
+    await act(async () => {
+      latestViewModel?.onOpenDeleteLocalData();
+      await flushEffects();
+    });
+
+    expect(latestViewModel?.activeModal).toBe(SettingsModal.DeleteLocalData);
+    expect(
+      isDeleteLocalDataActionDisabled({
+        confirmation: latestViewModel?.deleteLocalDataConfirmation ?? "",
+        isDeleting: latestViewModel?.isDeletingLocalData ?? false,
+      }),
+    ).toBe(true);
+
+    await act(async () => {
+      await latestViewModel?.onDeleteLocalData();
+      await flushEffects();
+    });
+    expect(
+      props.deleteLocalProfileDataUseCase.execute,
+    ).not.toHaveBeenCalled();
+
+    await act(async () => {
+      latestViewModel?.onChangeDeleteLocalDataConfirmation("  delete  ");
+      await flushEffects();
+    });
+
+    expect(
+      isDeleteLocalDataActionDisabled({
+        confirmation: latestViewModel?.deleteLocalDataConfirmation ?? "",
+        isDeleting: latestViewModel?.isDeletingLocalData ?? false,
+      }),
+    ).toBe(false);
+  });
+
+  it("prevents rapid duplicate deletion and exits the session after success", async () => {
+    let resolveDeletion:
+      | ((result: { success: true; value: boolean }) => void)
+      | null = null;
+    const execute = vi.fn(
+      () =>
+        new Promise<{ success: true; value: boolean }>((resolve) => {
+          resolveDeletion = resolve;
+        }),
+    );
+    const onLocalDataDeleted = vi.fn(async () => undefined);
+
+    await renderHarness({
+      deleteLocalProfileDataUseCase: { execute },
+      onLocalDataDeleted,
+    });
+
+    await act(async () => {
+      latestViewModel?.onOpenDeleteLocalData();
+      latestViewModel?.onChangeDeleteLocalDataConfirmation("DELETE");
+      await flushEffects();
+    });
+
+    await act(async () => {
+      const firstRequest = latestViewModel?.onDeleteLocalData();
+      const duplicateRequest = latestViewModel?.onDeleteLocalData();
+      await flushEffects();
+
+      resolveDeletion?.({ success: true, value: true });
+      await Promise.all([firstRequest, duplicateRequest]);
+      await flushEffects();
+    });
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(onLocalDataDeleted).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the confirmation open and allows retry when deletion fails", async () => {
+    const execute = vi.fn(async () => ({
+      success: false as const,
+      error: {
+        type: "DATASOURCE_ERROR" as const,
+        message: "Unable to delete all local eLekha data. Please try again.",
+      },
+    }));
+    const onLocalDataDeleted = vi.fn(async () => undefined);
+
+    await renderHarness({
+      deleteLocalProfileDataUseCase: { execute },
+      onLocalDataDeleted,
+    });
+
+    await act(async () => {
+      latestViewModel?.onOpenDeleteLocalData();
+      latestViewModel?.onChangeDeleteLocalDataConfirmation("DELETE");
+      await flushEffects();
+    });
+
+    await act(async () => {
+      await latestViewModel?.onDeleteLocalData();
+      await flushEffects();
+    });
+
+    expect(latestViewModel?.activeModal).toBe(SettingsModal.DeleteLocalData);
+    expect(latestViewModel?.isDeletingLocalData).toBe(false);
+    expect(latestViewModel?.errorMessage).toBe(
+      "Unable to delete all local eLekha data. Please try again.",
+    );
+    expect(onLocalDataDeleted).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await latestViewModel?.onDeleteLocalData();
+      await flushEffects();
+    });
+    expect(execute).toHaveBeenCalledTimes(2);
   });
 });

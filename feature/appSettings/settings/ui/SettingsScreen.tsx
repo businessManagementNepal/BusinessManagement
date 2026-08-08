@@ -14,7 +14,6 @@ import {
   LockKeyhole,
   Palette,
   ShieldCheck,
-  Star,
   Upload,
 } from "lucide-react-native";
 import React from "react";
@@ -30,11 +29,11 @@ import { SettingsRowId, SettingsViewModel } from "../viewModel/settings.viewMode
 import { ChangePasswordModal } from "./components/ChangePasswordModal";
 import { ExportDataModal } from "./components/ExportDataModal";
 import { HelpFaqModal } from "./components/HelpFaqModal";
-import { RateELekhaModal } from "./components/RateELekhaModal";
 import { RegionalFinanceModal } from "./components/RegionalFinanceModal";
 import { ReportBugModal } from "./components/ReportBugModal";
 import { SecurityModal } from "./components/SecurityModal";
 import { TermsPrivacyModal } from "./components/TermsPrivacyModal";
+import { DeleteLocalDataModal } from "./components/DeleteLocalDataModal";
 
 type SettingsScreenProps = {
   viewModel: SettingsViewModel;
@@ -61,14 +60,6 @@ const getIcon = (
       return <CircleHelp size={18} color={colorPalette.primary} />;
     case "termsPrivacy":
       return <ShieldCheck size={18} color={colorPalette.primary} />;
-    case "rateELekha":
-      return (
-        <Star
-          size={18}
-          color={colorPalette.primary}
-          fill={colorPalette.primary}
-        />
-      );
     case "reportBug":
       return <Bug size={18} color={colorPalette.primary} />;
     default:
@@ -195,9 +186,6 @@ export function SettingsScreen({
         return;
       case "termsPrivacy":
         viewModel.onOpenTermsPrivacy();
-        return;
-      case "rateELekha":
-        viewModel.onOpenRateELekha();
         return;
       case "reportBug":
         viewModel.onOpenReportBug();
@@ -359,19 +347,18 @@ export function SettingsScreen({
         visible={viewModel.activeModal === SettingsModal.TermsPrivacy}
         items={viewModel.termsDocumentItems}
         dataRights={viewModel.dataRightItems}
+        onDeleteLocalData={viewModel.onOpenDeleteLocalData}
         onClose={viewModel.onCloseModal}
       />
 
-      <RateELekhaModal
-        visible={viewModel.activeModal === SettingsModal.RateELekha}
-        ratingValue={viewModel.ratingValue}
-        review={viewModel.ratingReview}
-        isSubmitting={viewModel.isSubmittingRating}
+      <DeleteLocalDataModal
+        visible={viewModel.activeModal === SettingsModal.DeleteLocalData}
+        confirmation={viewModel.deleteLocalDataConfirmation}
+        isDeleting={viewModel.isDeletingLocalData}
         errorMessage={viewModel.errorMessage}
+        onChangeConfirmation={viewModel.onChangeDeleteLocalDataConfirmation}
         onClose={viewModel.onCloseModal}
-        onSelectRating={viewModel.onSelectRating}
-        onReviewChange={viewModel.onRatingReviewChange}
-        onSubmit={viewModel.onSubmitRating}
+        onConfirm={viewModel.onDeleteLocalData}
       />
 
       <ReportBugModal
@@ -379,11 +366,11 @@ export function SettingsScreen({
         form={viewModel.reportBugForm}
         deviceInfoLabel={viewModel.deviceInfoLabel}
         appVersionLabel={viewModel.appVersionLabel}
-        isSubmitting={viewModel.isSubmittingBugReport}
+        isOpeningEmail={viewModel.isOpeningBugReportEmail}
         errorMessage={viewModel.errorMessage}
         onClose={viewModel.onCloseModal}
         onChange={viewModel.onReportBugFieldChange}
-        onSubmit={viewModel.onSubmitBugReport}
+        onEmail={viewModel.onEmailBugReport}
       />
     </>
   );

@@ -48,7 +48,7 @@ export const SettingsModal = {
   ChangePassword: "change_password",
   HelpFaq: "help_faq",
   TermsPrivacy: "terms_privacy",
-  RateELekha: "rate_e_lekha",
+  DeleteLocalData: "delete_local_data",
   ReportBug: "report_bug",
 } as const;
 

@@ -3,6 +3,7 @@ import { GetSettingsScreenFactory } from "@/feature/appSettings/settings/factory
 import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
 import { useAccountPermissionAccess } from "@/feature/userManagement/factory/useAccountPermissionAccess.factory";
+import { useAppRouteSession } from "@/feature/session/ui/AppRouteSessionProvider";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 
 const PROFILE_EDIT_PERMISSION_CODE = "profile.edit";
@@ -10,6 +11,7 @@ const MANAGE_STAFF_PERMISSION_CODE = "user_management.manage_staff";
 
 export default function SettingsDashboardRoute() {
   const navigation = useSmoothNavigation();
+  const { refreshSession } = useAppRouteSession();
   const {
     isLoading,
     hasActiveSession,
@@ -33,6 +35,11 @@ export default function SettingsDashboardRoute() {
     navigation.replace("/(dashboard)/more");
   }, [navigation]);
 
+  const handleLocalDataDeleted = useCallback(async () => {
+    await refreshSession();
+    navigation.replace("/(auth)/login");
+  }, [navigation, refreshSession]);
+
   if (isLoading || !hasActiveSession || !hasActiveAccount) {
     return null;
   }
@@ -47,6 +54,7 @@ export default function SettingsDashboardRoute() {
       isSensitiveSettingsAccessLoading={
         isBusinessAccount && permissionAccess.isLoading
       }
+      onLocalDataDeleted={handleLocalDataDeleted}
       onBack={handleBack}
     />
   );
