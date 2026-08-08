@@ -4,11 +4,15 @@ on:
   pull_request:
     branches:
       - dev
+      - staging
       - main
+
   push:
     branches:
       - dev
+      - staging
       - main
+
   workflow_dispatch:
 
 permissions:
@@ -56,8 +60,6 @@ jobs:
         run: npx expo config --type public > /tmp/expo-config.json
 
       - name: Validate Android export
-        env:
-          EXPO_PUBLIC_API_BASE_URL: https://example.invalid
         run: npx expo export --platform android --output-dir dist-ci
 
       - name: Upload export diagnostics
