@@ -54,3 +54,6 @@ play-store-key.json
 # CI export output
 dist-ci/
 dist-release-check/
+
+# Local temporary/test artifacts
+.tmp/
