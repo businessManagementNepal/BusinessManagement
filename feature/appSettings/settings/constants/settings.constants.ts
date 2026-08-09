@@ -112,9 +112,9 @@ export const SETTINGS_TERMS_DOCUMENT_ITEMS: readonly TermsDocumentItem[] = [
   {
     id: "privacy-policy",
     title: "Privacy Policy",
-    subtitle: "Request the current privacy policy by email.",
-    href: buildSupportMailtoLink("Request Privacy Policy"),
-    actionLabel: "Request copy",
+    subtitle: "Read the eLekha Privacy Policy.",
+    href: "https://businessmanagementnepal.github.io/elekha-privacy/",
+    actionLabel: "View Privacy Policy",
   },
   {
     id: "data-processing",

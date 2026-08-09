@@ -38,4 +38,18 @@ describe("offline V1 data privacy settings", () => {
       ),
     ).toBe(true);
   });
+
+  it("opens the published Privacy Policy inside Data & Privacy", () => {
+    const privacyPolicyItem = SETTINGS_TERMS_DOCUMENT_ITEMS.find(
+      (item) => item.id === "privacy-policy",
+    );
+
+    expect(privacyPolicyItem).toMatchObject({
+      title: "Privacy Policy",
+      subtitle: "Read the eLekha Privacy Policy.",
+      href: "https://businessmanagementnepal.github.io/elekha-privacy/",
+      actionLabel: "View Privacy Policy",
+    });
+    expect(privacyPolicyItem?.href).not.toMatch(/^mailto:/);
+  });
 });
