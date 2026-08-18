@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react-native";
 import { EditablePersonalProfile } from "@/feature/profile/screen/types/profileScreen.types";
+import { PersonalProfileFieldErrors } from "@/feature/profile/screen/validation/validatePersonalProfileFields";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { ProfileField } from "./ProfileField";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
@@ -19,6 +20,7 @@ import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type PersonalProfileSectionProps = {
   personalProfileForm: EditablePersonalProfile;
+  personalProfileFieldErrors: PersonalProfileFieldErrors;
   isPersonalEditing: boolean;
   isSavingPersonalProfile: boolean;
   onStartPersonalEdit: () => void;
@@ -32,6 +34,7 @@ type PersonalProfileSectionProps = {
 
 export function PersonalProfileSection({
   personalProfileForm,
+  personalProfileFieldErrors,
   isPersonalEditing,
   isSavingPersonalProfile,
   onStartPersonalEdit,
@@ -165,6 +168,7 @@ export function PersonalProfileSection({
           autoComplete={null}
           textContentType={null}
           icon={<UserRound size={16} color={theme.colors.mutedForeground} />}
+          errorText={personalProfileFieldErrors.fullName}
           isLast={false}
         />
 
@@ -183,6 +187,7 @@ export function PersonalProfileSection({
           autoComplete={null}
           textContentType={null}
           icon={<Phone size={16} color={theme.colors.mutedForeground} />}
+          errorText={personalProfileFieldErrors.phone}
           isLast={false}
         />
 
@@ -201,6 +206,7 @@ export function PersonalProfileSection({
           autoComplete="email"
           textContentType="emailAddress"
           icon={<Mail size={16} color={theme.colors.mutedForeground} />}
+          errorText={personalProfileFieldErrors.email}
           isLast={true}
         />
       </Card>

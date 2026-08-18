@@ -12,6 +12,7 @@ import {
 } from "@/feature/profile/screen/types/profileScreen.types";
 import { GetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase";
 import { SaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase";
+import { PersonalProfileFieldErrors } from "@/feature/profile/screen/validation/validatePersonalProfileFields";
 import { GetUserManagementSnapshotUseCase } from "@/feature/userManagement/useCase/getUserManagementSnapshot.useCase";
 import {
   BUSINESS_TYPE_OPTIONS,
@@ -39,6 +40,7 @@ export interface ProfileScreenViewModel {
   onSelectAccount: (accountRemoteId: string) => Promise<void>;
 
   personalProfileForm: EditablePersonalProfile;
+  personalProfileFieldErrors: PersonalProfileFieldErrors;
   isPersonalEditing: boolean;
   isSavingPersonalProfile: boolean;
   onStartPersonalEdit: () => void;

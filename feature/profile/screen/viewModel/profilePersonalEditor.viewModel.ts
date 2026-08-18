@@ -3,6 +3,7 @@ import {
   EditablePersonalProfile,
   ProfileScreenData,
 } from "@/feature/profile/screen/types/profileScreen.types";
+import { PersonalProfileFieldErrors } from "@/feature/profile/screen/validation/validatePersonalProfileFields";
 
 export type UseProfilePersonalEditorViewModelParams = {
   activeUserRemoteId: string | null;
@@ -17,6 +18,7 @@ export type UseProfilePersonalEditorViewModelParams = {
 
 export interface ProfilePersonalEditorViewModel {
   personalProfileForm: EditablePersonalProfile;
+  personalProfileFieldErrors: PersonalProfileFieldErrors;
   isPersonalEditing: boolean;
   isSavingPersonalProfile: boolean;
   onStartPersonalEdit: () => void;

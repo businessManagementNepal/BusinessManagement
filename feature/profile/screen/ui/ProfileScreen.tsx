@@ -111,6 +111,7 @@ export function ProfileScreen({ viewModel }: ProfileScreenProps) {
       {!viewModel.isLoading && !isBusinessAccount ? (
         <PersonalProfileSection
           personalProfileForm={viewModel.personalProfileForm}
+          personalProfileFieldErrors={viewModel.personalProfileFieldErrors}
           isPersonalEditing={viewModel.isPersonalEditing}
           isSavingPersonalProfile={viewModel.isSavingPersonalProfile}
           onStartPersonalEdit={viewModel.onStartPersonalEdit}

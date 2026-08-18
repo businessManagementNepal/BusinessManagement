@@ -149,6 +149,7 @@ export const useProfileScreenViewModel = (
       onSelectAccount: accountSwitch.onSelectAccount,
 
       personalProfileForm: personalEditor.personalProfileForm,
+      personalProfileFieldErrors: personalEditor.personalProfileFieldErrors,
       isPersonalEditing: personalEditor.isPersonalEditing,
       isSavingPersonalProfile: personalEditor.isSavingPersonalProfile,
       onStartPersonalEdit: personalEditor.onStartPersonalEdit,
@@ -217,6 +218,7 @@ export const useProfileScreenViewModel = (
       personalEditor.onSavePersonalProfile,
       personalEditor.onStartPersonalEdit,
       personalEditor.onUpdatePersonalProfileField,
+      personalEditor.personalProfileFieldErrors,
       personalEditor.personalProfileForm,
       roleLabel,
       successMessage,

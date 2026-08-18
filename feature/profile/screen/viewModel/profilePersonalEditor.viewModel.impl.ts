@@ -3,6 +3,11 @@ import {
   EditablePersonalProfile,
 } from "@/feature/profile/screen/types/profileScreen.types";
 import {
+  isPersonalProfileValidatedField,
+  PersonalProfileFieldErrors,
+  validatePersonalProfileFields,
+} from "@/feature/profile/screen/validation/validatePersonalProfileFields";
+import {
   ProfilePersonalEditorViewModel,
   UseProfilePersonalEditorViewModelParams,
 } from "./profilePersonalEditor.viewModel";
@@ -23,16 +28,20 @@ export const useProfilePersonalEditorViewModel = (
     useState<EditablePersonalProfile>(data.personalProfile);
   const [basePersonalProfile, setBasePersonalProfile] =
     useState<EditablePersonalProfile>(data.personalProfile);
+  const [personalProfileFieldErrors, setPersonalProfileFieldErrors] =
+    useState<PersonalProfileFieldErrors>({});
   const [isPersonalEditing, setIsPersonalEditing] = useState(false);
   const [isSavingPersonalProfile, setIsSavingPersonalProfile] = useState(false);
 
   useEffect(() => {
     setPersonalProfileForm(data.personalProfile);
     setBasePersonalProfile(data.personalProfile);
+    setPersonalProfileFieldErrors({});
     setIsPersonalEditing(false);
   }, [data.personalProfile]);
 
   const onStartPersonalEdit = useCallback(() => {
+    setPersonalProfileFieldErrors({});
     setIsPersonalEditing(true);
     setLoadError(null);
     setSuccessMessage(null);
@@ -40,6 +49,7 @@ export const useProfilePersonalEditorViewModel = (
 
   const onCancelPersonalEdit = useCallback(() => {
     setPersonalProfileForm(basePersonalProfile);
+    setPersonalProfileFieldErrors({});
     setIsPersonalEditing(false);
     setLoadError(null);
   }, [basePersonalProfile, setLoadError]);
@@ -50,6 +60,17 @@ export const useProfilePersonalEditorViewModel = (
         ...previousValue,
         [field]: value,
       }));
+      if (isPersonalProfileValidatedField(field)) {
+        setPersonalProfileFieldErrors((previousErrors) => {
+          if (!previousErrors[field]) {
+            return previousErrors;
+          }
+
+          const nextErrors = { ...previousErrors };
+          delete nextErrors[field];
+          return nextErrors;
+        });
+      }
       setLoadError(null);
       setSuccessMessage(null);
     },
@@ -59,6 +80,13 @@ export const useProfilePersonalEditorViewModel = (
   const onSavePersonalProfile = useCallback(async (): Promise<void> => {
     setLoadError(null);
     setSuccessMessage(null);
+
+    const nextFieldErrors =
+      validatePersonalProfileFields(personalProfileForm);
+    setPersonalProfileFieldErrors(nextFieldErrors);
+    if (Object.keys(nextFieldErrors).length > 0) {
+      return;
+    }
 
     if (!activeUserRemoteId) {
       setLoadError("Active user session not found.");
@@ -99,6 +127,7 @@ export const useProfilePersonalEditorViewModel = (
 
       setPersonalProfileForm(normalizedProfile);
       setBasePersonalProfile(normalizedProfile);
+      setPersonalProfileFieldErrors({});
       setIsPersonalEditing(false);
       onUpdateData((previousData) => ({
         ...previousData,
@@ -124,6 +153,7 @@ export const useProfilePersonalEditorViewModel = (
 
   return {
     personalProfileForm,
+    personalProfileFieldErrors,
     isPersonalEditing,
     isSavingPersonalProfile,
     onStartPersonalEdit,
