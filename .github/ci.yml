@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - staging
+      - main
+
+  push:
+    branches:
+      - dev
+      - staging
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate Expo application
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Expo Doctor
+        run: npx expo-doctor
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run type checking
+        run: npm run typecheck
+
+      - name: Run theme color validation
+        run: npm run check:theme-colors
+
+      - name: Run tests
+        run: npm test
+
+      - name: Resolve Expo configuration
+        run: npx expo config --type public > /tmp/expo-config.json
+
+      - name: Validate Android export
+        run: npx expo export --platform android --output-dir dist-ci
+
+      - name: Upload export diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: expo-ci-diagnostics
+          path: |
+            /tmp/expo-config.json
+            dist-ci
+          if-no-files-found: ignore
+          retention-days: 5
