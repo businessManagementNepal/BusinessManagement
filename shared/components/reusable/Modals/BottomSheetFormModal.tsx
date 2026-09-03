@@ -62,10 +62,7 @@ export function BottomSheetFormModal({
     bottomInset: insets.bottom,
     topGap: topGap ?? theme.scaleSpace(spacing.sm),
   });
-  const bottomPadding = Math.max(
-    insets.bottom,
-    theme.scaleSpace(spacing.md),
-  );
+  const bottomPadding = Math.max(insets.bottom, theme.scaleSpace(spacing.md));
   const resolvedMinHeight =
     typeof minHeight === "number" ? Math.min(maxHeight, minHeight) : undefined;
 
@@ -77,7 +74,7 @@ export function BottomSheetFormModal({
           justifyContent: "flex-end",
         },
         backdrop: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           backgroundColor: theme.colors.overlay,
         },
         sheet: {
@@ -132,9 +129,7 @@ export function BottomSheetFormModal({
             sheetStyle,
           ]}
         >
-          {header ? (
-            <View style={headerContainerStyle}>{header}</View>
-          ) : null}
+          {header ? <View style={headerContainerStyle}>{header}</View> : null}
 
           <View style={[styles.body, bodyStyle]}>
             {scrollEnabled ? (
@@ -167,10 +162,7 @@ export function BottomSheetFormModal({
 
           {footer ? (
             <View
-              style={[
-                { paddingBottom: bottomPadding },
-                footerContainerStyle,
-              ]}
+              style={[{ paddingBottom: bottomPadding }, footerContainerStyle]}
             >
               {footer}
             </View>

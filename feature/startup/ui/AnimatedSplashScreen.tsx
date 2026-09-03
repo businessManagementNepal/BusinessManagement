@@ -6,7 +6,13 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import Svg, { Circle, Defs, Path, RadialGradient, Stop } from "react-native-svg";
+import Svg, {
+  Circle,
+  Defs,
+  Path,
+  RadialGradient,
+  Stop,
+} from "react-native-svg";
 
 type AnimatedSplashScreenProps = {
   isActive: boolean;
@@ -317,8 +323,10 @@ export function AnimatedSplashScreen({
     [geometry.lAll, lIndex],
   );
 
-  const eDot = geometry.eAll[Math.max(0, Math.min(eIndex, geometry.eAll.length - 1))];
-  const lDot = geometry.lAll[Math.max(0, Math.min(lIndex, geometry.lAll.length - 1))];
+  const eDot =
+    geometry.eAll[Math.max(0, Math.min(eIndex, geometry.eAll.length - 1))];
+  const lDot =
+    geometry.lAll[Math.max(0, Math.min(lIndex, geometry.lAll.length - 1))];
 
   const dotOpacity = phase < 0.96 ? 1 : clamp01(1 - (phase - 0.96) / 0.04);
 
@@ -350,17 +358,22 @@ export function AnimatedSplashScreen({
   );
 
   const finalLetterOpacity =
-    globalProgress >= T_LETTER ? clamp01((globalProgress - T_LETTER) / 0.05) : 0;
+    globalProgress >= T_LETTER
+      ? clamp01((globalProgress - T_LETTER) / 0.05)
+      : 0;
 
   const circleOpacity =
     globalProgress >= T_LETTER
-      ? easeOut3(clamp01((globalProgress - T_LETTER) / (T_CIRCLE_END - T_LETTER))) *
-        0.6
+      ? easeOut3(
+          clamp01((globalProgress - T_LETTER) / (T_CIRCLE_END - T_LETTER)),
+        ) * 0.6
       : 0;
 
   const wordmarkProgress =
     globalProgress >= T_WM_START
-      ? easeOutQ(clamp01((globalProgress - T_WM_START) / (T_WM_END - T_WM_START)))
+      ? easeOutQ(
+          clamp01((globalProgress - T_WM_START) / (T_WM_END - T_WM_START)),
+        )
       : 0;
 
   const wordmarkReveal = wordmarkProgress * (WORDMARK.length + 1);
@@ -373,11 +386,10 @@ export function AnimatedSplashScreen({
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={BG} />
-
       <Svg
         width={width}
         height={height}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       >
         <Defs>
@@ -542,7 +554,7 @@ export function AnimatedSplashScreen({
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: BG,
   },
   below: {

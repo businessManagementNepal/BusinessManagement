@@ -175,10 +175,7 @@ function RootLayoutContent() {
         { backgroundColor: theme.colors.background },
       ]}
     >
-      <StatusBar
-        style={theme.isDarkMode ? "light" : "dark"}
-        backgroundColor={theme.colors.header}
-      />
+      <StatusBar style={theme.isDarkMode ? "light" : "dark"} />
 
       <View
         style={[
@@ -226,7 +223,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   startupOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 1000,
     elevation: 1000,
   },

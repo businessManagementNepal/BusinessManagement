@@ -59,10 +59,7 @@ export function CenteredDialogFormModal({
   const rootBottomPadding =
     Math.max(insets.bottom, theme.scaleSpace(spacing.lg)) + keyboardOffset;
   const maxHeight = Math.max(windowHeight - topPadding - rootBottomPadding, 0);
-  const bottomPadding = Math.max(
-    insets.bottom,
-    theme.scaleSpace(spacing.md),
-  );
+  const bottomPadding = Math.max(insets.bottom, theme.scaleSpace(spacing.md));
   const horizontalInset = theme.scaleSpace(spacing.lg);
   const resolvedMinHeight =
     typeof minHeight === "number" ? Math.min(maxHeight, minHeight) : undefined;
@@ -76,7 +73,7 @@ export function CenteredDialogFormModal({
           paddingHorizontal: horizontalInset,
         },
         backdrop: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           backgroundColor: theme.colors.overlay,
         },
         card: {
@@ -140,9 +137,7 @@ export function CenteredDialogFormModal({
             cardStyle,
           ]}
         >
-          {header ? (
-            <View style={headerContainerStyle}>{header}</View>
-          ) : null}
+          {header ? <View style={headerContainerStyle}>{header}</View> : null}
 
           <View style={[styles.body, bodyStyle]}>
             {scrollEnabled ? (
@@ -175,10 +170,7 @@ export function CenteredDialogFormModal({
 
           {footer ? (
             <View
-              style={[
-                { paddingBottom: bottomPadding },
-                footerContainerStyle,
-              ]}
+              style={[{ paddingBottom: bottomPadding }, footerContainerStyle]}
             >
               {footer}
             </View>

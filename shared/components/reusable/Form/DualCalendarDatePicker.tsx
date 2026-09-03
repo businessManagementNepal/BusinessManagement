@@ -1,4 +1,9 @@
-import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react-native";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  X,
+} from "lucide-react-native";
 import React, { useMemo, useState } from "react";
 import {
   Modal,
@@ -148,11 +153,11 @@ export function DualCalendarDatePicker({
   const daysInMonth =
     calendarMode === "ad"
       ? getAdDaysInMonth(activeMonth.year, activeMonth.month)
-      : getBsDaysInMonth(activeMonth.year, activeMonth.month) ?? 0;
+      : (getBsDaysInMonth(activeMonth.year, activeMonth.month) ?? 0);
   const firstWeekday =
     calendarMode === "ad"
       ? getFirstWeekdayOfAdMonth(activeMonth.year, activeMonth.month)
-      : getFirstWeekdayOfBsMonth(activeMonth.year, activeMonth.month) ?? 0;
+      : (getFirstWeekdayOfBsMonth(activeMonth.year, activeMonth.month) ?? 0);
   const monthTitle =
     calendarMode === "ad"
       ? `${AD_MONTH_NAMES[activeMonth.month - 1]} ${activeMonth.year} AD`
@@ -300,7 +305,8 @@ export function DualCalendarDatePicker({
               <View style={styles.modalTitleWrap}>
                 <Text style={styles.modalTitle}>Select {label}</Text>
                 <Text style={styles.modalSubtitle}>
-                  Pick in English AD or Nepali BS. Saved as English AD YYYY-MM-DD.
+                  Pick in English AD or Nepali BS. Saved as English AD
+                  YYYY-MM-DD.
                 </Text>
               </View>
               <Pressable
@@ -320,7 +326,10 @@ export function DualCalendarDatePicker({
                 return (
                   <Pressable
                     key={mode}
-                    style={[styles.modeTab, isSelected ? styles.modeTabActive : null]}
+                    style={[
+                      styles.modeTab,
+                      isSelected ? styles.modeTabActive : null,
+                    ]}
                     onPress={() => setCalendarMode(mode)}
                   >
                     <Text
@@ -510,7 +519,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       paddingHorizontal: spacing.lg,
     },
     modalDismissArea: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
     },
     modalCard: {
       borderWidth: 1,

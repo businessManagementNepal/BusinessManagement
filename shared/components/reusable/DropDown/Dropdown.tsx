@@ -3,16 +3,16 @@ import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Check, ChevronDown, Globe } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
-    FlatList,
-    Keyboard,
-    Modal,
-    Pressable,
-    StyleProp,
-    StyleSheet,
-    Text,
-    TextStyle,
-    View,
-    ViewStyle,
+  FlatList,
+  Keyboard,
+  Modal,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  TextStyle,
+  View,
+  ViewStyle,
 } from "react-native";
 
 export type DropdownOption = {
@@ -99,7 +99,7 @@ export function Dropdown({
           paddingHorizontal: theme.scaleSpace(spacing.lg),
         },
         backdropDismissArea: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
         },
         sheet: {
           backgroundColor: theme.colors.card,
@@ -188,14 +188,23 @@ export function Dropdown({
   return (
     <>
       <Pressable
-        style={[styles.trigger, triggerStyle, disabled && styles.triggerDisabled]}
+        style={[
+          styles.trigger,
+          triggerStyle,
+          disabled && styles.triggerDisabled,
+        ]}
         onPress={openDropdown}
         accessibilityRole="button"
         accessibilityState={{ disabled }}
       >
         <View style={styles.leftContent}>
-          {showLeadingIcon ? <Globe size={14} color={theme.colors.primary} /> : null}
-          <Text style={[styles.triggerText, triggerTextStyle]} numberOfLines={1}>
+          {showLeadingIcon ? (
+            <Globe size={14} color={theme.colors.primary} />
+          ) : null}
+          <Text
+            style={[styles.triggerText, triggerTextStyle]}
+            numberOfLines={1}
+          >
             {selectedOption?.label ?? placeholder}
           </Text>
         </View>
@@ -258,4 +267,3 @@ export function Dropdown({
     </>
   );
 }
-

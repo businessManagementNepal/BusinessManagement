@@ -23,7 +23,7 @@ export function TransactionDeleteModal({
           paddingHorizontal: theme.scaleSpace(spacing.lg),
         },
         dismissArea: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
         },
         card: {
           backgroundColor: theme.colors.card,
