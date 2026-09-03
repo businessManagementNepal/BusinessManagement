@@ -15,7 +15,7 @@ import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/Scre
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router/react-navigation";
 import { CalendarClock, CircleAlert, PiggyBank, Plus } from "lucide-react-native";
 import React from "react";
 import {

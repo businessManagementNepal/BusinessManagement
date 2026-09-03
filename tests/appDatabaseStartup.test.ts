@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+// @vitest-environment node
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ = false;
 
@@ -48,6 +50,9 @@ const fakeDatabase = {
 const assertDatabaseSetupHealthyMock = vi.fn();
 const runDatabaseIntegrityChecksMock = vi.fn();
 const createDatabaseMock = vi.fn(() => fakeDatabase);
+let originalApiBaseUrl: string | undefined;
+let originalNodeEnv: string | undefined;
+let fetchMock: ReturnType<typeof vi.fn>;
 
 vi.mock("@/shared/database/createDatabase", () => ({
   assertDatabaseSetupHealthy: assertDatabaseSetupHealthyMock,
@@ -79,6 +84,17 @@ vi.mock("@nozbe/watermelondb", async () => {
 
 describe("app database startup orchestration", () => {
   beforeEach(() => {
+    const environment = process.env as Record<string, string | undefined>;
+    originalApiBaseUrl = environment.EXPO_PUBLIC_API_BASE_URL;
+    originalNodeEnv = environment.NODE_ENV;
+    delete environment.EXPO_PUBLIC_API_BASE_URL;
+    environment.NODE_ENV = "production";
+
+    fetchMock = vi.fn(async () => {
+      throw new Error("Local database startup must not make HTTP requests.");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
     fetchCountMock.mockReset();
     unsafeFetchRawMock.mockReset();
     unsafeSqlQueryMock.mockClear();
@@ -98,6 +114,24 @@ describe("app database startup orchestration", () => {
     runDatabaseIntegrityChecksMock.mockResolvedValue(undefined);
   });
 
+  afterEach(() => {
+    const environment = process.env as Record<string, string | undefined>;
+
+    if (originalApiBaseUrl === undefined) {
+      delete environment.EXPO_PUBLIC_API_BASE_URL;
+    } else {
+      environment.EXPO_PUBLIC_API_BASE_URL = originalApiBaseUrl;
+    }
+
+    if (originalNodeEnv === undefined) {
+      delete environment.NODE_ENV;
+    } else {
+      environment.NODE_ENV = originalNodeEnv;
+    }
+
+    vi.unstubAllGlobals();
+  });
+
   it(
     "checks health, warms the database, runs integrity checks, and checks health again in order",
     async () => {
@@ -111,6 +145,7 @@ describe("app database startup orchestration", () => {
       expect(fetchCountMock).toHaveBeenCalledTimes(1);
       expect(runDatabaseIntegrityChecksMock).toHaveBeenCalledTimes(1);
       expect(unsafeExecuteMock).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
 
       const firstHealthOrder =
         assertDatabaseSetupHealthyMock.mock.invocationCallOrder[0];

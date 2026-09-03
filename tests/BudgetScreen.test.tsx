@@ -119,7 +119,7 @@ vi.mock("@/shared/components/reusable/Feedback/useToastMessage", () => ({
   useToastMessage: () => undefined,
 }));
 
-vi.mock("@react-navigation/native", () => ({
+vi.mock("expo-router/react-navigation", () => ({
   useFocusEffect: () => undefined,
 }));
 

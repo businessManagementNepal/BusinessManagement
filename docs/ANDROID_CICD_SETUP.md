@@ -81,27 +81,8 @@ npx eas-cli build --platform android --profile production
 EAS should securely manage the Android upload keystore unless the project
 already uses an approved existing keystore.
 
-## Production API URL
-
-The application expects:
-
-```text
-EXPO_PUBLIC_API_BASE_URL
-```
-
-Create it in the EAS production environment with the real HTTPS origin:
-
-```bash
-npx eas-cli env:create \
-  --name EXPO_PUBLIC_API_BASE_URL \
-  --value https://YOUR-PRODUCTION-API-DOMAIN \
-  --environment production \
-  --visibility plaintext
-```
-
-Use an HTTPS origin without an API path. Never put passwords, private API keys,
-database credentials, or server secrets in variables beginning with
-`EXPO_PUBLIC_`.
+The staging application is local-only. Its production build does not require a
+backend URL or API environment variable.
 
 ## Android package decision
 
@@ -168,7 +149,6 @@ The developer must:
 
 - Confirm the final Android package and Expo project ownership.
 - Confirm or initialize the EAS Android upload keystore.
-- Configure the production API URL as HTTPS.
 - Create or confirm the matching Google Play application.
 - Complete all Play Console declarations.
 - Create and permission the Google Play service account.
