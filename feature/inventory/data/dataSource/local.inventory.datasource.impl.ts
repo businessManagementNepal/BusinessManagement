@@ -1,5 +1,4 @@
 import {
-  InventoryAdjustmentReason,
   InventoryMovementType,
   SaveInventoryMovementPayload,
   InventorySourceLookupParams,
@@ -255,16 +254,7 @@ export const createLocalInventoryDatasource = (
             quantity: payload.quantity,
             reason: payload.reason,
             adjustmentDirection: payload.adjustmentDirection,
-            currentStock,
           });
-
-          if (
-            payload.type === InventoryMovementType.Adjustment &&
-            payload.reason === InventoryAdjustmentReason.Correction &&
-            deltaQuantity === 0
-          ) {
-            throw new Error("Physical stock count already matches current stock");
-          }
 
           const nextStock = currentStock + deltaQuantity;
           if (nextStock < 0) {
