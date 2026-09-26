@@ -89,6 +89,40 @@ describe("inventoryMutationPolicy", () => {
     ).toBe(-5);
   });
 
+  it("tracks non-sellable customer returns without changing stock", () => {
+    expect(
+      resolveInventoryDeltaQuantity({
+        movementType: InventoryMovementType.Adjustment,
+        quantity: 2,
+        reason: InventoryAdjustmentReason.ReturnedNonSellable,
+      }),
+    ).toBe(0);
+
+    expect(() =>
+      validateInventoryMovementPayloadsForSave({
+        payloads: [
+          buildPayload({
+            quantity: 2,
+            reason: InventoryAdjustmentReason.ReturnedNonSellable,
+          }),
+        ],
+        products: [buildProduct(20)],
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      validateInventoryMovementPayloadsForSave({
+        payloads: [
+          buildPayload({
+            quantity: 2,
+            reason: InventoryAdjustmentReason.ReturnedNonSellable,
+          }),
+        ],
+        products: [buildProduct(-3)],
+      }),
+    ).not.toThrow();
+  });
+
   it("converts a physical count into a sync-safe count correction movement", () => {
     expect(resolveCountCorrection(20, 12)).toEqual({
       quantity: 8,
