@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import * as Crypto from "expo-crypto";
 import {
+  INVENTORY_ADJUSTMENT_DIRECTION_OPTIONS,
   INVENTORY_ADJUSTMENT_REASON_OPTIONS,
+  InventoryAdjustmentDirection,
+  InventoryAdjustmentReason,
   InventoryMovementType,
   InventoryMovementTypeValue,
 } from "@/feature/inventory/types/inventory.types";
@@ -15,6 +18,7 @@ import {
   resolveCurrencyCode,
   resolveCurrencyPrefix,
 } from "@/shared/utils/currency/accountCurrency";
+import { resolveInventoryDeltaQuantity } from "@/feature/inventory/utils/inventoryMutationPolicy.util";
 
 const formatDateInput = (timestamp: number): string => {
   const date = new Date(timestamp);
@@ -53,6 +57,7 @@ const createEmptyForm = (): InventoryMovementFormState => ({
   quantity: "",
   unitRate: "",
   reason: "",
+  adjustmentDirection: "",
   movementDate: formatDateInput(Date.now()),
   remark: "",
 });
@@ -188,10 +193,80 @@ export const useInventoryViewModel = ({
 
   const onFormChange = useCallback(
     (field: keyof InventoryMovementFormState, value: string) => {
-      setForm((current) => ({ ...current, [field]: value }));
+      setForm((current) => {
+        if (field === "reason") {
+          return {
+            ...current,
+            reason: value as InventoryMovementFormState["reason"],
+            quantity: "",
+            adjustmentDirection:
+              value === InventoryAdjustmentReason.Other
+                ? InventoryAdjustmentDirection.Remove
+                : "",
+          };
+        }
+
+        return { ...current, [field]: value };
+      });
     },
     [],
   );
+
+  const stockPreview = useMemo(() => {
+    const selectedStockItem = stockItems.find(
+      (item) => item.productRemoteId === form.productRemoteId,
+    );
+
+    if (!selectedStockItem) {
+      return null;
+    }
+
+    const quantity = parseNumber(form.quantity);
+    const isCountCorrection =
+      editorType === InventoryMovementType.Adjustment &&
+      form.reason === InventoryAdjustmentReason.Correction;
+
+    if (
+      quantity === null ||
+      quantity < 0 ||
+      (!isCountCorrection && quantity <= 0)
+    ) {
+      return null;
+    }
+
+    try {
+      const deltaQuantity = resolveInventoryDeltaQuantity({
+        movementType: editorType,
+        quantity,
+        reason:
+          editorType === InventoryMovementType.Adjustment
+            ? form.reason || null
+            : null,
+        adjustmentDirection:
+          editorType === InventoryMovementType.Adjustment &&
+          form.reason === InventoryAdjustmentReason.Other
+            ? form.adjustmentDirection || null
+            : null,
+        currentStock: selectedStockItem.stockQuantity,
+      });
+
+      return {
+        currentStock: selectedStockItem.stockQuantity,
+        deltaQuantity,
+        resultingStock: selectedStockItem.stockQuantity + deltaQuantity,
+        unitLabel: selectedStockItem.unitLabel ?? "unit",
+      };
+    } catch {
+      return null;
+    }
+  }, [
+    editorType,
+    form.adjustmentDirection,
+    form.productRemoteId,
+    form.quantity,
+    form.reason,
+    stockItems,
+  ]);
 
   const onSubmit = useCallback(async () => {
     if (!canManage) {
@@ -205,8 +280,37 @@ export const useInventoryViewModel = ({
     }
 
     const quantity = parseNumber(form.quantity);
-    if (quantity === null || quantity <= 0) {
-      setErrorMessage("Quantity must be greater than zero.");
+    const isCountCorrection =
+      editorType === InventoryMovementType.Adjustment &&
+      form.reason === InventoryAdjustmentReason.Correction;
+
+    if (
+      quantity === null ||
+      quantity < 0 ||
+      (!isCountCorrection && quantity <= 0)
+    ) {
+      setErrorMessage(
+        isCountCorrection
+          ? "Physical stock count cannot be negative."
+          : "Quantity must be greater than zero.",
+      );
+      return;
+    }
+
+    if (
+      editorType === InventoryMovementType.Adjustment &&
+      !form.reason
+    ) {
+      setErrorMessage("Please select an adjustment reason.");
+      return;
+    }
+
+    if (
+      editorType === InventoryMovementType.Adjustment &&
+      form.reason === InventoryAdjustmentReason.Other &&
+      !form.adjustmentDirection
+    ) {
+      setErrorMessage("Choose whether the adjustment adds or removes stock.");
       return;
     }
 
@@ -225,6 +329,11 @@ export const useInventoryViewModel = ({
       quantity,
       unitRate,
       reason: editorType === InventoryMovementType.Adjustment ? (form.reason || null) : null,
+      adjustmentDirection:
+        editorType === InventoryMovementType.Adjustment &&
+        form.reason === InventoryAdjustmentReason.Other
+          ? form.adjustmentDirection || null
+          : null,
       remark: form.remark.trim() ? form.remark.trim() : null,
       movementAt,
     });
@@ -259,6 +368,8 @@ export const useInventoryViewModel = ({
       editorTitle,
       form,
       adjustmentReasonOptions: INVENTORY_ADJUSTMENT_REASON_OPTIONS,
+      adjustmentDirectionOptions: INVENTORY_ADJUSTMENT_DIRECTION_OPTIONS,
+      stockPreview,
       onRefresh: loadInventory,
       onOpenStockIn,
       onOpenAdjustment,
@@ -286,6 +397,7 @@ export const useInventoryViewModel = ({
       productOptions,
       recentMovements,
       stockItems,
+      stockPreview,
       summary,
     ],
   );
