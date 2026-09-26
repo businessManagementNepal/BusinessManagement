@@ -1,0 +1,52 @@
+name: One-time repair EAS npm lockfile
+
+on:
+  push:
+    branches:
+      - staging
+
+permissions:
+  contents: write
+
+jobs:
+  repair-lockfile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out staging
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+
+      - name: Set up Node.js 22.13.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: npm
+
+      - name: Show npm version
+        run: npm --version
+
+      - name: Normalize npm peer dependency mode
+        run: npm config set legacy-peer-deps false
+
+      - name: Repair package-lock for EAS npm
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Verify exact EAS install command
+        run: npm ci --include=dev
+
+      - name: Commit repaired lockfile if changed
+        shell: bash
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "package-lock.json did not change"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "fix(deps): make lockfile compatible with EAS npm"
+          git push origin staging
