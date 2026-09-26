@@ -455,6 +455,156 @@ describe("returnOrderUseCase", () => {
     );
   });
 
+  it("records a fully non-sellable return without creating sellable stock-in", async () => {
+    const deliveredOrder = buildOrder(OrderStatus.Delivered, {
+      items: [
+        buildTrackedOrderLine({
+          quantity: 4,
+        }),
+      ],
+    });
+
+    const repository = {
+      getOrderByRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: deliveredOrder,
+      })),
+      updateOrderStatusByRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: buildOrder(OrderStatus.Returned, {
+          items: deliveredOrder.items,
+        }),
+      })),
+    } as any;
+
+    const saveInventoryMovementsUseCase = {
+      execute: vi.fn(async (payloads) => ({
+        success: true as const,
+        value: payloads,
+      })),
+    };
+
+    const useCase = createReturnOrderUseCase({
+      repository,
+      getProductsUseCase: {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: [buildTrackedProduct()],
+        })),
+      } as any,
+      getInventoryMovementsBySourceUseCase: {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: [
+            {
+              remoteId: "delivery-movement-1",
+              sourceLineRemoteId: "line-1",
+              sourceAction: "delivery_fulfillment",
+            },
+          ],
+        })),
+      } as any,
+      saveInventoryMovementsUseCase: saveInventoryMovementsUseCase as any,
+      deleteInventoryMovementsByRemoteIdsUseCase: { execute: vi.fn() } as any,
+    });
+
+    const result = await useCase.execute({
+      remoteId: "order-1",
+      lineDispositions: [
+        {
+          lineRemoteId: "line-1",
+          sellableQuantity: 0,
+          nonSellableQuantity: 4,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    const savedPayloads =
+      saveInventoryMovementsUseCase.execute.mock.calls[0]?.[0] ?? [];
+    expect(savedPayloads).toHaveLength(1);
+    expect(savedPayloads[0]).toEqual(
+      expect.objectContaining({
+        type: "adjustment",
+        quantity: 4,
+        reason: "return_non_sellable",
+        sourceAction: "return_non_sellable",
+      }),
+    );
+  });
+
+  it("rejects retry when an existing return movement conflicts with the selected disposition", async () => {
+    const deliveredOrder = buildOrder(OrderStatus.Delivered, {
+      items: [
+        buildTrackedOrderLine({
+          quantity: 5,
+        }),
+      ],
+    });
+
+    const repository = {
+      getOrderByRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: deliveredOrder,
+      })),
+      updateOrderStatusByRemoteId: vi.fn(),
+    } as any;
+
+    const saveInventoryMovementsUseCase = { execute: vi.fn() };
+
+    const useCase = createReturnOrderUseCase({
+      repository,
+      getProductsUseCase: {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: [buildTrackedProduct()],
+        })),
+      } as any,
+      getInventoryMovementsBySourceUseCase: {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: [
+            {
+              remoteId: "delivery-movement-1",
+              sourceLineRemoteId: "line-1",
+              sourceAction: "delivery_fulfillment",
+            },
+            {
+              remoteId: "legacy-return-1",
+              sourceLineRemoteId: "line-1",
+              sourceAction: "return_restock",
+              type: "stock_in",
+              quantity: 5,
+              reason: null,
+            },
+          ],
+        })),
+      } as any,
+      saveInventoryMovementsUseCase: saveInventoryMovementsUseCase as any,
+      deleteInventoryMovementsByRemoteIdsUseCase: { execute: vi.fn() } as any,
+    });
+
+    const result = await useCase.execute({
+      remoteId: "order-1",
+      lineDispositions: [
+        {
+          lineRemoteId: "line-1",
+          sellableQuantity: 3,
+          nonSellableQuantity: 2,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain(
+        "does not match the selected return disposition",
+      );
+    }
+    expect(saveInventoryMovementsUseCase.execute).not.toHaveBeenCalled();
+    expect(repository.updateOrderStatusByRemoteId).not.toHaveBeenCalled();
+  });
+
   it("rejects return disposition when sellable and non-sellable quantities do not reconcile", async () => {
     const deliveredOrder = buildOrder(OrderStatus.Delivered, {
       items: [
