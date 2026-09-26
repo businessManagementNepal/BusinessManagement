@@ -378,7 +378,7 @@ export const createLocalInventoryDatasource = (
 
           const nextStock = currentStock - movement.deltaQuantity;
 
-          if (nextStock < 0) {
+          if (nextStock < 0 && movement.deltaQuantity > 0) {
             throw new Error(
               `Deleting inventory movement ${movement.remoteId} would reduce ${product.name} below zero`,
             );
