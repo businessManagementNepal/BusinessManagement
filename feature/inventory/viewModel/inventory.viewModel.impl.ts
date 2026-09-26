@@ -3,7 +3,6 @@ import * as Crypto from "expo-crypto";
 import {
   INVENTORY_ADJUSTMENT_DIRECTION_OPTIONS,
   INVENTORY_ADJUSTMENT_REASON_OPTIONS,
-  InventoryAdjustmentDirection,
   InventoryAdjustmentReason,
   InventoryMovementType,
   InventoryMovementTypeValue,
@@ -202,10 +201,7 @@ export const useInventoryViewModel = ({
             ...current,
             reason: value as InventoryMovementFormState["reason"],
             quantity: "",
-            adjustmentDirection:
-              value === InventoryAdjustmentReason.Other
-                ? InventoryAdjustmentDirection.Remove
-                : "",
+            adjustmentDirection: "",
           };
         }
 
