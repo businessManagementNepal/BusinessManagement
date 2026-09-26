@@ -5,6 +5,7 @@ import {
   type SaveInventoryMovementPayload,
 } from "@/feature/inventory/types/inventory.types";
 import {
+  resolveCountCorrection,
   resolveInventoryDeltaQuantity,
   validateInventoryMovementPayloadsForSave,
 } from "@/feature/inventory/utils/inventoryMutationPolicy.util";
@@ -89,52 +90,58 @@ describe("inventoryMutationPolicy", () => {
     ).toBe(-5);
   });
 
-  it("calculates count correction from current stock to the physical count", () => {
-    expect(
-      resolveInventoryDeltaQuantity({
-        movementType: InventoryMovementType.Adjustment,
-        quantity: 12,
-        reason: InventoryAdjustmentReason.Correction,
-        currentStock: 20,
-      }),
-    ).toBe(-8);
+  it("converts a physical count into a sync-safe count correction movement", () => {
+    expect(resolveCountCorrection(20, 12)).toEqual({
+      quantity: 8,
+      adjustmentDirection: InventoryAdjustmentDirection.Remove,
+      deltaQuantity: -8,
+    });
 
-    expect(
-      resolveInventoryDeltaQuantity({
-        movementType: InventoryMovementType.Adjustment,
-        quantity: 25,
-        reason: InventoryAdjustmentReason.Correction,
-        currentStock: 20,
-      }),
-    ).toBe(5);
+    expect(resolveCountCorrection(20, 25)).toEqual({
+      quantity: 5,
+      adjustmentDirection: InventoryAdjustmentDirection.Add,
+      deltaQuantity: 5,
+    });
+
+    expect(resolveCountCorrection(20, 0)).toEqual({
+      quantity: 20,
+      adjustmentDirection: InventoryAdjustmentDirection.Remove,
+      deltaQuantity: -20,
+    });
   });
 
-  it("allows a physical count correction to zero stock", () => {
+  it("rejects a correction that does not change the physical stock", () => {
+    expect(() => resolveCountCorrection(20, 20)).toThrow(
+      "Physical stock count already matches current stock",
+    );
+  });
+
+  it("requires a direction on persisted count-correction payloads", () => {
     expect(() =>
       validateInventoryMovementPayloadsForSave({
         payloads: [
           buildPayload({
-            quantity: 0,
+            quantity: 8,
             reason: InventoryAdjustmentReason.Correction,
+            adjustmentDirection: null,
           }),
         ],
         products: [buildProduct(20)],
       }),
-    ).not.toThrow();
-  });
+    ).toThrow("Count correction direction is required");
 
-  it("rejects a correction that does not change the physical stock", () => {
     expect(() =>
       validateInventoryMovementPayloadsForSave({
         payloads: [
           buildPayload({
             quantity: 20,
             reason: InventoryAdjustmentReason.Correction,
+            adjustmentDirection: InventoryAdjustmentDirection.Remove,
           }),
         ],
         products: [buildProduct(20)],
       }),
-    ).toThrow("Physical stock count already matches current stock");
+    ).not.toThrow();
   });
 
   it("supports explicit add/remove direction for other adjustments", () => {
