@@ -146,6 +146,26 @@ export const createReturnOrderUseCase = (params: {
       }
     }
 
+    for (const payload of returnPayloads) {
+      const existingMovement = movementByLineAndAction.get(
+        `${payload.sourceLineRemoteId}:${payload.sourceAction}`,
+      );
+
+      if (
+        existingMovement &&
+        (existingMovement.type !== payload.type ||
+          Math.abs(existingMovement.quantity - payload.quantity) > 1e-9 ||
+          existingMovement.reason !== payload.reason)
+      ) {
+        return {
+          success: false,
+          error: OrderValidationError(
+            "Existing return inventory movement does not match the selected return disposition. Reconcile the order before retrying.",
+          ),
+        };
+      }
+    }
+
     const missingReturnPayloads = returnPayloads.filter(
       (payload) =>
         !movementByLineAndAction.has(
