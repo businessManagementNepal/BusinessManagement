@@ -25,6 +25,7 @@ export const InventoryAdjustmentReason = {
   Expired: "expired",
   Correction: "correction",
   Lost: "lost",
+  ReturnedNonSellable: "return_non_sellable",
   Other: "other",
 } as const;
 
