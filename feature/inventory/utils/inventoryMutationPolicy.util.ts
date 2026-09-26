@@ -42,8 +42,8 @@ export const resolveCountCorrection = (
   currentStock: number,
   physicalStockCount: number,
 ): CountCorrectionResolution => {
-  if (!Number.isFinite(currentStock) || currentStock < 0) {
-    throw new Error("Current stock cannot be negative");
+  if (!Number.isFinite(currentStock)) {
+    throw new Error("Current stock must be a finite number");
   }
 
   if (!Number.isFinite(physicalStockCount) || physicalStockCount < 0) {
