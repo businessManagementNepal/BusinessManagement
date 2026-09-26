@@ -18,7 +18,10 @@ import {
   resolveCurrencyCode,
   resolveCurrencyPrefix,
 } from "@/shared/utils/currency/accountCurrency";
-import { resolveInventoryDeltaQuantity } from "@/feature/inventory/utils/inventoryMutationPolicy.util";
+import {
+  resolveCountCorrection,
+  resolveInventoryDeltaQuantity,
+} from "@/feature/inventory/utils/inventoryMutationPolicy.util";
 
 const formatDateInput = (timestamp: number): string => {
   const date = new Date(timestamp);
@@ -235,6 +238,20 @@ export const useInventoryViewModel = ({
     }
 
     try {
+      if (isCountCorrection) {
+        const correction = resolveCountCorrection(
+          selectedStockItem.stockQuantity,
+          quantity,
+        );
+
+        return {
+          currentStock: selectedStockItem.stockQuantity,
+          deltaQuantity: correction.deltaQuantity,
+          resultingStock: quantity,
+          unitLabel: selectedStockItem.unitLabel ?? "unit",
+        };
+      }
+
       const deltaQuantity = resolveInventoryDeltaQuantity({
         movementType: editorType,
         quantity,
@@ -247,7 +264,6 @@ export const useInventoryViewModel = ({
           form.reason === InventoryAdjustmentReason.Other
             ? form.adjustmentDirection || null
             : null,
-        currentStock: selectedStockItem.stockQuantity,
       });
 
       return {
@@ -320,20 +336,48 @@ export const useInventoryViewModel = ({
       return;
     }
 
+    let movementQuantity = quantity;
+    let adjustmentDirection =
+      editorType === InventoryMovementType.Adjustment &&
+      form.reason === InventoryAdjustmentReason.Other
+        ? form.adjustmentDirection || null
+        : null;
+
+    if (isCountCorrection) {
+      const selectedStockItem = stockItems.find(
+        (item) => item.productRemoteId === form.productRemoteId,
+      );
+
+      if (!selectedStockItem) {
+        setErrorMessage("Please select a valid product.");
+        return;
+      }
+
+      try {
+        const correction = resolveCountCorrection(
+          selectedStockItem.stockQuantity,
+          quantity,
+        );
+        movementQuantity = correction.quantity;
+        adjustmentDirection = correction.adjustmentDirection;
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error ? error.message : "Invalid stock correction.",
+        );
+        return;
+      }
+    }
+
     const unitRate = parseNumber(form.unitRate);
     const result = await saveInventoryMovementUseCase.execute({
       remoteId: Crypto.randomUUID(),
       accountRemoteId,
       productRemoteId: form.productRemoteId,
       type: editorType,
-      quantity,
+      quantity: movementQuantity,
       unitRate,
       reason: editorType === InventoryMovementType.Adjustment ? (form.reason || null) : null,
-      adjustmentDirection:
-        editorType === InventoryMovementType.Adjustment &&
-        form.reason === InventoryAdjustmentReason.Other
-          ? form.adjustmentDirection || null
-          : null,
+      adjustmentDirection,
       remark: form.remark.trim() ? form.remark.trim() : null,
       movementAt,
     });
@@ -346,7 +390,15 @@ export const useInventoryViewModel = ({
     setIsEditorVisible(false);
     setForm(createEmptyForm());
     await loadInventory();
-  }, [accountRemoteId, canManage, editorType, form, loadInventory, saveInventoryMovementUseCase]);
+  }, [
+    accountRemoteId,
+    canManage,
+    editorType,
+    form,
+    loadInventory,
+    saveInventoryMovementUseCase,
+    stockItems,
+  ]);
 
   const editorTitle =
     editorType === InventoryMovementType.StockIn ? "Stock In" : "Stock Adjustment";
