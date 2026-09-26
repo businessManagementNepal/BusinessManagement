@@ -28,7 +28,6 @@ export function OrderReturnDispositionModal({
   onChange,
   onSubmit,
 }: Props) {
-  const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
 
   return (
