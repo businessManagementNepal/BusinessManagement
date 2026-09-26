@@ -85,7 +85,6 @@ describe("inventoryMutationPolicy", () => {
         movementType: InventoryMovementType.Adjustment,
         quantity: 5,
         reason,
-        currentStock: 20,
       }),
     ).toBe(-5);
   });
@@ -107,6 +106,20 @@ describe("inventoryMutationPolicy", () => {
       quantity: 20,
       adjustmentDirection: InventoryAdjustmentDirection.Remove,
       deltaQuantity: -20,
+    });
+  });
+
+  it("repairs a negative projected stock from a non-negative physical count", () => {
+    expect(resolveCountCorrection(-3, 0)).toEqual({
+      quantity: 3,
+      adjustmentDirection: InventoryAdjustmentDirection.Add,
+      deltaQuantity: 3,
+    });
+
+    expect(resolveCountCorrection(-3, 4)).toEqual({
+      quantity: 7,
+      adjustmentDirection: InventoryAdjustmentDirection.Add,
+      deltaQuantity: 7,
     });
   });
 
@@ -142,6 +155,19 @@ describe("inventoryMutationPolicy", () => {
         products: [buildProduct(20)],
       }),
     ).not.toThrow();
+
+    expect(() =>
+      validateInventoryMovementPayloadsForSave({
+        payloads: [
+          buildPayload({
+            quantity: 3,
+            reason: InventoryAdjustmentReason.Correction,
+            adjustmentDirection: InventoryAdjustmentDirection.Add,
+          }),
+        ],
+        products: [buildProduct(-3)],
+      }),
+    ).not.toThrow();
   });
 
   it("supports explicit add/remove direction for other adjustments", () => {
@@ -151,7 +177,6 @@ describe("inventoryMutationPolicy", () => {
         quantity: 4,
         reason: InventoryAdjustmentReason.Other,
         adjustmentDirection: InventoryAdjustmentDirection.Add,
-        currentStock: 20,
       }),
     ).toBe(4);
 
@@ -161,12 +186,11 @@ describe("inventoryMutationPolicy", () => {
         quantity: 4,
         reason: InventoryAdjustmentReason.Other,
         adjustmentDirection: InventoryAdjustmentDirection.Remove,
-        currentStock: 20,
       }),
     ).toBe(-4);
   });
 
-  it("requires direction for other adjustments", () => {
+  it("requires explicit direction for other adjustments", () => {
     expect(() =>
       validateInventoryMovementPayloadsForSave({
         payloads: [
@@ -178,6 +202,32 @@ describe("inventoryMutationPolicy", () => {
         products: [buildProduct()],
       }),
     ).toThrow("Choose whether the other adjustment adds or removes stock");
+
+    expect(() =>
+      validateInventoryMovementPayloadsForSave({
+        payloads: [
+          buildPayload({
+            quantity: 4,
+            reason: InventoryAdjustmentReason.Other,
+            adjustmentDirection: InventoryAdjustmentDirection.Add,
+          }),
+        ],
+        products: [buildProduct(20)],
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      validateInventoryMovementPayloadsForSave({
+        payloads: [
+          buildPayload({
+            quantity: 4,
+            reason: InventoryAdjustmentReason.Other,
+            adjustmentDirection: InventoryAdjustmentDirection.Remove,
+          }),
+        ],
+        products: [buildProduct(20)],
+      }),
+    ).not.toThrow();
   });
 
   it("rejects damage that would reduce stock below zero", () => {
