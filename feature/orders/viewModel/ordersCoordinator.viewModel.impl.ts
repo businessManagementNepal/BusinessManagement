@@ -184,6 +184,7 @@ export const useOrdersCoordinatorViewModel = (
       statusDraft: moneyActionViewModel.statusDraft,
 
       moneyForm: moneyActionViewModel.moneyForm,
+      returnDispositionForm: moneyActionViewModel.returnDispositionForm,
 
       onRefresh: listViewModel.loadAll,
       onOpenCreate,
@@ -207,6 +208,10 @@ export const useOrdersCoordinatorViewModel = (
 
       onCancelOrder: moneyActionViewModel.onCancelOrder,
       onReturnOrder: moneyActionViewModel.onReturnOrder,
+      onCloseReturnDisposition: moneyActionViewModel.onCloseReturnDisposition,
+      onReturnDispositionLineChange:
+        moneyActionViewModel.onReturnDispositionLineChange,
+      onSubmitReturnOrder: moneyActionViewModel.onSubmitReturnOrder,
 
       onOpenMoneyAction,
       onCloseMoneyAction: moneyActionViewModel.onCloseMoneyAction,
