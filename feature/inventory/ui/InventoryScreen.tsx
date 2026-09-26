@@ -52,9 +52,17 @@ const formatMovementDate = (timestamp: number): string => {
   });
 };
 
-const formatMovementTypeLabel = (movementType: string, reason: string | null): string => {
+const formatMovementTypeLabel = (
+  movementType: string,
+  reason: string | null,
+  sourceAction: string | null,
+): string => {
   if (movementType === InventoryMovementType.OpeningStock) {
     return "Opening Stock";
+  }
+
+  if (sourceAction === "return_restock") {
+    return "Returned Sellable";
   }
 
   if (movementType === InventoryMovementType.StockIn) {
@@ -254,7 +262,11 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
                         <Text style={styles.itemTitle}>{movement.productName}</Text>
                         <Text style={styles.itemSubtitle}>
                           {formatMovementDate(movement.movementAt)} | {" "}
-                          {formatMovementTypeLabel(movement.type, movement.reason)}
+                          {formatMovementTypeLabel(
+                            movement.type,
+                            movement.reason,
+                            movement.sourceAction,
+                          )}
                         </Text>
                       </View>
 
