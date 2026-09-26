@@ -28,7 +28,41 @@ type ResolveInventoryDeltaQuantityParams = {
   quantity: number;
   reason?: SaveInventoryMovementPayload["reason"];
   adjustmentDirection?: SaveInventoryMovementPayload["adjustmentDirection"];
-  currentStock?: number;
+};
+
+export type CountCorrectionResolution = {
+  quantity: number;
+  adjustmentDirection:
+    | typeof InventoryAdjustmentDirection.Add
+    | typeof InventoryAdjustmentDirection.Remove;
+  deltaQuantity: number;
+};
+
+export const resolveCountCorrection = (
+  currentStock: number,
+  physicalStockCount: number,
+): CountCorrectionResolution => {
+  if (!Number.isFinite(currentStock) || currentStock < 0) {
+    throw new Error("Current stock cannot be negative");
+  }
+
+  if (!Number.isFinite(physicalStockCount) || physicalStockCount < 0) {
+    throw new Error("Physical stock count cannot be negative");
+  }
+
+  const deltaQuantity = physicalStockCount - currentStock;
+  if (deltaQuantity === 0) {
+    throw new Error("Physical stock count already matches current stock");
+  }
+
+  return {
+    quantity: Math.abs(deltaQuantity),
+    adjustmentDirection:
+      deltaQuantity > 0
+        ? InventoryAdjustmentDirection.Add
+        : InventoryAdjustmentDirection.Remove,
+    deltaQuantity,
+  };
 };
 
 const normalizeRequired = (value: string): string => value.trim();
@@ -69,7 +103,6 @@ export const resolveInventoryDeltaQuantity = ({
   quantity,
   reason = null,
   adjustmentDirection = null,
-  currentStock,
 }: ResolveInventoryDeltaQuantityParams): number => {
   if (
     movementType === InventoryMovementType.StockIn ||
@@ -98,15 +131,10 @@ export const resolveInventoryDeltaQuantity = ({
     return quantity * -1;
   }
 
-  if (reason === InventoryAdjustmentReason.Correction) {
-    if (!Number.isFinite(currentStock)) {
-      throw new Error("Current stock is required for count correction");
-    }
-
-    return quantity - (currentStock as number);
-  }
-
-  if (reason === InventoryAdjustmentReason.Other) {
+  if (
+    reason === InventoryAdjustmentReason.Correction ||
+    reason === InventoryAdjustmentReason.Other
+  ) {
     if (adjustmentDirection === InventoryAdjustmentDirection.Add) {
       return quantity;
     }
@@ -115,7 +143,11 @@ export const resolveInventoryDeltaQuantity = ({
       return quantity * -1;
     }
 
-    throw new Error("Choose whether the other adjustment adds or removes stock");
+    throw new Error(
+      reason === InventoryAdjustmentReason.Correction
+        ? "Count correction direction is required"
+        : "Choose whether the other adjustment adds or removes stock",
+    );
   }
 
   throw new Error("Inventory adjustment reason is invalid");
@@ -149,20 +181,8 @@ const normalizeInventoryMovementPayload = (
   assertKnownMovementType(payload.type);
   assertKnownAdjustmentReason(payload.reason);
 
-  const isCountCorrection =
-    payload.type === InventoryMovementType.Adjustment &&
-    payload.reason === InventoryAdjustmentReason.Correction;
-
-  if (
-    !Number.isFinite(payload.quantity) ||
-    payload.quantity < 0 ||
-    (!isCountCorrection && payload.quantity <= 0)
-  ) {
-    throw new Error(
-      isCountCorrection
-        ? "Physical stock count cannot be negative"
-        : "Inventory movement quantity must be greater than zero",
-    );
+  if (!Number.isFinite(payload.quantity) || payload.quantity <= 0) {
+    throw new Error("Inventory movement quantity must be greater than zero");
   }
 
   if (payload.type === InventoryMovementType.Adjustment) {
@@ -171,11 +191,16 @@ const normalizeInventoryMovementPayload = (
     }
 
     if (
-      payload.reason === InventoryAdjustmentReason.Other &&
+      (payload.reason === InventoryAdjustmentReason.Correction ||
+        payload.reason === InventoryAdjustmentReason.Other) &&
       adjustmentDirection !== InventoryAdjustmentDirection.Add &&
       adjustmentDirection !== InventoryAdjustmentDirection.Remove
     ) {
-      throw new Error("Choose whether the other adjustment adds or removes stock");
+      throw new Error(
+        payload.reason === InventoryAdjustmentReason.Correction
+          ? "Count correction direction is required"
+          : "Choose whether the other adjustment adds or removes stock",
+      );
     }
   } else if (payload.reason !== null) {
     throw new Error("Adjustment reason can only be used for stock adjustments");
@@ -273,16 +298,7 @@ export const validateInventoryMovementPayloadsForSave = (params: {
       quantity: payload.quantity,
       reason: payload.reason,
       adjustmentDirection: payload.adjustmentDirection,
-      currentStock,
     });
-
-    if (
-      payload.type === InventoryMovementType.Adjustment &&
-      payload.reason === InventoryAdjustmentReason.Correction &&
-      deltaQuantity === 0
-    ) {
-      throw new Error("Physical stock count already matches current stock");
-    }
 
     const nextStock = currentStock + deltaQuantity;
 
