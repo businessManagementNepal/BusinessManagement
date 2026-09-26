@@ -84,7 +84,10 @@ describe("cancelOrderUseCase", () => {
     } as any;
 
     const useCase = createCancelOrderUseCase(repository);
-    const result = await useCase.execute("order-1");
+    const result = await useCase.execute({
+      remoteId: "order-1",
+      lineDispositions: [],
+    });
 
     expect(result.success).toBe(true);
     expect(repository.updateOrderStatusByRemoteId).not.toHaveBeenCalled();
@@ -100,7 +103,10 @@ describe("cancelOrderUseCase", () => {
     } as any;
 
     const useCase = createCancelOrderUseCase(repository);
-    const result = await useCase.execute("order-1");
+    const result = await useCase.execute({
+      remoteId: "order-1",
+      lineDispositions: [],
+    });
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -121,7 +127,10 @@ describe("cancelOrderUseCase", () => {
     } as any;
 
     const useCase = createCancelOrderUseCase(repository);
-    const result = await useCase.execute("order-1");
+    const result = await useCase.execute({
+      remoteId: "order-1",
+      lineDispositions: [],
+    });
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -145,7 +154,10 @@ describe("cancelOrderUseCase", () => {
     } as any;
 
     const useCase = createCancelOrderUseCase(repository);
-    const result = await useCase.execute("order-1");
+    const result = await useCase.execute({
+      remoteId: "order-1",
+      lineDispositions: [],
+    });
 
     expect(result.success).toBe(true);
     expect(repository.updateOrderStatusByRemoteId).toHaveBeenCalledWith(
@@ -170,7 +182,10 @@ describe("returnOrderUseCase", () => {
       deleteInventoryMovementsByRemoteIdsUseCase: { execute: vi.fn() } as any,
     });
 
-    const result = await useCase.execute("   ");
+    const result = await useCase.execute({
+      remoteId: "   ",
+      lineDispositions: [],
+    });
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -202,7 +217,10 @@ describe("returnOrderUseCase", () => {
         deleteInventoryMovementsByRemoteIdsUseCase as any,
     });
 
-    const result = await useCase.execute("order-1");
+    const result = await useCase.execute({
+      remoteId: "order-1",
+      lineDispositions: [],
+    });
 
     expect(result.success).toBe(true);
     expect(getProductsUseCase.execute).not.toHaveBeenCalled();
@@ -226,7 +244,10 @@ describe("returnOrderUseCase", () => {
       deleteInventoryMovementsByRemoteIdsUseCase: { execute: vi.fn() } as any,
     });
 
-    const result = await useCase.execute("order-1");
+    const result = await useCase.execute({
+      remoteId: "order-1",
+      lineDispositions: [],
+    });
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -284,7 +305,10 @@ describe("returnOrderUseCase", () => {
         deleteInventoryMovementsByRemoteIdsUseCase as any,
     });
 
-    const result = await useCase.execute("order-1");
+    const result = await useCase.execute({
+      remoteId: "order-1",
+      lineDispositions: [],
+    });
 
     expect(result.success).toBe(true);
     expect(repository.updateOrderStatusByRemoteId).toHaveBeenCalledWith(
@@ -334,13 +358,160 @@ describe("returnOrderUseCase", () => {
         deleteInventoryMovementsByRemoteIdsUseCase as any,
     });
 
-    const result = await useCase.execute("order-1");
+    const result = await useCase.execute({
+      remoteId: "order-1",
+      lineDispositions: [
+        {
+          lineRemoteId: "line-1",
+          sellableQuantity: 1,
+          nonSellableQuantity: 0,
+        },
+      ],
+    });
 
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.message).toContain("no posted delivery inventory movement");
     }
     expect(saveInventoryMovementsUseCase.execute).not.toHaveBeenCalled();
+    expect(repository.updateOrderStatusByRemoteId).not.toHaveBeenCalled();
+  });
+
+  it("records sellable and non-sellable return quantities but restocks only sellable quantity", async () => {
+    const deliveredOrder = buildOrder(OrderStatus.Delivered, {
+      items: [
+        buildTrackedOrderLine({
+          quantity: 5,
+        }),
+      ],
+    });
+
+    const repository = {
+      getOrderByRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: deliveredOrder,
+      })),
+      updateOrderStatusByRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: buildOrder(OrderStatus.Returned, {
+          items: deliveredOrder.items,
+        }),
+      })),
+    } as any;
+
+    const getProductsUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: [buildTrackedProduct()],
+      })),
+    };
+
+    const getInventoryMovementsBySourceUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: [
+          {
+            remoteId: "delivery-movement-1",
+            sourceLineRemoteId: "line-1",
+            sourceAction: "delivery_fulfillment",
+          },
+        ],
+      })),
+    };
+
+    const saveInventoryMovementsUseCase = {
+      execute: vi.fn(async (payloads) => ({
+        success: true as const,
+        value: payloads,
+      })),
+    };
+    const deleteInventoryMovementsByRemoteIdsUseCase = { execute: vi.fn() };
+
+    const useCase = createReturnOrderUseCase({
+      repository,
+      getProductsUseCase: getProductsUseCase as any,
+      getInventoryMovementsBySourceUseCase:
+        getInventoryMovementsBySourceUseCase as any,
+      saveInventoryMovementsUseCase: saveInventoryMovementsUseCase as any,
+      deleteInventoryMovementsByRemoteIdsUseCase:
+        deleteInventoryMovementsByRemoteIdsUseCase as any,
+    });
+
+    const result = await useCase.execute({
+      remoteId: "order-1",
+      lineDispositions: [
+        {
+          lineRemoteId: "line-1",
+          sellableQuantity: 3,
+          nonSellableQuantity: 2,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    expect(saveInventoryMovementsUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(saveInventoryMovementsUseCase.execute).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "stock_in",
+          quantity: 3,
+          sourceAction: "return_restock",
+        }),
+        expect.objectContaining({
+          type: "adjustment",
+          quantity: 2,
+          reason: "return_non_sellable",
+          sourceAction: "return_non_sellable",
+        }),
+      ]),
+    );
+  });
+
+  it("rejects return disposition when sellable and non-sellable quantities do not reconcile", async () => {
+    const deliveredOrder = buildOrder(OrderStatus.Delivered, {
+      items: [
+        buildTrackedOrderLine({
+          quantity: 5,
+        }),
+      ],
+    });
+
+    const repository = {
+      getOrderByRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: deliveredOrder,
+      })),
+      updateOrderStatusByRemoteId: vi.fn(),
+    } as any;
+
+    const useCase = createReturnOrderUseCase({
+      repository,
+      getProductsUseCase: {
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: [buildTrackedProduct()],
+        })),
+      } as any,
+      getInventoryMovementsBySourceUseCase: { execute: vi.fn() } as any,
+      saveInventoryMovementsUseCase: { execute: vi.fn() } as any,
+      deleteInventoryMovementsByRemoteIdsUseCase: { execute: vi.fn() } as any,
+    });
+
+    const result = await useCase.execute({
+      remoteId: "order-1",
+      lineDispositions: [
+        {
+          lineRemoteId: "line-1",
+          sellableQuantity: 2,
+          nonSellableQuantity: 1,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain("must total 5");
+    }
     expect(repository.updateOrderStatusByRemoteId).not.toHaveBeenCalled();
   });
 
@@ -418,7 +589,16 @@ describe("returnOrderUseCase", () => {
         deleteInventoryMovementsByRemoteIdsUseCase as any,
     });
 
-    const result = await useCase.execute("order-1");
+    const result = await useCase.execute({
+      remoteId: "order-1",
+      lineDispositions: [
+        {
+          lineRemoteId: "line-1",
+          sellableQuantity: 1,
+          nonSellableQuantity: 0,
+        },
+      ],
+    });
 
     expect(result.success).toBe(false);
     expect(saveInventoryMovementsUseCase.execute).toHaveBeenCalledTimes(1);
