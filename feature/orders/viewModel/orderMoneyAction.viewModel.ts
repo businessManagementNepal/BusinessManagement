@@ -7,6 +7,7 @@ import { OrderStatusValue } from "@/feature/orders/types/order.types";
 import {
   OrderMoneyActionValue,
   OrderMoneyFormState,
+  OrderReturnDispositionFormState,
 } from "@/feature/orders/types/order.state.types";
 import { OrderDetailView } from "@/feature/orders/types/order.view.types";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
@@ -34,12 +35,20 @@ export type OrderMoneyActionViewModelState = {
   isStatusModalVisible: boolean;
   statusDraft: OrderStatusValue;
   moneyForm: OrderMoneyFormState;
+  returnDispositionForm: OrderReturnDispositionFormState;
   onOpenStatusModal: () => void;
   onCloseStatusModal: () => void;
   onStatusDraftChange: (value: OrderStatusValue) => void;
   onSubmitStatus: () => Promise<void>;
   onCancelOrder: () => Promise<void>;
-  onReturnOrder: () => Promise<void>;
+  onReturnOrder: () => void;
+  onCloseReturnDisposition: () => void;
+  onReturnDispositionLineChange: (
+    lineRemoteId: string,
+    field: "sellableQuantity" | "nonSellableQuantity",
+    value: string,
+  ) => void;
+  onSubmitReturnOrder: () => Promise<void>;
   onOpenMoneyAction: (action: OrderMoneyActionValue) => void;
   onCloseMoneyAction: () => void;
   onMoneyFormChange: (
