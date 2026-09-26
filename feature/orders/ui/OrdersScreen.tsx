@@ -25,6 +25,7 @@ import {
 import { OrderDetailModal } from "./components/OrderDetailModal";
 import { OrderEditorModal } from "./components/OrderEditorModal";
 import { OrderMoneyActionModal } from "./components/OrderMoneyActionModal";
+import { OrderReturnDispositionModal } from "./components/OrderReturnDispositionModal";
 import { OrderStatusModal } from "./components/OrderStatusModal";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
@@ -253,7 +254,7 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
         onOpenStatus={viewModel.onOpenStatusModal}
         onOpenPayment={() => viewModel.onOpenMoneyAction("payment")}
         onOpenRefund={() => viewModel.onOpenMoneyAction("refund")}
-        onReturnOrder={() => Promise.resolve()}
+        onReturnOrder={viewModel.onReturnOrder}
         onCancelOrder={() => Promise.resolve()}
         onDelete={() => {
           if (!viewModel.detail) {
@@ -283,6 +284,14 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
         onChange={viewModel.onStatusDraftChange}
         onClose={viewModel.onCloseStatusModal}
         onSubmit={viewModel.onSubmitStatus}
+      />
+
+      <OrderReturnDispositionModal
+        form={viewModel.returnDispositionForm}
+        canManage={viewModel.canManage}
+        onClose={viewModel.onCloseReturnDisposition}
+        onChange={viewModel.onReturnDispositionLineChange}
+        onSubmit={viewModel.onSubmitReturnOrder}
       />
 
       <OrderMoneyActionModal
