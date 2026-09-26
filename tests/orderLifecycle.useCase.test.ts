@@ -84,10 +84,7 @@ describe("cancelOrderUseCase", () => {
     } as any;
 
     const useCase = createCancelOrderUseCase(repository);
-    const result = await useCase.execute({
-      remoteId: "order-1",
-      lineDispositions: [],
-    });
+    const result = await useCase.execute("order-1");
 
     expect(result.success).toBe(true);
     expect(repository.updateOrderStatusByRemoteId).not.toHaveBeenCalled();
@@ -103,10 +100,7 @@ describe("cancelOrderUseCase", () => {
     } as any;
 
     const useCase = createCancelOrderUseCase(repository);
-    const result = await useCase.execute({
-      remoteId: "order-1",
-      lineDispositions: [],
-    });
+    const result = await useCase.execute("order-1");
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -127,10 +121,7 @@ describe("cancelOrderUseCase", () => {
     } as any;
 
     const useCase = createCancelOrderUseCase(repository);
-    const result = await useCase.execute({
-      remoteId: "order-1",
-      lineDispositions: [],
-    });
+    const result = await useCase.execute("order-1");
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -154,10 +145,7 @@ describe("cancelOrderUseCase", () => {
     } as any;
 
     const useCase = createCancelOrderUseCase(repository);
-    const result = await useCase.execute({
-      remoteId: "order-1",
-      lineDispositions: [],
-    });
+    const result = await useCase.execute("order-1");
 
     expect(result.success).toBe(true);
     expect(repository.updateOrderStatusByRemoteId).toHaveBeenCalledWith(
