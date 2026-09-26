@@ -257,7 +257,7 @@ export const createLocalInventoryDatasource = (
           });
 
           const nextStock = currentStock + deltaQuantity;
-          if (nextStock < 0) {
+          if (nextStock < 0 && deltaQuantity < 0) {
             throw new Error(
               `Inventory movement would reduce ${product.name} below zero`,
             );
