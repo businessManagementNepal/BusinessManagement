@@ -88,8 +88,9 @@ export type SaveInventoryMovementPayload = {
   unitRate: number | null;
   reason: InventoryAdjustmentReasonValue | null;
   /**
-   * Transient input used only when reason === "other".
-   * The datasource persists the resulting signed deltaQuantity, not this field.
+   * Transient input used for count-correction and "other" adjustments.
+   * The datasource persists the positive movement quantity plus signed
+   * deltaQuantity, not this field.
    */
   adjustmentDirection?: InventoryAdjustmentDirectionValue | null;
   remark: string | null;
