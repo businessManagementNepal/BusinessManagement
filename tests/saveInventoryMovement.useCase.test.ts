@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createSaveInventoryMovementUseCase } from "@/feature/inventory/useCase/saveInventoryMovement.useCase.impl";
-import { InventoryMovementType } from "@/feature/inventory/types/inventory.types";
+import {
+  InventoryAdjustmentDirection,
+  InventoryAdjustmentReason,
+  InventoryMovementType,
+} from "@/feature/inventory/types/inventory.types";
 import {
   ProductKind,
   ProductStatus,
@@ -155,6 +159,101 @@ describe("createSaveInventoryMovementUseCase", () => {
     if (!result.success) {
       expect(result.error.message).toBe(
         "Inventory movement would reduce Rice Bag below zero",
+      );
+    }
+    expect(inventoryRepository.saveInventoryMovement).not.toHaveBeenCalled();
+  });
+
+  it("allows a count correction to repair negative projected stock", async () => {
+    const productRepository = {
+      getProductsByAccountRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: [
+          buildProduct({
+            stockQuantity: -3,
+          }),
+        ],
+      })),
+    };
+
+    const inventoryRepository = {
+      saveInventoryMovement: vi.fn(async (payload) => ({
+        success: true as const,
+        value: payload,
+      })),
+    };
+
+    const useCase = createSaveInventoryMovementUseCase({
+      inventoryRepository: inventoryRepository as never,
+      productRepository: productRepository as never,
+    });
+
+    const result = await useCase.execute({
+      remoteId: "move-correction-1",
+      accountRemoteId: "account-1",
+      productRemoteId: "product-1",
+      type: InventoryMovementType.Adjustment,
+      quantity: 3,
+      unitRate: null,
+      reason: InventoryAdjustmentReason.Correction,
+      adjustmentDirection: InventoryAdjustmentDirection.Add,
+      remark: "Physical count corrected to zero",
+      sourceModule: "manual",
+      sourceRemoteId: "correction-1",
+      sourceLineRemoteId: null,
+      sourceAction: "count_correction",
+      movementAt: Date.now(),
+    });
+
+    expect(result.success).toBe(true);
+    expect(inventoryRepository.saveInventoryMovement).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: InventoryMovementType.Adjustment,
+        quantity: 3,
+        reason: InventoryAdjustmentReason.Correction,
+        adjustmentDirection: InventoryAdjustmentDirection.Add,
+      }),
+    );
+  });
+
+  it("rejects Other adjustment until add/remove is explicitly selected", async () => {
+    const productRepository = {
+      getProductsByAccountRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: [buildProduct()],
+      })),
+    };
+
+    const inventoryRepository = {
+      saveInventoryMovement: vi.fn(),
+    };
+
+    const useCase = createSaveInventoryMovementUseCase({
+      inventoryRepository: inventoryRepository as never,
+      productRepository: productRepository as never,
+    });
+
+    const result = await useCase.execute({
+      remoteId: "move-other-1",
+      accountRemoteId: "account-1",
+      productRemoteId: "product-1",
+      type: InventoryMovementType.Adjustment,
+      quantity: 2,
+      unitRate: null,
+      reason: InventoryAdjustmentReason.Other,
+      adjustmentDirection: null,
+      remark: "Other stock adjustment",
+      sourceModule: "manual",
+      sourceRemoteId: "adjustment-1",
+      sourceLineRemoteId: null,
+      sourceAction: "manual_adjustment",
+      movementAt: Date.now(),
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toBe(
+        "Choose whether the other adjustment adds or removes stock",
       );
     }
     expect(inventoryRepository.saveInventoryMovement).not.toHaveBeenCalled();
