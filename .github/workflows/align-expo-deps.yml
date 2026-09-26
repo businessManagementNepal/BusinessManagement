@@ -1,0 +1,49 @@
+name: Align Expo SDK dependencies
+
+on:
+  push:
+    branches:
+      - feat/inventory
+    paths:
+      - .github/workflows/align-expo-deps.yml
+
+permissions:
+  contents: write
+
+jobs:
+  align:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/inventory
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install current dependencies
+        run: npm ci
+
+      - name: Align packages with Expo SDK
+        run: npx expo install --fix
+
+      - name: Verify Expo package compatibility
+        run: npx expo-doctor
+
+      - name: Commit aligned dependency files
+        shell: bash
+        run: |
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "Expo dependencies are already aligned."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore(deps): align Expo SDK 57 package versions"
+          git push origin HEAD:feat/inventory
