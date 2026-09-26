@@ -1,9 +1,14 @@
 import {
+  InventoryAdjustmentDirectionValue,
+  InventoryAdjustmentReason,
   InventoryAdjustmentReasonValue,
   InventoryMovementType,
   InventoryMovementTypeValue,
 } from "@/feature/inventory/types/inventory.types";
-import { InventoryMovementFormState } from "@/feature/inventory/viewModel/inventory.viewModel";
+import {
+  InventoryMovementFormState,
+  InventoryStockPreview,
+} from "@/feature/inventory/viewModel/inventory.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { DualCalendarDatePicker } from "@/shared/components/reusable/Form/DualCalendarDatePicker";
 import {
@@ -18,7 +23,7 @@ import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import React from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 type InventoryMovementModalProps = {
   visible: boolean;
@@ -29,6 +34,11 @@ type InventoryMovementModalProps = {
   currencyPrefix: string;
   productOptions: { label: string; value: string }[];
   adjustmentReasonOptions: readonly { label: string; value: InventoryAdjustmentReasonValue }[];
+  adjustmentDirectionOptions: readonly {
+    label: string;
+    value: InventoryAdjustmentDirectionValue;
+  }[];
+  stockPreview: InventoryStockPreview | null;
   onClose: () => void;
   onChange: (field: keyof InventoryMovementFormState, value: string) => void;
   onSubmit: () => Promise<void>;
@@ -43,12 +53,20 @@ export function InventoryMovementModal({
   currencyPrefix,
   productOptions,
   adjustmentReasonOptions,
+  adjustmentDirectionOptions,
+  stockPreview,
   onClose,
   onChange,
   onSubmit,
 }: InventoryMovementModalProps) {
   const styles = useThemedStyles(createStyles);
   const shouldExpandMoreDetails = form.remark.trim().length > 0;
+  const isAdjustment = editorType === InventoryMovementType.Adjustment;
+  const isCountCorrection =
+    isAdjustment && form.reason === InventoryAdjustmentReason.Correction;
+  const isOtherAdjustment =
+    isAdjustment && form.reason === InventoryAdjustmentReason.Other;
+  const quantityLabel = isCountCorrection ? "Actual Stock Count" : "Quantity";
 
   return (
     <FormSheetModal
@@ -93,23 +111,7 @@ export function InventoryMovementModal({
           modalTitle="Select product"
         />
 
-        <LabeledTextInput
-          label="Quantity"
-          value={form.quantity}
-          placeholder="0"
-          keyboardType="decimal-pad"
-          onChangeText={(value) => onChange("quantity", value)}
-        />
-
-        <LabeledTextInput
-          label={`Unit Rate (${currencyPrefix})`}
-          value={form.unitRate}
-          placeholder="0"
-          keyboardType="decimal-pad"
-          onChangeText={(value) => onChange("unitRate", value)}
-        />
-
-        {editorType === InventoryMovementType.Adjustment ? (
+        {isAdjustment ? (
           <LabeledDropdownField
             label="Adjustment Reason"
             value={form.reason}
@@ -122,6 +124,70 @@ export function InventoryMovementModal({
             modalTitle="Select adjustment reason"
           />
         ) : null}
+
+        {isOtherAdjustment ? (
+          <LabeledDropdownField
+            label="Stock Effect"
+            value={form.adjustmentDirection}
+            options={adjustmentDirectionOptions.map((option) => ({
+              label: option.label,
+              value: option.value,
+            }))}
+            onChange={(value) => onChange("adjustmentDirection", value)}
+            placeholder="Add or remove stock"
+            modalTitle="Select stock effect"
+          />
+        ) : null}
+
+        <LabeledTextInput
+          label={quantityLabel}
+          value={form.quantity}
+          placeholder={isCountCorrection ? "Enter physical stock count" : "0"}
+          keyboardType="decimal-pad"
+          onChangeText={(value) => onChange("quantity", value)}
+        />
+
+        {stockPreview ? (
+          <View style={styles.stockPreviewCard}>
+            <View style={styles.stockPreviewRow}>
+              <Text style={styles.stockPreviewLabel}>Current Stock</Text>
+              <Text style={styles.stockPreviewValue}>
+                {stockPreview.currentStock} {stockPreview.unitLabel}
+              </Text>
+            </View>
+            <View style={styles.stockPreviewRow}>
+              <Text style={styles.stockPreviewLabel}>Change</Text>
+              <Text
+                style={[
+                  styles.stockPreviewValue,
+                  stockPreview.deltaQuantity < 0
+                    ? styles.negativeValue
+                    : stockPreview.deltaQuantity > 0
+                      ? styles.positiveValue
+                      : null,
+                ]}
+              >
+                {stockPreview.deltaQuantity > 0 ? "+" : ""}
+                {stockPreview.deltaQuantity} {stockPreview.unitLabel}
+              </Text>
+            </View>
+            <View style={styles.stockPreviewDivider} />
+            <View style={styles.stockPreviewRow}>
+              <Text style={styles.stockPreviewStrongLabel}>Stock After</Text>
+              <Text style={styles.stockPreviewStrongValue}>
+                {stockPreview.resultingStock} {stockPreview.unitLabel}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        <LabeledTextInput
+          label={`Unit Rate (${currencyPrefix})`}
+          value={form.unitRate}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          onChangeText={(value) => onChange("unitRate", value)}
+        />
 
         <DualCalendarDatePicker
           label="Movement Date"
@@ -154,6 +220,50 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     content: {
       gap: theme.scaleSpace(spacing.md),
       paddingBottom: theme.scaleSpace(spacing.xl),
+    },
+    stockPreviewCard: {
+      gap: theme.scaleSpace(spacing.sm),
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: theme.scaleSpace(12),
+      backgroundColor: theme.colors.card,
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.md),
+    },
+    stockPreviewRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.scaleSpace(spacing.md),
+    },
+    stockPreviewDivider: {
+      height: 1,
+      backgroundColor: theme.colors.border,
+    },
+    stockPreviewLabel: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(13),
+    },
+    stockPreviewValue: {
+      color: theme.colors.cardForeground,
+      fontFamily: "InterMedium",
+      fontSize: theme.scaleText(13),
+    },
+    stockPreviewStrongLabel: {
+      color: theme.colors.cardForeground,
+      fontFamily: "InterBold",
+      fontSize: theme.scaleText(13),
+    },
+    stockPreviewStrongValue: {
+      color: theme.colors.cardForeground,
+      fontFamily: "InterBold",
+      fontSize: theme.scaleText(14),
+    },
+    negativeValue: {
+      color: theme.colors.destructive,
+    },
+    positiveValue: {
+      color: theme.colors.success,
     },
     actionButton: {
       flex: 1,

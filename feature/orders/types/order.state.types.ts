@@ -56,6 +56,23 @@ export type OrderSummaryState = {
   returnedCount: number;
 };
 
+export type OrderReturnDispositionLineState = {
+  lineRemoteId: string;
+  productName: string;
+  orderedQuantity: number;
+  unitLabel: string | null;
+  sellableQuantity: string;
+  nonSellableQuantity: string;
+  errorMessage: string | null;
+};
+
+export type OrderReturnDispositionFormState = {
+  visible: boolean;
+  orderRemoteId: string | null;
+  orderNumber: string;
+  lines: OrderReturnDispositionLineState[];
+};
+
 export type OrderMoneyActionValue = "payment" | "refund";
 
 export type OrderMoneyFormFieldName =

@@ -31,7 +31,7 @@ const buildOrder = (
 });
 
 describe("changeOrderStatusUseCase", () => {
-  it("delegates returned status to returnOrderUseCase", async () => {
+  it("rejects returned status outside the disposition flow", async () => {
     const repository = {
       getOrderByRemoteId: vi.fn(async () => ({
         success: true as const,
@@ -41,10 +41,7 @@ describe("changeOrderStatusUseCase", () => {
     } as any;
 
     const returnOrderUseCase = {
-      execute: vi.fn(async () => ({
-        success: true as const,
-        value: buildOrder(OrderStatus.Returned),
-      })),
+      execute: vi.fn(),
     };
 
     const useCase = createChangeOrderStatusUseCase({
@@ -59,8 +56,11 @@ describe("changeOrderStatusUseCase", () => {
       status: OrderStatus.Returned,
     });
 
-    expect(result.success).toBe(true);
-    expect(returnOrderUseCase.execute).toHaveBeenCalledWith("order-1");
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain("return disposition flow");
+    }
+    expect(returnOrderUseCase.execute).not.toHaveBeenCalled();
     expect(repository.updateOrderStatusByRemoteId).not.toHaveBeenCalled();
   });
 

@@ -8,8 +8,19 @@ import {
 } from "./orderMoneyAction.viewModel";
 import {
   EMPTY_MONEY_FORM,
+  EMPTY_RETURN_DISPOSITION_FORM,
   parseNumber,
 } from "./ordersPresentation.helpers";
+
+const parseReturnQuantity = (value: string): number | null => {
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 
 export const useOrderMoneyActionViewModel = ({
   canManage,
@@ -34,6 +45,9 @@ export const useOrderMoneyActionViewModel = ({
     OrderStatus.Draft,
   );
   const [moneyForm, setMoneyForm] = useState(EMPTY_MONEY_FORM);
+  const [returnDispositionForm, setReturnDispositionForm] = useState(
+    EMPTY_RETURN_DISPOSITION_FORM,
+  );
 
   const onOpenStatusModal = useCallback(() => {
     if (!detail || !canManage) {
@@ -110,7 +124,7 @@ export const useOrderMoneyActionViewModel = ({
     setSuccessMessage,
   ]);
 
-  const onReturnOrder = useCallback(async () => {
+  const onReturnOrder = useCallback(() => {
     if (!canManage) {
       setErrorMessage("You do not have permission to manage orders.");
       return;
@@ -118,13 +132,132 @@ export const useOrderMoneyActionViewModel = ({
     if (!detail) {
       return;
     }
+    if (detail.order.status !== OrderStatus.Delivered) {
+      setErrorMessage("Only delivered orders can be returned.");
+      return;
+    }
 
-    const result = await returnOrderUseCase.execute(detail.order.remoteId);
+    setSuccessMessage(null);
+    setErrorMessage(null);
+    setReturnDispositionForm({
+      visible: true,
+      orderRemoteId: detail.order.remoteId,
+      orderNumber: detail.order.orderNumber,
+      lines: detail.items
+        .filter((item) => item.isInventoryTracked)
+        .map((item) => ({
+          lineRemoteId: item.remoteId,
+          productName: item.productName,
+          orderedQuantity: item.quantity,
+          unitLabel: item.unitLabel,
+          sellableQuantity: "",
+          nonSellableQuantity: "",
+          errorMessage: null,
+        })),
+    });
+  }, [canManage, detail, setErrorMessage, setSuccessMessage]);
+
+  const onCloseReturnDisposition = useCallback(() => {
+    setReturnDispositionForm(EMPTY_RETURN_DISPOSITION_FORM);
+  }, []);
+
+  const onReturnDispositionLineChange = useCallback(
+    (
+      lineRemoteId: string,
+      field: "sellableQuantity" | "nonSellableQuantity",
+      value: string,
+    ) => {
+      setReturnDispositionForm((current) => ({
+        ...current,
+        lines: current.lines.map((line) =>
+          line.lineRemoteId === lineRemoteId
+            ? {
+                ...line,
+                [field]: value,
+                errorMessage: null,
+              }
+            : line,
+        ),
+      }));
+      setErrorMessage(null);
+    },
+    [setErrorMessage],
+  );
+
+  const onSubmitReturnOrder = useCallback(async () => {
+    if (!canManage) {
+      setErrorMessage("You do not have permission to manage orders.");
+      return;
+    }
+    if (!detail || !returnDispositionForm.orderRemoteId) {
+      return;
+    }
+
+    let hasError = false;
+    const parsedLines = returnDispositionForm.lines.map((line) => {
+      const sellableQuantity = parseReturnQuantity(line.sellableQuantity);
+      const nonSellableQuantity = parseReturnQuantity(line.nonSellableQuantity);
+
+      let errorMessage: string | null = null;
+      if (
+        sellableQuantity === null ||
+        nonSellableQuantity === null ||
+        sellableQuantity < 0 ||
+        nonSellableQuantity < 0
+      ) {
+        errorMessage = "Enter non-negative quantities for both fields.";
+      } else if (
+        Math.abs(
+          sellableQuantity + nonSellableQuantity - line.orderedQuantity,
+        ) > 1e-9
+      ) {
+        errorMessage = `Sellable + non-sellable must equal ${line.orderedQuantity} ${line.unitLabel ?? "unit"}.`;
+      }
+
+      if (errorMessage) {
+        hasError = true;
+      }
+
+      return {
+        line,
+        sellableQuantity,
+        nonSellableQuantity,
+        errorMessage,
+      };
+    });
+
+    if (hasError) {
+      setReturnDispositionForm((current) => ({
+        ...current,
+        lines: current.lines.map((line) => {
+          const parsed = parsedLines.find(
+            (candidate) => candidate.line.lineRemoteId === line.lineRemoteId,
+          );
+          return {
+            ...line,
+            errorMessage: parsed?.errorMessage ?? null,
+          };
+        }),
+      }));
+      setErrorMessage(null);
+      return;
+    }
+
+    const result = await returnOrderUseCase.execute({
+      remoteId: returnDispositionForm.orderRemoteId,
+      lineDispositions: parsedLines.map((parsed) => ({
+        lineRemoteId: parsed.line.lineRemoteId,
+        sellableQuantity: parsed.sellableQuantity as number,
+        nonSellableQuantity: parsed.nonSellableQuantity as number,
+      })),
+    });
+
     if (!result.success) {
       setErrorMessage(result.error.message);
       return;
     }
 
+    setReturnDispositionForm(EMPTY_RETURN_DISPOSITION_FORM);
     await loadAll();
     await refreshDetail(detail.order.remoteId);
     setSuccessMessage("Order returned.");
@@ -133,6 +266,7 @@ export const useOrderMoneyActionViewModel = ({
     detail,
     loadAll,
     refreshDetail,
+    returnDispositionForm,
     returnOrderUseCase,
     setErrorMessage,
     setSuccessMessage,
@@ -322,18 +456,23 @@ export const useOrderMoneyActionViewModel = ({
   const resetModalState = useCallback(() => {
     setIsStatusModalVisible(false);
     setMoneyForm(EMPTY_MONEY_FORM);
+    setReturnDispositionForm(EMPTY_RETURN_DISPOSITION_FORM);
   }, []);
 
   return {
     isStatusModalVisible,
     statusDraft,
     moneyForm,
+    returnDispositionForm,
     onOpenStatusModal,
     onCloseStatusModal,
     onStatusDraftChange: (value) => setStatusDraft(value),
     onSubmitStatus,
     onCancelOrder,
     onReturnOrder,
+    onCloseReturnDisposition,
+    onReturnDispositionLineChange,
+    onSubmitReturnOrder,
     onOpenMoneyAction,
     onCloseMoneyAction,
     onMoneyFormChange,

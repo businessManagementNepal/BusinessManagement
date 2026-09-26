@@ -16,7 +16,10 @@ export type OrderListItemView = {
 export type OrderDetailItemView = {
   remoteId: string;
   productName: string;
+  quantity: number;
   quantityLabel: string;
+  unitLabel: string | null;
+  isInventoryTracked: boolean;
   unitPriceLabel: string;
   lineTotalLabel: string;
 };

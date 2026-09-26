@@ -1,4 +1,6 @@
 import {
+  InventoryAdjustmentDirection,
+  InventoryAdjustmentReason,
   InventoryMovementType,
   SaveInventoryMovementPayload,
 } from "@/feature/inventory/types/inventory.types";
@@ -12,12 +14,55 @@ export type ValidatedInventoryMovementPayload = {
   quantity: number;
   unitRate: number | null;
   reason: SaveInventoryMovementPayload["reason"];
+  adjustmentDirection: SaveInventoryMovementPayload["adjustmentDirection"];
   remark: string | null;
   sourceModule: string | null;
   sourceRemoteId: string | null;
   sourceLineRemoteId: string | null;
   sourceAction: string | null;
   movementAt: number;
+};
+
+type ResolveInventoryDeltaQuantityParams = {
+  movementType: SaveInventoryMovementPayload["type"];
+  quantity: number;
+  reason?: SaveInventoryMovementPayload["reason"];
+  adjustmentDirection?: SaveInventoryMovementPayload["adjustmentDirection"];
+};
+
+export type CountCorrectionResolution = {
+  quantity: number;
+  adjustmentDirection:
+    | typeof InventoryAdjustmentDirection.Add
+    | typeof InventoryAdjustmentDirection.Remove;
+  deltaQuantity: number;
+};
+
+export const resolveCountCorrection = (
+  currentStock: number,
+  physicalStockCount: number,
+): CountCorrectionResolution => {
+  if (!Number.isFinite(currentStock)) {
+    throw new Error("Current stock must be a finite number");
+  }
+
+  if (!Number.isFinite(physicalStockCount) || physicalStockCount < 0) {
+    throw new Error("Physical stock count cannot be negative");
+  }
+
+  const deltaQuantity = physicalStockCount - currentStock;
+  if (deltaQuantity === 0) {
+    throw new Error("Physical stock count already matches current stock");
+  }
+
+  return {
+    quantity: Math.abs(deltaQuantity),
+    adjustmentDirection:
+      deltaQuantity > 0
+        ? InventoryAdjustmentDirection.Add
+        : InventoryAdjustmentDirection.Remove,
+    deltaQuantity,
+  };
 };
 
 const normalizeRequired = (value: string): string => value.trim();
@@ -40,14 +85,28 @@ const assertKnownMovementType = (
   }
 };
 
-export const resolveInventoryDeltaQuantity = (
-  movementType: SaveInventoryMovementPayload["type"],
-  quantity: number,
-): number => {
+const assertKnownAdjustmentReason = (
+  reason: SaveInventoryMovementPayload["reason"],
+): void => {
+  if (reason === null) {
+    return;
+  }
+
+  const allowedReasons = new Set(Object.values(InventoryAdjustmentReason));
+  if (!allowedReasons.has(reason)) {
+    throw new Error("Inventory adjustment reason is invalid");
+  }
+};
+
+export const resolveInventoryDeltaQuantity = ({
+  movementType,
+  quantity,
+  reason = null,
+  adjustmentDirection = null,
+}: ResolveInventoryDeltaQuantityParams): number => {
   if (
     movementType === InventoryMovementType.StockIn ||
-    movementType === InventoryMovementType.OpeningStock ||
-    movementType === InventoryMovementType.Adjustment
+    movementType === InventoryMovementType.OpeningStock
   ) {
     return quantity;
   }
@@ -56,7 +115,46 @@ export const resolveInventoryDeltaQuantity = (
     return quantity * -1;
   }
 
-  throw new Error("Inventory movement type is invalid");
+  if (movementType !== InventoryMovementType.Adjustment) {
+    throw new Error("Inventory movement type is invalid");
+  }
+
+  if (!reason) {
+    throw new Error("Adjustment reason is required");
+  }
+
+  if (
+    reason === InventoryAdjustmentReason.Damage ||
+    reason === InventoryAdjustmentReason.Expired ||
+    reason === InventoryAdjustmentReason.Lost
+  ) {
+    return quantity * -1;
+  }
+
+  if (reason === InventoryAdjustmentReason.ReturnedNonSellable) {
+    return 0;
+  }
+
+  if (
+    reason === InventoryAdjustmentReason.Correction ||
+    reason === InventoryAdjustmentReason.Other
+  ) {
+    if (adjustmentDirection === InventoryAdjustmentDirection.Add) {
+      return quantity;
+    }
+
+    if (adjustmentDirection === InventoryAdjustmentDirection.Remove) {
+      return quantity * -1;
+    }
+
+    throw new Error(
+      reason === InventoryAdjustmentReason.Correction
+        ? "Count correction direction is required"
+        : "Choose whether the other adjustment adds or removes stock",
+    );
+  }
+
+  throw new Error("Inventory adjustment reason is invalid");
 };
 
 const normalizeInventoryMovementPayload = (
@@ -70,6 +168,7 @@ const normalizeInventoryMovementPayload = (
   const normalizedSourceLineRemoteId = normalizeOptional(payload.sourceLineRemoteId);
   const normalizedSourceAction = normalizeOptional(payload.sourceAction);
   const normalizedRemark = normalizeOptional(payload.remark);
+  const adjustmentDirection = payload.adjustmentDirection ?? null;
 
   if (!normalizedRemoteId) {
     throw new Error("Inventory movement remote id is required");
@@ -84,9 +183,31 @@ const normalizeInventoryMovementPayload = (
   }
 
   assertKnownMovementType(payload.type);
+  assertKnownAdjustmentReason(payload.reason);
 
   if (!Number.isFinite(payload.quantity) || payload.quantity <= 0) {
     throw new Error("Inventory movement quantity must be greater than zero");
+  }
+
+  if (payload.type === InventoryMovementType.Adjustment) {
+    if (!payload.reason) {
+      throw new Error("Adjustment reason is required");
+    }
+
+    if (
+      (payload.reason === InventoryAdjustmentReason.Correction ||
+        payload.reason === InventoryAdjustmentReason.Other) &&
+      adjustmentDirection !== InventoryAdjustmentDirection.Add &&
+      adjustmentDirection !== InventoryAdjustmentDirection.Remove
+    ) {
+      throw new Error(
+        payload.reason === InventoryAdjustmentReason.Correction
+          ? "Count correction direction is required"
+          : "Choose whether the other adjustment adds or removes stock",
+      );
+    }
+  } else if (payload.reason !== null) {
+    throw new Error("Adjustment reason can only be used for stock adjustments");
   }
 
   if (!Number.isFinite(payload.movementAt) || payload.movementAt <= 0) {
@@ -121,6 +242,7 @@ const normalizeInventoryMovementPayload = (
     quantity: payload.quantity,
     unitRate: payload.unitRate,
     reason: payload.reason,
+    adjustmentDirection,
     remark: normalizedRemark,
     sourceModule: normalizedSourceModule,
     sourceRemoteId: normalizedSourceRemoteId,
@@ -175,13 +297,16 @@ export const validateInventoryMovementPayloadsForSave = (params: {
       nextStockByProductRemoteId.get(product.remoteId) ??
       (product.stockQuantity ?? 0);
 
-    const deltaQuantity = resolveInventoryDeltaQuantity(
-      payload.type,
-      payload.quantity,
-    );
+    const deltaQuantity = resolveInventoryDeltaQuantity({
+      movementType: payload.type,
+      quantity: payload.quantity,
+      reason: payload.reason,
+      adjustmentDirection: payload.adjustmentDirection,
+    });
+
     const nextStock = currentStock + deltaQuantity;
 
-    if (nextStock < 0) {
+    if (nextStock < 0 && deltaQuantity < 0) {
       throw new Error(`Inventory movement would reduce ${product.name} below zero`);
     }
 

@@ -25,11 +25,20 @@ export const InventoryAdjustmentReason = {
   Expired: "expired",
   Correction: "correction",
   Lost: "lost",
+  ReturnedNonSellable: "return_non_sellable",
   Other: "other",
 } as const;
 
 export type InventoryAdjustmentReasonValue =
   (typeof InventoryAdjustmentReason)[keyof typeof InventoryAdjustmentReason];
+
+export const InventoryAdjustmentDirection = {
+  Add: "add",
+  Remove: "remove",
+} as const;
+
+export type InventoryAdjustmentDirectionValue =
+  (typeof InventoryAdjustmentDirection)[keyof typeof InventoryAdjustmentDirection];
 
 export type InventoryStockItem = {
   productRemoteId: string;
@@ -79,6 +88,12 @@ export type SaveInventoryMovementPayload = {
   quantity: number;
   unitRate: number | null;
   reason: InventoryAdjustmentReasonValue | null;
+  /**
+   * Transient input used for count-correction and "other" adjustments.
+   * The datasource persists the positive movement quantity plus signed
+   * deltaQuantity, not this field.
+   */
+  adjustmentDirection?: InventoryAdjustmentDirectionValue | null;
   remark: string | null;
   sourceModule?: string | null;
   sourceRemoteId?: string | null;
@@ -136,4 +151,9 @@ export const INVENTORY_ADJUSTMENT_REASON_OPTIONS = [
   { label: "Count Correction", value: InventoryAdjustmentReason.Correction },
   { label: "Lost", value: InventoryAdjustmentReason.Lost },
   { label: "Other", value: InventoryAdjustmentReason.Other },
+] as const;
+
+export const INVENTORY_ADJUSTMENT_DIRECTION_OPTIONS = [
+  { label: "Add to stock", value: InventoryAdjustmentDirection.Add },
+  { label: "Remove from stock", value: InventoryAdjustmentDirection.Remove },
 ] as const;

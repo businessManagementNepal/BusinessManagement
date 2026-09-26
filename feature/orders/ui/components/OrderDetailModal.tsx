@@ -9,6 +9,7 @@ import {
   CreditCard,
   Edit2,
   Phone,
+  RotateCcw,
   Trash2,
   User,
 } from "lucide-react-native";
@@ -36,6 +37,7 @@ export function OrderDetailModal({
   onClose,
   onOpenEdit,
   onOpenStatus,
+  onReturnOrder,
   onDelete,
 }: Props) {
   const theme = useAppTheme();
@@ -114,6 +116,15 @@ export function OrderDetailModal({
                 {detail.canChangeStatus ? (
                   <Pressable style={styles.actionChip} onPress={onOpenStatus}>
                     <Text style={styles.actionChipLabel}>Status</Text>
+                  </Pressable>
+                ) : null}
+                {detail.order.status === OrderStatus.Delivered ? (
+                  <Pressable
+                    style={styles.actionChip}
+                    onPress={onReturnOrder}
+                  >
+                    <RotateCcw size={12} color={theme.colors.primary} />
+                    <Text style={styles.actionChipLabel}>Return</Text>
                   </Pressable>
                 ) : null}
                 {detail.canDelete ? (

@@ -145,6 +145,17 @@ export const OrderUnknownError: OrderError = {
   message: "An unexpected order error occurred.",
 };
 
+export type OrderReturnLineDisposition = {
+  lineRemoteId: string;
+  sellableQuantity: number;
+  nonSellableQuantity: number;
+};
+
+export type ReturnOrderInput = {
+  remoteId: string;
+  lineDispositions: readonly OrderReturnLineDisposition[];
+};
+
 export type OrderResult = Result<Order, OrderError>;
 export type OrdersResult = Result<Order[], OrderError>;
 export type OrderLineResult = Result<OrderLine, OrderError>;

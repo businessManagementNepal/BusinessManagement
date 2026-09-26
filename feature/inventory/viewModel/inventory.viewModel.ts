@@ -1,4 +1,5 @@
 import {
+  InventoryAdjustmentDirectionValue,
   InventoryAdjustmentReasonValue,
   InventoryMovement,
   InventoryMovementTypeValue,
@@ -10,6 +11,7 @@ export type InventoryMovementFormState = {
   quantity: string;
   unitRate: string;
   reason: InventoryAdjustmentReasonValue | "";
+  adjustmentDirection: InventoryAdjustmentDirectionValue | "";
   movementDate: string;
   remark: string;
 };
@@ -18,6 +20,13 @@ export type InventorySummaryState = {
   totalProducts: number;
   lowStockCount: number;
   stockValue: number;
+};
+
+export type InventoryStockPreview = {
+  currentStock: number;
+  deltaQuantity: number;
+  resultingStock: number;
+  unitLabel: string;
 };
 
 export interface InventoryViewModel {
@@ -36,6 +45,11 @@ export interface InventoryViewModel {
   editorTitle: string;
   form: InventoryMovementFormState;
   adjustmentReasonOptions: readonly { label: string; value: InventoryAdjustmentReasonValue }[];
+  adjustmentDirectionOptions: readonly {
+    label: string;
+    value: InventoryAdjustmentDirectionValue;
+  }[];
+  stockPreview: InventoryStockPreview | null;
   onRefresh: () => Promise<void>;
   onOpenStockIn: () => void;
   onOpenAdjustment: () => void;

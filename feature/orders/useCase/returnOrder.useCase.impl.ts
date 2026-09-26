@@ -3,15 +3,17 @@ import { GetInventoryMovementsBySourceUseCase } from "@/feature/inventory/useCas
 import { SaveInventoryMovementsUseCase } from "@/feature/inventory/useCase/saveInventoryMovements.useCase";
 import { OrderRepository } from "@/feature/orders/data/repository/order.repository";
 import {
-    OrderStatus,
-    OrderValidationError,
+  OrderStatus,
+  OrderValidationError,
 } from "@/feature/orders/types/order.types";
 import {
-    buildOrderInventorySourceLookupParams,
-    buildOrderReturnInventoryPayloads,
-    canTransitionOrderToReturned,
-    mapOrderInventoryMovementsByLineAndAction,
-    ORDER_INVENTORY_SOURCE_ACTION,
+  buildOrderInventorySourceLookupParams,
+  buildOrderReturnInventoryPayloads,
+  canTransitionOrderToReturned,
+  getInventoryTrackedOrderLines,
+  mapOrderInventoryMovementsByLineAndAction,
+  ORDER_INVENTORY_SOURCE_ACTION,
+  validateOrderReturnDispositions,
 } from "@/feature/orders/utils/orderInventoryLinkage.util";
 import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
 import { ReturnOrderUseCase } from "./returnOrder.useCase";
@@ -22,7 +24,7 @@ const buildRollbackAwareValidationError = (params: {
 }) =>
   OrderValidationError(
     params.rollbackMessage
-      ? `${params.primaryMessage} Rollback failed: ${params.rollbackMessage}` 
+      ? `${params.primaryMessage} Rollback failed: ${params.rollbackMessage}`
       : params.primaryMessage,
   );
 
@@ -33,8 +35,8 @@ export const createReturnOrderUseCase = (params: {
   saveInventoryMovementsUseCase: SaveInventoryMovementsUseCase;
   deleteInventoryMovementsByRemoteIdsUseCase: DeleteInventoryMovementsByRemoteIdsUseCase;
 }): ReturnOrderUseCase => ({
-  async execute(remoteId: string) {
-    const normalizedRemoteId = remoteId.trim();
+  async execute(input) {
+    const normalizedRemoteId = input.remoteId.trim();
     if (!normalizedRemoteId) {
       return {
         success: false,
@@ -77,19 +79,38 @@ export const createReturnOrderUseCase = (params: {
     const productsByRemoteId = new Map(
       productsResult.value.map((product) => [product.remoteId, product]),
     );
-
-    const returnPayloads = buildOrderReturnInventoryPayloads({
+    const trackedLines = getInventoryTrackedOrderLines({
       order,
       productsByRemoteId,
-      movementAt: Date.now(),
     });
 
-    if (returnPayloads.length === 0) {
+    try {
+      validateOrderReturnDispositions({
+        trackedLines,
+        lineDispositions: input.lineDispositions,
+      });
+    } catch (error) {
+      return {
+        success: false,
+        error: OrderValidationError(
+          error instanceof Error ? error.message : "Invalid return disposition.",
+        ),
+      };
+    }
+
+    if (trackedLines.length === 0) {
       return params.repository.updateOrderStatusByRemoteId(
         normalizedRemoteId,
         OrderStatus.Returned,
       );
     }
+
+    const returnPayloads = buildOrderReturnInventoryPayloads({
+      order,
+      productsByRemoteId,
+      lineDispositions: input.lineDispositions,
+      movementAt: Date.now(),
+    });
 
     const sourceMovementsResult =
       await params.getInventoryMovementsBySourceUseCase.execute(
@@ -110,10 +131,9 @@ export const createReturnOrderUseCase = (params: {
       sourceMovementsResult.value,
     );
 
-    for (const payload of returnPayloads) {
-      const sourceLineRemoteId = payload.sourceLineRemoteId ?? "";
+    for (const { line } of trackedLines) {
       const hasDeliveryMovement = movementByLineAndAction.has(
-        `${sourceLineRemoteId}:${ORDER_INVENTORY_SOURCE_ACTION.DeliveryFulfillment}`,
+        `${line.remoteId}:${ORDER_INVENTORY_SOURCE_ACTION.DeliveryFulfillment}`,
       );
 
       if (!hasDeliveryMovement) {
@@ -126,10 +146,30 @@ export const createReturnOrderUseCase = (params: {
       }
     }
 
+    for (const payload of returnPayloads) {
+      const existingMovement = movementByLineAndAction.get(
+        `${payload.sourceLineRemoteId}:${payload.sourceAction}`,
+      );
+
+      if (
+        existingMovement &&
+        (existingMovement.type !== payload.type ||
+          Math.abs(existingMovement.quantity - payload.quantity) > 1e-9 ||
+          existingMovement.reason !== payload.reason)
+      ) {
+        return {
+          success: false,
+          error: OrderValidationError(
+            "Existing return inventory movement does not match the selected return disposition. Reconcile the order before retrying.",
+          ),
+        };
+      }
+    }
+
     const missingReturnPayloads = returnPayloads.filter(
       (payload) =>
         !movementByLineAndAction.has(
-          `${payload.sourceLineRemoteId}:${ORDER_INVENTORY_SOURCE_ACTION.ReturnRestock}`,
+          `${payload.sourceLineRemoteId}:${payload.sourceAction}`,
         ),
     );
 

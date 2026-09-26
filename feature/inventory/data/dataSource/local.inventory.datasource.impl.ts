@@ -59,6 +59,7 @@ type PersistableInventoryMovementPayload = {
   quantity: number;
   unitRate: number | null;
   reason: SaveInventoryMovementPayload["reason"];
+  adjustmentDirection: SaveInventoryMovementPayload["adjustmentDirection"];
   remark: string | null;
   sourceModule: string | null;
   sourceRemoteId: string | null;
@@ -77,6 +78,7 @@ const normalizePersistablePayload = (
   quantity: payload.quantity,
   unitRate: payload.unitRate,
   reason: payload.reason,
+  adjustmentDirection: payload.adjustmentDirection ?? null,
   remark: normalizeOptional(payload.remark ?? null),
   sourceModule: normalizeOptional(payload.sourceModule ?? null),
   sourceRemoteId: normalizeOptional(payload.sourceRemoteId ?? null),
@@ -247,11 +249,20 @@ export const createLocalInventoryDatasource = (
             nextStockByProductRemoteId.get(product.remoteId) ??
             (product.stockQuantity ?? 0);
 
-          const deltaQuantity = resolveInventoryDeltaQuantity(
-            payload.type,
-            payload.quantity,
-          );
+          const deltaQuantity = resolveInventoryDeltaQuantity({
+            movementType: payload.type,
+            quantity: payload.quantity,
+            reason: payload.reason,
+            adjustmentDirection: payload.adjustmentDirection,
+          });
+
           const nextStock = currentStock + deltaQuantity;
+          if (nextStock < 0 && deltaQuantity < 0) {
+            throw new Error(
+              `Inventory movement would reduce ${product.name} below zero`,
+            );
+          }
+
           nextStockByProductRemoteId.set(product.remoteId, nextStock);
 
           const record = await movementCollection.create((movement) => {
@@ -367,7 +378,7 @@ export const createLocalInventoryDatasource = (
 
           const nextStock = currentStock - movement.deltaQuantity;
 
-          if (nextStock < 0) {
+          if (nextStock < 0 && movement.deltaQuantity > 0) {
             throw new Error(
               `Deleting inventory movement ${movement.remoteId} would reduce ${product.name} below zero`,
             );

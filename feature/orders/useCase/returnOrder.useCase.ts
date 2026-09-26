@@ -1,5 +1,8 @@
-import { OrderResult } from "@/feature/orders/types/order.types";
+import {
+  OrderResult,
+  ReturnOrderInput,
+} from "@/feature/orders/types/order.types";
 
 export interface ReturnOrderUseCase {
-  execute(remoteId: string): Promise<OrderResult>;
+  execute(input: ReturnOrderInput): Promise<OrderResult>;
 }

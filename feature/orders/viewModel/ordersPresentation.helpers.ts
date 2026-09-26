@@ -8,6 +8,7 @@ import {
     OrderFormState,
     OrderLineFormState,
     OrderMoneyFormState,
+    OrderReturnDispositionFormState,
 } from "@/feature/orders/types/order.state.types";
 import {
     Order,
@@ -29,7 +30,7 @@ import {
     getOrderEditBlockedReason,
     isOrderTerminalStatus,
 } from "@/feature/orders/utils/orderLifecyclePolicy.util";
-import { Product } from "@/feature/products/types/product.types";
+import { Product, ProductKind } from "@/feature/products/types/product.types";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import {
     formatCurrencyAmount,
@@ -65,6 +66,13 @@ export const EMPTY_FORM: OrderFormState = {
   status: OrderStatus.Draft,
   items: [createEmptyLineItem()],
   fieldErrors: {},
+};
+
+export const EMPTY_RETURN_DISPOSITION_FORM: OrderReturnDispositionFormState = {
+  visible: false,
+  orderRemoteId: null,
+  orderNumber: "",
+  lines: [],
 };
 
 export const EMPTY_MONEY_FORM: OrderMoneyFormState = {
@@ -418,10 +426,15 @@ export const buildOrderDetailView = (params: {
   const items: OrderDetailItemView[] = orderItems.map((item, index) => {
     const resolvedLine = resolvedLines[index];
 
+    const linkedProduct = productsByRemoteId.get(item.productRemoteId);
+
     return {
       remoteId: item.remoteId,
       productName: resolvedLine.productName,
+      quantity: item.quantity,
       quantityLabel: `${item.quantity}`,
+      unitLabel: resolvedLine.unitLabel,
+      isInventoryTracked: linkedProduct?.kind === ProductKind.Item,
       unitPriceLabel: formatCurrencyAmount({
         amount: resolvedLine.unitPrice,
         currencyCode,
@@ -625,7 +638,9 @@ export const calculateFormPricingPreview = (params: {
 };
 
 export const buildStatusOptions = (): DropdownOption[] =>
-  ORDER_STATUS_OPTIONS.map((option) => ({
+  ORDER_STATUS_OPTIONS.filter(
+    (option) => option.value !== OrderStatus.Returned,
+  ).map((option) => ({
     label: option.label,
     value: option.value,
   }));
