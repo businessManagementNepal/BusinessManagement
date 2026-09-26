@@ -246,7 +246,9 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
       />
 
       <OrderDetailModal
-        visible={viewModel.isDetailVisible}
+        visible={
+          viewModel.isDetailVisible && !viewModel.returnDispositionForm.visible
+        }
         canManage={viewModel.canManage}
         detail={viewModel.detail}
         onClose={viewModel.onCloseDetail}
