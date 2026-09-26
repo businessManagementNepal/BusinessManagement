@@ -131,6 +131,10 @@ export const resolveInventoryDeltaQuantity = ({
     return quantity * -1;
   }
 
+  if (reason === InventoryAdjustmentReason.ReturnedNonSellable) {
+    return 0;
+  }
+
   if (
     reason === InventoryAdjustmentReason.Correction ||
     reason === InventoryAdjustmentReason.Other
@@ -302,7 +306,7 @@ export const validateInventoryMovementPayloadsForSave = (params: {
 
     const nextStock = currentStock + deltaQuantity;
 
-    if (nextStock < 0) {
+    if (nextStock < 0 && deltaQuantity < 0) {
       throw new Error(`Inventory movement would reduce ${product.name} below zero`);
     }
 
