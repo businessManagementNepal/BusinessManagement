@@ -9,7 +9,10 @@ import {
 } from "lucide-react-native";
 import { DashboardTabScaffold } from "@/feature/dashboard/shared/ui/DashboardTabScaffold";
 import { InventoryViewModel } from "@/feature/inventory/viewModel/inventory.viewModel";
-import { InventoryMovementType } from "@/feature/inventory/types/inventory.types";
+import {
+  InventoryAdjustmentReason,
+  InventoryMovementType,
+} from "@/feature/inventory/types/inventory.types";
 import { StatCard } from "@/shared/components/reusable/Cards/StatCard";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
@@ -62,11 +65,15 @@ const formatMovementTypeLabel = (movementType: string, reason: string | null): s
     return "Sale";
   }
 
+  if (reason === InventoryAdjustmentReason.ReturnedNonSellable) {
+    return "Returned Non-Sellable";
+  }
+
   if (reason === null || reason.length === 0) {
     return "Adjustment";
   }
 
-  return reason.replace("_", " ");
+  return reason.replace(/_/g, " ");
 };
 
 export function InventoryScreen({ viewModel }: InventoryScreenProps) {
@@ -210,6 +217,7 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
               <View style={styles.tableContainer}>
                 {viewModel.recentMovements.map((movement, index) => {
                   const isPositiveMovement = movement.deltaQuantity > 0;
+                  const isNeutralMovement = movement.deltaQuantity === 0;
                   return (
                     <View
                       key={movement.remoteId}
@@ -223,10 +231,16 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
                       <View
                         style={[
                           styles.itemIconWrap,
-                          isPositiveMovement ? styles.positiveIcon : styles.negativeIcon,
+                          isNeutralMovement
+                            ? styles.neutralIcon
+                            : isPositiveMovement
+                              ? styles.positiveIcon
+                              : styles.negativeIcon,
                         ]}
                       >
-                        {isPositiveMovement ? (
+                        {isNeutralMovement ? (
+                          <Package size={18} color={theme.colors.mutedForeground} />
+                        ) : isPositiveMovement ? (
                           <ArrowDownLeft size={18} color={theme.colors.success} />
                         ) : (
                           <ArrowUpRight
@@ -248,11 +262,16 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
                         <Text
                           style={[
                             styles.deltaText,
-                            isPositiveMovement ? styles.deltaPositive : styles.deltaNegative,
+                            isNeutralMovement
+                              ? styles.deltaNeutral
+                              : isPositiveMovement
+                                ? styles.deltaPositive
+                                : styles.deltaNegative,
                           ]}
                         >
-                          {isPositiveMovement ? "+" : "-"}
-                          {Math.abs(movement.deltaQuantity)} {movement.productUnitLabel ?? "unit"}
+                          {isNeutralMovement
+                            ? `${movement.quantity} ${movement.productUnitLabel ?? "unit"} · no stock change`
+                            : `${isPositiveMovement ? "+" : "-"}${Math.abs(movement.deltaQuantity)} ${movement.productUnitLabel ?? "unit"}`}
                         </Text>
                       </View>
                     </View>
@@ -355,6 +374,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.creat
   negativeIcon: {
     backgroundColor: theme.isDarkMode ? "rgba(255, 107, 107, 0.16)" : "#FBE9E9",
   },
+  neutralIcon: {
+    backgroundColor: theme.colors.accent,
+  },
   stockBody: {
     flex: 1,
     gap: theme.scaleSpace(2),
@@ -409,6 +431,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.creat
   },
   deltaNegative: {
     color: theme.colors.destructive,
+  },
+  deltaNeutral: {
+    color: theme.colors.mutedForeground,
   },
   footerActionRow: {
     flexDirection: "row",
