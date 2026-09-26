@@ -65,7 +65,12 @@ export const createChangeOrderStatusUseCase = (params: {
     }
 
     if (paramsInput.status === OrderStatus.Returned) {
-      return params.returnOrderUseCase.execute(normalizedRemoteId);
+      return {
+        success: false,
+        error: OrderValidationError(
+          "Use the return disposition flow to mark a delivered order as returned.",
+        ),
+      };
     }
 
     if (
