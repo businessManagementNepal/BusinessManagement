@@ -4,6 +4,7 @@ import {
     OrderLineFormState,
     OrderMoneyActionValue,
     OrderMoneyFormState,
+    OrderReturnDispositionFormState,
 } from "@/feature/orders/types/order.state.types";
 import { OrderStatusValue } from "@/feature/orders/types/order.types";
 import {
@@ -52,6 +53,7 @@ export interface OrdersViewModel {
   statusDraft: OrderStatusValue;
 
   moneyForm: OrderMoneyFormState;
+  returnDispositionForm: OrderReturnDispositionFormState;
 
   onRefresh: () => Promise<void>;
   onOpenCreate: () => void;
@@ -81,7 +83,14 @@ export interface OrdersViewModel {
   onSubmitStatus: () => Promise<void>;
 
   onCancelOrder: () => Promise<void>;
-  onReturnOrder: () => Promise<void>;
+  onReturnOrder: () => void;
+  onCloseReturnDisposition: () => void;
+  onReturnDispositionLineChange: (
+    lineRemoteId: string,
+    field: "sellableQuantity" | "nonSellableQuantity",
+    value: string,
+  ) => void;
+  onSubmitReturnOrder: () => Promise<void>;
 
   onOpenMoneyAction: (action: OrderMoneyActionValue) => void;
   onCloseMoneyAction: () => void;
