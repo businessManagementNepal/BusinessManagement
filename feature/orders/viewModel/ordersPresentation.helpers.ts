@@ -8,6 +8,7 @@ import {
     OrderFormState,
     OrderLineFormState,
     OrderMoneyFormState,
+    OrderReturnDispositionFormState,
 } from "@/feature/orders/types/order.state.types";
 import {
     Order,
@@ -65,6 +66,13 @@ export const EMPTY_FORM: OrderFormState = {
   status: OrderStatus.Draft,
   items: [createEmptyLineItem()],
   fieldErrors: {},
+};
+
+export const EMPTY_RETURN_DISPOSITION_FORM: OrderReturnDispositionFormState = {
+  visible: false,
+  orderRemoteId: null,
+  orderNumber: "",
+  lines: [],
 };
 
 export const EMPTY_MONEY_FORM: OrderMoneyFormState = {
